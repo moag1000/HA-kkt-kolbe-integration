@@ -144,7 +144,7 @@ The integration supports configuration via UI. You'll need:
 ✅ **HACS Ready**: Installation über HACS Custom Repositories möglich
 
 - Repository: `https://github.com/moag1000/HA-kkt-kolbe-integration`
-- **Current Version: `v0.2.0`** 🆕
+- **Current Version: `v0.2.1`** 🆕
 - **New: mDNS Automatic Device Discovery** 🔍
 - Updates: Über HACS automatisch verfügbar
 
@@ -166,7 +166,13 @@ The integration supports configuration via UI. You'll need:
 - ❌ Mögliche Fehler bei der Gerätesteuerung
 - ❌ Sicherheitsrisiken bei Kochfeld-Steuerung
 
-### 🆕 Changelog v0.2.0
+### 🆕 Changelog v0.2.1
+- 🔧 **Fixed**: mDNS Discovery Timing - startet sofort beim Config Flow
+- 🔧 **Fixed**: Smarte Wartelogik (max 5s, prüft alle 500ms)
+- ✨ **Improved**: Erweiterte mDNS Service Types
+- 🐛 **Fixed**: Debug-Logging für besseres Troubleshooting
+
+### Changelog v0.2.0
 - ✨ **NEU**: mDNS Automatic Device Discovery
 - ✨ **NEU**: Vereinfachter Setup-Prozess
 - ✨ **NEU**: Automatische Gerätetyp-Erkennung
