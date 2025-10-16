@@ -1,0 +1,34 @@
+<svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="64" cy="64" r="60" fill="#2c3e50" stroke="#34495e" stroke-width="2"/>
+
+  <!-- KKT text -->
+  <text x="64" y="45" font-family="Arial, sans-serif" font-size="24" font-weight="bold"
+        text-anchor="middle" fill="#ecf0f1">KKT</text>
+
+  <!-- KOLBE text -->
+  <text x="64" y="70" font-family="Arial, sans-serif" font-size="14" font-weight="normal"
+        text-anchor="middle" fill="#bdc3c7">KOLBE</text>
+
+  <!-- Kitchen appliance icon - stylized hood/cooktop -->
+  <g transform="translate(64,85)">
+    <!-- Cooktop surface -->
+    <rect x="-25" y="0" width="50" height="8" rx="4" fill="#e74c3c"/>
+
+    <!-- Cooking zones (circles) -->
+    <circle cx="-15" cy="4" r="6" fill="#c0392b" opacity="0.8"/>
+    <circle cx="0" cy="4" r="6" fill="#c0392b" opacity="0.8"/>
+    <circle cx="15" cy="4" r="6" fill="#c0392b" opacity="0.8"/>
+
+    <!-- Hood/Ventilation element -->
+    <path d="M -20,12 Q 0,20 20,12 L 15,18 Q 0,22 -15,18 Z" fill="#95a5a6"/>
+
+    <!-- Ventilation lines -->
+    <line x1="-10" y1="15" x2="-5" y2="17" stroke="#7f8c8d" stroke-width="1"/>
+    <line x1="0" y1="16" x2="0" y2="18" stroke="#7f8c8d" stroke-width="1"/>
+    <line x1="10" y1="15" x2="5" y2="17" stroke="#7f8c8d" stroke-width="1"/>
+  </g>
+
+  <!-- Subtle accent line -->
+  <circle cx="64" cy="64" r="58" fill="none" stroke="#3498db" stroke-width="1" opacity="0.3"/>
+</svg>

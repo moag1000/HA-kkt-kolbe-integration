@@ -179,6 +179,7 @@ kkt_kolbe_integration/
 │   └── kkt_kolbe/
 │       ├── __init__.py         # Integration setup
 │       ├── manifest.json       # Integration metadata
+│       ├── icon.svg            # Integration logo
 │       ├── config_flow.py      # Configuration UI
 │       ├── const.py            # Constants and models
 │       ├── device_types.py     # Device type definitions
@@ -194,6 +195,7 @@ kkt_kolbe_integration/
 ├── config_example.yaml         # Example configuration (safe)
 ├── LOCAL_TUYA_GUIDE.md         # Alternative: Local Tuya setup
 ├── COOKTOP_SAFETY.md           # Induction cooktop safety info
+├── LOGO_INFO.md                # Logo design documentation
 ├── SECURITY.md                 # Security guidelines
 └── .gitignore                  # Prevents credential commits
 ```
