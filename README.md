@@ -275,6 +275,8 @@ Ich habe mich mit der local tuya Implementierung schwer getan, weil diverseste F
    - Gewünschte Funktionen beschreiben
    - Model-Info angeben
 
+**🔧 Für Entwickler**: Komplette Anleitung in [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)
+
 Detaillierte Anleitung: [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## File Structure
