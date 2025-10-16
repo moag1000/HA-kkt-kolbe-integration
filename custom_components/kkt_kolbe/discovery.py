@@ -620,7 +620,6 @@ async def simple_tuya_discover(timeout: int = 6) -> Dict[str, Dict]:
         device_id = device_info.get("gwId", "")
         if device_id:
             discovered[device_id] = device_info
-            _LOGGER.warning(f"🎯 DISCOVERED DEVICE: {device_id} at {device_info.get('ip', 'unknown')}")
 
     # Create UDP listeners
     loop = asyncio.get_event_loop()
@@ -634,14 +633,12 @@ async def simple_tuya_discover(timeout: int = 6) -> Dict[str, Dict]:
                     local_addr=('0.0.0.0', port)
                 )
                 listeners.append((transport, protocol))
-                _LOGGER.warning(f"✅ UDP listener started on port {port}")
+                pass  # UDP listener started successfully
             except Exception as e:
-                _LOGGER.warning(f"❌ Failed to start UDP listener on port {port}: {e}")
+                _LOGGER.warning(f"Failed to start UDP listener on port {port}: {e}")
 
         if listeners:
-            _LOGGER.warning(f"🔍 Starting {timeout}s discovery scan...")
             await asyncio.sleep(timeout)
-            _LOGGER.warning(f"⏰ Discovery scan finished. Found {len(discovered)} devices.")
 
         # Close listeners
         for transport, protocol in listeners:

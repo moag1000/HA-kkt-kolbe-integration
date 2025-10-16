@@ -532,7 +532,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 for discovered_id, device_data in _discovery_instance.discovered_devices.items():
                     if device_data.get("host") == host:
                         device_id = discovered_id
-                        _LOGGER.warning(f"🔍 Fallback: Found device_id {device_id} for IP {host} via global discovery")
                         break
 
         if not host:
@@ -644,7 +643,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 for discovered_id, device_data in _discovery_instance.discovered_devices.items():
                     if device_data.get("host") == device_host:
                         device_id = discovered_id
-                        _LOGGER.warning(f"🔍 Found device_id {device_id} for IP {device_host} via global discovery")
                         break
 
         if not device_id:
