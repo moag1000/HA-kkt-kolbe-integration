@@ -108,4 +108,6 @@ def get_device_platforms(category: str) -> list:
     elif category == CATEGORY_COOKTOP:
         return ["switch", "number", "sensor", "binary_sensor"]
     else:
-        return ["switch", "sensor"]
+        # Generic fallback: Load all platforms for unknown devices
+        # This ensures manual setup always works
+        return ["fan", "light", "switch", "sensor", "select", "number", "binary_sensor"]

@@ -50,6 +50,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     from .device_types import get_device_info_by_product_name, get_device_platforms
 
     product_name = entry.data.get("product_name", "unknown")
+
+    # For manual setup, try to detect product_name from device if possible
+    if product_name == "unknown":
+        try:
+            # Try to get device info to detect product name
+            device_status = await device.async_get_status()
+            # Here we could add logic to detect device type from status
+            # For now, use fallback detection
+            _LOGGER.info("Manual setup detected - using generic device configuration")
+        except Exception as e:
+            _LOGGER.debug(f"Could not get device status for product detection: {e}")
+
     device_info = get_device_info_by_product_name(product_name)
     platforms = get_device_platforms(device_info["category"])
 
