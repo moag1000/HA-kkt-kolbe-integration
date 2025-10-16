@@ -287,3 +287,33 @@ def get_device_entity_config(product_name: str, platform: str) -> dict:
     """Get the first entity config for a platform (for single-entity platforms like fan, light)."""
     entities = get_device_entities(product_name, platform)
     return entities[0] if entities else {}
+
+def get_known_device_choices() -> dict:
+    """Get user-friendly device choices for manual setup."""
+    choices = {}
+
+    for device_key, device_info in KNOWN_DEVICES.items():
+        # Create user-friendly name
+        device_name = device_info["name"]
+        choices[device_key] = device_name
+
+    # Add fallback options
+    choices.update({
+        "generic_hood": "Hood (Generic)",
+        "generic_cooktop": "Cooktop (Generic)",
+        "unknown": "Device type not listed"
+    })
+
+    return choices
+
+def get_product_name_from_device_choice(device_choice: str) -> str:
+    """Convert user device choice to internal product name."""
+    if device_choice in KNOWN_DEVICES:
+        # Known specific device
+        return KNOWN_DEVICES[device_choice]["product_names"][0]
+    elif device_choice == "generic_hood":
+        return "manual_hood"
+    elif device_choice == "generic_cooktop":
+        return "manual_cooktop"
+    else:
+        return "unknown"
