@@ -577,13 +577,14 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         credentials_schema = vol.Schema({
             vol.Required(CONF_ACCESS_TOKEN): str,
             vol.Optional(CONF_NAME, default=f"KKT Kolbe ({self._discovery_info['host']})"): str,
-            vol.Optional(CONF_DEVICE_ID, default=self._discovery_info.get("device_id", "")): str,
+            vol.Optional(CONF_DEVICE_ID, default=self._discovery_info.get("device_id") or self._discovery_info.get("gwId", "")): str,
         })
 
         # Debug the discovery info for zeroconf
         device_name = self._discovery_info.get("name", "Unknown")
         device_host = self._discovery_info.get("host", "Unknown")
-        device_id = self._discovery_info.get("device_id", "Unknown")
+        # Try device_id first, then gwId as fallback (like discovery does)
+        device_id = self._discovery_info.get("device_id") or self._discovery_info.get("gwId", "Unknown")
 
         _LOGGER.warning(f"🔍 Zeroconf credentials form placeholders:")
         _LOGGER.warning(f"  - device_name: {device_name}")
