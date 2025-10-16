@@ -19,6 +19,9 @@ TUYA_SERVICE_TYPES = [
     "_smartlife._tcp.local.",
     "_iot._tcp.local.",
     "_device._tcp.local.",
+    "_http._tcp.local.",          # Many IoT devices
+    "_homekit._tcp.local.",       # Some Tuya devices expose HomeKit
+    "_miio._tcp.local.",          # Xiaomi protocol (some Tuya clones)
 ]
 
 # KKT Kolbe specific patterns in device names/info
@@ -104,10 +107,13 @@ class KKTKolbeDiscovery(ServiceListener):
         if not info:
             return False
 
+        _LOGGER.debug(f"Checking device: {info.name} at {info.parsed_addresses()}")
+
         # Check device name for KKT patterns
         name_lower = info.name.lower()
         for pattern in KKT_PATTERNS:
             if pattern in name_lower:
+                _LOGGER.info(f"Found KKT device by name pattern '{pattern}': {info.name}")
                 return True
 
         # Check TXT records for device information
@@ -131,7 +137,16 @@ class KKTKolbeDiscovery(ServiceListener):
             # Check for known model IDs
             model = txt_data.get('model', '') or txt_data.get('md', '')
             if model in MODELS:
+                _LOGGER.info(f"Found KKT device by model ID '{model}': {info.name}")
                 return True
+
+            # Also check device ID patterns if available
+            device_id = txt_data.get('id', '') or txt_data.get('devid', '') or txt_data.get('device_id', '')
+            if device_id:
+                _LOGGER.debug(f"Found device with ID: {device_id}")
+
+            # Log all TXT data for debugging
+            _LOGGER.debug(f"Device TXT data: {txt_data}")
 
         return False
 
