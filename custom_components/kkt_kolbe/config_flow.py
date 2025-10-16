@@ -315,10 +315,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         device_host = self._selected_device.get("host", "Unknown")
         device_id = self._selected_device.get("device_id", "Unknown")
 
-        _LOGGER.warning(f"🔍 Credentials form placeholders:")
-        _LOGGER.warning(f"  - device_name: {device_name}")
-        _LOGGER.warning(f"  - device_host: {device_host}")
-        _LOGGER.warning(f"  - device_id: {device_id}")
+        _LOGGER.debug(f"Credentials form placeholders: name={device_name}, host={device_host}, device_id={device_id}")
 
         return self.async_show_form(
             step_id="credentials",
@@ -489,7 +486,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             discovery_info.get("properties", {}).get("devid")  # Alternative mDNS format
         )
 
-        _LOGGER.warning(f"🔍 Zeroconf step received: host={host}, name={name}, device_id={device_id}, discovered_via={discovery_info.get('discovered_via')}")
+        _LOGGER.debug(f"Zeroconf step received: host={host}, name={name}, device_id={device_id}, discovered_via={discovery_info.get('discovered_via')}")
 
         # If still no device_id, try global discovery as fallback (for pure mDNS)
         if not device_id:
@@ -538,7 +535,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         # Final debug log for dialog display
         final_device_id = self._discovery_info.get("device_id") or "Unknown"
-        _LOGGER.warning(f"🎯 DIALOG DISPLAY: name={self._discovery_info['name']}, host={self._discovery_info['host']}, device_id={final_device_id}")
+        _LOGGER.debug(f"Dialog display: name={self._discovery_info['name']}, host={self._discovery_info['host']}, device_id={final_device_id}")
 
         return self.async_show_form(
             step_id="zeroconf_confirm",
