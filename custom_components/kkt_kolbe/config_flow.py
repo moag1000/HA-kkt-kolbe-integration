@@ -336,8 +336,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             try:
-                info = await validate_input(self.hass, user_input)
-                return self.async_create_entry(title=info["title"], data=user_input)
+                # For manual setup, we don't know the product_name yet
+                # Add a placeholder that will be detected later
+                manual_config = user_input.copy()
+                manual_config["product_name"] = "unknown"  # Will be detected or remain generic
+
+                info = await validate_input(self.hass, manual_config)
+                return self.async_create_entry(title=info["title"], data=manual_config)
             except AuthenticationError as e:
                 _LOGGER.warning(f"Authentication failed: {e}")
                 # Focus on the specific field with auth issues
