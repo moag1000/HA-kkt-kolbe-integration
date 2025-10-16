@@ -264,7 +264,7 @@ class KKTKolbeTuyaDevice:
 
     def set_light_brightness(self, brightness: int):
         """Set light brightness (DP 5)."""
-        self.set_dp(5, max(0, min(255, brightness)))
+        asyncio.create_task(self.async_set_dp(5, max(0, min(255, brightness))))
 
     @property
     def rgb_brightness(self) -> int:
@@ -273,7 +273,7 @@ class KKTKolbeTuyaDevice:
 
     def set_rgb_brightness(self, brightness: int):
         """Set RGB brightness (DP 102)."""
-        self.set_dp(102, max(0, min(255, brightness)))
+        asyncio.create_task(self.async_set_dp(102, max(0, min(255, brightness))))
 
     @property
     def filter_hours(self) -> int:
@@ -282,7 +282,7 @@ class KKTKolbeTuyaDevice:
 
     def reset_filter(self):
         """Reset filter (DP 15)."""
-        self.set_dp(15, True)
+        asyncio.create_task(self.async_set_dp(15, True))
 
     def set_fan_speed_direct(self, speed: str):
         """Set fan speed directly (DP 11)."""
@@ -294,7 +294,7 @@ class KKTKolbeTuyaDevice:
             "strong": 4
         }
         if speed in speed_map:
-            self.set_dp(11, speed_map[speed])
+            asyncio.create_task(self.async_set_dp(11, speed_map[speed]))
 
     @property
     def fan_speed_setting(self) -> str:
