@@ -80,6 +80,20 @@ def get_device_info_by_product_name(product_name: str) -> dict:
     if product_name in PRODUCT_MODEL_MAPPING:
         return PRODUCT_MODEL_MAPPING[product_name]
 
+    # Handle manual setup device types
+    if product_name == "manual_hood":
+        return {
+            "model_id": "manual_hood",
+            "category": CATEGORY_HOOD,
+            "name": "KKT Hood (Manual Setup)"
+        }
+    elif product_name == "manual_cooktop":
+        return {
+            "model_id": "manual_cooktop",
+            "category": CATEGORY_COOKTOP,
+            "name": "KKT Cooktop (Manual Setup)"
+        }
+
     # Fallback: Try to detect by known patterns
     if "hermes" in product_name.lower() or "style" in product_name.lower():
         return {

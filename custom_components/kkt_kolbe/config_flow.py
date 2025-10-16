@@ -281,6 +281,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_ACCESS_TOKEN: user_input[CONF_ACCESS_TOKEN],
                     CONF_NAME: user_input.get(CONF_NAME, self._selected_device.get("product_name", "KKT Kolbe Device")),
                     CONF_TYPE: self._selected_device.get("device_type", "auto"),
+                    "product_name": self._selected_device.get("product_name", "unknown"),  # CRITICAL: Add product_name from discovery
                 }
 
                 _LOGGER.warning(f"🔧 Final device config: {device_config}")
@@ -336,10 +337,16 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             try:
-                # For manual setup, we don't know the product_name yet
-                # Add a placeholder that will be detected later
+                # For manual setup, use the device type selection from user
                 manual_config = user_input.copy()
-                manual_config["product_name"] = "unknown"  # Will be detected or remain generic
+                device_type = user_input.get(CONF_TYPE, "auto")
+
+                if device_type == "hood":
+                    manual_config["product_name"] = "manual_hood"
+                elif device_type == "cooktop":
+                    manual_config["product_name"] = "manual_cooktop"
+                else:
+                    manual_config["product_name"] = "unknown"  # auto or unspecified
 
                 info = await validate_input(self.hass, manual_config)
                 return self.async_create_entry(title=info["title"], data=manual_config)
