@@ -69,10 +69,13 @@
     },
     "error": {
       "cannot_connect": "Failed to connect to device",
-      "invalid_auth": "Invalid authentication",
+      "invalid_auth": "Invalid Local Key or authentication failed",
       "unknown": "Unexpected error",
       "missing_device_id": "Device ID missing or could not be auto-detected",
-      "no_host": "No IP address found"
+      "no_host": "No IP address found",
+      "invalid_input": "Invalid input - please check your data",
+      "network_error": "Network error - device not reachable",
+      "connection_test": "Connection test failed"
     },
     "abort": {
       "already_configured": "Device is already configured"

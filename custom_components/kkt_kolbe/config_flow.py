@@ -29,23 +29,91 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
     }
 )
 
+class ConnectionTestError(Exception):
+    """Custom exception for connection test failures."""
+    pass
+
+
+class AuthenticationError(Exception):
+    """Custom exception for authentication failures."""
+    pass
+
+
+class NetworkError(Exception):
+    """Custom exception for network-related failures."""
+    pass
+
+
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
     """Validate the user input allows us to connect."""
-    # Test connection with Tuya device
     from .tuya_device import KKTKolbeTuyaDevice
+    import socket
+    import asyncio
 
+    device_id = data[CONF_DEVICE_ID]
+    host = data[CONF_HOST]
+    local_key = data[CONF_ACCESS_TOKEN]
+
+    # First validate inputs
+    if not device_id or len(device_id) < 10:
+        raise ValueError("Device ID seems too short or invalid")
+
+    if not local_key or len(local_key) < 10:
+        raise AuthenticationError("Local Key seems too short or invalid")
+
+    # Test basic network connectivity
+    try:
+        # Quick socket test to see if host is reachable
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(3)
+        result = sock.connect_ex((host, 6668))  # Common Tuya port
+        sock.close()
+
+        if result != 0:
+            # Try ping-like test
+            import subprocess
+            ping_result = subprocess.run(['ping', '-c', '1', '-W', '3000', host],
+                                       capture_output=True, timeout=5)
+            if ping_result.returncode != 0:
+                raise NetworkError(f"Host {host} is not reachable")
+
+    except socket.timeout:
+        raise NetworkError(f"Connection to {host} timed out")
+    except socket.gaierror:
+        raise NetworkError(f"Cannot resolve hostname {host}")
+    except subprocess.TimeoutExpired:
+        raise NetworkError(f"Network timeout when trying to reach {host}")
+    except Exception as e:
+        _LOGGER.debug(f"Network pre-check failed: {e}")
+        # Continue anyway, might still work
+
+    # Test Tuya device connection
     try:
         device = KKTKolbeTuyaDevice(
-            device_id=data[CONF_DEVICE_ID],
-            ip_address=data[CONF_HOST],
-            local_key=data[CONF_ACCESS_TOKEN],
+            device_id=device_id,
+            ip_address=host,
+            local_key=local_key,
         )
+
         status = device.update_status()
         if not status:
-            raise Exception("Could not connect to device")
+            raise ConnectionTestError("Device did not respond to status request")
+
     except Exception as e:
-        _LOGGER.error(f"Connection test failed: {e}")
-        raise
+        error_msg = str(e).lower()
+
+        if "decrypt" in error_msg or "key" in error_msg:
+            raise AuthenticationError("Invalid Local Key - device rejected authentication")
+        elif "timeout" in error_msg:
+            raise NetworkError(f"Connection timeout - device at {host} not responding")
+        elif "connection" in error_msg or "refused" in error_msg:
+            raise NetworkError(f"Connection refused by device at {host}")
+        elif "device" in error_msg and "not found" in error_msg:
+            raise ConnectionTestError("Device ID not found or incorrect")
+        else:
+            # Log the actual error for debugging
+            _LOGGER.error(f"Tuya connection test failed: {e}")
+            raise ConnectionTestError(f"Could not connect to device: {str(e)}")
 
     # Auto-detect device type if set to auto
     if data.get(CONF_TYPE) == "auto":
@@ -156,9 +224,23 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
                 info = await validate_input(self.hass, device_config)
                 return self.async_create_entry(title=info["title"], data=device_config)
-            except Exception:
-                _LOGGER.exception("Unexpected exception")
+            except AuthenticationError as e:
+                _LOGGER.warning(f"Authentication failed: {e}")
+                errors["base"] = "invalid_auth"
+                errors["access_token"] = str(e)
+            except NetworkError as e:
+                _LOGGER.warning(f"Network error: {e}")
+                errors["base"] = "cannot_connect"
+            except ConnectionTestError as e:
+                _LOGGER.warning(f"Connection test failed: {e}")
+                errors["base"] = "cannot_connect"
+            except ValueError as e:
+                _LOGGER.warning(f"Invalid input: {e}")
+                errors["base"] = "invalid_input"
+            except Exception as e:
+                _LOGGER.exception("Unexpected exception during discovery setup")
                 errors["base"] = "unknown"
+                errors["general"] = f"Unexpected error: {str(e)}"
 
         credentials_schema = vol.Schema({
             vol.Required(CONF_ACCESS_TOKEN): str,
@@ -186,9 +268,28 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             try:
                 info = await validate_input(self.hass, user_input)
                 return self.async_create_entry(title=info["title"], data=user_input)
-            except Exception:
-                _LOGGER.exception("Unexpected exception")
+            except AuthenticationError as e:
+                _LOGGER.warning(f"Authentication failed: {e}")
+                errors["base"] = "invalid_auth"
+                errors["access_token"] = str(e)
+            except NetworkError as e:
+                _LOGGER.warning(f"Network error: {e}")
+                errors["base"] = "cannot_connect"
+                errors["host"] = str(e)
+            except ConnectionTestError as e:
+                _LOGGER.warning(f"Connection test failed: {e}")
+                errors["base"] = "cannot_connect"
+            except ValueError as e:
+                _LOGGER.warning(f"Invalid input: {e}")
+                errors["base"] = "invalid_input"
+                if "device id" in str(e).lower():
+                    errors["device_id"] = str(e)
+                elif "local key" in str(e).lower():
+                    errors["access_token"] = str(e)
+            except Exception as e:
+                _LOGGER.exception("Unexpected exception during validation")
                 errors["base"] = "unknown"
+                errors["general"] = f"Unexpected error: {str(e)}"
 
         return self.async_show_form(
             step_id="manual", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
@@ -367,9 +468,27 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     info = await validate_input(self.hass, device_config)
                     return self.async_create_entry(title=info["title"], data=device_config)
 
-            except Exception:
+            except AuthenticationError as e:
+                _LOGGER.warning(f"Authentication failed: {e}")
+                errors["base"] = "invalid_auth"
+                errors["access_token"] = str(e)
+            except NetworkError as e:
+                _LOGGER.warning(f"Network error: {e}")
+                errors["base"] = "cannot_connect"
+            except ConnectionTestError as e:
+                _LOGGER.warning(f"Connection test failed: {e}")
+                errors["base"] = "cannot_connect"
+            except ValueError as e:
+                _LOGGER.warning(f"Invalid input: {e}")
+                errors["base"] = "invalid_input"
+                if "device id" in str(e).lower():
+                    errors["device_id"] = str(e)
+                elif "local key" in str(e).lower():
+                    errors["access_token"] = str(e)
+            except Exception as e:
                 _LOGGER.exception("Unexpected exception during zeroconf setup")
                 errors["base"] = "unknown"
+                errors["general"] = f"Unexpected error: {str(e)}"
 
         credentials_schema = vol.Schema({
             vol.Required(CONF_ACCESS_TOKEN): str,
