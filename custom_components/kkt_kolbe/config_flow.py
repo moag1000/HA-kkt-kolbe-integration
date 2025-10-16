@@ -136,7 +136,6 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
         )
 
         status = await device.async_get_status()
-        _LOGGER.warning(f"Device connection test - status response: {status}")
 
         if not status or not isinstance(status, dict) or "dps" not in status:
             raise ConnectionTestError("Device did not respond with valid status - check device ID and local key")
@@ -146,7 +145,6 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
 
         # Handle specific error types from our tuya_device.py
         if "no compatible version found" in error_msg:
-            _LOGGER.error(f"Protocol version detection failed - trying all versions 3.3, 3.4, 3.1")
             raise ConnectionTestError("Device not responding to any Tuya protocol version. Please check: 1) Device is powered on and connected, 2) IP address is correct, 3) Local key is valid")
         elif "decrypt" in error_msg or ("key" in error_msg and "invalid" in error_msg):
             raise AuthenticationError("Invalid Local Key - device rejected authentication")
@@ -157,8 +155,6 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
         elif "device" in error_msg and "not found" in error_msg:
             raise ConnectionTestError("Device ID not found or incorrect")
         else:
-            # Log the actual error for debugging
-            _LOGGER.error(f"Tuya connection test failed: {e}")
             raise ConnectionTestError(f"Could not connect to device: {str(e)}")
 
     # Auto-detect device type if set to auto
@@ -199,20 +195,16 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # Start discovery using the working system that finds your devices
         from .discovery import async_start_discovery
 
-        _LOGGER.warning("🔍 Starting working KKT Kolbe device discovery...")
         await async_start_discovery(self.hass)
 
-        # Wait for discovery to find devices (since we know it works!)
+        # Wait for discovery to find devices
         import asyncio
-        max_wait = 8  # Wait a bit longer since discovery is working
+        max_wait = 8
         wait_interval = 0.5
-
-        _LOGGER.warning(f"Waiting up to {max_wait}s for device discovery...")
 
         for i in range(int(max_wait / wait_interval)):
             from .discovery import get_discovered_devices
             self._discovered_devices = get_discovered_devices()
-            _LOGGER.warning(f"Discovery check {i+1}: Found {len(self._discovered_devices)} devices")
             if self._discovered_devices:
                 break
             await asyncio.sleep(wait_interval)
@@ -232,7 +224,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 filtered_devices[device_id] = device_info
 
         self._discovered_devices = filtered_devices
-        _LOGGER.warning(f"🎯 Discovery finished: Found {len(self._discovered_devices)} new KKT Kolbe devices")
 
         if self._discovered_devices:
             return await self.async_step_discovery()
@@ -253,17 +244,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             device_id = user_input["device"]
             device_info = self._discovered_devices[device_id]
 
-            # Debug logging to see what we're working with
-            _LOGGER.warning(f"🔍 Selected device: {device_id}")
-            _LOGGER.warning(f"🔍 Device info: {device_info}")
-
             # Still need local key from user
             self._selected_device = device_info
 
             # Ensure device_id is properly set
             if "device_id" not in self._selected_device or not self._selected_device["device_id"]:
                 self._selected_device["device_id"] = device_id
-                _LOGGER.warning(f"🔧 Fixed missing device_id: {device_id}")
 
             return await self.async_step_credentials()
 
@@ -297,9 +283,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             try:
-                # Debug the selected device before creating config
-                _LOGGER.warning(f"🔧 Creating config from selected device: {self._selected_device}")
-
                 # Combine discovered info with user credentials
                 device_config = {
                     CONF_HOST: self._selected_device["host"],
@@ -310,22 +293,15 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     "product_name": self._selected_device.get("product_name", "unknown"),  # CRITICAL: Add product_name from discovery
                 }
 
-                _LOGGER.warning(f"🔧 Final device config: {device_config}")
-
                 info = await validate_input(self.hass, device_config)
                 return self.async_create_entry(title=info["title"], data=device_config)
             except AuthenticationError as e:
-                _LOGGER.warning(f"Authentication failed: {e}")
-                # Focus on the specific field with auth issues
                 errors["access_token"] = str(e)
             except NetworkError as e:
-                _LOGGER.warning(f"Network error: {e}")
                 errors["base"] = "cannot_connect"
             except ConnectionTestError as e:
-                _LOGGER.warning(f"Connection test failed: {e}")
                 errors["base"] = "cannot_connect"
             except ValueError as e:
-                _LOGGER.warning(f"Invalid input: {e}")
                 errors["base"] = "invalid_input"
             except Exception as e:
                 _LOGGER.exception("Unexpected exception during discovery setup")

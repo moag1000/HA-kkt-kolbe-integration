@@ -51,7 +51,6 @@ class KKTKolbeTuyaDevice:
                             test_device.status
                         )
 
-                        _LOGGER.debug(f"Version {test_version} status response: {test_status}")
 
                         # Original working condition from v1.0.2 + minimal validation
                         if test_status and isinstance(test_status, dict) and "dps" in test_status:
@@ -62,8 +61,7 @@ class KKTKolbeTuyaDevice:
                             self._connected = True
                             return
 
-                    except Exception as e:
-                        _LOGGER.debug(f"Version {test_version} failed: {e}")
+                    except Exception:
                         continue
             else:
                 # Use specified version
@@ -166,7 +164,6 @@ class KKTKolbeTuyaDevice:
                 dp,
                 value
             )
-            _LOGGER.debug(f"Set DP {dp} to {value}: {result}")
             return True
         except Exception as e:
             _LOGGER.error(f"Failed to set DP {dp} to {value}: {e}")
