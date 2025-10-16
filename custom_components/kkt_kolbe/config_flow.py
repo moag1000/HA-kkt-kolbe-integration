@@ -499,11 +499,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 for discovered_id, device_data in _discovery_instance.discovered_devices.items():
                     if device_data.get("host") == host:
                         device_id = discovered_id
-                        # Also use the product name from UDP discovery if available
-                        udp_name = device_data.get("product_name")
-                        if udp_name and udp_name != "KKT Kolbe Device":
-                            name = udp_name
-                        _LOGGER.warning(f"🔍 Fallback: Found device_id {device_id} and name {name} for IP {host} via global discovery")
+                        _LOGGER.warning(f"🔍 Fallback: Found device_id {device_id} for IP {host} via global discovery")
                         break
 
         if not host:
