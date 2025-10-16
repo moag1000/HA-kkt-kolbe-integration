@@ -170,23 +170,26 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle the initial step."""
-        # Start simple LocalTuya-style discovery
-        from .discovery import simple_tuya_discover
+        # Start discovery using the working system that finds your devices
+        from .discovery import async_start_discovery
 
-        _LOGGER.warning("🔍 Starting LocalTuya-style device discovery...")
-        discovered_devices = await simple_tuya_discover(timeout=6)
+        _LOGGER.warning("🔍 Starting working KKT Kolbe device discovery...")
+        await async_start_discovery(self.hass)
 
-        # Convert discovered devices to our format
-        self._discovered_devices = {}
-        for device_id, device_info in discovered_devices.items():
-            self._discovered_devices[device_id] = {
-                "device_id": device_id,
-                "host": device_info.get("ip", ""),
-                "name": f"KKT Device {device_id[:8]}...",
-                "discovered_via": "UDP",
-                "product_name": "KKT Kolbe Device",
-                "device_type": "auto"
-            }
+        # Wait for discovery to find devices (since we know it works!)
+        import asyncio
+        max_wait = 8  # Wait a bit longer since discovery is working
+        wait_interval = 0.5
+
+        _LOGGER.warning(f"Waiting up to {max_wait}s for device discovery...")
+
+        for i in range(int(max_wait / wait_interval)):
+            from .discovery import get_discovered_devices
+            self._discovered_devices = get_discovered_devices()
+            _LOGGER.warning(f"Discovery check {i+1}: Found {len(self._discovered_devices)} devices")
+            if self._discovered_devices:
+                break
+            await asyncio.sleep(wait_interval)
 
         _LOGGER.warning(f"🎯 Discovery finished: Found {len(self._discovered_devices)} KKT Kolbe devices")
 

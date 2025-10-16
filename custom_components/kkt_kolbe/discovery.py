@@ -74,6 +74,23 @@ class TuyaUDPDiscovery(asyncio.DatagramProtocol):
                     # Check if this could be a KKT device
                     if self._is_potential_kkt_device(device_info):
                         _LOGGER.warning(f"🎯 KKT DEVICE IDENTIFIED: {device_info}")
+
+                        # DIRECT FIX: Add device to global discovery instance
+                        global _discovery_instance
+                        if _discovery_instance:
+                            device_id = device_info.get("gwId", "")
+                            formatted_device = {
+                                "device_id": device_id,
+                                "host": device_info.get("ip"),
+                                "name": f"KKT Device {device_id[:8]}...",
+                                "discovered_via": "UDP",
+                                "product_name": "KKT Kolbe Device",
+                                "device_type": "auto"
+                            }
+                            _discovery_instance.discovered_devices[device_id] = formatted_device
+                            _LOGGER.warning(f"✅ Added device {device_id} to discovered_devices")
+
+                        # Also call callback
                         self.devices_found_callback(device_info)
                     else:
                         _LOGGER.warning(f"Non-KKT Tuya device (add to whitelist?): {device_info.get('gwId', 'unknown')}")
