@@ -77,6 +77,14 @@ Ich habe mich mit der local tuya Implementierung schwer getan, weil diverseste F
 5. **Home Assistant neu starten**
 6. **Integration hinzufügen:** Settings → Devices & Services → Add Integration → KKT Kolbe
 
+### 🔍 Automatische Geräteerkennung
+
+**✨ mDNS Discovery**: Die Integration erkennt KKT Kolbe Geräte automatisch im Netzwerk!
+
+- **Automatisch**: Gefundene Geräte werden zur Auswahl angeboten
+- **Nur Local Key nötig**: IP und Device ID werden automatisch erkannt
+- **Fallback**: Manuelle Konfiguration weiterhin möglich
+
 ### 📁 Manual Installation
 1. Download neueste [Release](https://github.com/moag1000/HA-kkt-kolbe-integration/releases)
 2. `custom_components/kkt_kolbe` nach `config/custom_components/` kopieren
@@ -90,6 +98,18 @@ Ich habe mich mit der local tuya Implementierung schwer getan, weil diverseste F
 - Bei Kochfeldern können Fehler **gefährlich** werden
 - Lesen Sie **alle Sicherheitswarnungen** in [AI_GENERATED_WARNING.md](AI_GENERATED_WARNING.md)
 - **Eigene Verantwortung** bei der Nutzung
+
+### 🔍 Setup-Optionen
+
+#### Option 1: Automatische Erkennung (Neu!)
+1. Integration hinzufügen - **Geräte werden automatisch gefunden**
+2. Gewünschtes Gerät aus Liste wählen
+3. Nur **Tuya Local Key** eingeben
+4. Fertig!
+
+#### Option 2: Manuelle Konfiguration
+1. "Manual configuration" wählen
+2. Alle Daten manuell eingeben (IP, Device ID, Local Key)
 
 ### Configuration
 The integration supports configuration via UI. You'll need:
@@ -126,6 +146,7 @@ The integration supports configuration via UI. You'll need:
 - ✅ Tuya device communication (theoretisch)
 - ✅ All device data points mapped (basierend auf API Explorer)
 - ✅ Config flow with validation
+- ✅ **mDNS automatic device discovery** ✨
 - ✅ Translations (de, en)
 - ✅ Full entity support based on device capabilities
 

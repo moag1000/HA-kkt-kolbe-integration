@@ -11,6 +11,7 @@ from homeassistant.const import (
 
 from .const import DOMAIN
 from .tuya_device import KKTKolbeTuyaDevice
+from .discovery import async_start_discovery, async_stop_discovery
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -19,6 +20,10 @@ PLATFORMS = [Platform.SENSOR, Platform.FAN, Platform.LIGHT, Platform.SWITCH, Pla
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up KKT Kolbe from a config entry."""
     hass.data.setdefault(DOMAIN, {})
+
+    # Start mDNS discovery if this is the first device
+    if not hass.data[DOMAIN]:
+        await async_start_discovery(hass)
 
     # Initialize Tuya device connection
     device = KKTKolbeTuyaDevice(
@@ -40,4 +45,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id)
+
+        # Stop discovery if no more devices
+        if not hass.data[DOMAIN]:
+            await async_stop_discovery()
+
     return unload_ok
