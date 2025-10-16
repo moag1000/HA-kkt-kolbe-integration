@@ -81,34 +81,17 @@ class TuyaUDPDiscovery(asyncio.DatagramProtocol):
                         if _discovery_instance:
                             device_id = device_info.get("gwId", "")
 
-                            # Check if device is already configured
-                            existing = False
-                            hass_instance = getattr(self, 'hass', None) or getattr(_discovery_instance, 'hass', None)
-                            if hass_instance:
-                                try:
-                                    # Check existing config entries for this device ID
-                                    for entry in hass_instance.config_entries.async_entries("kkt_kolbe"):
-                                        if entry.data.get("device_id") == device_id:
-                                            existing = True
-                                            _LOGGER.debug(f"Device {device_id} already configured, skipping discovery")
-                                            break
-                                except Exception as e:
-                                    _LOGGER.debug(f"Could not check existing config entries: {e}")
-                                    # If we can't check, assume device is not configured (safer)
-
-                            if not existing:
-                                formatted_device = {
-                                    "device_id": device_id,
-                                    "host": device_info.get("ip"),
-                                    "name": f"KKT Device {device_id[:8]}...",
-                                    "discovered_via": "UDP",
-                                    "product_name": "KKT Kolbe Device",
-                                    "device_type": "auto"
-                                }
-                                _discovery_instance.discovered_devices[device_id] = formatted_device
-                                _LOGGER.warning(f"✅ Added device {device_id} to discovered_devices")
-                            else:
-                                _LOGGER.info(f"⏭️ Device {device_id} already configured, skipping")
+                            # LocalTuya approach: Just collect all devices, let config flow filter duplicates
+                            formatted_device = {
+                                "device_id": device_id,
+                                "host": device_info.get("ip"),
+                                "name": f"KKT Device {device_id[:8]}...",
+                                "discovered_via": "UDP",
+                                "product_name": "KKT Kolbe Device",
+                                "device_type": "auto"
+                            }
+                            _discovery_instance.discovered_devices[device_id] = formatted_device
+                            _LOGGER.warning(f"✅ Added device {device_id} to discovered_devices")
 
                         # Also call callback
                         self.devices_found_callback(device_info)

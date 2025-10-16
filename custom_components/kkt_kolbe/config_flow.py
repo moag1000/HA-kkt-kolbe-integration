@@ -191,7 +191,22 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 break
             await asyncio.sleep(wait_interval)
 
-        _LOGGER.warning(f"🎯 Discovery finished: Found {len(self._discovered_devices)} KKT Kolbe devices")
+        # Filter out already configured devices (LocalTuya approach)
+        filtered_devices = {}
+        for device_id, device_info in self._discovered_devices.items():
+            # Check if device is already configured
+            already_configured = False
+            for entry in self.hass.config_entries.async_entries("kkt_kolbe"):
+                if entry.data.get("device_id") == device_id:
+                    already_configured = True
+                    _LOGGER.info(f"⏭️ Device {device_id} already configured, filtering out")
+                    break
+
+            if not already_configured:
+                filtered_devices[device_id] = device_info
+
+        self._discovered_devices = filtered_devices
+        _LOGGER.warning(f"🎯 Discovery finished: Found {len(self._discovered_devices)} new KKT Kolbe devices")
 
         if self._discovered_devices:
             return await self.async_step_discovery()
