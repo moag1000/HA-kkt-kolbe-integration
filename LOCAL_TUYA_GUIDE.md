@@ -37,9 +37,12 @@ Gleiche Tuya-Credentials wie für unsere Integration:
 ## 🍳 KKT Kolbe HERMES & STYLE (Dunstabzugshaube)
 
 ### Device Information
+- **Model:** KKT Kolbe HERMES & STYLE
 - **Model ID:** e1k6i0zo
+- **Product ID:** ypaixllljc2dcpae
 - **Category:** yyj (Dunstabzugshaube)
 - **Protocol:** 3.3
+- **Manufacturer:** KKT Kolbe
 
 ### Data Points (DPs) Mapping
 
@@ -54,55 +57,93 @@ Gleiche Tuya-Credentials wie für unsere Integration:
 
 ### LocalTuya Konfiguration
 
-1. **Integration hinzufügen:** Settings → Devices & Services → Add Integration → LocalTuya
-2. **Device hinzufügen:**
-   - Device ID: `[Ihre Device ID]`
-   - Host: `[Ihre IP]`
-   - Device Key: `[Ihr Local Key]`
-   - Protocol Version: `3.3`
-   - Device Name: `KKT Kolbe Hood`
+#### Schritt 1: Integration hinzufügen
+1. **Home Assistant** → **Settings** → **Devices & Services**
+2. **Add Integration** (unten rechts) → Suche nach **"LocalTuya"**
+3. Falls nicht gefunden: Integration zuerst über HACS installieren
 
-3. **Entities konfigurieren:**
+#### Schritt 2: Device hinzufügen
+1. **Add a new device** klicken
+2. **Manually add device** wählen (nicht Cloud API)
+3. **Device Configuration:**
+   - **Device ID:** `bf735dfe2ad64fba7c[XXXX]` (Ihre echte Device ID)
+   - **Host:** `192.168.1.XXX` (Ihre lokale IP)
+   - **Device Key:** `[Ihr Local Key]` (geheim halten!)
+   - **Protocol Version:** `3.3`
+   - **Device Name:** `KKT HERMES & STYLE`
+   - **Model:** `HERMES & STYLE`
+4. **Submit** klicken
 
-#### Main Power Switch
-- **Platform:** Switch
-- **DP:** 1
-- **Name:** Hood Power
+#### Schritt 3: Entities konfigurieren
 
-#### Light Control
-- **Platform:** Light
-- **DP:** 4
-- **Name:** Hood Light
+**Wichtig:** Schließen Sie die Smart Life App während der Konfiguration!
 
-#### Fan Control
-- **Platform:** Fan
-- **DP:** 10
-- **Name:** Hood Fan
+#### Entity 1: Main Power Switch
+1. **Add Entity** klicken
+2. **Platform:** `switch`
+3. **Entity DP:** `1`
+4. **Friendly name:** `Hood Power`
+5. **Current/On value:** `True`
+6. **Submit**
 
-#### Timer
-- **Platform:** Number
-- **DP:** 13
-- **Min Value:** 0
-- **Max Value:** 60
-- **Name:** Hood Timer
+#### Entity 2: Light Control
+1. **Add Entity** klicken
+2. **Platform:** `light`
+3. **Entity DP:** `4`
+4. **Friendly name:** `Hood Light`
+5. **Current/On value:** `True`
+6. **Submit**
 
-#### Filter Alert
-- **Platform:** Binary Sensor
-- **DP:** 6
-- **Name:** Filter Alert
+#### Entity 3: Fan Control
+1. **Add Entity** klicken
+2. **Platform:** `fan`
+3. **Entity DP:** `10`
+4. **Friendly name:** `Hood Fan`
+5. **Speed List DP:** `10` (gleiche DP)
+6. **Speed List Values:** `off,low,middle,high,strong`
+7. **Submit**
 
-#### RGB Mode
-- **Platform:** Select
-- **DP:** 101
-- **Options:** `0,1,2,3,4,5,6,7,8,9`
-- **Name:** RGB Mode
+#### Entity 4: Timer Control
+1. **Add Entity** klicken
+2. **Platform:** `number`
+3. **Entity DP:** `13`
+4. **Friendly name:** `Hood Timer`
+5. **Min Value:** `0`
+6. **Max Value:** `60`
+7. **Step Size:** `1`
+8. **Submit**
+
+#### Entity 5: Filter Alert
+1. **Add Entity** klicken
+2. **Platform:** `binary_sensor`
+3. **Entity DP:** `6`
+4. **Friendly name:** `Filter Alert`
+5. **Current/On value:** `True`
+6. **Submit**
+
+#### Entity 6: RGB Light Mode
+1. **Add Entity** klicken
+2. **Platform:** `select`
+3. **Entity DP:** `101`
+4. **Friendly name:** `RGB Mode`
+5. **Select Options:** `Off,White,Warm White,Cool White,Red,Green,Blue,Yellow,Purple,Rainbow`
+6. **Select Options Values:** `0,1,2,3,4,5,6,7,8,9`
+7. **Submit**
+
+#### Schritt 4: Konfiguration abschließen
+1. **Submit** (Device-Konfiguration)
+2. Das Gerät sollte nun unter **Devices & Services** → **LocalTuya** erscheinen
+3. Alle 6 Entities sollten funktionieren
 
 ## 🔥 KKT IND7705HC (Induktionskochfeld)
 
 ### Device Information
+- **Model:** KKT IND7705HC
 - **Model ID:** e1kc5q64
+- **Product ID:** p8volecsgzdyun29
 - **Category:** dcl (Induktionskochfeld)
 - **Protocol:** 3.3
+- **Manufacturer:** KKT Kolbe
 
 ### ⚠️ SICHERHEITSWARNUNG
 **Bei Kochfeldern können Konfigurationsfehler zu gefährlichen Situationen führen!**
@@ -133,41 +174,67 @@ Gleiche Tuya-Credentials wie für unsere Integration:
 
 ### LocalTuya Basis-Konfiguration
 
-1. **Device hinzufügen:**
-   - Device ID: `[Ihre Device ID]`
-   - Host: `[Ihre IP]`
-   - Device Key: `[Ihr Local Key]`
-   - Protocol Version: `3.3`
-   - Device Name: `KKT Cooktop`
+#### Schritt 1: Device hinzufügen
+1. **Home Assistant** → **Settings** → **Devices & Services** → **LocalTuya**
+2. **Add a new device** → **Manually add device**
+3. **Device Configuration:**
+   - **Device ID:** `bf5592b47738c5b46e[XXXX]` (Ihre echte Device ID)
+   - **Host:** `192.168.1.XXX` (Ihre lokale IP)
+   - **Device Key:** `[Ihr Local Key]` (geheim halten!)
+   - **Protocol Version:** `3.3`
+   - **Device Name:** `KKT IND7705HC`
+   - **Model:** `IND7705HC`
 
-2. **Basis Entities:**
+#### Schritt 2: Basis Entities (SICHER):
 
-#### Main Power
-- **Platform:** Switch
-- **DP:** 101
-- **Name:** Cooktop Power
+**⚠️ WARNUNG:** Testen Sie jede Entity einzeln und überwachen Sie das Gerät!
 
-#### Child Lock
-- **Platform:** Switch
-- **DP:** 103
-- **Name:** Child Lock
+#### Entity 1: Main Power (START HIER)
+1. **Add Entity** klicken
+2. **Platform:** `switch`
+3. **Entity DP:** `101`
+4. **Friendly name:** `Cooktop Power`
+5. **Current/On value:** `True`
+6. **Submit**
+7. **⚠️ TESTEN:** Ein-/Ausschalten und physisch prüfen!
 
-#### Pause Function
-- **Platform:** Switch
-- **DP:** 102
-- **Name:** Cooktop Pause
+#### Entity 2: Child Lock (SICHERHEIT)
+1. **Add Entity** klicken
+2. **Platform:** `switch`
+3. **Entity DP:** `103`
+4. **Friendly name:** `Child Lock`
+5. **Current/On value:** `True`
+6. **Submit**
+7. **🔒 TESTEN:** Kindersicherung aktivieren/deaktivieren
 
-#### General Timer
-- **Platform:** Number
-- **DP:** 134
-- **Min Value:** 0
-- **Max Value:** 99
-- **Name:** General Timer
+#### Entity 3: Pause Function
+1. **Add Entity** klicken
+2. **Platform:** `switch`
+3. **Entity DP:** `102`
+4. **Friendly name:** `Cooktop Pause`
+5. **Current/On value:** `True`
+6. **Submit**
+7. **⏸️ TESTEN:** Pause-Funktion testen
 
-#### Senior Mode
-- **Platform:** Switch
-- **DP:** 145
-- **Name:** Senior Mode
+#### Entity 4: General Timer
+1. **Add Entity** klicken
+2. **Platform:** `number`
+3. **Entity DP:** `134`
+4. **Friendly name:** `General Timer`
+5. **Min Value:** `0`
+6. **Max Value:** `99`
+7. **Step Size:** `1`
+8. **Submit**
+9. **⏰ TESTEN:** Timer auf 5 Min setzen und prüfen
+
+#### Entity 5: Senior Mode
+1. **Add Entity** klicken
+2. **Platform:** `switch`
+3. **Entity DP:** `145`
+4. **Friendly name:** `Senior Mode`
+5. **Current/On value:** `True`
+6. **Submit**
+7. **👤 TESTEN:** Senioren-Modus aktivieren
 
 ### 🚫 Limitierungen in LocalTuya
 
@@ -179,9 +246,9 @@ Gleiche Tuya-Credentials wie für unsere Integration:
 
 **Grund:** Diese DPs verwenden komplexe Bitmasken, die in LocalTuya manuell dekodiert werden müssten.
 
-## 🔧 Debugging
+## 🔧 Debugging und Problemlösung
 
-Falls Probleme auftreten:
+### Schritt 1: Logging aktivieren
 
 ```yaml
 # configuration.yaml
@@ -191,6 +258,49 @@ logger:
     custom_components.localtuya: debug
     custom_components.localtuya.pytuya: debug
 ```
+
+### Schritt 2: DP-Status prüfen
+
+1. **Developer Tools** → **Services**
+2. Service: `localtuya.reload`
+3. **Call Service** (refresht alle LocalTuya Geräte)
+
+### Schritt 3: Manuelle DP-Tests
+
+#### Für HERMES & STYLE:
+```yaml
+# Test DP 1 (Power)
+service: localtuya.set_dp
+data:
+  device_id: "bf735dfe2ad64fba7c[XXXX]"
+  dp: 1
+  value: true
+```
+
+#### Für IND7705HC:
+```yaml
+# Test DP 101 (Power) - VORSICHTIG!
+service: localtuya.set_dp
+data:
+  device_id: "bf5592b47738c5b46e[XXXX]"
+  dp: 101
+  value: true
+```
+
+### Häufige Probleme:
+
+**Problem:** "Device not responding"
+- ➡️ Smart Life App schließen
+- ➡️ IP-Adresse prüfen (Router-Interface)
+- ➡️ Local Key erneut extrahieren
+
+**Problem:** "Protocol version mismatch"
+- ➡️ Versuchen Sie 3.1, 3.2, 3.3, 3.4
+- ➡️ Bei KKT meist 3.3 korrekt
+
+**Problem:** "Entity not updating"
+- ➡️ DP-Nummer doppelt prüfen
+- ➡️ Gerät physisch betätigen und Logs prüfen
 
 ## 🆚 Fazit
 
