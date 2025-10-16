@@ -55,8 +55,9 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     local_key = data[CONF_ACCESS_TOKEN]
 
     # First validate inputs
-    if not device_id or len(device_id) != 20:
-        raise ValueError("Device ID must be exactly 20 characters (Tuya standard)")
+    # Tuya device IDs are typically 20-22 characters (e.g., bf735dfe2ad64fba7cpyhn)
+    if not device_id or len(device_id) < 20 or len(device_id) > 22:
+        raise ValueError("Device ID must be 20-22 characters (found in your Tuya app)")
 
     if not local_key or len(local_key) < 10:
         raise AuthenticationError("Local Key seems too short or invalid")
@@ -148,6 +149,18 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._discovered_devices = {}
         self._selected_device = None
         self._discovery_info = None
+
+    def _create_schema_with_defaults(self, user_input: dict[str, Any]) -> vol.Schema:
+        """Create schema with preserved user input as defaults."""
+        return vol.Schema(
+            {
+                vol.Required(CONF_HOST, default=user_input.get(CONF_HOST, "")): str,
+                vol.Required(CONF_DEVICE_ID, default=user_input.get(CONF_DEVICE_ID, "")): str,
+                vol.Required(CONF_ACCESS_TOKEN, default=user_input.get(CONF_ACCESS_TOKEN, "")): str,
+                vol.Optional(CONF_TYPE, default=user_input.get(CONF_TYPE, "auto")): vol.In(["auto", "hood", "cooktop"]),
+                vol.Optional(CONF_NAME, default=user_input.get(CONF_NAME, "KKT Kolbe Device")): str,
+            }
+        )
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -242,7 +255,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return self.async_create_entry(title=info["title"], data=device_config)
             except AuthenticationError as e:
                 _LOGGER.warning(f"Authentication failed: {e}")
-                errors["base"] = "invalid_auth"
+                # Focus on the specific field with auth issues
                 errors["access_token"] = str(e)
             except NetworkError as e:
                 _LOGGER.warning(f"Network error: {e}")
@@ -286,7 +299,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return self.async_create_entry(title=info["title"], data=user_input)
             except AuthenticationError as e:
                 _LOGGER.warning(f"Authentication failed: {e}")
-                errors["base"] = "invalid_auth"
+                # Focus on the specific field with auth issues
                 errors["access_token"] = str(e)
             except NetworkError as e:
                 _LOGGER.warning(f"Network error: {e}")
@@ -297,18 +310,26 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "cannot_connect"
             except ValueError as e:
                 _LOGGER.warning(f"Invalid input: {e}")
-                errors["base"] = "invalid_input"
+                # Don't set base error if we can be specific about the field
                 if "device id" in str(e).lower():
                     errors["device_id"] = str(e)
                 elif "local key" in str(e).lower():
                     errors["access_token"] = str(e)
+                else:
+                    errors["base"] = "invalid_input"
             except Exception as e:
                 _LOGGER.exception("Unexpected exception during validation")
                 errors["base"] = "unknown"
                 errors["general"] = f"Unexpected error: {str(e)}"
 
+        # Preserve user input on error
+        if user_input is not None:
+            data_schema = self._create_schema_with_defaults(user_input)
+        else:
+            data_schema = STEP_USER_DATA_SCHEMA
+
         return self.async_show_form(
-            step_id="manual", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
+            step_id="manual", data_schema=data_schema, errors=errors
         )
 
     async def async_step_choose_setup(
@@ -487,7 +508,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             except AuthenticationError as e:
                 _LOGGER.warning(f"Authentication failed: {e}")
-                errors["base"] = "invalid_auth"
+                # Focus on the specific field with auth issues
                 errors["access_token"] = str(e)
             except NetworkError as e:
                 _LOGGER.warning(f"Network error: {e}")
@@ -497,11 +518,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "cannot_connect"
             except ValueError as e:
                 _LOGGER.warning(f"Invalid input: {e}")
-                errors["base"] = "invalid_input"
+                # Don't set base error if we can be specific about the field
                 if "device id" in str(e).lower():
                     errors["device_id"] = str(e)
                 elif "local key" in str(e).lower():
                     errors["access_token"] = str(e)
+                else:
+                    errors["base"] = "invalid_input"
             except Exception as e:
                 _LOGGER.exception("Unexpected exception during zeroconf setup")
                 errors["base"] = "unknown"
