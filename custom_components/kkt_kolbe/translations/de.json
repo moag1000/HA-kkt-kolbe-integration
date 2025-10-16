@@ -69,10 +69,13 @@
     },
     "error": {
       "cannot_connect": "Verbindung zum Gerät fehlgeschlagen",
-      "invalid_auth": "Ungültige Authentifizierung",
+      "invalid_auth": "Ungültiger Local Key oder Authentifizierung fehlgeschlagen",
       "unknown": "Unerwarteter Fehler",
       "missing_device_id": "Geräte-ID fehlt oder konnte nicht automatisch erkannt werden",
-      "no_host": "Keine IP-Adresse gefunden"
+      "no_host": "Keine IP-Adresse gefunden",
+      "invalid_input": "Ungültige Eingabe - bitte überprüfen Sie Ihre Daten",
+      "network_error": "Netzwerkfehler - Gerät nicht erreichbar",
+      "connection_test": "Verbindungstest fehlgeschlagen"
     },
     "abort": {
       "already_configured": "Gerät ist bereits konfiguriert"
