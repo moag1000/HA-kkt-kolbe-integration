@@ -82,18 +82,19 @@ class TuyaUDPDiscovery(asyncio.DatagramProtocol):
                             device_id = device_info.get("gwId", "")
 
                             # Check if device is already configured
-                            from homeassistant.helpers import device_registry
-                            device_reg = device_registry.async_get(self.hass if hasattr(self, 'hass') else None)
-
-                            # Check existing config entries for this device ID
                             existing = False
                             hass_instance = getattr(self, 'hass', None) or getattr(_discovery_instance, 'hass', None)
                             if hass_instance:
-                                for entry in hass_instance.config_entries.async_entries("kkt_kolbe"):
-                                    if entry.data.get("device_id") == device_id:
-                                        existing = True
-                                        _LOGGER.debug(f"Device {device_id} already configured, skipping discovery")
-                                        break
+                                try:
+                                    # Check existing config entries for this device ID
+                                    for entry in hass_instance.config_entries.async_entries("kkt_kolbe"):
+                                        if entry.data.get("device_id") == device_id:
+                                            existing = True
+                                            _LOGGER.debug(f"Device {device_id} already configured, skipping discovery")
+                                            break
+                                except Exception as e:
+                                    _LOGGER.debug(f"Could not check existing config entries: {e}")
+                                    # If we can't check, assume device is not configured (safer)
 
                             if not existing:
                                 formatted_device = {
