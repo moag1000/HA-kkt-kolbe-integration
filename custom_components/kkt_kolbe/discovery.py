@@ -107,7 +107,7 @@ class TuyaUDPDiscovery(asyncio.DatagramProtocol):
 
         # Check against known KKT device ID patterns
         known_patterns = [
-            'bf735dfe2ad64fba7c',  # HERMES & STYLE
+            'bf735dfe2ad64fba7c',  # HERMES & STYLE (exact from your test: bf735dfe2ad64fba7cpyhn)
             'bf5592b47738c5b46e',  # IND7705HC
         ]
 
@@ -115,6 +115,12 @@ class TuyaUDPDiscovery(asyncio.DatagramProtocol):
             if gw_id.startswith(pattern):
                 _LOGGER.info(f"Found KKT device via UDP: {gw_id}")
                 return True
+
+        # TEMPORARY: Accept any Tuya device for debugging
+        # This helps identify actual device IDs in your network
+        if gw_id and len(gw_id) >= 20 and gw_id.startswith('bf'):
+            _LOGGER.warning(f"Unknown Tuya device found (could be KKT): {gw_id} - please check if this is your KKT device!")
+            return True  # Temporarily accept for identification
 
         # Log all Tuya devices for debugging
         _LOGGER.debug(f"Non-KKT Tuya device found via UDP: {gw_id}")
@@ -362,6 +368,12 @@ class KKTKolbeDiscovery(ServiceListener):
             if device_id.startswith(pattern):
                 _LOGGER.info(f"Found KKT device by device ID pattern '{pattern}': {info.name}")
                 return True
+
+        # TEMPORARY: Accept any Tuya device for debugging
+        # This helps identify actual device IDs in your network
+        if device_id and len(device_id) >= 20 and device_id.startswith('bf'):
+            _LOGGER.warning(f"Unknown Tuya device found via mDNS (could be KKT): {info.name} - DeviceID: {device_id} - please check if this is your KKT device!")
+            return True  # Temporarily accept for identification
 
         # For debugging: log all Tuya devices for manual verification
         _LOGGER.info(f"Unidentified Tuya device: {info.name} - Model: {model}, DeviceID: {device_id}")
