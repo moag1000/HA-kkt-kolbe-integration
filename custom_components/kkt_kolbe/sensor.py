@@ -1,55 +1,19 @@
-"""Sensor platform for KKT Kolbe Dunstabzugshaube."""
+"""Sensor platform for KKT Kolbe devices."""
 import logging
 from homeassistant.components.sensor import (
     SensorEntity,
-    SensorEntityDescription,
     SensorDeviceClass,
     SensorStateClass,
 )
-from homeassistant.const import (
-    UnitOfTemperature,
-    UnitOfTime,
-    PERCENTAGE,
-)
+from homeassistant.const import UnitOfTemperature
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import DOMAIN
+from .const import DOMAIN
+from .device_types import get_device_entities
 
 _LOGGER = logging.getLogger(__name__)
-
-SENSOR_TYPES = [
-    SensorEntityDescription(
-        key="filter_hours",
-        name="Filter Betriebsstunden",
-        icon="mdi:air-filter",
-        device_class=SensorDeviceClass.DURATION,
-        state_class=SensorStateClass.TOTAL_INCREASING,
-        native_unit_of_measurement=UnitOfTime.HOURS,
-    ),
-    SensorEntityDescription(
-        key="filter_saturation",
-        name="Filter Sättigung",
-        icon="mdi:filter-variant",
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=PERCENTAGE,
-    ),
-    SensorEntityDescription(
-        key="air_quality",
-        name="Luftqualität",
-        icon="mdi:air-purifier",
-        device_class=SensorDeviceClass.AQI,
-        state_class=SensorStateClass.MEASUREMENT,
-    ),
-    SensorEntityDescription(
-        key="temperature",
-        name="Temperatur",
-        device_class=SensorDeviceClass.TEMPERATURE,
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-    ),
-]
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -57,25 +21,135 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up KKT Kolbe sensor entities."""
+    device = hass.data[DOMAIN][entry.entry_id]["device"]
+    product_name = hass.data[DOMAIN][entry.entry_id].get("product_name", "unknown")
+
     entities = []
+    sensor_configs = get_device_entities(product_name, "sensor")
 
-    for description in SENSOR_TYPES:
-        entities.append(KKTKolbeSensor(entry, description))
+    for config in sensor_configs:
+        if "zone" in config:
+            # Zone-specific sensor
+            entities.append(KKTKolbeZoneSensor(entry, device, config))
+        else:
+            # Regular sensor
+            entities.append(KKTKolbeSensor(entry, device, config))
 
-    async_add_entities(entities)
+    if entities:
+        async_add_entities(entities)
 
 class KKTKolbeSensor(SensorEntity):
     """Representation of a KKT Kolbe sensor."""
 
-    def __init__(self, entry: ConfigEntry, description: SensorEntityDescription):
+    def __init__(self, entry: ConfigEntry, device, config: dict):
         """Initialize the sensor."""
-        self.entity_description = description
         self._entry = entry
-        self._attr_unique_id = f"{entry.entry_id}_{description.key}"
-        self._attr_name = f"KKT Kolbe {description.name}"
+        self._device = device
+        self._config = config
+        self._dp = config["dp"]
+        self._name = config["name"]
+
+        # Set up entity attributes
+        self._attr_unique_id = f"{entry.entry_id}_{self._name.lower().replace(' ', '_')}"
+        self._attr_name = f"KKT Kolbe {self._name}"
+        self._attr_icon = self._get_icon()
+        self._attr_device_class = self._get_device_class()
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_native_unit_of_measurement = config.get("unit")
+
+    def _get_icon(self) -> str:
+        """Get appropriate icon for the sensor."""
+        name_lower = self._name.lower()
+        if "error" in name_lower:
+            return "mdi:alert-circle"
+        elif "temp" in name_lower:
+            return "mdi:thermometer"
+        elif "timer" in name_lower:
+            return "mdi:timer"
+        elif "filter" in name_lower:
+            return "mdi:air-filter"
+        else:
+            return "mdi:information"
+
+    def _get_device_class(self):
+        """Get appropriate device class for the sensor."""
+        name_lower = self._name.lower()
+        unit = self._config.get("unit", "").lower()
+
+        if "temp" in name_lower or "°c" in unit:
+            return SensorDeviceClass.TEMPERATURE
+        elif "error" in name_lower or "problem" in self._config.get("device_class", ""):
+            return SensorDeviceClass.ENUM
+        elif "timer" in name_lower or "min" in unit:
+            return SensorDeviceClass.DURATION
+        else:
+            return None
 
     @property
     def native_value(self):
         """Return the state of the sensor."""
-        # TODO: Implement actual device communication
-        return None
+        # Basic sensor reading from DP
+        return self._device.get_dp_value(self._dp, 0)
+
+    async def async_update(self) -> None:
+        """Update the entity."""
+        await self._device.async_update_status()
+
+
+class KKTKolbeZoneSensor(SensorEntity):
+    """Zone-specific sensor for cooktop zones."""
+
+    def __init__(self, entry: ConfigEntry, device, config: dict):
+        """Initialize the zone sensor."""
+        self._entry = entry
+        self._device = device
+        self._config = config
+        self._dp = config["dp"]
+        self._zone = config["zone"]
+        self._name = config["name"]
+
+        # Set up entity attributes
+        self._attr_unique_id = f"{entry.entry_id}_zone_{self._zone}_{self._name.lower().replace(' ', '_')}"
+        self._attr_name = f"KKT Kolbe {self._name}"
+        self._attr_icon = self._get_icon()
+        self._attr_device_class = self._get_device_class()
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_native_unit_of_measurement = config.get("unit")
+
+    def _get_icon(self) -> str:
+        """Get appropriate icon for the zone sensor."""
+        name_lower = self._name.lower()
+        if "error" in name_lower:
+            return "mdi:alert-circle"
+        elif "temp" in name_lower:
+            return "mdi:thermometer"
+        elif "core" in name_lower:
+            return "mdi:thermometer-probe"
+        else:
+            return "mdi:information"
+
+    def _get_device_class(self):
+        """Get appropriate device class for the zone sensor."""
+        name_lower = self._name.lower()
+        unit = self._config.get("unit", "").lower()
+
+        if "temp" in name_lower or "°c" in unit:
+            return SensorDeviceClass.TEMPERATURE
+        elif "error" in name_lower:
+            return SensorDeviceClass.ENUM
+        else:
+            return None
+
+    @property
+    def native_value(self):
+        """Return the zone sensor value."""
+        if self._dp == 105:  # Zone error codes
+            return self._device.get_zone_error(self._zone)
+        elif self._dp == 169:  # Zone core temperature display
+            return self._device.get_zone_core_temp_display(self._zone)
+        else:
+            return 0
+
+    async def async_update(self) -> None:
+        """Update the entity."""
+        await self._device.async_update_status()

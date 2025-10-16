@@ -245,3 +245,274 @@ class KKTKolbeTuyaDevice:
     def countdown_minutes(self) -> int:
         """Get current countdown timer minutes."""
         return self.get_dp_value(13, 0)
+
+    # === COOKTOP METHODS FOR IND7705HC ===
+
+    def get_zone_power_level(self, zone: int) -> int:
+        """Get power level for specific zone (1-5) from DP 162 bitfield."""
+        if not 1 <= zone <= 5:
+            return 0
+        raw_value = self.get_dp_value(162, b'\x00' * 5)
+        if isinstance(raw_value, (bytes, bytearray)) and len(raw_value) >= zone:
+            return raw_value[zone - 1]
+        return 0
+
+    def set_zone_power_level(self, zone: int, level: int):
+        """Set power level for specific zone (1-5) in DP 162 bitfield."""
+        if not (1 <= zone <= 5 and 0 <= level <= 25):
+            return
+        raw_value = self.get_dp_value(162, b'\x00' * 5)
+        if isinstance(raw_value, (bytes, bytearray)):
+            data = bytearray(raw_value)
+        else:
+            data = bytearray(5)
+        if len(data) >= zone:
+            data[zone - 1] = level
+            asyncio.create_task(self.async_set_dp(162, bytes(data)))
+
+    def get_zone_timer(self, zone: int) -> int:
+        """Get timer for specific zone (1-5) from DP 167 bitfield."""
+        if not 1 <= zone <= 5:
+            return 0
+        raw_value = self.get_dp_value(167, b'\x00' * 5)
+        if isinstance(raw_value, (bytes, bytearray)) and len(raw_value) >= zone:
+            return raw_value[zone - 1]
+        return 0
+
+    def set_zone_timer(self, zone: int, minutes: int):
+        """Set timer for specific zone (1-5) in DP 167 bitfield."""
+        if not (1 <= zone <= 5 and 0 <= minutes <= 255):
+            return
+        raw_value = self.get_dp_value(167, b'\x00' * 5)
+        if isinstance(raw_value, (bytes, bytearray)):
+            data = bytearray(raw_value)
+        else:
+            data = bytearray(5)
+        if len(data) >= zone:
+            data[zone - 1] = minutes
+            asyncio.create_task(self.async_set_dp(167, bytes(data)))
+
+    def get_zone_core_temp(self, zone: int) -> int:
+        """Get core temperature for specific zone (1-5) from DP 168 bitfield."""
+        if not 1 <= zone <= 5:
+            return 0
+        raw_value = self.get_dp_value(168, b'\x00' * 5)
+        if isinstance(raw_value, (bytes, bytearray)) and len(raw_value) >= zone:
+            return raw_value[zone - 1]
+        return 0
+
+    def set_zone_core_temp(self, zone: int, temp: int):
+        """Set core temperature for specific zone (1-5) in DP 168 bitfield."""
+        if not (1 <= zone <= 5 and 0 <= temp <= 300):
+            return
+        raw_value = self.get_dp_value(168, b'\x00' * 5)
+        if isinstance(raw_value, (bytes, bytearray)):
+            data = bytearray(raw_value)
+        else:
+            data = bytearray(5)
+        if len(data) >= zone:
+            data[zone - 1] = temp
+            asyncio.create_task(self.async_set_dp(168, bytes(data)))
+
+    def get_zone_core_temp_display(self, zone: int) -> int:
+        """Get displayed core temperature for specific zone (1-5) from DP 169 bitfield."""
+        if not 1 <= zone <= 5:
+            return 0
+        raw_value = self.get_dp_value(169, b'\x00' * 5)
+        if isinstance(raw_value, (bytes, bytearray)) and len(raw_value) >= zone:
+            return raw_value[zone - 1]
+        return 0
+
+    def get_zone_error(self, zone: int) -> int:
+        """Get error code for specific zone (1-5) from DP 105 bitfield."""
+        if not 1 <= zone <= 5:
+            return 0
+        raw_value = self.get_dp_value(105, b'\x00' * 5)
+        if isinstance(raw_value, (bytes, bytearray)) and len(raw_value) >= zone:
+            return raw_value[zone - 1]
+        return 0
+
+    def is_zone_selected(self, zone: int) -> bool:
+        """Check if specific zone (1-5) is selected from DP 161 bitfield."""
+        if not 1 <= zone <= 5:
+            return False
+        raw_value = self.get_dp_value(161, b'\x00')
+        if isinstance(raw_value, (bytes, bytearray)) and len(raw_value) > 0:
+            return bool(raw_value[0] & (1 << (zone - 1)))
+        return False
+
+    def set_zone_selected(self, zone: int, selected: bool):
+        """Set zone selection for specific zone (1-5) in DP 161 bitfield."""
+        if not 1 <= zone <= 5:
+            return
+        raw_value = self.get_dp_value(161, b'\x00')
+        if isinstance(raw_value, (bytes, bytearray)) and len(raw_value) > 0:
+            data = raw_value[0]
+        else:
+            data = 0
+        if selected:
+            data |= (1 << (zone - 1))
+        else:
+            data &= ~(1 << (zone - 1))
+        asyncio.create_task(self.async_set_dp(161, bytes([data])))
+
+    def is_zone_boost(self, zone: int) -> bool:
+        """Check if specific zone (1-5) is in boost mode from DP 163 bitfield."""
+        if not 1 <= zone <= 5:
+            return False
+        raw_value = self.get_dp_value(163, b'\x00')
+        if isinstance(raw_value, (bytes, bytearray)) and len(raw_value) > 0:
+            return bool(raw_value[0] & (1 << (zone - 1)))
+        return False
+
+    def set_zone_boost(self, zone: int, boost: bool):
+        """Set boost mode for specific zone (1-5) in DP 163 bitfield."""
+        if not 1 <= zone <= 5:
+            return
+        raw_value = self.get_dp_value(163, b'\x00')
+        if isinstance(raw_value, (bytes, bytearray)) and len(raw_value) > 0:
+            data = raw_value[0]
+        else:
+            data = 0
+        if boost:
+            data |= (1 << (zone - 1))
+        else:
+            data &= ~(1 << (zone - 1))
+        asyncio.create_task(self.async_set_dp(163, bytes([data])))
+
+    def is_zone_keep_warm(self, zone: int) -> bool:
+        """Check if specific zone (1-5) is in keep warm mode from DP 164 bitfield."""
+        if not 1 <= zone <= 5:
+            return False
+        raw_value = self.get_dp_value(164, b'\x00')
+        if isinstance(raw_value, (bytes, bytearray)) and len(raw_value) > 0:
+            return bool(raw_value[0] & (1 << (zone - 1)))
+        return False
+
+    def set_zone_keep_warm(self, zone: int, keep_warm: bool):
+        """Set keep warm mode for specific zone (1-5) in DP 164 bitfield."""
+        if not 1 <= zone <= 5:
+            return
+        raw_value = self.get_dp_value(164, b'\x00')
+        if isinstance(raw_value, (bytes, bytearray)) and len(raw_value) > 0:
+            data = raw_value[0]
+        else:
+            data = 0
+        if keep_warm:
+            data |= (1 << (zone - 1))
+        else:
+            data &= ~(1 << (zone - 1))
+        asyncio.create_task(self.async_set_dp(164, bytes([data])))
+
+    def is_flex_zone_active(self, side: str) -> bool:
+        """Check if flex zone is active (left/right) from DP 165 bitfield."""
+        if side not in ["left", "right"]:
+            return False
+        raw_value = self.get_dp_value(165, b'\x00')
+        if isinstance(raw_value, (bytes, bytearray)) and len(raw_value) > 0:
+            bit = 0 if side == "left" else 1
+            return bool(raw_value[0] & (1 << bit))
+        return False
+
+    def set_flex_zone(self, side: str, active: bool):
+        """Set flex zone active state (left/right) in DP 165 bitfield."""
+        if side not in ["left", "right"]:
+            return
+        raw_value = self.get_dp_value(165, b'\x00')
+        if isinstance(raw_value, (bytes, bytearray)) and len(raw_value) > 0:
+            data = raw_value[0]
+        else:
+            data = 0
+        bit = 0 if side == "left" else 1
+        if active:
+            data |= (1 << bit)
+        else:
+            data &= ~(1 << bit)
+        asyncio.create_task(self.async_set_dp(165, bytes([data])))
+
+    def is_bbq_mode_active(self, side: str) -> bool:
+        """Check if BBQ mode is active (left/right) from DP 166 bitfield."""
+        if side not in ["left", "right"]:
+            return False
+        raw_value = self.get_dp_value(166, b'\x00')
+        if isinstance(raw_value, (bytes, bytearray)) and len(raw_value) > 0:
+            bit = 0 if side == "left" else 1
+            return bool(raw_value[0] & (1 << bit))
+        return False
+
+    def set_bbq_mode(self, side: str, active: bool):
+        """Set BBQ mode active state (left/right) in DP 166 bitfield."""
+        if side not in ["left", "right"]:
+            return
+        raw_value = self.get_dp_value(166, b'\x00')
+        if isinstance(raw_value, (bytes, bytearray)) and len(raw_value) > 0:
+            data = raw_value[0]
+        else:
+            data = 0
+        bit = 0 if side == "left" else 1
+        if active:
+            data |= (1 << bit)
+        else:
+            data &= ~(1 << bit)
+        asyncio.create_task(self.async_set_dp(166, bytes([data])))
+
+    # Basic cooktop properties
+    @property
+    def cooktop_power_on(self) -> bool:
+        """Get cooktop main power state (DP 101)."""
+        return self.get_dp_value(101, False)
+
+    @property
+    def cooktop_paused(self) -> bool:
+        """Get cooktop pause state (DP 102)."""
+        return self.get_dp_value(102, False)
+
+    @property
+    def cooktop_child_lock(self) -> bool:
+        """Get cooktop child lock state (DP 103)."""
+        return self.get_dp_value(103, False)
+
+    @property
+    def cooktop_max_level(self) -> int:
+        """Get cooktop max power level (DP 104)."""
+        return self.get_dp_value(104, 0)
+
+    @property
+    def cooktop_timer(self) -> int:
+        """Get cooktop general timer (DP 134)."""
+        return self.get_dp_value(134, 0)
+
+    @property
+    def cooktop_senior_mode(self) -> bool:
+        """Get cooktop senior mode state (DP 145)."""
+        return self.get_dp_value(145, False)
+
+    def set_cooktop_power(self, state: bool):
+        """Set cooktop main power (DP 101)."""
+        asyncio.create_task(self.async_set_dp(101, state))
+
+    def set_cooktop_pause(self, state: bool):
+        """Set cooktop pause state (DP 102)."""
+        asyncio.create_task(self.async_set_dp(102, state))
+
+    def set_cooktop_child_lock(self, state: bool):
+        """Set cooktop child lock (DP 103)."""
+        asyncio.create_task(self.async_set_dp(103, state))
+
+    def set_cooktop_max_level(self, level: int):
+        """Set cooktop max power level (DP 104)."""
+        if 0 <= level <= 25:
+            asyncio.create_task(self.async_set_dp(104, level))
+
+    def set_cooktop_timer(self, minutes: int):
+        """Set cooktop general timer (DP 134)."""
+        if 0 <= minutes <= 99:
+            asyncio.create_task(self.async_set_dp(134, minutes))
+
+    def set_cooktop_senior_mode(self, state: bool):
+        """Set cooktop senior mode (DP 145)."""
+        asyncio.create_task(self.async_set_dp(145, state))
+
+    def set_cooktop_confirm(self, state: bool):
+        """Set cooktop confirm action (DP 108)."""
+        asyncio.create_task(self.async_set_dp(108, state))

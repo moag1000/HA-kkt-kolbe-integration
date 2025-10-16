@@ -99,23 +99,77 @@ KNOWN_DEVICES = {
         "product_names": ["p8volecsgzdyun29"],
         "device_ids": ["bf5592b47738c5b46evzff"],
         "device_id_patterns": ["bf5592b47738c5b46e"],
-        "platforms": ["switch", "number", "sensor", "binary_sensor"],
+        "platforms": ["switch", "number", "sensor", "binary_sensor", "select"],
         "data_points": COOKTOP_DPS,
         "entities": {
             "switch": [
                 {"dp": 101, "name": "Power", "device_class": "switch"},
                 {"dp": 102, "name": "Pause", "device_class": "switch"},
-                {"dp": 103, "name": "Child Lock", "device_class": "switch"}
+                {"dp": 103, "name": "Child Lock", "device_class": "switch"},
+                {"dp": 145, "name": "Senior Mode", "device_class": "switch"},
+                {"dp": 108, "name": "Confirm Action", "device_class": "switch"}
             ],
             "number": [
-                {"dp": 104, "name": "Max Level", "min": 0, "max": 25},
-                {"dp": 134, "name": "Timer", "min": 0, "max": 99, "unit": "min"}
+                {"dp": 104, "name": "Max Power Level", "min": 0, "max": 25},
+                {"dp": 134, "name": "General Timer", "min": 0, "max": 99, "unit": "min"},
+                {"dp": 162, "name": "Zone 1 Power", "min": 0, "max": 25, "zone": 1},
+                {"dp": 162, "name": "Zone 2 Power", "min": 0, "max": 25, "zone": 2},
+                {"dp": 162, "name": "Zone 3 Power", "min": 0, "max": 25, "zone": 3},
+                {"dp": 162, "name": "Zone 4 Power", "min": 0, "max": 25, "zone": 4},
+                {"dp": 162, "name": "Zone 5 Power", "min": 0, "max": 25, "zone": 5},
+                {"dp": 167, "name": "Zone 1 Timer", "min": 0, "max": 255, "unit": "min", "zone": 1},
+                {"dp": 167, "name": "Zone 2 Timer", "min": 0, "max": 255, "unit": "min", "zone": 2},
+                {"dp": 167, "name": "Zone 3 Timer", "min": 0, "max": 255, "unit": "min", "zone": 3},
+                {"dp": 167, "name": "Zone 4 Timer", "min": 0, "max": 255, "unit": "min", "zone": 4},
+                {"dp": 167, "name": "Zone 5 Timer", "min": 0, "max": 255, "unit": "min", "zone": 5},
+                {"dp": 168, "name": "Zone 1 Core Temp", "min": 0, "max": 300, "unit": "°C", "zone": 1},
+                {"dp": 168, "name": "Zone 2 Core Temp", "min": 0, "max": 300, "unit": "°C", "zone": 2},
+                {"dp": 168, "name": "Zone 3 Core Temp", "min": 0, "max": 300, "unit": "°C", "zone": 3},
+                {"dp": 168, "name": "Zone 4 Core Temp", "min": 0, "max": 300, "unit": "°C", "zone": 4},
+                {"dp": 168, "name": "Zone 5 Core Temp", "min": 0, "max": 300, "unit": "°C", "zone": 5}
+            ],
+            "select": [
+                {"dp": 148, "name": "Zone 1 Quick Level", "options": QUICK_LEVELS},
+                {"dp": 149, "name": "Zone 2 Quick Level", "options": QUICK_LEVELS},
+                {"dp": 150, "name": "Zone 3 Quick Level", "options": QUICK_LEVELS},
+                {"dp": 151, "name": "Zone 4 Quick Level", "options": QUICK_LEVELS},
+                {"dp": 152, "name": "Zone 5 Quick Level", "options": QUICK_LEVELS},
+                {"dp": 153, "name": "Save Zone Level", "options": ["save_hob1", "save_hob2", "save_hob3", "save_hob4", "save_hob5"]},
+                {"dp": 154, "name": "Set Zone Level", "options": ["set_hob1", "set_hob2", "set_hob3", "set_hob4", "set_hob5"]},
+                {"dp": 155, "name": "Power Limit", "options": ["power_limit_1", "power_limit_2", "power_limit_3", "power_limit_4", "power_limit_5"]}
             ],
             "sensor": [
-                {"dp": 105, "name": "Error Status", "device_class": "problem"}
+                {"dp": 105, "name": "Zone 1 Error", "device_class": "problem", "zone": 1},
+                {"dp": 105, "name": "Zone 2 Error", "device_class": "problem", "zone": 2},
+                {"dp": 105, "name": "Zone 3 Error", "device_class": "problem", "zone": 3},
+                {"dp": 105, "name": "Zone 4 Error", "device_class": "problem", "zone": 4},
+                {"dp": 105, "name": "Zone 5 Error", "device_class": "problem", "zone": 5},
+                {"dp": 169, "name": "Zone 1 Core Temp Display", "unit": "°C", "zone": 1},
+                {"dp": 169, "name": "Zone 2 Core Temp Display", "unit": "°C", "zone": 2},
+                {"dp": 169, "name": "Zone 3 Core Temp Display", "unit": "°C", "zone": 3},
+                {"dp": 169, "name": "Zone 4 Core Temp Display", "unit": "°C", "zone": 4},
+                {"dp": 169, "name": "Zone 5 Core Temp Display", "unit": "°C", "zone": 5}
             ],
             "binary_sensor": [
-                {"dp": 145, "name": "Senior Mode", "device_class": "running"}
+                {"dp": 161, "name": "Zone 1 Selected", "device_class": "running", "zone": 1},
+                {"dp": 161, "name": "Zone 2 Selected", "device_class": "running", "zone": 2},
+                {"dp": 161, "name": "Zone 3 Selected", "device_class": "running", "zone": 3},
+                {"dp": 161, "name": "Zone 4 Selected", "device_class": "running", "zone": 4},
+                {"dp": 161, "name": "Zone 5 Selected", "device_class": "running", "zone": 5},
+                {"dp": 163, "name": "Zone 1 Boost", "device_class": "running", "zone": 1},
+                {"dp": 163, "name": "Zone 2 Boost", "device_class": "running", "zone": 2},
+                {"dp": 163, "name": "Zone 3 Boost", "device_class": "running", "zone": 3},
+                {"dp": 163, "name": "Zone 4 Boost", "device_class": "running", "zone": 4},
+                {"dp": 163, "name": "Zone 5 Boost", "device_class": "running", "zone": 5},
+                {"dp": 164, "name": "Zone 1 Keep Warm", "device_class": "running", "zone": 1},
+                {"dp": 164, "name": "Zone 2 Keep Warm", "device_class": "running", "zone": 2},
+                {"dp": 164, "name": "Zone 3 Keep Warm", "device_class": "running", "zone": 3},
+                {"dp": 164, "name": "Zone 4 Keep Warm", "device_class": "running", "zone": 4},
+                {"dp": 164, "name": "Zone 5 Keep Warm", "device_class": "running", "zone": 5},
+                {"dp": 165, "name": "Flex Zone Left", "device_class": "running"},
+                {"dp": 165, "name": "Flex Zone Right", "device_class": "running"},
+                {"dp": 166, "name": "BBQ Mode Left", "device_class": "running"},
+                {"dp": 166, "name": "BBQ Mode Right", "device_class": "running"}
             ]
         }
     }
