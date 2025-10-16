@@ -18,11 +18,12 @@ Da dieser Code vollständig von KI generiert wurde, sind Beiträge von echten En
 1. Besuchen Sie https://iot.tuya.com/
 2. Registrieren Sie sich für einen **neuen Developer Account**
 3. Erstellen Sie ein Cloud-Projekt
-4. Fügen Sie Ihre Geräte hinzu
+4. **Devices** → **Link App Account** → Smart Life App verknüpfen
+5. Alle Geräte sollten nun im Cloud-Projekt sichtbar sein
 
 ### 2. Device Model Daten abrufen
 
-Nach der Einrichtung:
+Nach der App-Verknüpfung:
 
 1. Navigieren Sie zu **Cloud** → **API Explorer**
 2. Wählen Sie **Device Management** → **Query Things Data Model**
