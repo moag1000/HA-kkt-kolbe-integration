@@ -17,7 +17,8 @@ from .const import DOMAIN, MODELS
 _LOGGER = logging.getLogger(__name__)
 
 # Tuya UDP Discovery (based on Local Tuya implementation)
-UDP_PORTS = [6666, 6667]
+# Note: Use different ports if Local Tuya is also running
+UDP_PORTS = [6668, 6669]  # Alternative ports to avoid conflict with Local Tuya
 UDP_KEY = md5(b"yGAdlopoPVldABfn").digest()
 DISCOVERY_TIMEOUT = 6  # seconds
 
@@ -157,8 +158,11 @@ class KKTKolbeDiscovery(ServiceListener):
 
             _LOGGER.info(f"Started KKT Kolbe mDNS discovery with {len(self._browsers)} browsers")
 
-            # Start UDP discovery (like Local Tuya)
-            await self._start_udp_discovery()
+            # Start UDP discovery (like Local Tuya) - skip if ports are busy
+            try:
+                await self._start_udp_discovery()
+            except Exception as e:
+                _LOGGER.warning(f"UDP discovery disabled (Local Tuya running?): {e}")
 
         except Exception as e:
             _LOGGER.error(f"Failed to start discovery: {e}", exc_info=True)
@@ -219,7 +223,11 @@ class KKTKolbeDiscovery(ServiceListener):
     def _schedule_discovery_trigger(self, device_info: Dict) -> None:
         """Schedule discovery trigger in the main event loop."""
         try:
-            self.hass.async_create_task(self._async_trigger_discovery(device_info))
+            # Use call_soon_threadsafe since UDP callbacks run in different thread
+            loop = self.hass.loop
+            loop.call_soon_threadsafe(
+                lambda: self.hass.async_create_task(self._async_trigger_discovery(device_info))
+            )
         except Exception as e:
             _LOGGER.error(f"Failed to schedule discovery trigger: {e}")
 
@@ -244,8 +252,11 @@ class KKTKolbeDiscovery(ServiceListener):
     def add_service(self, zc, type_: str, name: str) -> None:
         """Called when a service is discovered."""
         try:
-            # Schedule the async function to run in the Home Assistant event loop
-            self.hass.async_create_task(self._async_add_service(zc, type_, name))
+            # Use call_soon_threadsafe since this is called from zeroconf thread
+            loop = self.hass.loop
+            loop.call_soon_threadsafe(
+                lambda: self.hass.async_create_task(self._async_add_service(zc, type_, name))
+            )
         except Exception as e:
             _LOGGER.error(f"Failed to schedule async service addition: {e}")
 
@@ -456,7 +467,11 @@ class KKTKolbeDiscovery(ServiceListener):
         """Called when a service is updated."""
         # Re-process the service in case of updates
         try:
-            self.hass.async_create_task(self._async_add_service(zc, type_, name))
+            # Use call_soon_threadsafe since this is called from zeroconf thread
+            loop = self.hass.loop
+            loop.call_soon_threadsafe(
+                lambda: self.hass.async_create_task(self._async_add_service(zc, type_, name))
+            )
         except Exception as e:
             _LOGGER.error(f"Failed to schedule async service update: {e}")
 
