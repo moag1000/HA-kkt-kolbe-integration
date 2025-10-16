@@ -165,6 +165,37 @@ class KKTKolbeDiscovery(ServiceListener):
         except Exception as e:
             _LOGGER.error(f"Failed to start discovery: {e}", exc_info=True)
 
+    async def _send_udp_broadcast(self) -> None:
+        """Send UDP broadcast to trigger device responses."""
+        try:
+            # Create broadcast message (empty encrypted payload triggers response)
+            import json
+            from Crypto.Cipher import AES
+
+            # Create the discovery request
+            broadcast_data = json.dumps({"from": "app"}).encode()
+
+            # Pad data to AES block size
+            padding_length = 16 - (len(broadcast_data) % 16)
+            broadcast_data += bytes([padding_length] * padding_length)
+
+            # Encrypt with UDP key
+            cipher = AES.new(UDP_KEY, AES.MODE_ECB)
+            encrypted = cipher.encrypt(broadcast_data)
+
+            # Send broadcast on both ports
+            for transport, protocol in self._udp_listeners:
+                try:
+                    # Send to broadcast address
+                    transport.sendto(encrypted, ('255.255.255.255', 6667))
+                    transport.sendto(encrypted, ('255.255.255.255', 6666))
+                    _LOGGER.debug("Sent UDP broadcast to trigger device discovery")
+                except Exception as e:
+                    _LOGGER.warning(f"Failed to send UDP broadcast: {e}")
+
+        except Exception as e:
+            _LOGGER.error(f"Failed to prepare UDP broadcast: {e}")
+
     async def _start_udp_discovery(self) -> None:
         """Start UDP discovery on Tuya broadcast ports."""
         try:
@@ -186,6 +217,8 @@ class KKTKolbeDiscovery(ServiceListener):
 
             if self._udp_listeners:
                 _LOGGER.info(f"Started {len(self._udp_listeners)} UDP listeners on ports {UDP_PORTS}")
+                # Send UDP broadcast to trigger device responses (like Local Tuya does)
+                await self._send_udp_broadcast()
             else:
                 _LOGGER.warning(
                     "UDP discovery disabled: Ports 6666/6667 in use. "
@@ -527,14 +560,20 @@ def get_discovered_devices() -> Dict[str, Dict]:
     return {}
 
 
-def add_test_device() -> None:
-    """Add a test device for debugging (development only)."""
+def add_test_device(host: str = None, device_id: str = None) -> None:
+    """Add a test device for debugging (development only).
+
+    Args:
+        host: IP address of the test device (default: 192.168.2.43)
+        device_id: Device ID to use (default: bf735dfe2ad64fba7cpyhn)
+    """
     global _discovery_instance
 
     if _discovery_instance:
+        # Use provided values or real defaults based on user's actual device
         test_device = {
-            "device_id": "test_kkt_device_12345",
-            "host": "192.168.1.100",
+            "device_id": device_id or "bf735dfe2ad64fba7cpyhn",  # User's actual device ID
+            "host": host or "192.168.2.43",  # User's actual IP
             "name": "Test KKT HERMES & STYLE",
             "model": "e1k6i0zo",
             "device_type": "hood",
@@ -542,7 +581,7 @@ def add_test_device() -> None:
             "discovered_via": "test_simulation"
         }
         _discovery_instance.discovered_devices["test_device"] = test_device
-        _LOGGER.warning("Added test device for debugging purposes!")
+        _LOGGER.warning(f"Added test device for debugging: {test_device['host']} / {test_device['device_id'][:10]}...")
 
 
 async def debug_scan_network() -> Dict[str, List[str]]:
