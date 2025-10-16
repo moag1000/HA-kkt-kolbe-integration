@@ -35,7 +35,7 @@ Ich habe mich mit der local tuya Implementierung schwer getan, weil diverseste F
 
 ## Features
 
-### ✅ v1.3.1: Production Ready & Stable
+### ✅ v1.3.2: Production Ready & Polished
 
 **🎯 Alle kritischen Fehler behoben - Integration ist jetzt vollständig funktional!**
 
@@ -158,9 +158,9 @@ Ich habe mich mit der local tuya Implementierung schwer getan, weil diverseste F
 
 ## 🏪 HACS Status
 
-✅ **PRODUCTION READY**: v1.3.1
+✅ **PRODUCTION READY**: v1.3.2
 
-- **Current Version: `v1.3.1`** 🎯 **STABLE & ERROR-FREE**
+- **Current Version: `v1.3.2`** 🎯 **STABLE & POLISHED**
 - **✅ All Runtime Errors Fixed** - Geräte funktionieren vollständig
 - **✅ Device Area Assignment** - Bereiche können zugewiesen werden
 - **✅ Clean Entity Creation** - Alle Entitäten fehlerfrei
@@ -187,12 +187,12 @@ Ich habe mich mit der local tuya Implementierung schwer getan, weil diverseste F
 - ✅ Umfassende Error Handling und Debug-Modi
 - ⚠️ Bei Kochfeldern Sicherheitshinweise beachten ([COOKTOP_SAFETY.md](COOKTOP_SAFETY.md))
 
-### 🚀 Changelog v1.3.1 (LATEST) - Production Ready!
-- 🔧 **CRITICAL FIXES**: Alle Runtime-Fehler aus v1.3.0 behoben
-- ✅ **Device Areas**: Geräte können jetzt korrekt Bereichen zugewiesen werden
-- 🧹 **Clean Logging**: Excessive Debug-Logs entfernt für Produktiveinsatz
-- 🎯 **Stable Entities**: Alle Entitäten funktionieren fehlerfrei
-- 🚀 **Production Ready**: Integration ist jetzt vollständig stabil
+### 🚀 Changelog v1.3.2 (LATEST) - Polished & Professional!
+- 📝 **Documentation Overhaul**: README komplett aufgeräumt und aktualisiert
+- 🔇 **Minimal Logging**: Weitere Reduzierung auf produktionsreife Logs
+- ✨ **Professional Polish**: Streamlined Setup-Anweisungen
+- 🎯 **User-Friendly**: Fokus auf aktuelle v1.3.x Funktionalität
+- 📦 **HACS Ready**: Optimiert für professionelle HACS-Distribution
 
 ### 🚀 Changelog v1.0.0 - Production Ready Foundation
 - 🔧 **CRITICAL FIX**: Korrekter Tuya Port (6667 statt 6668)
@@ -355,7 +355,7 @@ GitHub: [@moag1000](https://github.com/moag1000)
 [hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
 [license-shield]: https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge
 [license-url]: https://opensource.org/licenses/MIT
-[releases-shield]: https://img.shields.io/badge/version-v1.3.1-blue.svg?style=for-the-badge
+[releases-shield]: https://img.shields.io/badge/version-v1.3.2-blue.svg?style=for-the-badge
 [releases]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases
 [maintenance-shield]: https://img.shields.io/badge/maintainer-%40moag1000-blue.svg?style=for-the-badge
 [user_profile]: https://github.com/moag1000
