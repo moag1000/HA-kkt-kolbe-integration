@@ -246,13 +246,36 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # Scan network for debug info
         network_services = await debug_scan_network()
 
-        debug_info = "mDNS Discovery Debug Information:\n\n"
-        from .discovery import TUYA_SERVICE_TYPES
-        debug_info += f"Service types scanned: {len(TUYA_SERVICE_TYPES)}\n"
-        debug_info += f"Services found in network: {len(network_services)}\n\n"
+        debug_info = "KKT Kolbe Discovery Debug Information:\n\n"
 
-        for service_type, devices in network_services.items():
-            debug_info += f"{service_type}: {len(devices)} devices\n"
+        # mDNS Discovery
+        mdns_services = network_services.get("mDNS_services", {})
+        debug_info += f"mDNS Services Found: {len(mdns_services)}\n"
+        for service_type, devices in mdns_services.items():
+            debug_info += f"  {service_type}: {len(devices) if isinstance(devices, list) else 'error'}\n"
+
+        # UDP Discovery
+        udp_discovery = network_services.get("UDP_discovery", {})
+        debug_info += f"\nUDP Discovery (Tuya Broadcasts):\n"
+        if "error" in udp_discovery:
+            debug_info += f"  Error: {udp_discovery['error']}\n"
+        else:
+            debug_info += f"  Devices found: {udp_discovery.get('devices_found', 0)}\n"
+            for device in udp_discovery.get('devices', []):
+                debug_info += f"    - {device.get('gwId', 'unknown')} at {device.get('ip', 'unknown')}\n"
+
+        # Discovery Status
+        status = network_services.get("discovery_status", {})
+        debug_info += f"\nDiscovery Service Status:\n"
+        debug_info += f"  Active: {status.get('active', False)}\n"
+        debug_info += f"  mDNS Browsers: {status.get('mDNS_browsers', 0)}\n"
+        debug_info += f"  UDP Listeners: {status.get('UDP_listeners', 0)}\n"
+        debug_info += f"  Discovered Devices: {status.get('discovered_devices', 0)}\n"
+
+        from .discovery import TUYA_SERVICE_TYPES, UDP_PORTS
+        debug_info += f"\nConfiguration:\n"
+        debug_info += f"  mDNS Service Types: {len(TUYA_SERVICE_TYPES)}\n"
+        debug_info += f"  UDP Ports: {UDP_PORTS}\n"
 
         debug_schema = vol.Schema({
             vol.Optional("back", default=True): bool
