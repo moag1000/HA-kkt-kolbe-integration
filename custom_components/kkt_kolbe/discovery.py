@@ -566,6 +566,48 @@ def get_discovered_devices() -> Dict[str, Dict]:
     return {}
 
 
+async def simple_tuya_discover(timeout: int = 6) -> Dict[str, Dict]:
+    """Simple Tuya device discovery like LocalTuya."""
+    discovered = {}
+
+    def device_found(device_info):
+        device_id = device_info.get("gwId", "")
+        if device_id:
+            discovered[device_id] = device_info
+            _LOGGER.warning(f"🎯 DISCOVERED DEVICE: {device_id} at {device_info.get('ip', 'unknown')}")
+
+    # Create UDP listeners
+    loop = asyncio.get_event_loop()
+    listeners = []
+
+    try:
+        for port in [6666, 6667]:
+            try:
+                transport, protocol = await loop.create_datagram_endpoint(
+                    lambda: TuyaUDPDiscovery(device_found),
+                    local_addr=('0.0.0.0', port)
+                )
+                listeners.append((transport, protocol))
+                _LOGGER.warning(f"✅ UDP listener started on port {port}")
+            except Exception as e:
+                _LOGGER.warning(f"❌ Failed to start UDP listener on port {port}: {e}")
+
+        if listeners:
+            _LOGGER.warning(f"🔍 Starting {timeout}s discovery scan...")
+            await asyncio.sleep(timeout)
+            _LOGGER.warning(f"⏰ Discovery scan finished. Found {len(discovered)} devices.")
+
+        # Close listeners
+        for transport, protocol in listeners:
+            transport.close()
+
+        return discovered
+
+    except Exception as e:
+        _LOGGER.error(f"Discovery failed: {e}")
+        return {}
+
+
 def add_test_device(host: str = None, device_id: str = None) -> None:
     """Add a test device for debugging (development only).
 
