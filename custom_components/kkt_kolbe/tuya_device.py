@@ -49,6 +49,8 @@ class KKTKolbeTuyaDevice:
                             test_device.status
                         )
 
+                        _LOGGER.debug(f"Version {test_version} status response: {test_status}")
+
                         # Check for valid response
                         if test_status and isinstance(test_status, dict):
                             if "dps" in test_status or "devId" in test_status:
@@ -59,27 +61,43 @@ class KKTKolbeTuyaDevice:
                                 _LOGGER.info(f"✅ Detected Tuya protocol version: {test_version}")
                                 return
                             elif "Err" in str(test_status):
-                                if "907" in str(test_status):  # Auth error
-                                    _LOGGER.error(f"❌ Authentication failed - invalid local key")
-                                    _LOGGER.error(f"Please verify your local key is correct for device {self.device_id}")
-                                    raise Exception("Invalid local key - device rejected authentication")
+                                _LOGGER.debug(f"Version {test_version} returned error: {test_status}")
+                                # Only treat specific auth errors as authentication failures
+                                if "907" in str(test_status) or "json decode error" in str(test_status).lower():
+                                    _LOGGER.warning(f"Possible authentication issue with version {test_version}")
+                                # Continue trying other versions instead of failing immediately
                     except Exception as e:
-                        if "Invalid local key" in str(e) or "authentication" in str(e).lower():
-                            raise
                         _LOGGER.debug(f"Version {test_version} failed: {e}")
                         continue
 
                 # If auto-detection failed, try 3.3 as fallback
                 if not self._device:
-                    _LOGGER.warning(f"Auto-detection failed, using version 3.3 as fallback")
-                    self.version = "3.3"
-                    self._device = await loop.run_in_executor(
-                        None,
-                        self._create_device,
-                        "3.3"
-                    )
-                    self._device.set_socketPersistent(True)
-                    self._connected = True
+                    _LOGGER.warning(f"Auto-detection failed, trying version 3.3 as fallback")
+                    try:
+                        self.version = "3.3"
+                        self._device = await loop.run_in_executor(
+                            None,
+                            self._create_device,
+                            "3.3"
+                        )
+
+                        # Test the fallback connection
+                        fallback_status = await loop.run_in_executor(
+                            None,
+                            self._device.status
+                        )
+
+                        if fallback_status and isinstance(fallback_status, dict) and "dps" in fallback_status:
+                            self._device.set_socketPersistent(True)
+                            self._connected = True
+                            _LOGGER.info(f"✅ Fallback connection successful with version 3.3")
+                        else:
+                            _LOGGER.error(f"❌ Fallback connection failed. Status: {fallback_status}")
+                            _LOGGER.error(f"Device may be offline or credentials may be incorrect")
+                            raise Exception(f"Connection failed - device not responding correctly")
+                    except Exception as fallback_error:
+                        _LOGGER.error(f"Fallback connection failed: {fallback_error}")
+                        raise Exception(f"Unable to connect with any protocol version. Please check: 1) Device is powered on and connected to network, 2) IP address is correct, 3) Local key is valid")
             else:
                 # Use specified version
                 self._device = await loop.run_in_executor(
@@ -95,9 +113,7 @@ class KKTKolbeTuyaDevice:
         except Exception as e:
             self._connected = False
             _LOGGER.error(f"Failed to connect to device: {e}")
-            if "Invalid local key" not in str(e) and "authentication" not in str(e).lower():
-                _LOGGER.error(f"Device ID: {self.device_id}, IP: {self.ip_address}")
-                _LOGGER.error(f"Please verify: 1) Device is on, 2) IP is correct, 3) Local key is valid")
+            _LOGGER.error(f"Device ID: {self.device_id}, IP: {self.ip_address}")
             self._device = None
             raise
 
