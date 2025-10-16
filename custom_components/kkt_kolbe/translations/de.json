@@ -1,13 +1,40 @@
 {
   "config": {
     "step": {
-      "user": {
-        "title": "KKT Kolbe Dunstabzugshaube Einrichtung",
-        "description": "Konfigurieren Sie Ihre KKT Kolbe Dunstabzugshaube (Tuya-Gerät).",
+      "discovery": {
+        "title": "Gefundene KKT Kolbe Geräte",
+        "description": "{devices_found} KKT Kolbe Gerät(e) in Ihrem Netzwerk gefunden. Wählen Sie eines zur Konfiguration:",
+        "data": {
+          "device": "Gerät auswählen"
+        }
+      },
+      "credentials": {
+        "title": "Gerätezugangsdaten",
+        "description": "Geben Sie den Tuya Local Key ein für:\n\nGerät: {device_name}\nIP: {device_host}\nID: {device_id}",
+        "data": {
+          "access_token": "Tuya Local Key",
+          "name": "Gerätename"
+        }
+      },
+      "manual": {
+        "title": "Manuelle KKT Kolbe Einrichtung",
+        "description": "Konfigurieren Sie Ihr KKT Kolbe Gerät manuell.",
         "data": {
           "host": "IP-Adresse",
           "device_id": "Tuya Geräte-ID",
           "access_token": "Tuya Local Key",
+          "type": "Gerätetyp",
+          "name": "Gerätename"
+        }
+      },
+      "user": {
+        "title": "KKT Kolbe Einrichtung",
+        "description": "Konfigurieren Sie Ihr KKT Kolbe Gerät (Tuya-Gerät).",
+        "data": {
+          "host": "IP-Adresse",
+          "device_id": "Tuya Geräte-ID",
+          "access_token": "Tuya Local Key",
+          "type": "Gerätetyp",
           "name": "Gerätename"
         }
       }

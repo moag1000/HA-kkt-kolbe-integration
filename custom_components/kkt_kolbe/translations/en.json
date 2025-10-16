@@ -1,13 +1,40 @@
 {
   "config": {
     "step": {
-      "user": {
-        "title": "KKT Kolbe Hood Setup",
-        "description": "Configure your KKT Kolbe range hood (Tuya device).",
+      "discovery": {
+        "title": "Discovered KKT Kolbe Devices",
+        "description": "Found {devices_found} KKT Kolbe device(s) on your network. Select one to configure:",
+        "data": {
+          "device": "Select Device"
+        }
+      },
+      "credentials": {
+        "title": "Device Credentials",
+        "description": "Enter the Tuya Local Key for:\n\nDevice: {device_name}\nIP: {device_host}\nID: {device_id}",
+        "data": {
+          "access_token": "Tuya Local Key",
+          "name": "Device Name"
+        }
+      },
+      "manual": {
+        "title": "Manual KKT Kolbe Setup",
+        "description": "Configure your KKT Kolbe device manually.",
         "data": {
           "host": "IP Address",
           "device_id": "Tuya Device ID",
           "access_token": "Tuya Local Key",
+          "type": "Device Type",
+          "name": "Device Name"
+        }
+      },
+      "user": {
+        "title": "KKT Kolbe Setup",
+        "description": "Configure your KKT Kolbe device (Tuya device).",
+        "data": {
+          "host": "IP Address",
+          "device_id": "Tuya Device ID",
+          "access_token": "Tuya Local Key",
+          "type": "Device Type",
           "name": "Device Name"
         }
       }
