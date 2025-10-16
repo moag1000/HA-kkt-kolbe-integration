@@ -135,16 +135,20 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
             local_key=local_key,
         )
 
-        status = await device.async_update_status()
-        _LOGGER.debug(f"Device status response: {status}")
+        status = await device.async_get_status()
+        _LOGGER.warning(f"Device connection test - status response: {status}")
 
-        if not status:
-            raise ConnectionTestError("Device did not respond to status request - check device ID and local key")
+        if not status or not isinstance(status, dict) or "dps" not in status:
+            raise ConnectionTestError("Device did not respond with valid status - check device ID and local key")
 
     except Exception as e:
         error_msg = str(e).lower()
 
-        if "decrypt" in error_msg or "key" in error_msg:
+        # Handle specific error types from our tuya_device.py
+        if "no compatible version found" in error_msg:
+            _LOGGER.error(f"Protocol version detection failed - trying all versions 3.3, 3.4, 3.1")
+            raise ConnectionTestError("Device not responding to any Tuya protocol version. Please check: 1) Device is powered on and connected, 2) IP address is correct, 3) Local key is valid")
+        elif "decrypt" in error_msg or ("key" in error_msg and "invalid" in error_msg):
             raise AuthenticationError("Invalid Local Key - device rejected authentication")
         elif "timeout" in error_msg:
             raise NetworkError(f"Connection timeout - device at {host} not responding")
