@@ -227,8 +227,18 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             device_id = user_input["device"]
             device_info = self._discovered_devices[device_id]
 
+            # Debug logging to see what we're working with
+            _LOGGER.warning(f"🔍 Selected device: {device_id}")
+            _LOGGER.warning(f"🔍 Device info: {device_info}")
+
             # Still need local key from user
             self._selected_device = device_info
+
+            # Ensure device_id is properly set
+            if "device_id" not in self._selected_device or not self._selected_device["device_id"]:
+                self._selected_device["device_id"] = device_id
+                _LOGGER.warning(f"🔧 Fixed missing device_id: {device_id}")
+
             return await self.async_step_credentials()
 
         # Create device selection schema
@@ -261,6 +271,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             try:
+                # Debug the selected device before creating config
+                _LOGGER.warning(f"🔧 Creating config from selected device: {self._selected_device}")
+
                 # Combine discovered info with user credentials
                 device_config = {
                     CONF_HOST: self._selected_device["host"],
@@ -269,6 +282,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_NAME: user_input.get(CONF_NAME, self._selected_device.get("product_name", "KKT Kolbe Device")),
                     CONF_TYPE: self._selected_device.get("device_type", "auto"),
                 }
+
+                _LOGGER.warning(f"🔧 Final device config: {device_config}")
 
                 info = await validate_input(self.hass, device_config)
                 return self.async_create_entry(title=info["title"], data=device_config)
@@ -295,14 +310,24 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             vol.Optional(CONF_NAME, default=self._selected_device.get("product_name", "KKT Kolbe Device")): str,
         })
 
+        # Debug the placeholders
+        device_name = self._selected_device.get("product_name", "Unknown")
+        device_host = self._selected_device.get("host", "Unknown")
+        device_id = self._selected_device.get("device_id", "Unknown")
+
+        _LOGGER.warning(f"🔍 Credentials form placeholders:")
+        _LOGGER.warning(f"  - device_name: {device_name}")
+        _LOGGER.warning(f"  - device_host: {device_host}")
+        _LOGGER.warning(f"  - device_id: {device_id}")
+
         return self.async_show_form(
             step_id="credentials",
             data_schema=credentials_schema,
             errors=errors,
             description_placeholders={
-                "device_name": self._selected_device.get("product_name", "Unknown"),
-                "device_host": self._selected_device.get("host", "Unknown"),
-                "device_id": self._selected_device.get("device_id", "Unknown"),
+                "device_name": device_name,
+                "device_host": device_host,
+                "device_id": device_id,
             }
         )
 
