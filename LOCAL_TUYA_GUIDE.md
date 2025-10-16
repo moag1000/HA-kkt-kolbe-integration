@@ -4,15 +4,24 @@
 
 Falls Sie lieber die etablierte **Local Tuya Integration** verwenden möchten statt unserer experimentellen KI-Integration, finden Sie hier die komplette Anleitung für beide KKT Kolbe Modelle.
 
-## ⚖️ Local Tuya vs. KKT Kolbe Integration
+## ⚖️ Local Tuya vs. KKT Kolbe Integration (v0.2.0)
 
-| Aspekt | Local Tuya | KKT Kolbe Integration |
-|--------|------------|----------------------|
+| Aspekt | Local Tuya | KKT Kolbe Integration v0.2.0 |
+|--------|------------|------------------------------|
 | **Stabilität** | ✅ Erprobt, tausende Nutzer | ❌ KI-generiert, ungetestet |
 | **Sicherheit** | ✅ Community-validiert | ⚠️ Potenzielle KI-Fehler |
 | **Funktionsumfang** | ⚠️ Manuell konfigurieren | ✅ Alle Funktionen vorkonfiguriert |
-| **Setup-Aufwand** | ⚠️ DP-Mapping erforderlich | ✅ Plug-and-Play |
+| **Setup-Aufwand** | ⚠️ DP-Mapping erforderlich | ✅ **NEU**: mDNS Auto-Discovery |
+| **Device Discovery** | ✅ Automatische Erkennung | ✨ **Automatische Erkennung** |
+| **Konfiguration** | ⚠️ Alle Werte manuell | ✅ Nur Local Key bei Discovery |
 | **Updates** | ✅ Regelmäßig | ❓ Experimentell |
+
+### 🆕 Was ist neu in v0.2.0?
+
+**KKT Kolbe Integration** hat mit **mDNS Discovery** deutlich aufgeholt:
+- **🔍 Automatic Discovery**: Findet Geräte automatisch im Netzwerk
+- **⚡ Simplified Setup**: Nur noch Local Key eingeben
+- **🎯 Smart Detection**: Erkennt Modelltypen automatisch
 
 ## 📋 Voraussetzungen
 
@@ -320,15 +329,24 @@ data:
 
 ## 🆚 Fazit
 
-### Local Tuya wählen wenn:
-- ✅ Sie Stabilität über Features priorisieren
-- ✅ Sie nur Basis-Funktionen benötigen
-- ✅ Sie Erfahrung mit DP-Mapping haben
+### 🔴 Local Tuya wählen wenn:
+- ✅ **Stabilität** über Features priorisieren
+- ✅ **Production Environment** (kritische Systeme)
+- ✅ **Nur Basis-Funktionen** benötigt
+- ✅ **Erfahrung** mit DP-Mapping vorhanden
+- ✅ **Community-Support** bevorzugt
 
-### KKT Kolbe Integration wählen wenn:
-- ✅ Sie alle Geräte-Features nutzen möchten
-- ✅ Sie bereit sind, experimentellen Code zu testen
-- ✅ Sie zur Entwicklung beitragen möchten
+### 🔵 KKT Kolbe Integration v0.2.0 wählen wenn:
+- ✨ **Automatic Discovery** gewünscht (NEUES KILLER-FEATURE!)
+- ✅ **Alle Geräte-Features** nutzen möchten
+- ✅ **Einfaches Setup** bevorzugen (nur Local Key)
+- ✅ **Experimentellen Code** testen bereit
+- ✅ **Zur Entwicklung** beitragen möchten
+- ⚡ **Moderne UX** mit automatischer Erkennung
+
+### 🎆 Empfehlung für v0.2.0:
+**Für Test-Umgebungen**: KKT Integration (wegen mDNS Discovery)
+**Für Production**: Local Tuya (wegen Stabilität)
 
 ---
 
