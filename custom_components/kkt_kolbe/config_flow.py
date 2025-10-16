@@ -574,17 +574,32 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "unknown"
                 errors["general"] = f"Unexpected error: {str(e)}"
 
-        credentials_schema = vol.Schema({
-            vol.Required(CONF_ACCESS_TOKEN): str,
-            vol.Optional(CONF_NAME, default=f"KKT Kolbe ({self._discovery_info['host']})"): str,
-            vol.Optional(CONF_DEVICE_ID, default=self._discovery_info.get("device_id") or self._discovery_info.get("gwId", "")): str,
-        })
-
-        # Debug the discovery info for zeroconf
+        # Debug the discovery info for zeroconf and determine device_id
         device_name = self._discovery_info.get("name", "Unknown")
         device_host = self._discovery_info.get("host", "Unknown")
         # Try device_id first, then gwId as fallback (like discovery does)
-        device_id = self._discovery_info.get("device_id") or self._discovery_info.get("gwId", "Unknown")
+        device_id = self._discovery_info.get("device_id") or self._discovery_info.get("gwId")
+
+        # If still no device_id, check global discovery instance for this IP
+        if not device_id:
+            from .discovery import _discovery_instance
+            if _discovery_instance and _discovery_instance.discovered_devices:
+                # Find device by IP in discovered devices
+                for discovered_id, device_data in _discovery_instance.discovered_devices.items():
+                    if device_data.get("host") == device_host:
+                        device_id = discovered_id
+                        _LOGGER.warning(f"🔍 Found device_id {device_id} for IP {device_host} via global discovery")
+                        break
+
+        if not device_id:
+            device_id = "Unknown"
+
+        # Now create schema with correct device_id
+        credentials_schema = vol.Schema({
+            vol.Required(CONF_ACCESS_TOKEN): str,
+            vol.Optional(CONF_NAME, default=f"KKT Kolbe ({device_host})"): str,
+            vol.Optional(CONF_DEVICE_ID, default=device_id if device_id != "Unknown" else ""): str,
+        })
 
         _LOGGER.warning(f"🔍 Zeroconf credentials form placeholders:")
         _LOGGER.warning(f"  - device_name: {device_name}")
