@@ -535,8 +535,6 @@ class KKTKolbeDiscovery(ServiceListener):
                 "discovered_via": device_info.get("discovered_via", "mDNS"),
             }
 
-            _LOGGER.warning(f"🔗 Creating discovery_info with device_id: {device_id}")
-            _LOGGER.warning(f"🔗 Full discovery_info: {discovery_info}")
 
             # Create a unique identifier for this discovery
             unique_id = device_info.get("device_id", device_info["host"])
