@@ -18,13 +18,14 @@ async def async_setup_entry(
 ) -> None:
     """Set up KKT Kolbe switch entities."""
     device = hass.data[DOMAIN][entry.entry_id]["device"]
+    device_info = hass.data[DOMAIN][entry.entry_id]["device_info"]
     product_name = hass.data[DOMAIN][entry.entry_id].get("product_name", "unknown")
 
     entities = []
     switch_configs = get_device_entities(product_name, "switch")
 
     for config in switch_configs:
-        entities.append(KKTKolbeSwitch(entry, device, config))
+        entities.append(KKTKolbeSwitch(entry, device, device_info, config))
 
     if entities:
         async_add_entities(entities)
@@ -32,17 +33,18 @@ async def async_setup_entry(
 class KKTKolbeSwitch(SwitchEntity):
     """Representation of a KKT Kolbe switch."""
 
-    def __init__(self, entry: ConfigEntry, device, config: dict):
+    def __init__(self, entry: ConfigEntry, device, device_info, config: dict):
         """Initialize the switch."""
         self._entry = entry
         self._device = device
+        self._device_info = device_info
         self._config = config
         self._dp = config["dp"]
         self._name = config["name"]
 
         # Set up entity attributes
         self._attr_unique_id = f"{entry.entry_id}_{self._name.lower().replace(' ', '_')}"
-        self._attr_name = f"KKT Kolbe {self._name}"
+        self._attr_name = f"{self._device_info.get('name', 'KKT Kolbe')} {self._name}"
         self._attr_icon = self._get_icon()
         self._attr_device_class = config.get("device_class")
 
@@ -131,10 +133,9 @@ class KKTKolbeSwitch(SwitchEntity):
         """Return device info for device registry."""
         return {
             "identifiers": {(DOMAIN, self._entry.entry_id)},
-            "name": "KKT Kolbe Device",
+            "name": self._device_info.get("name", "KKT Kolbe Device"),
             "manufacturer": "KKT Kolbe",
-            "model": "Unknown",
-            "sw_version": "1.3.0",
+            "model": self._device_info.get("model_id", "Unknown"),
         }
 
     async def async_update(self) -> None:

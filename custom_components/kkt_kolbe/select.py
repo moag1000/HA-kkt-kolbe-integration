@@ -17,13 +17,14 @@ async def async_setup_entry(
 ) -> None:
     """Set up KKT Kolbe select entities."""
     device = hass.data[DOMAIN][entry.entry_id]["device"]
+    device_info = hass.data[DOMAIN][entry.entry_id]["device_info"]
     product_name = hass.data[DOMAIN][entry.entry_id].get("product_name", "unknown")
 
     entities = []
     select_configs = get_device_entities(product_name, "select")
 
     for config in select_configs:
-        entities.append(KKTKolbeSelect(entry, device, config))
+        entities.append(KKTKolbeSelect(entry, device, device_info, config))
 
     if entities:
         async_add_entities(entities)
@@ -31,10 +32,11 @@ async def async_setup_entry(
 class KKTKolbeSelect(SelectEntity):
     """Generic select entity for KKT Kolbe devices."""
 
-    def __init__(self, entry: ConfigEntry, device, config: dict):
+    def __init__(self, entry: ConfigEntry, device, device_info, config: dict):
         """Initialize the select entity."""
         self._entry = entry
         self._device = device
+        self._device_info = device_info
         self._config = config
         self._dp = config["dp"]
         self._name = config["name"]
@@ -129,10 +131,9 @@ class KKTKolbeSelect(SelectEntity):
         """Return device info for device registry."""
         return {
             "identifiers": {(DOMAIN, self._entry.entry_id)},
-            "name": "KKT Kolbe Device",
+            "name": self._device_info.get("name", "KKT Kolbe Device"),
             "manufacturer": "KKT Kolbe",
-            "model": "Unknown",
-            "sw_version": "1.3.0",
+            "model": self._device_info.get("model_id", "Unknown"),
         }
 
     async def async_update(self) -> None:
