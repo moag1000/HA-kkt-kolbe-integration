@@ -3,7 +3,7 @@
 [![GitHub Release][releases-shield]][releases]
 [![hacs][hacsbadge]][hacs]
 [![GitHub Activity][commits-shield]][commits]
-[![License][license-shield]](LICENSE)
+[![License][license-shield]][license-url]
 
 ## 🚀 Smart Home Integration für KKT Kolbe Geräte
 
@@ -61,12 +61,13 @@ Diese Integration wurde von KI (Claude) erstellt. Bei Kochfeldern ist besondere 
 
 ---
 
-**Version**: 1.1.0 | **Lizenz**: MIT | **Autor**: [@moag1000](https://github.com/moag1000)
+**Version**: 1.1.1 | **Lizenz**: MIT | **Autor**: [@moag1000](https://github.com/moag1000)
 
 [commits-shield]: https://img.shields.io/github/commit-activity/y/moag1000/HA-kkt-kolbe-integration.svg?style=for-the-badge
 [commits]: https://github.com/moag1000/HA-kkt-kolbe-integration/commits/main
 [hacs]: https://github.com/hacs/integration
 [hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
-[license-shield]: https://img.shields.io/github/license/moag1000/HA-kkt-kolbe-integration.svg?style=for-the-badge
-[releases-shield]: https://img.shields.io/github/release/moag1000/HA-kkt-kolbe-integration.svg?style=for-the-badge
+[license-shield]: https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge
+[license-url]: https://opensource.org/licenses/MIT
+[releases-shield]: https://img.shields.io/badge/version-v1.1.1-blue.svg?style=for-the-badge
 [releases]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases
