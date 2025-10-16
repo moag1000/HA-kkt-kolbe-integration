@@ -151,6 +151,22 @@ Gleiche Tuya-Credentials wie für unsere Integration:
 - Überwachen Sie das Gerät während der Tests
 - Haben Sie einen Notausschalter bereit
 
+### 🤚 WICHTIG: Manuelle Bestätigung erforderlich
+
+**Sicherheitsfeature des Kochfelds:**
+- 📱 **Wie in der Tuya App**: Remote-Befehle erfordern **physische Bestätigung**
+- 👤 **Person vor Ort**: Jemand muss am Gerät stehen und **Bestätigungstaste drücken**
+- 🔒 **API-Limitation**: Dies ist **KEINE** Einschränkung der Integration, sondern ein **Tuya-Sicherheitsfeature**
+- ⏰ **Timeout**: Ohne Bestätigung werden Remote-Befehle nach ca. 30 Sekunden abgebrochen
+
+**Praktisches Beispiel:**
+1. Sie senden "Zone 1 auf Stufe 5" über Home Assistant
+2. Das Kochfeld **piept** und zeigt Warnung im Display
+3. Sie müssen **physisch die Bestätigungstaste** am Gerät drücken
+4. Erst dann wird der Befehl ausgeführt
+
+**➡️ Das ist KEIN Bug, sondern gewollte Sicherheit!**
+
 ### Basis Data Points
 
 | DP | Funktion | Typ | Werte | LocalTuya Entity |
