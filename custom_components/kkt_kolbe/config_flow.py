@@ -71,6 +71,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle the initial step."""
         # Start discovery first if not already running
         from .discovery import async_start_discovery
+
+        _LOGGER.info("Starting KKT Kolbe device discovery...")
         await async_start_discovery(self.hass)
 
         # Wait for discovery to find devices (with timeout)
@@ -78,16 +80,21 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         max_wait = 5  # Maximum 5 seconds
         wait_interval = 0.5  # Check every 500ms
 
-        for _ in range(int(max_wait / wait_interval)):
+        _LOGGER.info(f"Waiting up to {max_wait}s for device discovery...")
+
+        for i in range(int(max_wait / wait_interval)):
             self._discovered_devices = get_discovered_devices()
+            _LOGGER.debug(f"Discovery check {i+1}: Found {len(self._discovered_devices)} devices")
             if self._discovered_devices:
                 break
             await asyncio.sleep(wait_interval)
 
+        _LOGGER.info(f"Discovery finished: Found {len(self._discovered_devices)} KKT Kolbe devices")
+
         if self._discovered_devices:
             return await self.async_step_discovery()
         else:
-            return await self.async_step_manual()
+            return await self.async_step_choose_setup()
 
     async def async_step_discovery(
         self, user_input: dict[str, Any] | None = None
@@ -184,4 +191,73 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="manual", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
+        )
+
+    async def async_step_choose_setup(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Choose setup method when no devices discovered."""
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            choice = user_input.get("setup_choice")
+            if choice == "manual":
+                return await self.async_step_manual()
+            elif choice == "test":
+                # Add test device for debugging
+                from .discovery import add_test_device
+                add_test_device()
+                self._discovered_devices = get_discovered_devices()
+                return await self.async_step_discovery()
+            elif choice == "debug":
+                return await self.async_step_debug_info()
+
+        setup_schema = vol.Schema({
+            vol.Required("setup_choice"): vol.In({
+                "manual": "Manual configuration",
+                "test": "Add test device (debugging)",
+                "debug": "Show debug information"
+            })
+        })
+
+        return self.async_show_form(
+            step_id="choose_setup",
+            data_schema=setup_schema,
+            errors=errors,
+            description_placeholders={
+                "reason": "No KKT Kolbe devices found via automatic discovery"
+            }
+        )
+
+    async def async_step_debug_info(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Show debug information about discovery."""
+        from .discovery import debug_scan_network
+
+        if user_input is not None:
+            return await self.async_step_choose_setup()
+
+        # Scan network for debug info
+        network_services = await debug_scan_network()
+
+        debug_info = "mDNS Discovery Debug Information:\n\n"
+        from .discovery import TUYA_SERVICE_TYPES
+        debug_info += f"Service types scanned: {len(TUYA_SERVICE_TYPES)}\n"
+        debug_info += f"Services found in network: {len(network_services)}\n\n"
+
+        for service_type, devices in network_services.items():
+            debug_info += f"{service_type}: {len(devices)} devices\n"
+
+        debug_schema = vol.Schema({
+            vol.Optional("back", default=True): bool
+        })
+
+        return self.async_show_form(
+            step_id="debug_info",
+            data_schema=debug_schema,
+            errors={},
+            description_placeholders={
+                "debug_info": debug_info
+            }
         )

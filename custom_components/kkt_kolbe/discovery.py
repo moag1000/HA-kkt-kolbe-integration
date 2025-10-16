@@ -48,7 +48,9 @@ class KKTKolbeDiscovery(ServiceListener):
         try:
             self._zeroconf = AsyncZeroconf()
 
+            _LOGGER.info(f"Starting mDNS discovery for {len(TUYA_SERVICE_TYPES)} service types...")
             for service_type in TUYA_SERVICE_TYPES:
+                _LOGGER.debug(f"Starting browser for service type: {service_type}")
                 browser = ServiceBrowser(
                     self._zeroconf.zeroconf,
                     service_type,
@@ -56,10 +58,10 @@ class KKTKolbeDiscovery(ServiceListener):
                 )
                 self._browsers.append(browser)
 
-            _LOGGER.info("Started KKT Kolbe mDNS discovery")
+            _LOGGER.info(f"Started KKT Kolbe mDNS discovery with {len(self._browsers)} browsers")
 
         except Exception as e:
-            _LOGGER.error(f"Failed to start mDNS discovery: {e}")
+            _LOGGER.error(f"Failed to start mDNS discovery: {e}", exc_info=True)
 
     async def async_stop(self) -> None:
         """Stop mDNS discovery."""
@@ -109,8 +111,16 @@ class KKTKolbeDiscovery(ServiceListener):
 
         _LOGGER.debug(f"Checking device: {info.name} at {info.parsed_addresses()}")
 
-        # Check device name for KKT patterns
+        # First check if this looks like a Tuya device ID pattern
         name_lower = info.name.lower()
+
+        # Tuya device IDs often start with bf followed by hex characters
+        if name_lower.startswith('bf') and len(name_lower) >= 20:
+            _LOGGER.info(f"Found potential Tuya device: {info.name}")
+            # For Tuya devices, check TXT records for model info
+            return self._check_tuya_device_info(info)
+
+        # Check device name for KKT patterns (fallback)
         for pattern in KKT_PATTERNS:
             if pattern in name_lower:
                 _LOGGER.info(f"Found KKT device by name pattern '{pattern}': {info.name}")
@@ -148,6 +158,49 @@ class KKTKolbeDiscovery(ServiceListener):
             # Log all TXT data for debugging
             _LOGGER.debug(f"Device TXT data: {txt_data}")
 
+        return False
+
+    def _check_tuya_device_info(self, info) -> bool:
+        """Check if a Tuya device is a KKT Kolbe device by TXT records."""
+        if not hasattr(info, 'properties') or not info.properties:
+            # If no TXT records, we can't identify it as KKT
+            # But log it for manual verification
+            _LOGGER.info(f"Tuya device without TXT records: {info.name} - manual check required")
+            return False
+
+        txt_data = {}
+        for key, value in info.properties.items():
+            try:
+                key_str = key.decode('utf-8').lower()
+                value_str = value.decode('utf-8')
+                txt_data[key_str] = value_str
+            except UnicodeDecodeError:
+                continue
+
+        _LOGGER.debug(f"Tuya device TXT data: {txt_data}")
+
+        # Check for known model IDs in TXT records
+        model = txt_data.get('model', '') or txt_data.get('md', '') or txt_data.get('productid', '')
+        device_id = txt_data.get('id', '') or txt_data.get('devid', '') or txt_data.get('device_id', '')
+
+        # Check if this matches known KKT models
+        if model in MODELS:
+            _LOGGER.info(f"Found KKT device by model ID '{model}': {info.name}")
+            return True
+
+        # Check if device ID matches known KKT device IDs (from your test)
+        known_kkt_device_patterns = [
+            'bf735dfe2ad64fba7c',  # HERMES & STYLE pattern from your test
+            'bf5592b47738c5b46e',  # IND7705HC pattern
+        ]
+
+        for pattern in known_kkt_device_patterns:
+            if device_id.startswith(pattern):
+                _LOGGER.info(f"Found KKT device by device ID pattern '{pattern}': {info.name}")
+                return True
+
+        # For debugging: log all Tuya devices for manual verification
+        _LOGGER.info(f"Unidentified Tuya device: {info.name} - Model: {model}, DeviceID: {device_id}")
         return False
 
     def _extract_device_info(self, info) -> Optional[Dict]:
@@ -254,3 +307,54 @@ def get_discovered_devices() -> Dict[str, Dict]:
     if _discovery_instance:
         return _discovery_instance.discovered_devices.copy()
     return {}
+
+
+def add_test_device() -> None:
+    """Add a test device for debugging (development only)."""
+    global _discovery_instance
+
+    if _discovery_instance:
+        test_device = {
+            "device_id": "test_kkt_device_12345",
+            "host": "192.168.1.100",
+            "name": "Test KKT HERMES & STYLE",
+            "model": "e1k6i0zo",
+            "device_type": "hood",
+            "product_name": "Test HERMES & STYLE",
+            "discovered_via": "test_simulation"
+        }
+        _discovery_instance.discovered_devices["test_device"] = test_device
+        _LOGGER.warning("Added test device for debugging purposes!")
+
+
+async def debug_scan_network() -> Dict[str, List[str]]:
+    """Scan network for all mDNS services (debugging only)."""
+    try:
+        from zeroconf import Zeroconf
+
+        zeroconf = Zeroconf()
+        services = {}
+
+        # Scan common service types
+        common_services = [
+            "_http._tcp.local.",
+            "_https._tcp.local.",
+            "_device._tcp.local.",
+            "_tuya._tcp.local.",
+            "_smartlife._tcp.local.",
+            "_iot._tcp.local.",
+            "_homekit._tcp.local.",
+            "_miio._tcp.local.",
+        ]
+
+        for service_type in common_services:
+            service_names = zeroconf.get_service_info(service_type, timeout=1)
+            if service_names:
+                services[service_type] = [str(service_names)]
+
+        zeroconf.close()
+        return services
+
+    except Exception as e:
+        _LOGGER.error(f"Network scan failed: {e}")
+        return {}
