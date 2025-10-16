@@ -338,38 +338,34 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             try:
-                # For manual setup, try multiple auto-detection methods
-                from .device_types import get_device_info_by_device_id, find_device_by_product_name
+                # For manual setup, use intelligent auto-detection
+                from .device_types import auto_detect_device_config
 
                 manual_config = user_input.copy()
                 device_id = user_input.get(CONF_DEVICE_ID, "")
                 device_type = user_input.get(CONF_TYPE, "auto")
                 provided_product_name = user_input.get("product_name", "").strip()
 
-                detected_device_info = None
+                # Auto-detect device configuration
+                detected_config = auto_detect_device_config(
+                    device_id=device_id,
+                    provided_product_name=provided_product_name
+                )
 
-                # Method 1: User provided product name (like p8volecsgzdyun29)
-                if provided_product_name:
-                    detected_device_info = find_device_by_product_name(provided_product_name)
-                    if detected_device_info:
-                        manual_config["product_name"] = provided_product_name
-                        _LOGGER.info(f"Manual product name detected: {provided_product_name} → {detected_device_info['name']}")
-
-                # Method 2: Auto-detect from device_id
-                if not detected_device_info:
-                    detected_device_info = get_device_info_by_device_id(device_id)
-                    if detected_device_info:
-                        manual_config["product_name"] = detected_device_info["product_name"]
-                        _LOGGER.info(f"Auto-detected device type for {device_id}: {detected_device_info['name']}")
-
-                # Method 3: Fallback to user type selection
-                if not detected_device_info:
+                if detected_config:
+                    # Known device detected - use specific configuration
+                    manual_config["product_name"] = detected_config["product_name"]
+                    _LOGGER.info(f"Device auto-detected via {detected_config['detected_method']}: "
+                                f"{detected_config['name']} (product: {detected_config['product_name']})")
+                else:
+                    # Unknown device - fallback to user type selection
                     if device_type == "hood":
                         manual_config["product_name"] = "manual_hood"
                     elif device_type == "cooktop":
                         manual_config["product_name"] = "manual_cooktop"
                     else:
                         manual_config["product_name"] = "unknown"  # auto or unspecified
+                    _LOGGER.info(f"Device not auto-detected, using manual type: {device_type}")
 
                 info = await validate_input(self.hass, manual_config)
                 return self.async_create_entry(title=info["title"], data=manual_config)
