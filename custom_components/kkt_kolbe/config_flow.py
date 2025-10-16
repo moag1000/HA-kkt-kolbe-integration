@@ -484,6 +484,21 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         name = discovery_info.get("name", discovery_info.get("hostname", "Unknown"))
         device_id = discovery_info.get("properties", {}).get("id") or discovery_info.get("properties", {}).get("devid")
 
+        # If no device_id from mDNS, check global discovery instance for this IP
+        if not device_id:
+            from .discovery import _discovery_instance
+            if _discovery_instance and _discovery_instance.discovered_devices:
+                # Find device by IP in discovered devices
+                for discovered_id, device_data in _discovery_instance.discovered_devices.items():
+                    if device_data.get("host") == host:
+                        device_id = discovered_id
+                        # Also use the product name from UDP discovery if available
+                        udp_name = device_data.get("product_name")
+                        if udp_name and udp_name != "KKT Kolbe Device":
+                            name = udp_name
+                        _LOGGER.warning(f"🔍 Found device_id {device_id} and name {name} for IP {host} via global discovery in zeroconf step")
+                        break
+
         if not host:
             return self.async_abort(reason="no_host")
 
