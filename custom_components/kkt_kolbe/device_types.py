@@ -91,6 +91,41 @@ KNOWN_DEVICES = {
         }
     },
 
+    # KKT HERMES Hood (Schwestermodell ohne "& Style")
+    "hermes_hood": {
+        "model_id": "0fcj8kha86svfmve",
+        "category": CATEGORY_HOOD,
+        "name": "KKT HERMES Hood",
+        "product_names": ["0fcj8kha86svfmve", "KKT Kolbe HERMES"],
+        "device_ids": [],  # Will be filled when users report
+        "device_id_patterns": [],
+        "platforms": ["fan", "light", "switch", "sensor", "select", "number"],
+        "data_points": HOOD_DPS,
+        "entities": {
+            "fan": {
+                "dp": 10,  # fan_speed_enum
+                "speeds": ["off", "low", "middle", "high", "strong"]
+            },
+            "light": {
+                "dp": 4,  # light on/off
+                "rgb_dp": 101  # RGB mode
+            },
+            "switch": [
+                {"dp": 1, "name": "Power", "device_class": "switch"},
+                {"dp": 6, "name": "Filter Reminder", "device_class": "switch"}
+            ],
+            "sensor": [
+                {"dp": 6, "name": "Filter Status", "device_class": "problem"}
+            ],
+            "select": [
+                {"dp": 101, "name": "RGB Mode", "options": list(range(10))}
+            ],
+            "number": [
+                {"dp": 13, "name": "Countdown Timer", "min": 0, "max": 60, "unit": "min"}
+            ]
+        }
+    },
+
     # IND7705HC Induction Cooktop
     "ind7705hc_cooktop": {
         "model_id": "e1kc5q64",
