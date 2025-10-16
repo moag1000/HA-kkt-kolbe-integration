@@ -57,6 +57,13 @@ Ich habe mich mit der local tuya Implementierung schwer getan, weil diverseste F
   - General timer (0-99 minutes)
   - Error monitoring per zone
 
+**🤚 WICHTIG - Manuelle Bestätigung:**
+- 👤 **Remote-Steuerung** erfordert **physische Bestätigung** am Gerät
+- 📱 **Wie Tuya App**: Person muss vor Ort **Bestätigungstaste drücken**
+- 🔒 **API-Limitation** (nicht Integration) - **Tuya-Sicherheitsfeature**
+
+👉 **Detaillierte Erklärung:** [COOKTOP_SAFETY.md](COOKTOP_SAFETY.md)
+
 ## Installation
 
 ### 🏪 HACS Installation (Empfohlen)
@@ -186,6 +193,7 @@ kkt_kolbe_integration/
 │       └── translations/       # UI translations
 ├── config_example.yaml         # Example configuration (safe)
 ├── LOCAL_TUYA_GUIDE.md         # Alternative: Local Tuya setup
+├── COOKTOP_SAFETY.md           # Induction cooktop safety info
 ├── SECURITY.md                 # Security guidelines
 └── .gitignore                  # Prevents credential commits
 ```

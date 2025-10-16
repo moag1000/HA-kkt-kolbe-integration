@@ -1,4 +1,9 @@
-"""Induction cooktop specific entities for KKT IND7705HC."""
+"""Induction cooktop specific entities for KKT IND7705HC.
+
+IMPORTANT: Remote commands require manual confirmation at the device.
+This is a Tuya API security feature, not a limitation of this integration.
+A person must be present at the cooktop to press the confirmation button.
+"""
 import logging
 from typing import Any
 from homeassistant.components.number import NumberEntity
