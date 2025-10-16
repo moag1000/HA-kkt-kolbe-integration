@@ -64,6 +64,10 @@ class KKTKolbeNumber(NumberEntity):
             return float(self._device.cooktop_max_level)
         elif self._dp == 134:  # Cooktop general timer
             return float(self._device.cooktop_timer)
+        elif self._dp == 5:  # Hood light brightness
+            return float(self._device.light_brightness)
+        elif self._dp == 102:  # Hood RGB brightness
+            return float(self._device.rgb_brightness)
         else:
             return float(self._device.get_dp_value(self._dp, 0))
 
@@ -77,6 +81,10 @@ class KKTKolbeNumber(NumberEntity):
             self._device.set_cooktop_max_level(int_value)
         elif self._dp == 134:  # Cooktop general timer
             self._device.set_cooktop_timer(int_value)
+        elif self._dp == 5:  # Hood light brightness
+            self._device.set_light_brightness(int_value)
+        elif self._dp == 102:  # Hood RGB brightness
+            self._device.set_rgb_brightness(int_value)
         else:
             await self._device.async_set_dp(self._dp, int_value)
 

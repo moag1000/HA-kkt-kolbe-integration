@@ -83,6 +83,8 @@ class KKTKolbeSwitch(SwitchEntity):
             return self._device.cooktop_senior_mode
         elif self._dp == 108:  # Cooktop confirm action
             return self._device.get_dp_value(108, False)
+        elif self._dp == 15:  # Hood filter reset
+            return self._device.get_dp_value(15, False)
         else:
             return self._device.get_dp_value(self._dp, False)
 
@@ -102,6 +104,8 @@ class KKTKolbeSwitch(SwitchEntity):
             self._device.set_cooktop_senior_mode(True)
         elif self._dp == 108:  # Cooktop confirm action
             self._device.set_cooktop_confirm(True)
+        elif self._dp == 15:  # Hood filter reset
+            self._device.reset_filter()
         else:
             await self._device.async_set_dp(self._dp, True)
 
@@ -123,6 +127,9 @@ class KKTKolbeSwitch(SwitchEntity):
             self._device.set_cooktop_senior_mode(False)
         elif self._dp == 108:  # Cooktop confirm action
             self._device.set_cooktop_confirm(False)
+        elif self._dp == 15:  # Hood filter reset
+            # Filter reset is a toggle action, do nothing on off
+            pass
         else:
             await self._device.async_set_dp(self._dp, False)
 

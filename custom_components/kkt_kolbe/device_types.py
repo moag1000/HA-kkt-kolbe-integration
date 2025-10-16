@@ -7,10 +7,15 @@ from .const import CATEGORY_HOOD, CATEGORY_COOKTOP
 HOOD_DPS = {
     1: "switch",           # Main power
     4: "light",           # Light on/off
+    5: "light_brightness", # Light brightness (0-255) - Common for hoods
     6: "switch_lamp",     # Filter cleaning reminder
     10: "fan_speed_enum", # Fan speed
+    11: "fan_speed_set",  # Fan speed setting (0-4) - For direct control
     13: "countdown",      # Timer (0-60 min)
+    14: "filter_hours",   # Filter usage hours - Common monitoring
+    15: "filter_reset",   # Filter reset switch
     101: "RGB",           # RGB light mode (0-9)
+    102: "rgb_brightness", # RGB brightness (0-255)
 }
 
 # KKT IND7705HC Induction Cooktop Data Points (Model ID: e1kc5q64)
@@ -73,17 +78,25 @@ KNOWN_DEVICES = {
             },
             "light": {
                 "dp": 4,  # light on/off
-                "rgb_dp": 101  # RGB mode
+                "brightness_dp": 5,  # light brightness
+                "rgb_dp": 101,  # RGB mode
+                "rgb_brightness_dp": 102  # RGB brightness
             },
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch"},
-                {"dp": 6, "name": "Filter Reminder", "device_class": "switch"}
+                {"dp": 6, "name": "Filter Reminder", "device_class": "switch"},
+                {"dp": 15, "name": "Filter Reset", "device_class": "switch"}
             ],
             "sensor": [
-                {"dp": 6, "name": "Filter Status", "device_class": "problem"}
+                {"dp": 6, "name": "Filter Status", "device_class": "problem"},
+                {"dp": 10, "name": "Fan Speed", "device_class": "enum", "options": ["off", "low", "middle", "high", "strong"]},
+                {"dp": 14, "name": "Filter Hours", "unit": "h", "device_class": "duration"},
+                {"dp": 5, "name": "Light Brightness", "unit": "%"},
+                {"dp": 102, "name": "RGB Brightness", "unit": "%"}
             ],
             "select": [
-                {"dp": 101, "name": "RGB Mode", "options": list(range(10))}
+                {"dp": 101, "name": "RGB Mode", "options": list(range(10))},
+                {"dp": 11, "name": "Fan Speed Setting", "options": ["off", "low", "middle", "high", "strong"]}
             ],
             "number": [
                 {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": "min"}
@@ -108,20 +121,30 @@ KNOWN_DEVICES = {
             },
             "light": {
                 "dp": 4,  # light on/off
-                "rgb_dp": 101  # RGB mode
+                "brightness_dp": 5,  # light brightness
+                "rgb_dp": 101,  # RGB mode
+                "rgb_brightness_dp": 102  # RGB brightness
             },
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch"},
-                {"dp": 6, "name": "Filter Reminder", "device_class": "switch"}
+                {"dp": 6, "name": "Filter Reminder", "device_class": "switch"},
+                {"dp": 15, "name": "Filter Reset", "device_class": "switch"}
             ],
             "sensor": [
-                {"dp": 6, "name": "Filter Status", "device_class": "problem"}
+                {"dp": 6, "name": "Filter Status", "device_class": "problem"},
+                {"dp": 10, "name": "Fan Speed", "device_class": "enum", "options": ["off", "low", "middle", "high", "strong"]},
+                {"dp": 14, "name": "Filter Hours", "unit": "h", "device_class": "duration"},
+                {"dp": 5, "name": "Light Brightness", "unit": "%"},
+                {"dp": 102, "name": "RGB Brightness", "unit": "%"}
             ],
             "select": [
-                {"dp": 101, "name": "RGB Mode", "options": list(range(10))}
+                {"dp": 101, "name": "RGB Mode", "options": list(range(10))},
+                {"dp": 11, "name": "Fan Speed Setting", "options": ["off", "low", "middle", "high", "strong"]}
             ],
             "number": [
-                {"dp": 13, "name": "Countdown Timer", "min": 0, "max": 60, "unit": "min"}
+                {"dp": 13, "name": "Countdown Timer", "min": 0, "max": 60, "unit": "min"},
+                {"dp": 5, "name": "Light Brightness Level", "min": 0, "max": 255, "unit": "%"},
+                {"dp": 102, "name": "RGB Brightness Level", "min": 0, "max": 255, "unit": "%"}
             ]
         }
     },
