@@ -64,6 +64,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Initialize the config flow."""
         self._discovered_devices = {}
         self._selected_device = None
+        self._discovery_info = None
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -201,7 +202,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             choice = user_input.get("setup_choice")
-            if choice == "manual":
+            if choice == "retry":
+                # Retry automatic discovery
+                return await self.async_step_user()
+            elif choice == "manual":
                 return await self.async_step_manual()
             elif choice == "test":
                 # Add test device for debugging
@@ -214,6 +218,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         setup_schema = vol.Schema({
             vol.Required("setup_choice"): vol.In({
+                "retry": "Retry automatic discovery",
                 "manual": "Manual configuration",
                 "test": "Add test device (debugging)",
                 "debug": "Show debug information"
@@ -259,5 +264,103 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors={},
             description_placeholders={
                 "debug_info": debug_info
+            }
+        )
+
+    async def async_step_zeroconf(
+        self, discovery_info: dict[str, Any]
+    ) -> FlowResult:
+        """Handle zeroconf discovery."""
+        _LOGGER.info(f"Zeroconf discovery triggered with: {discovery_info}")
+
+        # Extract discovery information
+        host = discovery_info.get("host")
+        name = discovery_info.get("name", discovery_info.get("hostname", "Unknown"))
+        device_id = discovery_info.get("properties", {}).get("id") or discovery_info.get("properties", {}).get("devid")
+
+        if not host:
+            return self.async_abort(reason="no_host")
+
+        # Set unique ID to prevent duplicates
+        unique_id = device_id or host
+        await self.async_set_unique_id(unique_id)
+        self._abort_if_unique_id_configured(updates={CONF_HOST: host})
+
+        # Store discovery info for later use
+        self._discovery_info = {
+            "host": host,
+            "device_id": device_id,
+            "name": name,
+            "discovered_via": "zeroconf"
+        }
+
+        # Check if this might be a KKT device
+        if device_id and (device_id.startswith('bf735dfe2ad64fba7c') or device_id.startswith('bf5592b47738c5b46e')):
+            _LOGGER.info(f"Discovered known KKT device pattern: {device_id}")
+            self.context["title_placeholders"] = {"name": f"KKT Kolbe Device ({host})"}
+            return await self.async_step_zeroconf_confirm()
+
+        # For unknown devices, let user confirm
+        self.context["title_placeholders"] = {"name": f"Potential KKT Device ({host})"}
+        return await self.async_step_zeroconf_confirm()
+
+    async def async_step_zeroconf_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Confirm the zeroconf discovery."""
+        if user_input is not None:
+            # User confirmed, proceed with setup
+            return await self.async_step_zeroconf_credentials()
+
+        return self.async_show_form(
+            step_id="zeroconf_confirm",
+            description_placeholders={
+                "name": self._discovery_info["name"],
+                "host": self._discovery_info["host"],
+                "device_id": self._discovery_info.get("device_id", "Unknown")
+            }
+        )
+
+    async def async_step_zeroconf_credentials(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Handle credentials for zeroconf discovered device."""
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            try:
+                device_config = {
+                    CONF_HOST: self._discovery_info["host"],
+                    CONF_DEVICE_ID: self._discovery_info.get("device_id", ""),
+                    CONF_ACCESS_TOKEN: user_input[CONF_ACCESS_TOKEN],
+                    CONF_NAME: user_input.get(CONF_NAME, f"KKT Kolbe ({self._discovery_info['host']})"),
+                    CONF_TYPE: "auto",
+                }
+
+                # Validate if device_id is missing
+                if not device_config[CONF_DEVICE_ID]:
+                    errors["base"] = "missing_device_id"
+                else:
+                    info = await validate_input(self.hass, device_config)
+                    return self.async_create_entry(title=info["title"], data=device_config)
+
+            except Exception:
+                _LOGGER.exception("Unexpected exception during zeroconf setup")
+                errors["base"] = "unknown"
+
+        credentials_schema = vol.Schema({
+            vol.Required(CONF_ACCESS_TOKEN): str,
+            vol.Optional(CONF_NAME, default=f"KKT Kolbe ({self._discovery_info['host']})"): str,
+            vol.Optional(CONF_DEVICE_ID, default=self._discovery_info.get("device_id", "")): str,
+        })
+
+        return self.async_show_form(
+            step_id="zeroconf_credentials",
+            data_schema=credentials_schema,
+            errors=errors,
+            description_placeholders={
+                "device_name": self._discovery_info["name"],
+                "device_host": self._discovery_info["host"],
+                "device_id": self._discovery_info.get("device_id", "Unknown")
             }
         )

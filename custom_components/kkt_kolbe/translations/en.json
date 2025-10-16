@@ -27,6 +27,34 @@
           "name": "Device Name"
         }
       },
+      "choose_setup": {
+        "title": "Choose Setup Method",
+        "description": "No KKT Kolbe devices found via automatic discovery.\\n\\nReason: {reason}\\n\\nChoose a setup method:",
+        "data": {
+          "setup_choice": "Setup Method"
+        }
+      },
+      "debug_info": {
+        "title": "Discovery Debug Information",
+        "description": "{debug_info}",
+        "data": {
+          "back": "Back to selection"
+        }
+      },
+      "zeroconf_confirm": {
+        "title": "KKT Kolbe Device Found",
+        "description": "A potential KKT Kolbe device was automatically discovered:\\n\\nName: {name}\\nIP Address: {host}\\nDevice ID: {device_id}\\n\\nWould you like to set up this device?",
+        "data": {}
+      },
+      "zeroconf_credentials": {
+        "title": "Device Credentials (Auto-Discovery)",
+        "description": "Enter the Tuya Local Key for the automatically discovered device:\\n\\nDevice: {device_name}\\nIP: {device_host}\\nID: {device_id}",
+        "data": {
+          "access_token": "Tuya Local Key",
+          "name": "Device Name",
+          "device_id": "Device ID (if different)"
+        }
+      },
       "user": {
         "title": "KKT Kolbe Setup",
         "description": "Configure your KKT Kolbe device (Tuya device).",
@@ -42,7 +70,9 @@
     "error": {
       "cannot_connect": "Failed to connect to device",
       "invalid_auth": "Invalid authentication",
-      "unknown": "Unexpected error"
+      "unknown": "Unexpected error",
+      "missing_device_id": "Device ID missing or could not be auto-detected",
+      "no_host": "No IP address found"
     },
     "abort": {
       "already_configured": "Device is already configured"

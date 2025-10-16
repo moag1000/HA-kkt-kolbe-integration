@@ -17,6 +17,16 @@ _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = [Platform.SENSOR, Platform.FAN, Platform.LIGHT, Platform.SWITCH, Platform.SELECT, Platform.NUMBER]
 
+
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    """Set up the KKT Kolbe component from YAML configuration."""
+    # Start automatic discovery when Home Assistant starts
+    # This enables discovery even before any devices are configured
+    _LOGGER.info("Starting KKT Kolbe automatic device discovery...")
+    await async_start_discovery(hass)
+
+    return True
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up KKT Kolbe from a config entry."""
     hass.data.setdefault(DOMAIN, {})

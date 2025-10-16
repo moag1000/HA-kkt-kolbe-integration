@@ -27,6 +27,34 @@
           "name": "Gerätename"
         }
       },
+      "choose_setup": {
+        "title": "Einrichtungsmethode wählen",
+        "description": "Keine KKT Kolbe Geräte automatisch gefunden.\\n\\nGrund: {reason}\\n\\nWählen Sie eine Einrichtungsmethode:",
+        "data": {
+          "setup_choice": "Einrichtung"
+        }
+      },
+      "debug_info": {
+        "title": "Discovery Debug Information",
+        "description": "{debug_info}",
+        "data": {
+          "back": "Zurück zur Auswahl"
+        }
+      },
+      "zeroconf_confirm": {
+        "title": "KKT Kolbe Gerät gefunden",
+        "description": "Ein potenzielles KKT Kolbe Gerät wurde automatisch erkannt:\\n\\nName: {name}\\nIP-Adresse: {host}\\nGeräte-ID: {device_id}\\n\\nMöchten Sie dieses Gerät einrichten?",
+        "data": {}
+      },
+      "zeroconf_credentials": {
+        "title": "Gerätezugangsdaten (Auto-Discovery)",
+        "description": "Geben Sie den Tuya Local Key für das automatisch erkannte Gerät ein:\\n\\nGerät: {device_name}\\nIP: {device_host}\\nID: {device_id}",
+        "data": {
+          "access_token": "Tuya Local Key",
+          "name": "Gerätename",
+          "device_id": "Geräte-ID (falls anders)"
+        }
+      },
       "user": {
         "title": "KKT Kolbe Einrichtung",
         "description": "Konfigurieren Sie Ihr KKT Kolbe Gerät (Tuya-Gerät).",
@@ -42,7 +70,9 @@
     "error": {
       "cannot_connect": "Verbindung zum Gerät fehlgeschlagen",
       "invalid_auth": "Ungültige Authentifizierung",
-      "unknown": "Unerwarteter Fehler"
+      "unknown": "Unerwarteter Fehler",
+      "missing_device_id": "Geräte-ID fehlt oder konnte nicht automatisch erkannt werden",
+      "no_host": "Keine IP-Adresse gefunden"
     },
     "abort": {
       "already_configured": "Gerät ist bereits konfiguriert"

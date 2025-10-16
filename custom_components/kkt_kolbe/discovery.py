@@ -253,19 +253,23 @@ class KKTKolbeDiscovery(ServiceListener):
                 "discovered_via": "mDNS",
             }
 
-            # Import here to avoid circular imports
-            from homeassistant.helpers import discovery
+            # Create a unique identifier for this discovery
+            unique_id = device_info.get("device_id", device_info["host"])
 
-            await discovery.async_load_platform(
+            # Trigger automatic discovery flow
+            from homeassistant.helpers import discovery_flow
+
+            await discovery_flow.async_create_flow(
                 self.hass,
-                "config_flow",
                 DOMAIN,
-                discovery_info,
-                {},
+                context={"source": "zeroconf"},
+                data=discovery_info,
             )
 
+            _LOGGER.info(f"Triggered automatic discovery for KKT device: {device_info['name']}")
+
         except Exception as e:
-            _LOGGER.error(f"Failed to trigger discovery: {e}")
+            _LOGGER.error(f"Failed to trigger discovery: {e}", exc_info=True)
 
     def remove_service(self, zc: Zeroconf, type_: str, name: str) -> None:
         """Called when a service is removed."""
