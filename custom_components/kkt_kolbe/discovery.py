@@ -186,7 +186,10 @@ class KKTKolbeDiscovery(ServiceListener):
                 except Exception as e:
                     _LOGGER.warning(f"Failed to start UDP listener on port {port}: {e}")
 
-            _LOGGER.info(f"Started {len(self._udp_listeners)} UDP listeners")
+            if self._udp_listeners:
+                _LOGGER.info(f"Started {len(self._udp_listeners)} UDP listeners")
+            else:
+                _LOGGER.warning("No UDP listeners started - all ports may be in use (Local Tuya running?)")
 
         except Exception as e:
             _LOGGER.error(f"Failed to start UDP discovery: {e}", exc_info=True)
