@@ -287,7 +287,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             description_placeholders={
                 "device_name": self._selected_device.get("product_name", "Unknown"),
                 "device_host": self._selected_device.get("host", "Unknown"),
-                "device_id": self._selected_device.get("device_id", "Unknown")[:10] + "...",
+                "device_id": self._selected_device.get("device_id", "Unknown"),
             }
         )
 
