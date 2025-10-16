@@ -46,10 +46,11 @@ KKT_PATTERNS = [
 class TuyaUDPDiscovery(asyncio.DatagramProtocol):
     """UDP Discovery Protocol for Tuya devices (based on Local Tuya)."""
 
-    def __init__(self, devices_found_callback):
+    def __init__(self, devices_found_callback, hass=None):
         """Initialize UDP discovery protocol."""
         self.devices_found_callback = devices_found_callback
         self.transport = None
+        self.hass = hass
 
     def connection_made(self, transport):
         """Called when UDP connection is established."""
@@ -79,16 +80,34 @@ class TuyaUDPDiscovery(asyncio.DatagramProtocol):
                         global _discovery_instance
                         if _discovery_instance:
                             device_id = device_info.get("gwId", "")
-                            formatted_device = {
-                                "device_id": device_id,
-                                "host": device_info.get("ip"),
-                                "name": f"KKT Device {device_id[:8]}...",
-                                "discovered_via": "UDP",
-                                "product_name": "KKT Kolbe Device",
-                                "device_type": "auto"
-                            }
-                            _discovery_instance.discovered_devices[device_id] = formatted_device
-                            _LOGGER.warning(f"✅ Added device {device_id} to discovered_devices")
+
+                            # Check if device is already configured
+                            from homeassistant.helpers import device_registry
+                            device_reg = device_registry.async_get(self.hass if hasattr(self, 'hass') else None)
+
+                            # Check existing config entries for this device ID
+                            existing = False
+                            hass_instance = getattr(self, 'hass', None) or getattr(_discovery_instance, 'hass', None)
+                            if hass_instance:
+                                for entry in hass_instance.config_entries.async_entries("kkt_kolbe"):
+                                    if entry.data.get("device_id") == device_id:
+                                        existing = True
+                                        _LOGGER.debug(f"Device {device_id} already configured, skipping discovery")
+                                        break
+
+                            if not existing:
+                                formatted_device = {
+                                    "device_id": device_id,
+                                    "host": device_info.get("ip"),
+                                    "name": f"KKT Device {device_id[:8]}...",
+                                    "discovered_via": "UDP",
+                                    "product_name": "KKT Kolbe Device",
+                                    "device_type": "auto"
+                                }
+                                _discovery_instance.discovered_devices[device_id] = formatted_device
+                                _LOGGER.warning(f"✅ Added device {device_id} to discovered_devices")
+                            else:
+                                _LOGGER.info(f"⏭️ Device {device_id} already configured, skipping")
 
                         # Also call callback
                         self.devices_found_callback(device_info)
@@ -520,14 +539,23 @@ class KKTKolbeDiscovery(ServiceListener):
             unique_id = device_info.get("device_id", device_info["host"])
 
             # Trigger automatic discovery flow
-            from homeassistant.helpers import discovery_flow
+            try:
+                from homeassistant.helpers import discovery_flow
 
-            await discovery_flow.async_create_flow(
-                self.hass,
-                DOMAIN,
-                context={"source": "zeroconf"},
-                data=discovery_info,
-            )
+                flow_result = discovery_flow.async_create_flow(
+                    self.hass,
+                    DOMAIN,
+                    context={"source": "zeroconf"},
+                    data=discovery_info,
+                )
+
+                # Only await if it's actually awaitable
+                if flow_result is not None:
+                    await flow_result
+
+            except Exception as flow_error:
+                _LOGGER.debug(f"Discovery flow creation failed: {flow_error}")
+                # This is not critical, discovery still works manually
 
             _LOGGER.info(f"Triggered automatic discovery for KKT device: {device_info['name']}")
 
