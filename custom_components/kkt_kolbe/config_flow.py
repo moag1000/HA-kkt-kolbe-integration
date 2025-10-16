@@ -61,6 +61,14 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     if not local_key or len(local_key) < 10:
         raise AuthenticationError("Local Key seems too short or invalid")
 
+    # First validate if it's a valid IP address format
+    import ipaddress
+    try:
+        ipaddress.ip_address(host)
+        is_ip = True
+    except ValueError:
+        is_ip = False
+
     # Test basic network connectivity
     try:
         # Quick socket test to see if host is reachable
@@ -72,15 +80,22 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
         if result != 0:
             # Try ping-like test
             import subprocess
-            ping_result = subprocess.run(['ping', '-c', '1', '-W', '3000', host],
-                                       capture_output=True, timeout=5)
+            ping_cmd = ['ping', '-c', '1', '-W', '3000']
+            if is_ip:
+                ping_cmd.append('-n')  # Don't resolve IP addresses
+            ping_cmd.append(host)
+
+            ping_result = subprocess.run(ping_cmd, capture_output=True, timeout=5)
             if ping_result.returncode != 0:
                 raise NetworkError(f"Host {host} is not reachable")
 
     except socket.timeout:
         raise NetworkError(f"Connection to {host} timed out")
-    except socket.gaierror:
-        raise NetworkError(f"Cannot resolve hostname {host}")
+    except socket.gaierror as e:
+        if is_ip:
+            raise NetworkError(f"Invalid IP address format: {host}")
+        else:
+            raise NetworkError(f"Cannot resolve hostname {host}")
     except subprocess.TimeoutExpired:
         raise NetworkError(f"Network timeout when trying to reach {host}")
     except Exception as e:
