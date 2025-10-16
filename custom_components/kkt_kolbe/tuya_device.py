@@ -235,3 +235,13 @@ class KKTKolbeTuyaDevice:
     def rgb_mode(self) -> int:
         """Get current RGB mode."""
         return self.get_dp_value(101, 0)
+
+    def set_countdown(self, minutes: int):
+        """Set countdown timer (DP 13)."""
+        if 0 <= minutes <= 60:
+            asyncio.create_task(self.async_set_dp(13, minutes))
+
+    @property
+    def countdown_minutes(self) -> int:
+        """Get current countdown timer minutes."""
+        return self.get_dp_value(13, 0)
