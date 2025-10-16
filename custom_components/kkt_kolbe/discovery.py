@@ -64,18 +64,32 @@ class TuyaUDPDiscovery(asyncio.DatagramProtocol):
             # Try to decrypt the message
             decrypted = self._decrypt_udp_message(data)
             if decrypted:
-                device_info = json.loads(decrypted.decode())
-                _LOGGER.warning(f"TUYA DEVICE FOUND via UDP from {addr[0]}: {device_info}")
+                try:
+                    device_info = json.loads(decrypted.decode())
+                    _LOGGER.warning(f"TUYA DEVICE FOUND via UDP from {addr[0]}: {device_info}")
 
-                # Add IP address from UDP source
-                device_info["ip"] = addr[0]
+                    # Skip our own broadcast message
+                    if device_info.get("from") == "app" and len(device_info) == 1:
+                        _LOGGER.debug("Ignoring our own broadcast message")
+                        return
 
-                # Check if this could be a KKT device
-                if self._is_potential_kkt_device(device_info):
-                    _LOGGER.warning(f"KKT DEVICE IDENTIFIED: {device_info}")
-                    self.devices_found_callback(device_info)
-                else:
-                    _LOGGER.warning(f"Non-KKT Tuya device (add to whitelist?): {device_info.get('gwId', 'unknown')}")
+                    # Add IP address from UDP source
+                    device_info["ip"] = addr[0]
+
+                    # Check if this could be a KKT device
+                    if self._is_potential_kkt_device(device_info):
+                        _LOGGER.warning(f"KKT DEVICE IDENTIFIED: {device_info}")
+                        self.devices_found_callback(device_info)
+                    else:
+                        _LOGGER.warning(f"Non-KKT Tuya device (add to whitelist?): {device_info.get('gwId', 'unknown')}")
+
+                except json.JSONDecodeError as e:
+                    _LOGGER.debug(f"Decrypted data is not valid JSON: {e}")
+                    # Log raw decrypted data for debugging
+                    _LOGGER.debug(f"Raw decrypted data: {decrypted}")
+            else:
+                # Log undecryptable data for debugging
+                _LOGGER.debug(f"Could not decrypt UDP data from {addr[0]}: {data.hex()}")
 
         except Exception as e:
             _LOGGER.debug(f"Failed to process UDP message from {addr}: {e}")
@@ -110,17 +124,28 @@ class TuyaUDPDiscovery(asyncio.DatagramProtocol):
         gw_id = device_info.get("gwId", "")
 
         # Check against known KKT device ID patterns
+        known_device_ids = [
+            'bf735dfe2ad64fba7cpyhn',  # HERMES & STYLE (user's exact device ID)
+            'bf5592b47738c5b46e',      # IND7705HC
+        ]
+
+        # Exact match first
+        if gw_id in known_device_ids:
+            _LOGGER.info(f"Found known KKT device via UDP: {gw_id}")
+            return True
+
+        # Check patterns (first 18 chars) for flexibility
         known_patterns = [
-            'bf735dfe2ad64fba7c',  # HERMES & STYLE (exact from your test: bf735dfe2ad64fba7cpyhn)
-            'bf5592b47738c5b46e',  # IND7705HC
+            'bf735dfe2ad64fba7c',  # HERMES & STYLE pattern
+            'bf5592b47738c5b46e',  # IND7705HC pattern
         ]
 
         for pattern in known_patterns:
             if gw_id.startswith(pattern):
-                _LOGGER.info(f"Found KKT device via UDP: {gw_id}")
+                _LOGGER.info(f"Found KKT device via UDP pattern match: {gw_id}")
                 return True
 
-        # TEMPORARY: Accept any Tuya device for debugging
+        # TEMPORARY: Accept any Tuya device starting with 'bf' for debugging
         # This helps identify actual device IDs in your network
         if gw_id and len(gw_id) >= 20 and gw_id.startswith('bf'):
             _LOGGER.warning(f"Unknown Tuya device found (could be KKT): {gw_id} - please check if this is your KKT device!")
