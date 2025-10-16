@@ -1,5 +1,9 @@
 # KKT Kolbe Integration
 
+<div align="center">
+  <img src="https://raw.githubusercontent.com/moag1000/HA-kkt-kolbe-integration/main/icon.png" alt="KKT Kolbe Logo" width="128" height="128">
+</div>
+
 [![GitHub Release][releases-shield]][releases]
 [![hacs][hacsbadge]][hacs]
 [![GitHub Activity][commits-shield]][commits]

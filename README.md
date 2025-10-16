@@ -1,5 +1,9 @@
 # KKT Kolbe Home Assistant Integration
 
+<div align="center">
+  <img src="./icon.png" alt="KKT Kolbe Logo" width="128" height="128">
+</div>
+
 [![GitHub Release][releases-shield]][releases]
 [![GitHub Activity][commits-shield]][commits]
 [![License][license-shield]][license-url]
