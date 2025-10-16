@@ -1,5 +1,13 @@
 # KKT Kolbe Home Assistant Integration
 
+[![GitHub Release][releases-shield]][releases]
+[![GitHub Activity][commits-shield]][commits]
+[![License][license-shield]](LICENSE)
+[![hacs][hacsbadge]][hacs]
+
+[![Project Maintenance][maintenance-shield]][user_profile]
+[![BuyMeCoffee][buymecoffeebadge]][buymecoffee]
+
 Custom Home Assistant integration for KKT Kolbe devices using Tuya protocol.
 Supports both range hoods and induction cooktops.
 
@@ -333,3 +341,18 @@ MIT
 GitHub: [@moag1000](https://github.com/moag1000)
 
 **⚠️ Dieser Code wurde vollständig von Claude AI erstellt!**
+
+---
+
+<!-- Badges -->
+[commits-shield]: https://img.shields.io/github/commit-activity/y/moag1000/HA-kkt-kolbe-integration.svg?style=for-the-badge
+[commits]: https://github.com/moag1000/HA-kkt-kolbe-integration/commits/main
+[hacs]: https://github.com/hacs/integration
+[hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
+[license-shield]: https://img.shields.io/github/license/moag1000/HA-kkt-kolbe-integration.svg?style=for-the-badge
+[releases-shield]: https://img.shields.io/github/release/moag1000/HA-kkt-kolbe-integration.svg?style=for-the-badge
+[releases]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases
+[maintenance-shield]: https://img.shields.io/badge/maintainer-%40moag1000-blue.svg?style=for-the-badge
+[user_profile]: https://github.com/moag1000
+[buymecoffeebadge]: https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow.svg?style=for-the-badge
+[buymecoffee]: https://www.buymeacoffee.com/moag1000
