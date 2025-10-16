@@ -26,6 +26,7 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
         vol.Required(CONF_ACCESS_TOKEN): str,
         vol.Optional(CONF_TYPE, default="auto"): vol.In(["auto", "hood", "cooktop"]),
         vol.Optional(CONF_NAME, default="KKT Kolbe Device"): str,
+        vol.Optional("product_name", default=""): str,  # Tuya product name for auto-detection
     }
 )
 
@@ -337,21 +338,32 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             try:
-                # For manual setup, try to auto-detect based on device_id first
-                from .device_types import get_device_info_by_device_id
+                # For manual setup, try multiple auto-detection methods
+                from .device_types import get_device_info_by_device_id, find_device_by_product_name
 
                 manual_config = user_input.copy()
                 device_id = user_input.get(CONF_DEVICE_ID, "")
                 device_type = user_input.get(CONF_TYPE, "auto")
+                provided_product_name = user_input.get("product_name", "").strip()
 
-                # Try to auto-detect device type from device_id
-                detected_device_info = get_device_info_by_device_id(device_id)
-                if detected_device_info:
-                    # Known device - use detected info
-                    manual_config["product_name"] = detected_device_info["product_name"]
-                    _LOGGER.info(f"Auto-detected device type for {device_id}: {detected_device_info['name']}")
-                else:
-                    # Unknown device - use user selection
+                detected_device_info = None
+
+                # Method 1: User provided product name (like p8volecsgzdyun29)
+                if provided_product_name:
+                    detected_device_info = find_device_by_product_name(provided_product_name)
+                    if detected_device_info:
+                        manual_config["product_name"] = provided_product_name
+                        _LOGGER.info(f"Manual product name detected: {provided_product_name} → {detected_device_info['name']}")
+
+                # Method 2: Auto-detect from device_id
+                if not detected_device_info:
+                    detected_device_info = get_device_info_by_device_id(device_id)
+                    if detected_device_info:
+                        manual_config["product_name"] = detected_device_info["product_name"]
+                        _LOGGER.info(f"Auto-detected device type for {device_id}: {detected_device_info['name']}")
+
+                # Method 3: Fallback to user type selection
+                if not detected_device_info:
                     if device_type == "hood":
                         manual_config["product_name"] = "manual_hood"
                     elif device_type == "cooktop":
