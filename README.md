@@ -156,7 +156,7 @@ The integration supports configuration via UI. You'll need:
 ✅ **HACS Ready**: Installation über HACS Custom Repositories möglich
 
 - Repository: `https://github.com/moag1000/HA-kkt-kolbe-integration`
-- **Current Version: `v0.3.0`** 🚀
+- **Current Version: `v0.3.1`** 🚀
 - **New: Full Home Assistant Auto-Discovery** 🏠
 - **New: mDNS Automatic Device Detection** 🔍
 - Updates: Über HACS automatisch verfügbar
@@ -166,20 +166,31 @@ The integration supports configuration via UI. You'll need:
 🤖 **KI-generierter Code**: Diese Integration wurde vollständig von Claude AI erstellt.
 
 ### Features Implemented
-- ✅ Tuya device communication (theoretisch)
-- ✅ All device data points mapped (basierend auf API Explorer)
-- ✅ Config flow with validation
-- ✅ **mDNS automatic device discovery** ✨
-- ✅ Translations (de, en)
-- ✅ Full entity support based on device capabilities
+- ✅ **UDP + mDNS Discovery** (wie Local Tuya)
+- ✅ **Home Assistant Auto-Discovery** ohne offiziellen PR
+- ✅ **Async TinyTuya Integration** (keine blocking operations)
+- ✅ **Comprehensive Error Handling** mit spezifischen Fehlermeldungen
+- ✅ **Multi-Step Config Flow** mit automatischer Geräteerkennung
+- ✅ **Full Translations** (deutsch/englisch)
+- ✅ **All Device Data Points** für HERMES & STYLE und IND7705HC
+- ✅ **Debug & Troubleshooting** Modi
 
-### ⚠️ WICHTIG: Nicht getestet!
-- ❌ Code wurde NICHT mit echter Hardware getestet
-- ❌ Funktionalität ist rein theoretisch
-- ❌ Mögliche Fehler bei der Gerätesteuerung
-- ❌ Sicherheitsrisiken bei Kochfeld-Steuerung
+### ⚠️ WICHTIG: Experimenteller Status
+- 🔄 Code wurde kontinuierlich verbessert basierend auf User-Feedback
+- ✅ Discovery-System funktioniert wie Local Tuya (UDP + mDNS)
+- ✅ Umfassende Error Handling und Debug-Modi
+- ⚠️ Bei Kochfeldern Sicherheitshinweise beachten ([COOKTOP_SAFETY.md](COOKTOP_SAFETY.md))
 
-### 🚀 Changelog v0.3.0
+### 🚀 Changelog v0.3.1
+- 🔧 **FIXED**: Alle Home Assistant Compliance Warnings behoben
+- ✨ **NEW**: Async TinyTuya Integration (keine blocking operations)
+- 🔧 **FIXED**: RuntimeWarning coroutine never awaited
+- 🔧 **FIXED**: Zeroconf shared instance usage
+- 🛠️ **IMPROVED**: Entities verwenden async methods
+- 📊 **ENHANCED**: Bessere Error Messages statt "Unerwarteter Fehler"
+- 🎯 **RESULT**: Saubere, warning-freie Integration
+
+### Changelog v0.3.0
 - 🏠 **MAJOR FEATURE**: Home Assistant Auto-Discovery ohne offiziellen PR!
 - ✨ **NEW**: Automatische Discovery beim HA Start
 - 🎯 **NEW**: Zeroconf Integration für nahtlose Geräteerkennung

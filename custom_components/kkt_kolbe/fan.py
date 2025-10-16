@@ -86,4 +86,4 @@ class KKTKolbeFan(FanEntity):
 
     async def async_update(self) -> None:
         """Update the entity."""
-        self._device.update_status()
+        await self._device.async_update_status()
