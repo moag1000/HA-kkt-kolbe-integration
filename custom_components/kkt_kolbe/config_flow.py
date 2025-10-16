@@ -354,13 +354,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 if detected_config:
                     # Device ID recognized - use auto-detected configuration
                     manual_config["product_name"] = detected_config["product_name"]
-                    _LOGGER.info(f"Device auto-detected from ID: {detected_config['name']} "
-                                f"(product: {detected_config['product_name']})")
                 else:
                     # Use user's device type selection
                     manual_config["product_name"] = get_product_name_from_device_choice(selected_device_type)
-                    _LOGGER.info(f"Using user-selected device type: {selected_device_type} "
-                                f"→ product_name: {manual_config['product_name']}")
 
                 info = await validate_input(self.hass, manual_config)
                 return self.async_create_entry(title=info["title"], data=manual_config)
@@ -557,7 +553,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         # Check if this might be a KKT device
         if device_id and (device_id.startswith('bf735dfe2ad64fba7c') or device_id.startswith('bf5592b47738c5b46e')):
-            _LOGGER.info(f"Discovered known KKT device pattern: {device_id}")
             self.context["title_placeholders"] = {"name": f"KKT Kolbe Device ({host})"}
             return await self.async_step_zeroconf_confirm()
 
