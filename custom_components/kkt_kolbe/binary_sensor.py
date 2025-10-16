@@ -42,7 +42,6 @@ async def async_setup_entry(
 
         if entities:
             async_add_entities(entities)
-            _LOGGER.debug(f"Created {len(entities)} binary sensor entities for {product_name}")
 
 class KKTKolbeBinarySensor(BinarySensorEntity):
     """Representation of a KKT Kolbe binary sensor."""
@@ -59,7 +58,11 @@ class KKTKolbeBinarySensor(BinarySensorEntity):
 
         # Create unique ID based on device and data point
         if self._zone:
-            self._attr_unique_id = f"{entry.entry_id}_binary_{self._dp}_zone_{self._zone}"
+            if self._dp in [165, 166]:  # Flex/BBQ have left/right, not zones
+                side = "left" if "left" in self._sensor_name.lower() else "right"
+                self._attr_unique_id = f"{entry.entry_id}_binary_{self._dp}_{side}"
+            else:
+                self._attr_unique_id = f"{entry.entry_id}_binary_{self._dp}_zone_{self._zone}"
         else:
             self._attr_unique_id = f"{entry.entry_id}_binary_{self._dp}"
 

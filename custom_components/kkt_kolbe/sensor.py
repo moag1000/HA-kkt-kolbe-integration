@@ -54,7 +54,11 @@ class KKTKolbeSensor(SensorEntity):
         self._attr_name = f"KKT Kolbe {self._name}"
         self._attr_icon = self._get_icon()
         self._attr_device_class = self._get_device_class()
-        self._attr_state_class = SensorStateClass.MEASUREMENT
+
+        # Only set state class for measurement sensors, not for enum sensors
+        if self._attr_device_class != SensorDeviceClass.ENUM:
+            self._attr_state_class = SensorStateClass.MEASUREMENT
+
         self._attr_native_unit_of_measurement = config.get("unit")
 
     def _get_icon(self) -> str:
@@ -113,7 +117,11 @@ class KKTKolbeZoneSensor(SensorEntity):
         self._attr_name = f"KKT Kolbe {self._name}"
         self._attr_icon = self._get_icon()
         self._attr_device_class = self._get_device_class()
-        self._attr_state_class = SensorStateClass.MEASUREMENT
+
+        # Only set state class for measurement sensors, not for enum sensors
+        if self._attr_device_class != SensorDeviceClass.ENUM:
+            self._attr_state_class = SensorStateClass.MEASUREMENT
+
         self._attr_native_unit_of_measurement = config.get("unit")
 
     def _get_icon(self) -> str:

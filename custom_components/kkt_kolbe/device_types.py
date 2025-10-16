@@ -80,7 +80,7 @@ KNOWN_DEVICES = {
                 {"dp": 6, "name": "Filter Reminder", "device_class": "switch"}
             ],
             "sensor": [
-                {"dp": 13, "name": "Timer", "unit": "min", "device_class": "duration"}
+                {"dp": 6, "name": "Filter Status", "device_class": "problem"}
             ],
             "select": [
                 {"dp": 101, "name": "RGB Mode", "options": list(range(10))}
