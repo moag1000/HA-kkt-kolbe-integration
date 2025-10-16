@@ -11,7 +11,7 @@ from homeassistant.const import (
 
 from .const import DOMAIN
 from .tuya_device import KKTKolbeTuyaDevice
-from .discovery import async_start_discovery, async_stop_discovery
+# Lazy import discovery to reduce startup time
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -23,6 +23,9 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     # Start automatic discovery when Home Assistant starts
     # This enables discovery even before any devices are configured
     _LOGGER.info("Starting KKT Kolbe automatic device discovery...")
+
+    # Lazy import to reduce blocking time
+    from .discovery import async_start_discovery
     await async_start_discovery(hass)
 
     return True
@@ -33,6 +36,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Start mDNS discovery if this is the first device
     if not hass.data[DOMAIN]:
+        from .discovery import async_start_discovery
         await async_start_discovery(hass)
 
     # Initialize Tuya device connection
@@ -58,6 +62,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         # Stop discovery if no more devices
         if not hass.data[DOMAIN]:
+            from .discovery import async_stop_discovery
             await async_stop_discovery()
 
     return unload_ok

@@ -15,7 +15,7 @@ from homeassistant.data_entry_flow import FlowResult
 import homeassistant.helpers.config_validation as cv
 
 from . import DOMAIN
-from .discovery import get_discovered_devices
+# Lazy import discovery to reduce blocking time
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -152,6 +152,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         _LOGGER.info(f"Waiting up to {max_wait}s for device discovery...")
 
         for i in range(int(max_wait / wait_interval)):
+            from .discovery import get_discovered_devices
             self._discovered_devices = get_discovered_devices()
             _LOGGER.debug(f"Discovery check {i+1}: Found {len(self._discovered_devices)} devices")
             if self._discovered_devices:
@@ -312,7 +313,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 # Add test device for debugging
                 from .discovery import add_test_device
                 add_test_device()
-                self._discovered_devices = get_discovered_devices()
+                from .discovery import get_discovered_devices
+            self._discovered_devices = get_discovered_devices()
                 return await self.async_step_discovery()
             elif choice == "debug":
                 return await self.async_step_debug_info()
