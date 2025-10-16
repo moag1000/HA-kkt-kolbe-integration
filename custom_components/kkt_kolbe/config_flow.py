@@ -514,12 +514,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         await self.async_set_unique_id(unique_id)
         self._abort_if_unique_id_configured(updates={CONF_HOST: host})
 
-        # Store discovery info for later use
+        # Store discovery info for later use (preserve original discovered_via)
         self._discovery_info = {
             "host": host,
             "device_id": device_id,
             "name": name,
-            "discovered_via": "zeroconf"
+            "discovered_via": discovery_info.get("discovered_via", "zeroconf")
         }
 
         # Check if this might be a KKT device
@@ -540,12 +540,16 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             # User confirmed, proceed with setup
             return await self.async_step_zeroconf_credentials()
 
+        # Final debug log for dialog display
+        final_device_id = self._discovery_info.get("device_id") or "Unknown"
+        _LOGGER.warning(f"🎯 DIALOG DISPLAY: name={self._discovery_info['name']}, host={self._discovery_info['host']}, device_id={final_device_id}")
+
         return self.async_show_form(
             step_id="zeroconf_confirm",
             description_placeholders={
                 "name": self._discovery_info["name"],
                 "host": self._discovery_info["host"],
-                "device_id": self._discovery_info.get("device_id", "Unknown")
+                "device_id": final_device_id
             }
         )
 
