@@ -2,7 +2,7 @@
 
 [![GitHub Release][releases-shield]][releases]
 [![GitHub Activity][commits-shield]][commits]
-[![License][license-shield]](LICENSE)
+[![License][license-shield]][license-url]
 [![hacs][hacsbadge]][hacs]
 
 [![Project Maintenance][maintenance-shield]][user_profile]
@@ -349,8 +349,9 @@ GitHub: [@moag1000](https://github.com/moag1000)
 [commits]: https://github.com/moag1000/HA-kkt-kolbe-integration/commits/main
 [hacs]: https://github.com/hacs/integration
 [hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
-[license-shield]: https://img.shields.io/github/license/moag1000/HA-kkt-kolbe-integration.svg?style=for-the-badge
-[releases-shield]: https://img.shields.io/github/release/moag1000/HA-kkt-kolbe-integration.svg?style=for-the-badge
+[license-shield]: https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge
+[license-url]: https://opensource.org/licenses/MIT
+[releases-shield]: https://img.shields.io/badge/version-v1.1.1-blue.svg?style=for-the-badge
 [releases]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases
 [maintenance-shield]: https://img.shields.io/badge/maintainer-%40moag1000-blue.svg?style=for-the-badge
 [user_profile]: https://github.com/moag1000
