@@ -69,8 +69,20 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle the initial step."""
-        # Check for discovered devices first
-        self._discovered_devices = get_discovered_devices()
+        # Start discovery first if not already running
+        from .discovery import async_start_discovery
+        await async_start_discovery(self.hass)
+
+        # Wait for discovery to find devices (with timeout)
+        import asyncio
+        max_wait = 5  # Maximum 5 seconds
+        wait_interval = 0.5  # Check every 500ms
+
+        for _ in range(int(max_wait / wait_interval)):
+            self._discovered_devices = get_discovered_devices()
+            if self._discovered_devices:
+                break
+            await asyncio.sleep(wait_interval)
 
         if self._discovered_devices:
             return await self.async_step_discovery()
