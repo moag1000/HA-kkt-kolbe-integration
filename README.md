@@ -144,15 +144,20 @@ The integration supports configuration via UI. You'll need:
 1. **Tuya IoT Developer Account** (separater Account erforderlich!):
    - Registrierung auf https://iot.tuya.com/
    - ⚠️ Ihr Smart Life App Account funktioniert NICHT
-   - Cloud-Projekt erstellen und Geräte hinzufügen
+   - Cloud-Projekt erstellen
 
-2. **Device Model abrufen**:
+2. **App Account verknüpfen**:
+   - Im Cloud-Projekt: **Devices** → **Link App Account**
+   - Ihre Tuya/Smart Life App mit dem Cloud-Projekt verbinden
+   - Alle Geräte sollten nun im Cloud-Projekt sichtbar sein
+
+3. **Device Model abrufen**:
    - **Cloud** → **API Explorer** → **Device Management**
    - **"Query Things Data Model"** auswählen
    - Ihre **Device ID** eingeben (aus App/Integration)
    - JSON Output kopieren
 
-3. **Feature Request erstellen**:
+4. **Feature Request erstellen**:
    - GitHub Issue mit dem JSON Output
    - Gewünschte Funktionen beschreiben
    - Model-Info angeben
