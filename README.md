@@ -59,10 +59,30 @@ Ich habe mich mit der local tuya Implementierung schwer getan, weil diverseste F
 
 ## Installation
 
-### Manual Installation
-1. Copy `custom_components/kkt_kolbe` folder to your Home Assistant `config/custom_components/` directory
-2. Restart Home Assistant
-3. Add integration via UI: Settings → Devices & Services → Add Integration → KKT Kolbe
+### 🏪 HACS Installation (Empfohlen)
+
+1. **HACS öffnen** → **Integrations**
+2. **⋮ Menü** (oben rechts) → **Custom repositories**
+3. **Repository hinzufügen:**
+   - URL: `https://github.com/moag1000/HA-kkt-kolbe-integration`
+   - Category: `Integration`
+4. **Add** → **KKT Kolbe Integration** suchen und installieren
+5. **Home Assistant neu starten**
+6. **Integration hinzufügen:** Settings → Devices & Services → Add Integration → KKT Kolbe
+
+### 📁 Manual Installation
+1. Download neueste [Release](https://github.com/moag1000/HA-kkt-kolbe-integration/releases)
+2. `custom_components/kkt_kolbe` nach `config/custom_components/` kopieren
+3. Home Assistant neu starten
+4. Integration über UI hinzufügen
+
+### ⚠️ Nach der Installation
+
+**WICHTIG vor der ersten Verwendung:**
+- Diese Integration wurde von KI erstellt und ist **UNGETESTET**
+- Bei Kochfeldern können Fehler **gefährlich** werden
+- Lesen Sie **alle Sicherheitswarnungen** in [AI_GENERATED_WARNING.md](AI_GENERATED_WARNING.md)
+- **Eigene Verantwortung** bei der Nutzung
 
 ### Configuration
 The integration supports configuration via UI. You'll need:
@@ -82,6 +102,14 @@ The integration supports configuration via UI. You'll need:
    - Local Key (⚠️ KEEP SECRET!)
 3. Note the device's local IP address (example: `192.168.1.xxx`)
 4. **IMPORTANT**: Use `config_example.yaml` as template, never commit real values!
+
+## 🏪 HACS Compatibility
+
+✅ **HACS Ready**: Installation über HACS Custom Repositories möglich
+
+- Repository: `https://github.com/moag1000/HA-kkt-kolbe-integration`
+- Current Version: `v0.1.0`
+- Updates: Über HACS automatisch verfügbar
 
 ## Development Status
 
