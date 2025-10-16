@@ -124,6 +124,17 @@ class KKTKolbeSelect(SelectEntity):
 
         self.async_write_ha_state()
 
+    @property
+    def device_info(self):
+        """Return device info for device registry."""
+        return {
+            "identifiers": {(DOMAIN, self._entry.entry_id)},
+            "name": "KKT Kolbe Device",
+            "manufacturer": "KKT Kolbe",
+            "model": "Unknown",
+            "sw_version": "1.3.0",
+        }
+
     async def async_update(self) -> None:
         """Update the entity."""
         await self._device.async_update_status()

@@ -122,8 +122,8 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     except subprocess.TimeoutExpired:
         raise NetworkError(f"Network timeout when trying to reach {host}")
     except Exception as e:
-        _LOGGER.debug(f"Network pre-check failed: {e}")
         # Continue anyway, might still work
+        pass
 
     # Test Tuya device connection
     try:
@@ -321,7 +321,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         device_host = self._selected_device.get("host", "Unknown")
         device_id = self._selected_device.get("device_id", "Unknown")
 
-        _LOGGER.debug(f"Credentials form placeholders: name={device_name}, host={device_host}, device_id={device_id}")
 
         return self.async_show_form(
             step_id="credentials",
@@ -528,7 +527,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             discovery_info.get("properties", {}).get("devid")  # Alternative mDNS format
         )
 
-        _LOGGER.debug(f"Zeroconf step received: host={host}, name={name}, device_id={device_id}, discovered_via={discovery_info.get('discovered_via')}")
 
         # If still no device_id, try global discovery as fallback (for pure mDNS)
         if not device_id:
@@ -575,9 +573,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             # User confirmed, proceed with setup
             return await self.async_step_zeroconf_credentials()
 
-        # Final debug log for dialog display
         final_device_id = self._discovery_info.get("device_id") or "Unknown"
-        _LOGGER.debug(f"Dialog display: name={self._discovery_info['name']}, host={self._discovery_info['host']}, device_id={final_device_id}")
 
         return self.async_show_form(
             step_id="zeroconf_confirm",
@@ -666,11 +662,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             vol.Optional(CONF_DEVICE_ID, default=device_id if device_id != "Unknown" else ""): str,
         })
 
-        _LOGGER.warning(f"🔍 Zeroconf credentials form placeholders:")
-        _LOGGER.warning(f"  - device_name: {device_name}")
-        _LOGGER.warning(f"  - device_host: {device_host}")
-        _LOGGER.warning(f"  - device_id: {device_id}")
-        _LOGGER.warning(f"  - full discovery_info: {self._discovery_info}")
 
         return self.async_show_form(
             step_id="zeroconf_credentials",

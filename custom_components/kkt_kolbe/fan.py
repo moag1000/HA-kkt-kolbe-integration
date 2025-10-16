@@ -90,6 +90,17 @@ class KKTKolbeFan(FanEntity):
         self._device.set_fan_speed(speed_name)
         self.async_write_ha_state()
 
+    @property
+    def device_info(self):
+        """Return device info for device registry."""
+        return {
+            "identifiers": {(DOMAIN, self._entry.entry_id)},
+            "name": self._device_info.get("name", "KKT Kolbe Device"),
+            "manufacturer": "KKT Kolbe",
+            "model": self._device_info.get("model_id", "Unknown"),
+            "sw_version": "1.3.0",
+        }
+
     async def async_update(self) -> None:
         """Update the entity."""
         await self._device.async_update_status()

@@ -68,7 +68,6 @@ class KKTKolbeTuyaDevice:
                             return
 
                     except Exception as e:
-                        _LOGGER.debug(f"Version {test_version} failed: {e}")
                         continue
 
                 # If we reach here, auto-detection failed
