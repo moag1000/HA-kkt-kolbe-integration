@@ -51,7 +51,6 @@ class KKTKolbeTuyaDevice:
                             test_device.status
                         )
 
-
                         # Original working condition from v1.0.2 + minimal validation
                         if test_status and isinstance(test_status, dict) and "dps" in test_status:
                             self.version = test_version
@@ -63,6 +62,10 @@ class KKTKolbeTuyaDevice:
 
                     except Exception:
                         continue
+
+                # If we reach here, auto-detection failed
+                _LOGGER.error(f"Auto-detection failed for all versions (3.3, 3.4, 3.1)")
+                raise Exception("No compatible version found - device not responding to any Tuya protocol")
             else:
                 # Use specified version
                 self._device = await loop.run_in_executor(
@@ -76,12 +79,7 @@ class KKTKolbeTuyaDevice:
                 )
                 self._device.set_socketPersistent(True)
                 self._connected = True
-
-            if self._device:
                 _LOGGER.info(f"Connected to KKT Kolbe device at {self.ip_address} (version {self.version})")
-            else:
-                _LOGGER.error(f"Failed to connect to device - no compatible version found")
-                raise Exception("No compatible version found")
 
         except Exception as e:
             self._connected = False
