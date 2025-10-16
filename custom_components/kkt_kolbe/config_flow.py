@@ -557,12 +557,16 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             try:
+                # Extract product name for dynamic device configuration
+                product_name = self._discovery_info.get("name", "Unknown")
+
                 device_config = {
                     CONF_HOST: self._discovery_info["host"],
                     CONF_DEVICE_ID: self._discovery_info.get("device_id", ""),
                     CONF_ACCESS_TOKEN: user_input[CONF_ACCESS_TOKEN],
                     CONF_NAME: user_input.get(CONF_NAME, f"KKT Kolbe ({self._discovery_info['host']})"),
                     CONF_TYPE: "auto",
+                    "product_name": product_name,  # Store for dynamic entity creation
                 }
 
                 # Validate if device_id is missing
