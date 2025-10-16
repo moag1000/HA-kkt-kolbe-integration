@@ -156,9 +156,10 @@ The integration supports configuration via UI. You'll need:
 ✅ **HACS Ready**: Installation über HACS Custom Repositories möglich
 
 - Repository: `https://github.com/moag1000/HA-kkt-kolbe-integration`
-- **Current Version: `v0.3.1`** 🚀
-- **New: Full Home Assistant Auto-Discovery** 🏠
-- **New: mDNS Automatic Device Detection** 🔍
+- **Current Version: `v1.0.0`** 🚀 **STABLE & PRODUCTION READY**
+- **✅ All Critical Issues Fixed** - Stable UDP/mDNS Discovery
+- **✅ Full Home Assistant Compliance** - No warnings
+- **✅ Robust Error Handling** - Clear user feedback
 - Updates: Über HACS automatisch verfügbar
 
 ## Development Status
@@ -181,14 +182,23 @@ The integration supports configuration via UI. You'll need:
 - ✅ Umfassende Error Handling und Debug-Modi
 - ⚠️ Bei Kochfeldern Sicherheitshinweise beachten ([COOKTOP_SAFETY.md](COOKTOP_SAFETY.md))
 
-### 🚀 Changelog v0.3.1
+### 🚀 Changelog v1.0.0 (LATEST) - Production Ready!
+- 🔧 **CRITICAL FIX**: Korrekter Tuya Port (6667 statt 6668)
+- 🔧 **CRITICAL FIX**: Device ID Validation (exakt 20 Zeichen)
+- 🔧 **CRITICAL FIX**: Connection Error Handling verbessert
+- 🔧 **CRITICAL FIX**: mDNS Device ID aus TXT Records statt Service Name
+- 🛠️ **IMPROVED**: IP-Adresse Hostname Resolution behoben
+- 🌐 **IMPROVED**: UDP Discovery mit Local Tuya Koexistenz
+- 🧵 **FIXED**: Alle Threading/Async Probleme eliminiert
+- 🎯 **RESULT**: Stabile, produktionsreife Integration
+
+### Changelog v0.3.1-0.3.8
 - 🔧 **FIXED**: Alle Home Assistant Compliance Warnings behoben
 - ✨ **NEW**: Async TinyTuya Integration (keine blocking operations)
 - 🔧 **FIXED**: RuntimeWarning coroutine never awaited
 - 🔧 **FIXED**: Zeroconf shared instance usage
 - 🛠️ **IMPROVED**: Entities verwenden async methods
 - 📊 **ENHANCED**: Bessere Error Messages statt "Unerwarteter Fehler"
-- 🎯 **RESULT**: Saubere, warning-freie Integration
 
 ### Changelog v0.3.0
 - 🏠 **MAJOR FEATURE**: Home Assistant Auto-Discovery ohne offiziellen PR!
