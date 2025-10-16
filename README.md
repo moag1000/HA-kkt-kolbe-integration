@@ -35,7 +35,7 @@ Ich habe mich mit der local tuya Implementierung schwer getan, weil diverseste F
 
 ## Features
 
-### 🎯 NEW in v1.2.0: Intelligent Device Recognition
+### 🎯 NEW in v1.2.8: LocalTuya-Optimized Authentication
 
 **🚀 Revolutionary Device Setup Experience!**
 
@@ -189,7 +189,7 @@ The integration supports configuration via UI. You'll need:
 ✅ **HACS Ready**: Installation über HACS Custom Repositories möglich
 
 - Repository: `https://github.com/moag1000/HA-kkt-kolbe-integration`
-- **Current Version: `v1.2.0`** 🚀 **STABLE & PRODUCTION READY**
+- **Current Version: `v1.2.8`** 🚀 **STABLE & PRODUCTION READY**
 - **✅ All Critical Issues Fixed** - Stable UDP/mDNS Discovery
 - **✅ Full Home Assistant Compliance** - No warnings
 - **✅ Robust Error Handling** - Clear user feedback
@@ -215,14 +215,14 @@ The integration supports configuration via UI. You'll need:
 - ✅ Umfassende Error Handling und Debug-Modi
 - ⚠️ Bei Kochfeldern Sicherheitshinweise beachten ([COOKTOP_SAFETY.md](COOKTOP_SAFETY.md))
 
-### 🚀 Changelog v1.2.0 (LATEST) - Intelligent Device Recognition!
-- 🎯 **MAJOR FEATURE**: Intelligent auto-detection of devices by Device ID
-- ✨ **NEW**: Automatic device type recognition (HERMES & STYLE vs IND7705HC)
-- 🎭 **NEW**: User-friendly manual setup with clear device dropdown selection
-- 🗄️ **NEW**: Centralized device database for consistent recognition
-- 🔄 **IMPROVED**: Universal setup compatibility across all configuration methods
-- 🛠️ **ENHANCED**: Streamlined setup process with fewer manual steps
-- 🎯 **RESULT**: Revolutionary device setup experience with zero guesswork
+### 🚀 Changelog v1.2.8 (LATEST) - LocalTuya-Optimized Authentication!
+- 🔄 **MAJOR IMPROVEMENT**: LocalTuya-inspired authentication patterns
+- ✨ **NEW**: Enhanced protocol version detection order [3.4, 3.2, 3.3, 3.1]
+- 🛠️ **NEW**: Float version numbers for improved TinyTuya compatibility
+- 🎯 **NEW**: Advanced socket configuration (NODELAY, timeout, retry limits)
+- ✅ **ENHANCED**: More robust DPS validation (checks for non-empty data)
+- 🔒 **IMPROVED**: Better connection reliability based on proven LocalTuya patterns
+- 🎯 **RESULT**: Rock-solid authentication inspired by LocalTuya best practices
 
 ### 🚀 Changelog v1.0.0 - Production Ready Foundation
 - 🔧 **CRITICAL FIX**: Korrekter Tuya Port (6667 statt 6668)
@@ -385,7 +385,7 @@ GitHub: [@moag1000](https://github.com/moag1000)
 [hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
 [license-shield]: https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge
 [license-url]: https://opensource.org/licenses/MIT
-[releases-shield]: https://img.shields.io/badge/version-v1.2.0-blue.svg?style=for-the-badge
+[releases-shield]: https://img.shields.io/badge/version-v1.2.8-blue.svg?style=for-the-badge
 [releases]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases
 [maintenance-shield]: https://img.shields.io/badge/maintainer-%40moag1000-blue.svg?style=for-the-badge
 [user_profile]: https://github.com/moag1000
