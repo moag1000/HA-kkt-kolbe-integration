@@ -1,0 +1,22 @@
+# KKT Kolbe Configuration Examples
+# ⚠️ NEVER commit real credentials to Git!
+# Copy this file to config.yaml and add your actual values
+
+# Example 1: Range Hood (Dunstabzugshaube)
+kkt_kolbe_hood:
+  host: "192.168.1.xxx"
+  device_id: "bf735dfe2ad64fba7cXXXX"  # HERMES & STYLE
+  local_key: "YOUR_LOCAL_KEY_HERE"     # KEEP SECRET!
+  type: "hood"
+  name: "Kitchen Range Hood"
+
+# Example 2: Induction Cooktop (Induktionskochfeld)
+kkt_kolbe_cooktop:
+  host: "192.168.1.yyy"
+  device_id: "bf5592b47738c5b46eXXXX"  # IND7705HC
+  local_key: "YOUR_LOCAL_KEY_HERE"     # KEEP SECRET!
+  type: "cooktop"
+  name: "Kitchen Cooktop"
+
+# Note: Both devices can use the same IP if behind same hub
+# Real IPs and keys must NEVER be committed to Git!
