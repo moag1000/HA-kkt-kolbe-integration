@@ -22,6 +22,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up KKT Kolbe sensor entities."""
     device = hass.data[DOMAIN][entry.entry_id]["device"]
+    device_info = hass.data[DOMAIN][entry.entry_id]["device_info"]
     product_name = hass.data[DOMAIN][entry.entry_id].get("product_name", "unknown")
 
     entities = []
@@ -30,10 +31,10 @@ async def async_setup_entry(
     for config in sensor_configs:
         if "zone" in config:
             # Zone-specific sensor
-            entities.append(KKTKolbeZoneSensor(entry, device, config))
+            entities.append(KKTKolbeZoneSensor(entry, device, device_info, config))
         else:
             # Regular sensor
-            entities.append(KKTKolbeSensor(entry, device, config))
+            entities.append(KKTKolbeSensor(entry, device, device_info, config))
 
     if entities:
         async_add_entities(entities)
@@ -41,10 +42,11 @@ async def async_setup_entry(
 class KKTKolbeSensor(SensorEntity):
     """Representation of a KKT Kolbe sensor."""
 
-    def __init__(self, entry: ConfigEntry, device, config: dict):
+    def __init__(self, entry: ConfigEntry, device, device_info, config: dict):
         """Initialize the sensor."""
         self._entry = entry
         self._device = device
+        self._device_info = device_info
         self._config = config
         self._dp = config["dp"]
         self._name = config["name"]
@@ -95,6 +97,16 @@ class KKTKolbeSensor(SensorEntity):
         # Basic sensor reading from DP
         return self._device.get_dp_value(self._dp, 0)
 
+    @property
+    def device_info(self):
+        """Return device info for device registry."""
+        return {
+            "identifiers": {(DOMAIN, self._entry.entry_id)},
+            "name": self._device_info.get("name", "KKT Kolbe Device"),
+            "manufacturer": "KKT Kolbe",
+            "model": self._device_info.get("model_id", "Unknown"),
+        }
+
     async def async_update(self) -> None:
         """Update the entity."""
         await self._device.async_update_status()
@@ -103,10 +115,11 @@ class KKTKolbeSensor(SensorEntity):
 class KKTKolbeZoneSensor(SensorEntity):
     """Zone-specific sensor for cooktop zones."""
 
-    def __init__(self, entry: ConfigEntry, device, config: dict):
+    def __init__(self, entry: ConfigEntry, device, device_info, config: dict):
         """Initialize the zone sensor."""
         self._entry = entry
         self._device = device
+        self._device_info = device_info
         self._config = config
         self._dp = config["dp"]
         self._zone = config["zone"]
@@ -157,6 +170,16 @@ class KKTKolbeZoneSensor(SensorEntity):
             return self._device.get_zone_core_temp_display(self._zone)
         else:
             return 0
+
+    @property
+    def device_info(self):
+        """Return device info for device registry."""
+        return {
+            "identifiers": {(DOMAIN, self._entry.entry_id)},
+            "name": self._device_info.get("name", "KKT Kolbe Device"),
+            "manufacturer": "KKT Kolbe",
+            "model": self._device_info.get("model_id", "Unknown"),
+        }
 
     async def async_update(self) -> None:
         """Update the entity."""

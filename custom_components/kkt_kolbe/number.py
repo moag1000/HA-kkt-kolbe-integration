@@ -17,6 +17,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up KKT Kolbe number entities."""
     device = hass.data[DOMAIN][entry.entry_id]["device"]
+    device_info = hass.data[DOMAIN][entry.entry_id]["device_info"]
     product_name = hass.data[DOMAIN][entry.entry_id].get("product_name", "unknown")
 
     entities = []
@@ -25,10 +26,10 @@ async def async_setup_entry(
     for config in number_configs:
         if "zone" in config:
             # Zone-specific entity
-            entities.append(KKTKolbeZoneNumber(entry, device, config))
+            entities.append(KKTKolbeZoneNumber(entry, device, device_info, config))
         else:
             # Regular entity
-            entities.append(KKTKolbeNumber(entry, device, config))
+            entities.append(KKTKolbeNumber(entry, device, device_info, config))
 
     if entities:
         async_add_entities(entities)
@@ -36,10 +37,11 @@ async def async_setup_entry(
 class KKTKolbeNumber(NumberEntity):
     """Generic number entity for KKT Kolbe devices."""
 
-    def __init__(self, entry: ConfigEntry, device, config: dict):
+    def __init__(self, entry: ConfigEntry, device, device_info, config: dict):
         """Initialize the number entity."""
         self._entry = entry
         self._device = device
+        self._device_info = device_info
         self._config = config
         self._dp = config["dp"]
         self._name = config["name"]
@@ -85,10 +87,9 @@ class KKTKolbeNumber(NumberEntity):
         """Return device info for device registry."""
         return {
             "identifiers": {(DOMAIN, self._entry.entry_id)},
-            "name": "KKT Kolbe Device",
+            "name": self._device_info.get("name", "KKT Kolbe Device"),
             "manufacturer": "KKT Kolbe",
-            "model": "Unknown",
-            "sw_version": "1.3.0",
+            "model": self._device_info.get("model_id", "Unknown"),
         }
 
     async def async_update(self) -> None:
@@ -99,10 +100,11 @@ class KKTKolbeNumber(NumberEntity):
 class KKTKolbeZoneNumber(NumberEntity):
     """Zone-specific number entity for cooktop zones."""
 
-    def __init__(self, entry: ConfigEntry, device, config: dict):
+    def __init__(self, entry: ConfigEntry, device, device_info, config: dict):
         """Initialize the zone number entity."""
         self._entry = entry
         self._device = device
+        self._device_info = device_info
         self._config = config
         self._dp = config["dp"]
         self._zone = config["zone"]
@@ -158,10 +160,9 @@ class KKTKolbeZoneNumber(NumberEntity):
         """Return device info for device registry."""
         return {
             "identifiers": {(DOMAIN, self._entry.entry_id)},
-            "name": "KKT Kolbe Device",
+            "name": self._device_info.get("name", "KKT Kolbe Device"),
             "manufacturer": "KKT Kolbe",
-            "model": "Unknown",
-            "sw_version": "1.3.0",
+            "model": self._device_info.get("model_id", "Unknown"),
         }
 
     async def async_update(self) -> None:
