@@ -66,6 +66,9 @@ class KKTKolbeTuyaDevice:
         """Get current status from device (async version)."""
         if not self._device:
             await self.async_connect()
+            if not self._device:
+                _LOGGER.error("Device connection failed")
+                return {}
 
         try:
             # Run the blocking tinytuya call in executor to avoid blocking the event loop
@@ -86,6 +89,9 @@ class KKTKolbeTuyaDevice:
 
         if not self._device:
             self._connect()
+            if not self._device:
+                _LOGGER.error("Device connection failed")
+                return {}
 
         try:
             status = self._device.status()
