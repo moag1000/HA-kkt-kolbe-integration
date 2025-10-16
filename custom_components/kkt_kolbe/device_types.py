@@ -2,6 +2,20 @@
 
 from .const import CATEGORY_HOOD, CATEGORY_COOKTOP
 
+# Product Name to Model ID mapping (discovered dynamically)
+PRODUCT_MODEL_MAPPING = {
+    "ypaixllljc2dcpae": {
+        "model_id": "e1k6i0zo",
+        "category": CATEGORY_HOOD,
+        "name": "HERMES & STYLE Hood"
+    },
+    "p8volecsgzdyun29": {
+        "model_id": "e1kc5q64",
+        "category": CATEGORY_COOKTOP,
+        "name": "IND7705HC Induction Cooktop"
+    }
+}
+
 # Hood (Dunstabzugshaube) Data Points
 HOOD_DPS = {
     1: "switch",           # Main power
@@ -60,6 +74,32 @@ def get_device_dps(category: str) -> dict:
         return COOKTOP_DPS
     else:
         return {}
+
+def get_device_info_by_product_name(product_name: str) -> dict:
+    """Get device information based on product name from discovery."""
+    if product_name in PRODUCT_MODEL_MAPPING:
+        return PRODUCT_MODEL_MAPPING[product_name]
+
+    # Fallback: Try to detect by known patterns
+    if "hermes" in product_name.lower() or "style" in product_name.lower():
+        return {
+            "model_id": "unknown_hood",
+            "category": CATEGORY_HOOD,
+            "name": f"KKT Hood ({product_name})"
+        }
+    elif "ind" in product_name.lower():
+        return {
+            "model_id": "unknown_cooktop",
+            "category": CATEGORY_COOKTOP,
+            "name": f"KKT Cooktop ({product_name})"
+        }
+
+    # Generic fallback
+    return {
+        "model_id": "unknown",
+        "category": "unknown",
+        "name": f"KKT Device ({product_name})"
+    }
 
 def get_device_platforms(category: str) -> list:
     """Get required platforms for device category."""

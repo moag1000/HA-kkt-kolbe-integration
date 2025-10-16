@@ -46,17 +46,34 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         local_key=entry.data[CONF_ACCESS_TOKEN],
     )
 
+    # Determine device type and platforms based on product name
+    from .device_types import get_device_info_by_product_name, get_device_platforms
+
+    product_name = entry.data.get("product_name", "unknown")
+    device_info = get_device_info_by_product_name(product_name)
+    platforms = get_device_platforms(device_info["category"])
+
     hass.data[DOMAIN][entry.entry_id] = {
         "device": device,
         "config": entry.data,
+        "device_info": device_info,
+        "product_name": product_name,
     }
 
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    # Load only the platforms needed for this specific device
+    await hass.config_entries.async_forward_entry_setups(entry, platforms)
     return True
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    # Get the platforms that were loaded for this specific device
+    from .device_types import get_device_info_by_product_name, get_device_platforms
+
+    product_name = entry.data.get("product_name", "unknown")
+    device_info = get_device_info_by_product_name(product_name)
+    platforms = get_device_platforms(device_info["category"])
+
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, platforms)
     if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id)
 

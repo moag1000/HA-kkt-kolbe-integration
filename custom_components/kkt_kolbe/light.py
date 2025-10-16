@@ -20,16 +20,22 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up KKT Kolbe light entity."""
-    async_add_entities([KKTKolbeLight(entry)])
+    device_data = hass.data[DOMAIN][entry.entry_id]
+    device_info = device_data["device_info"]
+
+    # Only create light entity for hood devices
+    if device_info.get("category") == "hood":
+        async_add_entities([KKTKolbeLight(entry, device_info)])
 
 class KKTKolbeLight(LightEntity):
     """Representation of KKT Kolbe Dunstabzugshaube light."""
 
-    def __init__(self, entry: ConfigEntry):
+    def __init__(self, entry: ConfigEntry, device_info: dict):
         """Initialize the light."""
         self._entry = entry
+        self._device_info = device_info
         self._attr_unique_id = f"{entry.entry_id}_light"
-        self._attr_name = "KKT Kolbe Beleuchtung"
+        self._attr_name = f"{device_info.get('name', 'KKT Kolbe')} Light"
         self._attr_color_mode = ColorMode.BRIGHTNESS
         self._attr_supported_color_modes = {ColorMode.BRIGHTNESS}
         self._is_on = False

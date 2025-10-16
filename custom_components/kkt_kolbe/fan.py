@@ -19,18 +19,24 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up KKT Kolbe fan entity."""
-    device = hass.data[DOMAIN][entry.entry_id]["device"]
-    async_add_entities([KKTKolbeFan(entry, device)])
+    device_data = hass.data[DOMAIN][entry.entry_id]
+    device = device_data["device"]
+    device_info = device_data["device_info"]
+
+    # Only create fan entity for hood devices
+    if device_info.get("category") == "hood":
+        async_add_entities([KKTKolbeFan(entry, device, device_info)])
 
 class KKTKolbeFan(FanEntity):
     """Representation of KKT Kolbe Dunstabzugshaube fan."""
 
-    def __init__(self, entry: ConfigEntry, device):
+    def __init__(self, entry: ConfigEntry, device, device_info: dict):
         """Initialize the fan."""
         self._entry = entry
         self._device = device
+        self._device_info = device_info
         self._attr_unique_id = f"{entry.entry_id}_fan"
-        self._attr_name = "KKT Kolbe Dunstabzugshaube"
+        self._attr_name = f"{device_info.get('name', 'KKT Kolbe')} Fan"
         self._attr_supported_features = FanEntityFeature.SET_SPEED
         self._attr_speed_count = 4
 
