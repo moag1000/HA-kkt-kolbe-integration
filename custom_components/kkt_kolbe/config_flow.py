@@ -314,7 +314,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 from .discovery import add_test_device
                 add_test_device()
                 from .discovery import get_discovered_devices
-            self._discovered_devices = get_discovered_devices()
+                self._discovered_devices = get_discovered_devices()
                 return await self.async_step_discovery()
             elif choice == "debug":
                 return await self.async_step_debug_info()
