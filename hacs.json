@@ -1,0 +1,9 @@
+{
+  "name": "KKT Kolbe Integration",
+  "content_in_root": false,
+  "filename": "kkt_kolbe.zip",
+  "country": ["DE"],
+  "render_readme": true,
+  "iot_class": "Local Push",
+  "homeassistant": "2024.1.0"
+}
