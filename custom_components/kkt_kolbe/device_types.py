@@ -2,19 +2,6 @@
 
 from .const import CATEGORY_HOOD, CATEGORY_COOKTOP
 
-# Product Name to Model ID mapping (discovered dynamically)
-PRODUCT_MODEL_MAPPING = {
-    "ypaixllljc2dcpae": {
-        "model_id": "e1k6i0zo",
-        "category": CATEGORY_HOOD,
-        "name": "HERMES & STYLE Hood"
-    },
-    "p8volecsgzdyun29": {
-        "model_id": "e1kc5q64",
-        "category": CATEGORY_COOKTOP,
-        "name": "IND7705HC Induction Cooktop"
-    }
-}
 
 # Hood (Dunstabzugshaube) Data Points
 HOOD_DPS = {
@@ -66,6 +53,53 @@ QUICK_LEVELS = [
     "set_quick_level_5",
 ]
 
+# CENTRAL DEVICE DATABASE - Single source of truth for all devices
+# Add new devices only here!
+KNOWN_DEVICES = {
+    # HERMES & STYLE Hood
+    "hermes_style_hood": {
+        "model_id": "e1k6i0zo",
+        "category": CATEGORY_HOOD,
+        "name": "HERMES & STYLE Hood",
+        "product_names": ["ypaixllljc2dcpae"],
+        "device_ids": ["bf735dfe2ad64fba7cpyhn"],
+        "device_id_patterns": ["bf735dfe2ad64fba7c"],
+        "platforms": ["fan", "light", "switch", "sensor", "select", "number"],
+        "data_points": HOOD_DPS
+    },
+
+    # IND7705HC Induction Cooktop
+    "ind7705hc_cooktop": {
+        "model_id": "e1kc5q64",
+        "category": CATEGORY_COOKTOP,
+        "name": "IND7705HC Induction Cooktop",
+        "product_names": ["p8volecsgzdyun29"],
+        "device_ids": ["bf5592b47738c5b46evzff"],
+        "device_id_patterns": ["bf5592b47738c5b46e"],
+        "platforms": ["switch", "number", "sensor", "binary_sensor"],
+        "data_points": COOKTOP_DPS
+    }
+}
+
+def find_device_by_product_name(product_name: str) -> dict:
+    """Find device in central database by product name."""
+    for device_key, device_info in KNOWN_DEVICES.items():
+        if product_name in device_info["product_names"]:
+            return device_info
+    return None
+
+def find_device_by_device_id(device_id: str) -> dict:
+    """Find device in central database by device ID."""
+    for device_key, device_info in KNOWN_DEVICES.items():
+        # Exact match
+        if device_id in device_info["device_ids"]:
+            return device_info
+        # Pattern match
+        for pattern in device_info["device_id_patterns"]:
+            if device_id.startswith(pattern):
+                return device_info
+    return None
+
 def get_device_dps(category: str) -> dict:
     """Get data points for device category."""
     if category == CATEGORY_HOOD:
@@ -75,10 +109,28 @@ def get_device_dps(category: str) -> dict:
     else:
         return {}
 
+def get_device_info_by_device_id(device_id: str) -> dict:
+    """Get device information based on device ID (for manual setup)."""
+    device_info = find_device_by_device_id(device_id)
+    if device_info:
+        return {
+            "model_id": device_info["model_id"],
+            "category": device_info["category"],
+            "name": device_info["name"],
+            "product_name": device_info["product_names"][0]  # Use first product name
+        }
+    return None
+
 def get_device_info_by_product_name(product_name: str) -> dict:
     """Get device information based on product name from discovery."""
-    if product_name in PRODUCT_MODEL_MAPPING:
-        return PRODUCT_MODEL_MAPPING[product_name]
+    # Check central database first
+    device_info = find_device_by_product_name(product_name)
+    if device_info:
+        return {
+            "model_id": device_info["model_id"],
+            "category": device_info["category"],
+            "name": device_info["name"]
+        }
 
     # Handle manual setup device types
     if product_name == "manual_hood":
@@ -117,6 +169,12 @@ def get_device_info_by_product_name(product_name: str) -> dict:
 
 def get_device_platforms(category: str) -> list:
     """Get required platforms for device category."""
+    # Try to find specific device platforms first
+    for device_key, device_info in KNOWN_DEVICES.items():
+        if device_info["category"] == category:
+            return device_info["platforms"]
+
+    # Fallback to category-based platforms
     if category == CATEGORY_HOOD:
         return ["fan", "light", "switch", "sensor", "select", "number"]
     elif category == CATEGORY_COOKTOP:
@@ -125,3 +183,13 @@ def get_device_platforms(category: str) -> list:
         # Generic fallback: Load all platforms for unknown devices
         # This ensures manual setup always works
         return ["fan", "light", "switch", "sensor", "select", "number", "binary_sensor"]
+
+def get_device_platforms_by_product_name(product_name: str) -> list:
+    """Get platforms directly by product name (most efficient)."""
+    device_info = find_device_by_product_name(product_name)
+    if device_info:
+        return device_info["platforms"]
+
+    # Fallback to category-based lookup
+    device_type_info = get_device_info_by_product_name(product_name)
+    return get_device_platforms(device_type_info["category"])

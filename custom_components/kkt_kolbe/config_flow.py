@@ -337,16 +337,27 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             try:
-                # For manual setup, use the device type selection from user
+                # For manual setup, try to auto-detect based on device_id first
+                from .device_types import get_device_info_by_device_id
+
                 manual_config = user_input.copy()
+                device_id = user_input.get(CONF_DEVICE_ID, "")
                 device_type = user_input.get(CONF_TYPE, "auto")
 
-                if device_type == "hood":
-                    manual_config["product_name"] = "manual_hood"
-                elif device_type == "cooktop":
-                    manual_config["product_name"] = "manual_cooktop"
+                # Try to auto-detect device type from device_id
+                detected_device_info = get_device_info_by_device_id(device_id)
+                if detected_device_info:
+                    # Known device - use detected info
+                    manual_config["product_name"] = detected_device_info["product_name"]
+                    _LOGGER.info(f"Auto-detected device type for {device_id}: {detected_device_info['name']}")
                 else:
-                    manual_config["product_name"] = "unknown"  # auto or unspecified
+                    # Unknown device - use user selection
+                    if device_type == "hood":
+                        manual_config["product_name"] = "manual_hood"
+                    elif device_type == "cooktop":
+                        manual_config["product_name"] = "manual_cooktop"
+                    else:
+                        manual_config["product_name"] = "unknown"  # auto or unspecified
 
                 info = await validate_input(self.hass, manual_config)
                 return self.async_create_entry(title=info["title"], data=manual_config)
