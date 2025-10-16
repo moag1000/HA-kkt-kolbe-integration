@@ -17,8 +17,8 @@ from .const import DOMAIN, MODELS
 _LOGGER = logging.getLogger(__name__)
 
 # Tuya UDP Discovery (based on Local Tuya implementation)
-# Note: Use different ports if Local Tuya is also running
-UDP_PORTS = [6668, 6669]  # Alternative ports to avoid conflict with Local Tuya
+# NOTE: Must use standard ports 6666/6667 - Tuya devices only broadcast on these!
+UDP_PORTS = [6666, 6667]
 UDP_KEY = md5(b"yGAdlopoPVldABfn").digest()
 DISCOVERY_TIMEOUT = 6  # seconds
 
@@ -158,11 +158,9 @@ class KKTKolbeDiscovery(ServiceListener):
 
             _LOGGER.info(f"Started KKT Kolbe mDNS discovery with {len(self._browsers)} browsers")
 
-            # Start UDP discovery (like Local Tuya) - skip if ports are busy
-            try:
-                await self._start_udp_discovery()
-            except Exception as e:
-                _LOGGER.warning(f"UDP discovery disabled (Local Tuya running?): {e}")
+            # Start UDP discovery (like Local Tuya)
+            # NOTE: If Local Tuya is running, UDP discovery will be disabled
+            await self._start_udp_discovery()
 
         except Exception as e:
             _LOGGER.error(f"Failed to start discovery: {e}", exc_info=True)
@@ -187,9 +185,13 @@ class KKTKolbeDiscovery(ServiceListener):
                     _LOGGER.warning(f"Failed to start UDP listener on port {port}: {e}")
 
             if self._udp_listeners:
-                _LOGGER.info(f"Started {len(self._udp_listeners)} UDP listeners")
+                _LOGGER.info(f"Started {len(self._udp_listeners)} UDP listeners on ports {UDP_PORTS}")
             else:
-                _LOGGER.warning("No UDP listeners started - all ports may be in use (Local Tuya running?)")
+                _LOGGER.warning(
+                    "UDP discovery disabled: Ports 6666/6667 in use. "
+                    "This is normal if Local Tuya integration is running. "
+                    "mDNS discovery will continue working."
+                )
 
         except Exception as e:
             _LOGGER.error(f"Failed to start UDP discovery: {e}", exc_info=True)
