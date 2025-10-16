@@ -39,12 +39,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         from .discovery import async_start_discovery
         await async_start_discovery(hass)
 
-    # Initialize Tuya device connection
+    # Initialize Tuya device connection (async)
     device = KKTKolbeTuyaDevice(
         device_id=entry.data[CONF_DEVICE_ID],
         ip_address=entry.data[CONF_HOST],
         local_key=entry.data[CONF_ACCESS_TOKEN],
     )
+
+    # Test connection to validate credentials early
+    try:
+        await device.async_connect()
+    except Exception as e:
+        _LOGGER.error(f"Failed to connect to device during setup: {e}")
+        raise
 
     # Determine device type and platforms based on product name
     from .device_types import get_device_info_by_product_name, get_device_platforms
