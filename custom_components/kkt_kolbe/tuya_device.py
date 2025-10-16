@@ -32,10 +32,10 @@ class KKTKolbeTuyaDevice:
         """Establish connection to the device."""
         try:
             # Auto-detect version if needed
-            if self.version == "auto":
+            if self.version == "auto" or self.version is None:
                 _LOGGER.info(f"Auto-detecting Tuya protocol version for {self.ip_address}")
-                # Try version 3.4 first (newer), then 3.3
-                for test_version in ["3.4", "3.3", "3.1"]:
+                # Try version 3.3 first (most common for KKT), then 3.4, then 3.1
+                for test_version in ["3.3", "3.4", "3.1"]:
                     try:
                         test_device = tinytuya.Device(
                             dev_id=self.device_id,
@@ -43,15 +43,31 @@ class KKTKolbeTuyaDevice:
                             local_key=self.local_key,
                             version=test_version
                         )
+                        test_device.set_socketTimeout(3)  # Give more time for response
+                        test_device.set_socketRetryLimit(2)  # Add retry for stability
                         test_status = test_device.status()
-                        if test_status and "dps" in test_status:
-                            self.version = test_version
-                            _LOGGER.info(f"Detected Tuya protocol version: {test_version}")
-                            self._device = test_device
-                            break
+
+                        # Check for valid status response
+                        if test_status and isinstance(test_status, dict):
+                            if "dps" in test_status or "devId" in test_status:
+                                self.version = test_version
+                                _LOGGER.info(f"✅ Detected Tuya protocol version: {test_version}")
+                                self._device = test_device
+                                break
                     except Exception as e:
                         _LOGGER.debug(f"Version {test_version} failed: {e}")
                         continue
+
+                # If auto-detection failed, try 3.3 as fallback
+                if not self._device:
+                    _LOGGER.warning(f"Auto-detection failed, using version 3.3 as fallback")
+                    self.version = "3.3"
+                    self._device = tinytuya.Device(
+                        dev_id=self.device_id,
+                        address=self.ip_address,
+                        local_key=self.local_key,
+                        version="3.3"
+                    )
             else:
                 self._device = tinytuya.Device(
                     dev_id=self.device_id,
@@ -62,9 +78,13 @@ class KKTKolbeTuyaDevice:
 
             if self._device:
                 self._device.set_socketPersistent(True)
-                _LOGGER.info(f"Connected to KKT Kolbe device at {self.ip_address} (version {self.version})")
+                self._device.set_socketRetryLimit(3)  # Add more retries
+                self._device.set_socketTimeout(5)  # Longer timeout for stability
+                _LOGGER.info(f"✅ Connected to KKT Kolbe device at {self.ip_address} (version {self.version})")
             else:
-                _LOGGER.error(f"Failed to connect to device - no compatible version found")
+                _LOGGER.error(f"❌ Failed to connect to device - no compatible version found")
+                _LOGGER.error(f"Device ID: {self.device_id}, IP: {self.ip_address}")
+                _LOGGER.error(f"Please verify: 1) Device is powered on, 2) IP is correct, 3) Local key is valid")
         except Exception as e:
             _LOGGER.error(f"Failed to connect to device: {e}")
             self._device = None
