@@ -161,6 +161,41 @@ def get_device_info_by_device_id(device_id: str) -> dict:
         }
     return None
 
+def get_product_name_by_device_id(device_id: str) -> str:
+    """Get product name by device ID - for automatic device type detection."""
+    device_info = find_device_by_device_id(device_id)
+    if device_info:
+        return device_info["product_names"][0]  # Return the primary product name
+    return None
+
+def auto_detect_device_config(device_id: str = None, provided_product_name: str = None) -> dict:
+    """Auto-detect device configuration from available information."""
+    detected_product_name = None
+
+    # Method 1: Use provided product name if available
+    if provided_product_name and provided_product_name.strip():
+        device_info = find_device_by_product_name(provided_product_name.strip())
+        if device_info:
+            detected_product_name = provided_product_name.strip()
+
+    # Method 2: Look up product name by device ID
+    if not detected_product_name and device_id:
+        detected_product_name = get_product_name_by_device_id(device_id)
+
+    # Return configuration
+    if detected_product_name:
+        device_info = find_device_by_product_name(detected_product_name)
+        if device_info:
+            return {
+                "product_name": detected_product_name,
+                "category": device_info["category"],
+                "name": device_info["name"],
+                "platforms": device_info["platforms"],
+                "detected_method": "product_name" if provided_product_name else "device_id"
+            }
+
+    return None
+
 def get_device_info_by_product_name(product_name: str) -> dict:
     """Get device information based on product name from discovery."""
     # Check central database first
