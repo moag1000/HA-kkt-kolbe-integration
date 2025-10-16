@@ -22,7 +22,6 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up the KKT Kolbe component from YAML configuration."""
     # Start automatic discovery when Home Assistant starts
     # This enables discovery even before any devices are configured
-    _LOGGER.info("Starting KKT Kolbe automatic device discovery...")
 
     # Lazy import to reduce blocking time
     from .discovery import async_start_discovery
@@ -65,7 +64,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             device_status = await device.async_get_status()
             # Here we could add logic to detect device type from status
             # For now, use fallback detection
-            _LOGGER.info("Manual setup detected - using generic device configuration")
         except Exception as e:
             _LOGGER.debug(f"Could not get device status for product detection: {e}")
 

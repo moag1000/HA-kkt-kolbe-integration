@@ -35,26 +35,20 @@ Ich habe mich mit der local tuya Implementierung schwer getan, weil diverseste F
 
 ## Features
 
-### 🎯 NEW in v1.3.0: Complete Device Support
+### ✅ v1.3.1: Production Ready & Stable
 
-**🚀 Revolutionary Device Setup Experience!**
+**🎯 Alle kritischen Fehler behoben - Integration ist jetzt vollständig funktional!**
 
-#### ✨ Smart Auto-Detection by Device ID
-- **Automatic Device Type Recognition**: Simply enter your Device ID - the integration automatically identifies whether it's a HERMES & STYLE hood or IND7705HC cooktop
-- **Zero Configuration Guesswork**: No more manual device type selection
-- **Universal Compatibility**: Works with all setup methods (auto-discovery, manual, HACS)
+#### ✅ Fehlerfreie Funktionalität
+- **Device Area Assignment**: Geräte können jetzt korrekt Bereichen zugewiesen werden
+- **Clean Entity Creation**: Alle Entitäten werden fehlerfrei erstellt
+- **Professional Logging**: Reduziertes, produktionsreifes Logging
+- **Runtime Error Free**: Alle gemeldeten Laufzeitfehler behoben
 
-#### 🎛️ User-Friendly Manual Setup
-- **Intuitive Device Dropdown**: Clear selection between "Range Hood (HERMES & STYLE)" and "Induction Cooktop (IND7705HC)"
-- **Smart Validation**: Device ID validation ensures compatibility before setup
-- **Streamlined Process**: Fewer steps, clearer options
-
-#### 🗄️ Centralized Device Database
-- **Future-Ready Architecture**: Easily expandable for new KKT Kolbe models
-- **Consistent Recognition**: Reliable device identification across all use cases
-- **Professional Integration**: Enterprise-level device management
-
-**Perfect for both automatic discovery users and manual setup users!**
+#### 🚀 Smart Device Detection
+- **Automatic Device Recognition**: Device ID automatisch erkannt - HERMES & STYLE oder IND7705HC
+- **Zero Configuration**: Keine manuelle Gerätetyp-Auswahl nötig
+- **Universal Setup**: Funktioniert mit Auto-Discovery und manueller Konfiguration
 
 ### Supported Models
 - **KKT Kolbe HERMES & STYLE** - Range Hood (Model ID: e1k6i0zo)
@@ -110,34 +104,21 @@ Ich habe mich mit der local tuya Implementierung schwer getan, weil diverseste F
 5. **Home Assistant neu starten**
 6. **Integration hinzufügen:** Settings → Devices & Services → Add Integration → KKT Kolbe
 
-### 🏠 Home Assistant Auto-Discovery (NEU in v0.3.0!)
+### 🏠 Automatische Geräteerkennung
 
-**✨ Die Integration erscheint automatisch in Home Assistant!**
+**✨ KKT Kolbe Geräte werden automatisch im Netzwerk erkannt!**
 
-#### 🎯 Wie es funktioniert:
-1. **Integration installieren** → Discovery startet automatisch beim HA Start
-2. **KKT Gerät im Netzwerk** → Erscheint in HA Notifications
-3. **"KKT Kolbe Device Found"** → Ein Klick zur Einrichtung
+#### 🎯 Setup-Prozess:
+1. **Integration über HACS installieren**
+2. **Integration hinzufügen** → KKT Geräte werden automatisch gefunden
+3. **Gerät auswählen** → IP und Device ID sind bereits eingetragen
 4. **Nur Local Key eingeben** → Fertig!
 
-**Keine manuelle Integration mehr nötig - Home Assistant findet KKT Geräte automatisch!**
-
-### 🔍 mDNS Geräteerkennung (seit v0.2.0)
-
-**✨ mDNS Discovery**: Die Integration erkennt KKT Kolbe Geräte automatisch im Netzwerk!
-
-#### 🎆 Vorteile der automatischen Erkennung:
-- **📡 Zero-Configuration**: Keine IP-Suche mehr nötig
-- **🔑 Nur Local Key**: IP-Adresse und Device ID automatisch erkannt
-- **⚡ Schnell**: Ein Klick zur Geräteauswahl
-- **🔄 Fallback**: Manuelle Konfiguration weiterhin verfügbar
-- **🎯 Smart**: Erkennt HERMES & STYLE und IND7705HC automatisch
-
-#### 🛠️ Technische Details:
-- **mDNS/Zeroconf**: Nutzt Home Assistant's eingebaute Discovery
-- **Pattern Matching**: Erkennt KKT Geräte anhand Namen und TXT-Records
-- **Model Detection**: Automatische Zuordnung bekannter Modelle
-- **Network Scan**: Scannt kontinuierlich nach neuen Geräten
+#### ✨ Discovery-Features:
+- **mDNS + UDP Discovery**: Wie LocalTuya - findet Geräte zuverlässig
+- **Automatische Typerkennung**: HERMES & STYLE vs IND7705HC
+- **Zero-Config**: Keine IP-Suche oder Device ID-Eingabe nötig
+- **Fallback**: Manuelle Konfiguration weiterhin verfügbar
 
 ### 📁 Manual Installation
 1. Download neueste [Release](https://github.com/moag1000/HA-kkt-kolbe-integration/releases)
@@ -153,25 +134,16 @@ Ich habe mich mit der local tuya Implementierung schwer getan, weil diverseste F
 - Lesen Sie **alle Sicherheitswarnungen** in [AI_GENERATED_WARNING.md](AI_GENERATED_WARNING.md)
 - **Eigene Verantwortung** bei der Nutzung
 
-### 🔍 Setup-Optionen
+### 🔧 Konfiguration
 
-#### Option 1: Automatische Erkennung (Neu!)
-1. Integration hinzufügen - **Geräte werden automatisch gefunden**
-2. Gewünschtes Gerät aus Liste wählen
-3. Nur **Tuya Local Key** eingeben
-4. Fertig!
+#### Benötigte Daten:
+- **Local Key**: Aus Smart Life App extrahieren (siehe unten)
+- **IP & Device ID**: Automatisch erkannt oder manuell eingeben
 
-#### Option 2: Manuelle Konfiguration
-1. "Manual configuration" wählen
-2. Alle Daten manuell eingeben (IP, Device ID, Local Key)
+#### Setup-Optionen:
+1. **Automatisch** (empfohlen): Gerät aus Discovery-Liste wählen
+2. **Manuell**: IP, Device ID und Local Key manuell eingeben
 
-### Configuration
-The integration supports configuration via UI. You'll need:
-- **IP Address**: Local IP of your KKT Kolbe device
-- **Device ID**: Tuya device ID (find in Smart Life app)
-- **Local Key**: Tuya local key (extract using tuya-cli or similar)
-- **Type**: Device type (auto-detect, hood, or cooktop)
-- **Name**: Custom name for your device (optional)
 
 ### Getting Tuya Credentials
 
@@ -184,15 +156,15 @@ The integration supports configuration via UI. You'll need:
 3. Note the device's local IP address (example: `192.168.1.xxx`)
 4. **IMPORTANT**: Use `config_example.yaml` as template, never commit real values!
 
-## 🏪 HACS Compatibility
+## 🏪 HACS Status
 
-✅ **HACS Ready**: Installation über HACS Custom Repositories möglich
+✅ **PRODUCTION READY**: v1.3.1
 
-- Repository: `https://github.com/moag1000/HA-kkt-kolbe-integration`
-- **Current Version: `v1.3.0`** 🚀 **STABLE & PRODUCTION READY**
-- **✅ All Critical Issues Fixed** - Stable UDP/mDNS Discovery
-- **✅ Full Home Assistant Compliance** - No warnings
-- **✅ Robust Error Handling** - Clear user feedback
+- **Current Version: `v1.3.1`** 🎯 **STABLE & ERROR-FREE**
+- **✅ All Runtime Errors Fixed** - Geräte funktionieren vollständig
+- **✅ Device Area Assignment** - Bereiche können zugewiesen werden
+- **✅ Clean Entity Creation** - Alle Entitäten fehlerfrei
+- **✅ Professional Logging** - Produktionsreifes Logging
 - Updates: Über HACS automatisch verfügbar
 
 ## Development Status
@@ -215,14 +187,12 @@ The integration supports configuration via UI. You'll need:
 - ✅ Umfassende Error Handling und Debug-Modi
 - ⚠️ Bei Kochfeldern Sicherheitshinweise beachten ([COOKTOP_SAFETY.md](COOKTOP_SAFETY.md))
 
-### 🚀 Changelog v1.3.0 (LATEST) - Complete Device Support!
-- 🎯 **MASSIVE EXPANSION**: All 26 DPs fully supported for IND7705HC cooktop
-- ✨ **NEW**: All 6 DPs fully supported for HERMES & STYLE hood
-- 🔥 **NEW**: 50+ entities for complete cooktop control (5 zones, bitfield logic)
-- 🎛️ **NEW**: Dynamic entity creation based on device capabilities
-- 🎨 **NEW**: Smart icons for all entity types (zones, functions, modes)
-- 🏗️ **ENHANCED**: Completely rebuilt platforms (switch, number, select, sensor, binary_sensor)
-- 🎯 **RESULT**: Professional-grade control interface for both devices
+### 🚀 Changelog v1.3.1 (LATEST) - Production Ready!
+- 🔧 **CRITICAL FIXES**: Alle Runtime-Fehler aus v1.3.0 behoben
+- ✅ **Device Areas**: Geräte können jetzt korrekt Bereichen zugewiesen werden
+- 🧹 **Clean Logging**: Excessive Debug-Logs entfernt für Produktiveinsatz
+- 🎯 **Stable Entities**: Alle Entitäten funktionieren fehlerfrei
+- 🚀 **Production Ready**: Integration ist jetzt vollständig stabil
 
 ### 🚀 Changelog v1.0.0 - Production Ready Foundation
 - 🔧 **CRITICAL FIX**: Korrekter Tuya Port (6667 statt 6668)
@@ -385,7 +355,7 @@ GitHub: [@moag1000](https://github.com/moag1000)
 [hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
 [license-shield]: https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge
 [license-url]: https://opensource.org/licenses/MIT
-[releases-shield]: https://img.shields.io/badge/version-v1.3.0-blue.svg?style=for-the-badge
+[releases-shield]: https://img.shields.io/badge/version-v1.3.1-blue.svg?style=for-the-badge
 [releases]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases
 [maintenance-shield]: https://img.shields.io/badge/maintainer-%40moag1000-blue.svg?style=for-the-badge
 [user_profile]: https://github.com/moag1000

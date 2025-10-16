@@ -204,7 +204,6 @@ class KKTKolbeDiscovery(ServiceListener):
             from homeassistant.components import zeroconf as ha_zeroconf
             self._zeroconf = await ha_zeroconf.async_get_async_instance(self.hass)
 
-            _LOGGER.info(f"Starting mDNS discovery for {len(TUYA_SERVICE_TYPES)} service types...")
             for service_type in TUYA_SERVICE_TYPES:
                 _LOGGER.debug(f"Starting browser for service type: {service_type}")
                 browser = ServiceBrowser(
@@ -214,7 +213,6 @@ class KKTKolbeDiscovery(ServiceListener):
                 )
                 self._browsers.append(browser)
 
-            _LOGGER.info(f"Started KKT Kolbe mDNS discovery with {len(self._browsers)} browsers")
 
             # Start UDP discovery (like Local Tuya)
             # NOTE: If Local Tuya is running, UDP discovery will be disabled
@@ -232,7 +230,6 @@ class KKTKolbeDiscovery(ServiceListener):
     async def _start_udp_discovery(self) -> None:
         """Start UDP discovery on Tuya broadcast ports."""
         try:
-            _LOGGER.info(f"Starting UDP discovery on ports {UDP_PORTS}")
 
             for port in UDP_PORTS:
                 try:
@@ -249,7 +246,6 @@ class KKTKolbeDiscovery(ServiceListener):
                     _LOGGER.warning(f"Failed to start UDP listener on port {port}: {e}")
 
             if self._udp_listeners:
-                _LOGGER.info(f"Started {len(self._udp_listeners)} UDP listeners on ports {UDP_PORTS}")
                 # LocalTuya approach: Don't send broadcasts, just listen
                 # Devices automatically broadcast their presence
                 _LOGGER.debug("UDP discovery started - listening for automatic device broadcasts")
