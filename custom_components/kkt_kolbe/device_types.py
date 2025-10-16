@@ -65,7 +65,30 @@ KNOWN_DEVICES = {
         "device_ids": ["bf735dfe2ad64fba7cpyhn"],
         "device_id_patterns": ["bf735dfe2ad64fba7c"],
         "platforms": ["fan", "light", "switch", "sensor", "select", "number"],
-        "data_points": HOOD_DPS
+        "data_points": HOOD_DPS,
+        "entities": {
+            "fan": {
+                "dp": 10,  # fan_speed_enum
+                "speeds": ["off", "low", "middle", "high", "strong"]
+            },
+            "light": {
+                "dp": 4,  # light on/off
+                "rgb_dp": 101  # RGB mode
+            },
+            "switch": [
+                {"dp": 1, "name": "Power", "device_class": "switch"},
+                {"dp": 6, "name": "Filter Reminder", "device_class": "switch"}
+            ],
+            "sensor": [
+                {"dp": 13, "name": "Timer", "unit": "min", "device_class": "duration"}
+            ],
+            "select": [
+                {"dp": 101, "name": "RGB Mode", "options": list(range(10))}
+            ],
+            "number": [
+                {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": "min"}
+            ]
+        }
     },
 
     # IND7705HC Induction Cooktop
@@ -77,7 +100,24 @@ KNOWN_DEVICES = {
         "device_ids": ["bf5592b47738c5b46evzff"],
         "device_id_patterns": ["bf5592b47738c5b46e"],
         "platforms": ["switch", "number", "sensor", "binary_sensor"],
-        "data_points": COOKTOP_DPS
+        "data_points": COOKTOP_DPS,
+        "entities": {
+            "switch": [
+                {"dp": 101, "name": "Power", "device_class": "switch"},
+                {"dp": 102, "name": "Pause", "device_class": "switch"},
+                {"dp": 103, "name": "Child Lock", "device_class": "switch"}
+            ],
+            "number": [
+                {"dp": 104, "name": "Max Level", "min": 0, "max": 25},
+                {"dp": 134, "name": "Timer", "min": 0, "max": 99, "unit": "min"}
+            ],
+            "sensor": [
+                {"dp": 105, "name": "Error Status", "device_class": "problem"}
+            ],
+            "binary_sensor": [
+                {"dp": 145, "name": "Senior Mode", "device_class": "running"}
+            ]
+        }
     }
 }
 
@@ -193,3 +233,22 @@ def get_device_platforms_by_product_name(product_name: str) -> list:
     # Fallback to category-based lookup
     device_type_info = get_device_info_by_product_name(product_name)
     return get_device_platforms(device_type_info["category"])
+
+def get_device_entities(product_name: str, platform: str) -> list:
+    """Get entity configurations for a specific product and platform."""
+    device_info = find_device_by_product_name(product_name)
+    if device_info and "entities" in device_info:
+        entities_config = device_info["entities"]
+        if platform in entities_config:
+            entity_config = entities_config[platform]
+            # Handle both single entity (dict) and multiple entities (list)
+            if isinstance(entity_config, dict):
+                return [entity_config]
+            elif isinstance(entity_config, list):
+                return entity_config
+    return []
+
+def get_device_entity_config(product_name: str, platform: str) -> dict:
+    """Get the first entity config for a platform (for single-entity platforms like fan, light)."""
+    entities = get_device_entities(product_name, platform)
+    return entities[0] if entities else {}
