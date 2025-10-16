@@ -77,7 +77,19 @@ Ich habe mich mit der local tuya Implementierung schwer getan, weil diverseste F
 5. **Home Assistant neu starten**
 6. **Integration hinzufügen:** Settings → Devices & Services → Add Integration → KKT Kolbe
 
-### 🔍 Automatische Geräteerkennung (NEU in v0.2.0!)
+### 🏠 Home Assistant Auto-Discovery (NEU in v0.3.0!)
+
+**✨ Die Integration erscheint automatisch in Home Assistant!**
+
+#### 🎯 Wie es funktioniert:
+1. **Integration installieren** → Discovery startet automatisch beim HA Start
+2. **KKT Gerät im Netzwerk** → Erscheint in HA Notifications
+3. **"KKT Kolbe Device Found"** → Ein Klick zur Einrichtung
+4. **Nur Local Key eingeben** → Fertig!
+
+**Keine manuelle Integration mehr nötig - Home Assistant findet KKT Geräte automatisch!**
+
+### 🔍 mDNS Geräteerkennung (seit v0.2.0)
 
 **✨ mDNS Discovery**: Die Integration erkennt KKT Kolbe Geräte automatisch im Netzwerk!
 
@@ -144,8 +156,9 @@ The integration supports configuration via UI. You'll need:
 ✅ **HACS Ready**: Installation über HACS Custom Repositories möglich
 
 - Repository: `https://github.com/moag1000/HA-kkt-kolbe-integration`
-- **Current Version: `v0.2.2`** 🆕
-- **New: mDNS Automatic Device Discovery** 🔍
+- **Current Version: `v0.3.0`** 🚀
+- **New: Full Home Assistant Auto-Discovery** 🏠
+- **New: mDNS Automatic Device Detection** 🔍
 - Updates: Über HACS automatisch verfügbar
 
 ## Development Status
@@ -166,7 +179,15 @@ The integration supports configuration via UI. You'll need:
 - ❌ Mögliche Fehler bei der Gerätesteuerung
 - ❌ Sicherheitsrisiken bei Kochfeld-Steuerung
 
-### 🆕 Changelog v0.2.2
+### 🚀 Changelog v0.3.0
+- 🏠 **MAJOR FEATURE**: Home Assistant Auto-Discovery ohne offiziellen PR!
+- ✨ **NEW**: Automatische Discovery beim HA Start
+- 🎯 **NEW**: Zeroconf Integration für nahtlose Geräteerkennung
+- 🔄 **NEW**: "Retry automatic discovery" Option
+- 🌍 **NEW**: Vollständige deutsche/englische Übersetzungen
+- 🛠️ **Improved**: Erweiterte Debug-Modi und Network Analysis
+
+### Changelog v0.2.2
 - 🎯 **MAJOR FIX**: Erkennt KKT Geräte als generische Tuya Devices
 - ✨ **NEW**: Tuya Device ID Pattern Detection (`bf` + hex)
 - 🔍 **NEW**: Spezifische KKT Device ID Patterns aus echten Tests
