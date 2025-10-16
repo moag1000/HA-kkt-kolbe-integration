@@ -51,8 +51,10 @@ class KKTKolbeTuyaDevice:
                             test_device.status
                         )
 
-                        # Original working condition from v1.0.2
-                        if test_status and "dps" in test_status:
+                        _LOGGER.debug(f"Version {test_version} status response: {test_status}")
+
+                        # Original working condition from v1.0.2 + minimal validation
+                        if test_status and isinstance(test_status, dict) and "dps" in test_status:
                             self.version = test_version
                             _LOGGER.info(f"Detected Tuya protocol version: {test_version}")
                             self._device = test_device
