@@ -135,8 +135,9 @@ class KKTKolbeDiscovery(ServiceListener):
     async def async_start(self) -> None:
         """Start mDNS and UDP discovery."""
         try:
-            # Start mDNS discovery
-            self._zeroconf = AsyncZeroconf()
+            # Start mDNS discovery using Home Assistant's shared instance
+            from homeassistant.components import zeroconf as ha_zeroconf
+            self._zeroconf = await ha_zeroconf.async_get_async_instance(self.hass)
 
             _LOGGER.info(f"Starting mDNS discovery for {len(TUYA_SERVICE_TYPES)} service types...")
             for service_type in TUYA_SERVICE_TYPES:
@@ -212,8 +213,8 @@ class KKTKolbeDiscovery(ServiceListener):
             browser.cancel()
         self._browsers.clear()
 
+        # Don't close the shared zeroconf instance, just clear our reference
         if self._zeroconf:
-            await self._zeroconf.async_close()
             self._zeroconf = None
 
         # Stop UDP listeners
@@ -490,26 +491,28 @@ async def debug_scan_network() -> Dict[str, List[str]]:
 
         # mDNS Scan
         try:
-            from zeroconf import Zeroconf
-            zeroconf = Zeroconf()
+            # Use the existing discovery instance's zeroconf if available
+            global _discovery_instance
+            if _discovery_instance and _discovery_instance._zeroconf:
+                zeroconf = _discovery_instance._zeroconf.zeroconf
 
-            common_services = [
-                "_http._tcp.local.",
-                "_https._tcp.local.",
-                "_device._tcp.local.",
-                "_tuya._tcp.local.",
-                "_smartlife._tcp.local.",
-                "_iot._tcp.local.",
-                "_homekit._tcp.local.",
-                "_miio._tcp.local.",
-            ]
+                common_services = [
+                    "_http._tcp.local.",
+                    "_https._tcp.local.",
+                    "_device._tcp.local.",
+                    "_tuya._tcp.local.",
+                    "_smartlife._tcp.local.",
+                    "_iot._tcp.local.",
+                    "_homekit._tcp.local.",
+                    "_miio._tcp.local.",
+                ]
 
-            for service_type in common_services:
-                service_info = zeroconf.get_service_info(service_type, timeout=2)
-                if service_info:
-                    results["mDNS_services"][service_type] = [str(service_info)]
-
-            zeroconf.close()
+                for service_type in common_services:
+                    service_info = zeroconf.get_service_info(service_type, timeout=2)
+                    if service_info:
+                        results["mDNS_services"][service_type] = [str(service_info)]
+            else:
+                results["mDNS_services"]["error"] = ["Discovery service not active"]
         except Exception as e:
             results["mDNS_services"]["error"] = [f"mDNS scan failed: {e}"]
 
