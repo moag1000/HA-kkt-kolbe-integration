@@ -1,17 +1,9 @@
-"""Tuya device communication for KKT Kolbe integration."""
+"""KKT Kolbe Tuya Device Handler."""
 import asyncio
 import logging
-import tinytuya
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
-from .const import (
-    DP_POWER,
-    DP_LIGHT,
-    DP_FILTER_ALERT,
-    DP_FAN_SPEED,
-    DP_COUNTDOWN,
-    DP_RGB_LIGHT,
-)
+import tinytuya
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -26,35 +18,54 @@ class KKTKolbeTuyaDevice:
         self.version = version
         self._device = None
         self._status = {}
-        self._connect()
+        self._connected = False
+        # Connection will be established async when needed
 
-    def _connect(self):
-        """Establish connection to the device."""
+    async def async_connect(self) -> None:
+        """Establish async connection to the device."""
+        if self._connected:
+            return
+
         try:
+            loop = asyncio.get_event_loop()
+
             # Auto-detect version if needed
             if self.version == "auto" or self.version is None:
                 _LOGGER.info(f"Auto-detecting Tuya protocol version for {self.ip_address}")
-                # Try version 3.3 first (most common for KKT), then 3.4, then 3.1
+
+                # Try versions in order (3.3 is most common for KKT)
                 for test_version in ["3.3", "3.4", "3.1"]:
                     try:
-                        test_device = tinytuya.Device(
-                            dev_id=self.device_id,
-                            address=self.ip_address,
-                            local_key=self.local_key,
-                            version=test_version
+                        # Create device in executor to avoid blocking
+                        test_device = await loop.run_in_executor(
+                            None,
+                            self._create_device,
+                            test_version
                         )
-                        test_device.set_socketTimeout(3)  # Give more time for response
-                        test_device.set_socketRetryLimit(2)  # Add retry for stability
-                        test_status = test_device.status()
 
-                        # Check for valid status response
+                        # Test connection in executor
+                        test_status = await loop.run_in_executor(
+                            None,
+                            test_device.status
+                        )
+
+                        # Check for valid response
                         if test_status and isinstance(test_status, dict):
                             if "dps" in test_status or "devId" in test_status:
                                 self.version = test_version
-                                _LOGGER.info(f"✅ Detected Tuya protocol version: {test_version}")
                                 self._device = test_device
-                                break
+                                self._device.set_socketPersistent(True)
+                                self._connected = True
+                                _LOGGER.info(f"✅ Detected Tuya protocol version: {test_version}")
+                                return
+                            elif "Err" in str(test_status):
+                                if "907" in str(test_status):  # Auth error
+                                    _LOGGER.error(f"❌ Authentication failed - invalid local key")
+                                    _LOGGER.error(f"Please verify your local key is correct for device {self.device_id}")
+                                    raise Exception("Invalid local key - device rejected authentication")
                     except Exception as e:
+                        if "Invalid local key" in str(e) or "authentication" in str(e).lower():
+                            raise
                         _LOGGER.debug(f"Version {test_version} failed: {e}")
                         continue
 
@@ -62,213 +73,175 @@ class KKTKolbeTuyaDevice:
                 if not self._device:
                     _LOGGER.warning(f"Auto-detection failed, using version 3.3 as fallback")
                     self.version = "3.3"
-                    self._device = tinytuya.Device(
-                        dev_id=self.device_id,
-                        address=self.ip_address,
-                        local_key=self.local_key,
-                        version="3.3"
+                    self._device = await loop.run_in_executor(
+                        None,
+                        self._create_device,
+                        "3.3"
                     )
+                    self._device.set_socketPersistent(True)
+                    self._connected = True
             else:
-                self._device = tinytuya.Device(
-                    dev_id=self.device_id,
-                    address=self.ip_address,
-                    local_key=self.local_key,
-                    version=self.version
+                # Use specified version
+                self._device = await loop.run_in_executor(
+                    None,
+                    self._create_device,
+                    self.version
                 )
-
-            if self._device:
                 self._device.set_socketPersistent(True)
-                self._device.set_socketRetryLimit(3)  # Add more retries
-                self._device.set_socketTimeout(5)  # Longer timeout for stability
-                _LOGGER.info(f"✅ Connected to KKT Kolbe device at {self.ip_address} (version {self.version})")
-            else:
-                _LOGGER.error(f"❌ Failed to connect to device - no compatible version found")
+                self._connected = True
+
+            _LOGGER.info(f"✅ Connected to KKT Kolbe device at {self.ip_address} (version {self.version})")
+
+        except Exception as e:
+            self._connected = False
+            _LOGGER.error(f"Failed to connect to device: {e}")
+            if "Invalid local key" not in str(e) and "authentication" not in str(e).lower():
                 _LOGGER.error(f"Device ID: {self.device_id}, IP: {self.ip_address}")
-                _LOGGER.error(f"Please verify: 1) Device is powered on, 2) IP is correct, 3) Local key is valid")
-        except Exception as e:
-            _LOGGER.error(f"Failed to connect to device: {e}")
+                _LOGGER.error(f"Please verify: 1) Device is on, 2) IP is correct, 3) Local key is valid")
             self._device = None
+            raise
 
-    async def async_connect(self) -> None:
-        """Establish async connection to the device."""
-        try:
-            # Run the blocking connection in executor
-            loop = asyncio.get_event_loop()
-            self._device = await loop.run_in_executor(
-                None,
-                lambda: tinytuya.Device(
-                    dev_id=self.device_id,
-                    address=self.ip_address,
-                    local_key=self.local_key,
-                    version=3.4  # Try 3.4 as default for newer devices
-                )
-            )
-            _LOGGER.info(f"Connected to KKT Kolbe device at {self.ip_address}")
-        except Exception as e:
-            _LOGGER.error(f"Failed to connect to device: {e}")
-            self._device = None
+    def _create_device(self, version):
+        """Create a device instance with the given version."""
+        device = tinytuya.Device(
+            dev_id=self.device_id,
+            address=self.ip_address,
+            local_key=self.local_key,
+            version=version
+        )
+        device.set_socketTimeout(5)
+        device.set_socketRetryLimit(3)
+        return device
 
-    async def async_update_status(self) -> Dict[str, Any]:
-        """Get current status from device (async version)."""
-        if not self._device:
-            await self.async_connect()
-            if not self._device:
-                _LOGGER.error("Device connection failed")
-                return {}
-
-        try:
-            # Run the blocking tinytuya call in executor to avoid blocking the event loop
-            loop = asyncio.get_event_loop()
-            status = await loop.run_in_executor(None, self._device.status)
-
-            if "dps" in status:
-                self._status = status["dps"]
-                _LOGGER.debug(f"Device status updated: {self._status}")
-            return self._status
-        except Exception as e:
-            _LOGGER.error(f"Failed to get device status: {e}")
-            return {}
-
-    def update_status(self) -> Dict[str, Any]:
-        """Get current status from device (legacy sync version)."""
-        _LOGGER.warning("Using deprecated sync update_status, use async_update_status instead")
-
-        if not self._device:
-            self._connect()
-            if not self._device:
-                _LOGGER.error("Device connection failed")
-                return {}
-
-        try:
-            status = self._device.status()
-            if "dps" in status:
-                self._status = status["dps"]
-                _LOGGER.debug(f"Device status updated: {self._status}")
-            return self._status
-        except Exception as e:
-            _LOGGER.error(f"Failed to get device status: {e}")
-            return {}
-
-    async def async_set_dp(self, dp_code: str, value: Any) -> bool:
-        """Set a data point value (async version)."""
-        if not self._device:
+    async def async_ensure_connected(self):
+        """Ensure device is connected (async)."""
+        if not self._connected:
             await self.async_connect()
 
-        try:
-            # Run the blocking tinytuya call in executor
-            loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(None, self._device.set_value, dp_code, value)
-
-            _LOGGER.debug(f"Set DP {dp_code} to {value}: {result}")
-            return result and result.get("dps") is not None
-        except Exception as e:
-            _LOGGER.error(f"Failed to set DP {dp_code} to {value}: {e}")
-            return False
-
-    def set_dp(self, dp_code: str, value: Any) -> bool:
-        """Set a data point value."""
-        if not self._device:
-            self._connect()
-
-        try:
-            # Find DP index from code
-            dp_map = {
-                DP_POWER: 1,
-                DP_LIGHT: 4,
-                DP_FILTER_ALERT: 6,
-                DP_FAN_SPEED: 10,
-                DP_COUNTDOWN: 13,
-                DP_RGB_LIGHT: 101,
-            }
-
-            if dp_code in dp_map:
-                dp_index = dp_map[dp_code]
-                self._device.set_value(dp_index, value)
-                _LOGGER.debug(f"Set DP {dp_index} ({dp_code}) to {value}")
-                return True
-            else:
-                _LOGGER.error(f"Unknown DP code: {dp_code}")
-                return False
-        except Exception as e:
-            _LOGGER.error(f"Failed to set DP {dp_code}: {e}")
-            return False
-
-    def get_dp(self, dp_code: str) -> Optional[Any]:
-        """Get a data point value."""
-        dp_map = {
-            DP_POWER: 1,
-            DP_LIGHT: 4,
-            DP_FILTER_ALERT: 6,
-            DP_FAN_SPEED: 10,
-            DP_COUNTDOWN: 13,
-            DP_RGB_LIGHT: 101,
-        }
-
-        if dp_code in dp_map:
-            dp_index = dp_map[dp_code]
-            return self._status.get(str(dp_index))
-        return None
+    @property
+    def is_connected(self) -> bool:
+        """Return True if device is connected."""
+        return self._connected and self._device is not None
 
     @property
     def is_on(self) -> bool:
-        """Return if device is powered on."""
-        return self.get_dp(DP_POWER) or False
+        """Return True if device is on (DP 1)."""
+        return self.get_dp_value(1, False)
 
-    @property
-    def light_on(self) -> bool:
-        """Return if light is on."""
-        return self.get_dp(DP_LIGHT) or False
+    def get_dp_value(self, dp: int, default=None):
+        """Get data point value from cached status."""
+        return self._status.get("dps", {}).get(str(dp), default)
+
+    async def async_get_status(self) -> dict:
+        """Get device status asynchronously."""
+        await self.async_ensure_connected()
+
+        if not self._device:
+            return {}
+
+        try:
+            loop = asyncio.get_event_loop()
+            status = await loop.run_in_executor(
+                None,
+                self._device.status
+            )
+            if status and isinstance(status, dict):
+                self._status = status
+                return status
+        except Exception as e:
+            _LOGGER.error(f"Failed to get device status: {e}")
+            self._connected = False  # Mark as disconnected on error
+
+        return {}
+
+    async def async_update_status(self) -> None:
+        """Update device status asynchronously."""
+        await self.async_ensure_connected()
+
+        if not self._device:
+            return
+
+        try:
+            loop = asyncio.get_event_loop()
+            status = await loop.run_in_executor(
+                None,
+                self._device.status
+            )
+            if status and isinstance(status, dict):
+                self._status = status
+        except Exception as e:
+            _LOGGER.error(f"Failed to update device status: {e}")
+            self._connected = False  # Mark as disconnected on error
+
+    async def async_set_dp(self, dp: int, value: Any) -> bool:
+        """Set data point value asynchronously."""
+        await self.async_ensure_connected()
+
+        if not self._device:
+            return False
+
+        try:
+            loop = asyncio.get_event_loop()
+            result = await loop.run_in_executor(
+                None,
+                self._device.set_value,
+                dp,
+                value
+            )
+            _LOGGER.debug(f"Set DP {dp} to {value}: {result}")
+            return True
+        except Exception as e:
+            _LOGGER.error(f"Failed to set DP {dp} to {value}: {e}")
+            return False
+
+    def turn_on(self):
+        """Turn device on (DP 1 = True)."""
+        asyncio.create_task(self.async_set_dp(1, True))
+
+    def turn_off(self):
+        """Turn device off (DP 1 = False)."""
+        asyncio.create_task(self.async_set_dp(1, False))
+
+    def set_fan_speed(self, speed: str):
+        """Set fan speed (DP 10)."""
+        speed_map = {
+            "off": "0",
+            "low": "1",
+            "middle": "2",
+            "high": "3",
+            "strong": "4"
+        }
+        if speed in speed_map:
+            asyncio.create_task(self.async_set_dp(10, speed_map[speed]))
 
     @property
     def fan_speed(self) -> str:
-        """Return current fan speed."""
-        return self.get_dp(DP_FAN_SPEED) or "off"
+        """Get current fan speed."""
+        speed_value = self.get_dp_value(10, "0")
+        speed_map = {
+            "0": "off",
+            "1": "low",
+            "2": "middle",
+            "3": "high",
+            "4": "strong"
+        }
+        return speed_map.get(str(speed_value), "off")
+
+    def set_light(self, state: bool):
+        """Set light state (DP 4)."""
+        asyncio.create_task(self.async_set_dp(4, state))
 
     @property
-    def countdown_minutes(self) -> int:
-        """Return countdown timer in minutes."""
-        return self.get_dp(DP_COUNTDOWN) or 0
+    def light_on(self) -> bool:
+        """Return True if light is on."""
+        return self.get_dp_value(4, False)
 
-    @property
-    def filter_alert(self) -> bool:
-        """Return if filter needs cleaning."""
-        return self.get_dp(DP_FILTER_ALERT) or False
+    def set_rgb_mode(self, mode: int):
+        """Set RGB mode (DP 101)."""
+        if 0 <= mode <= 9:
+            asyncio.create_task(self.async_set_dp(101, mode))
 
     @property
     def rgb_mode(self) -> int:
-        """Return current RGB light mode."""
-        return self.get_dp(DP_RGB_LIGHT) or 0
-
-    def turn_on(self) -> bool:
-        """Turn on the device."""
-        return self.set_dp(DP_POWER, True)
-
-    def turn_off(self) -> bool:
-        """Turn off the device."""
-        return self.set_dp(DP_POWER, False)
-
-    def set_light(self, on: bool) -> bool:
-        """Turn light on or off."""
-        return self.set_dp(DP_LIGHT, on)
-
-    def set_fan_speed(self, speed: str) -> bool:
-        """Set fan speed."""
-        if speed in ["off", "low", "middle", "high", "strong"]:
-            return self.set_dp(DP_FAN_SPEED, speed)
-        return False
-
-    def set_countdown(self, minutes: int) -> bool:
-        """Set countdown timer (0-60 minutes)."""
-        if 0 <= minutes <= 60:
-            return self.set_dp(DP_COUNTDOWN, minutes)
-        return False
-
-    def set_rgb_mode(self, mode: int) -> bool:
-        """Set RGB light mode (0-9)."""
-        if 0 <= mode <= 9:
-            return self.set_dp(DP_RGB_LIGHT, mode)
-        return False
-
-    def reset_filter_alert(self) -> bool:
-        """Reset filter cleaning alert."""
-        return self.set_dp(DP_FILTER_ALERT, False)
+        """Get current RGB mode."""
+        return self.get_dp_value(101, 0)

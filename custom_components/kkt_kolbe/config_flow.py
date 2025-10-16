@@ -1,4 +1,5 @@
 """Config flow for KKT Kolbe Dunstabzugshaube integration."""
+import asyncio
 import logging
 from typing import Any
 import voluptuous as vol
@@ -102,7 +103,12 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
                 ping_cmd.append('-n')  # Don't resolve IP addresses
             ping_cmd.append(host)
 
-            ping_result = subprocess.run(ping_cmd, capture_output=True, timeout=5)
+            # Run ping in executor to avoid blocking the event loop
+            loop = asyncio.get_event_loop()
+            ping_result = await loop.run_in_executor(
+                None,
+                lambda: subprocess.run(ping_cmd, capture_output=True, timeout=5)
+            )
             if ping_result.returncode != 0:
                 raise NetworkError(f"Host {host} is not reachable")
 
