@@ -4,9 +4,9 @@
 
 Falls Sie lieber die etablierte **Local Tuya Integration** verwenden möchten statt unserer experimentellen KI-Integration, finden Sie hier die komplette Anleitung für beide KKT Kolbe Modelle.
 
-## ⚖️ Local Tuya vs. KKT Kolbe Integration (v0.2.0)
+## ⚖️ Local Tuya vs. KKT Kolbe Integration (v1.2.0)
 
-| Aspekt | Local Tuya | KKT Kolbe Integration v0.2.0 |
+| Aspekt | Local Tuya | KKT Kolbe Integration v1.2.0 |
 |--------|------------|------------------------------|
 | **Stabilität** | ✅ Erprobt, tausende Nutzer | ❌ KI-generiert, ungetestet |
 | **Sicherheit** | ✅ Community-validiert | ⚠️ Potenzielle KI-Fehler |
@@ -16,12 +16,14 @@ Falls Sie lieber die etablierte **Local Tuya Integration** verwenden möchten st
 | **Konfiguration** | ⚠️ Alle Werte manuell | ✅ Nur Local Key bei Discovery |
 | **Updates** | ✅ Regelmäßig | ❓ Experimentell |
 
-### 🆕 Was ist neu in v0.2.0?
+### 🚀 Was ist neu in v1.2.0?
 
-**KKT Kolbe Integration** hat mit **mDNS Discovery** deutlich aufgeholt:
-- **🔍 Automatic Discovery**: Findet Geräte automatisch im Netzwerk
-- **⚡ Simplified Setup**: Nur noch Local Key eingeben
-- **🎯 Smart Detection**: Erkennt Modelltypen automatisch
+**KKT Kolbe Integration** hat mit **Intelligent Device Recognition** nochmals deutlich aufgeholt:
+- **🎯 Intelligent Auto-Detection**: Automatische Geräteerkennung anhand Device ID
+- **🎭 User-Friendly Setup**: Klare Geräteauswahl mit Dropdown-Menü
+- **🗄️ Device Database**: Zentrale Datenbank für zuverlässige Erkennung
+- **🔄 Universal Compatibility**: Funktioniert mit allen Setup-Methoden
+- **⚡ Zero Guesswork**: Keine manuelle Gerätekonfiguration mehr nötig
 
 ## 📋 Voraussetzungen
 
@@ -336,7 +338,7 @@ data:
 - ✅ **Erfahrung** mit DP-Mapping vorhanden
 - ✅ **Community-Support** bevorzugt
 
-### 🔵 KKT Kolbe Integration v0.2.0 wählen wenn:
+### 🔵 KKT Kolbe Integration v1.2.0 wählen wenn:
 - ✨ **Automatic Discovery** gewünscht (NEUES KILLER-FEATURE!)
 - ✅ **Alle Geräte-Features** nutzen möchten
 - ✅ **Einfaches Setup** bevorzugen (nur Local Key)
@@ -344,7 +346,7 @@ data:
 - ✅ **Zur Entwicklung** beitragen möchten
 - ⚡ **Moderne UX** mit automatischer Erkennung
 
-### 🎆 Empfehlung für v0.2.0:
+### 🎆 Empfehlung für v1.2.0:
 **Für Test-Umgebungen**: KKT Integration (wegen mDNS Discovery)
 **Für Production**: Local Tuya (wegen Stabilität)
 

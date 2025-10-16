@@ -1,0 +1,188 @@
+# Changelog
+
+All notable changes to the KKT Kolbe Home Assistant Integration will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.2.0] - 2024-10-16
+
+### 🎯 MAJOR FEATURE: Intelligent Device Recognition
+
+#### Added
+- **Automatic Device Type Recognition by Device ID**: The integration now automatically identifies whether a device is a HERMES & STYLE hood or IND7705HC cooktop based solely on the Device ID input
+- **Centralized Device Database**: New device registry system that maintains known device patterns and specifications for accurate identification
+- **Enhanced Manual Setup UI**: User-friendly dropdown selection with clear device type descriptions ("Range Hood (HERMES & STYLE)" and "Induction Cooktop (IND7705HC)")
+- **Universal Setup Compatibility**: Intelligent recognition works across all configuration methods (auto-discovery, manual configuration, HACS installation)
+
+#### Improved
+- **Streamlined Setup Process**: Reduced manual configuration steps by eliminating device type guesswork
+- **Smart Device Validation**: Enhanced Device ID validation that ensures compatibility before setup attempts
+- **Professional User Experience**: Enterprise-level device management with consistent recognition patterns
+- **Future-Ready Architecture**: Easily expandable system for adding support for new KKT Kolbe models
+
+#### Technical Enhancements
+- **Enhanced Config Flow**: Improved configuration flow with intelligent device type detection
+- **Robust Device Matching**: Pattern-based device identification system for reliable recognition
+- **Improved Error Handling**: Better user feedback when device types cannot be determined automatically
+- **Code Architecture**: Modular device database design for maintainable and extensible device support
+
+### Migration Notes
+- **Existing Installations**: No migration required - existing configurations continue to work normally
+- **New Installations**: Users benefit from automatic device recognition without any additional setup
+- **Device ID Format**: Continue using the same 20-22 character Tuya Device IDs as before
+
+### Developer Notes
+- **Device Database**: New `device_database.py` module for centralized device management
+- **Enhanced Config Flow**: Updated configuration flow with intelligent device detection logic
+- **Future Expansion**: Framework ready for easy addition of new KKT Kolbe device models
+
+---
+
+## [1.1.11] - 2024-10-16
+
+### Fixed
+- Minor bug fixes and stability improvements
+- Enhanced error messages for better troubleshooting
+
+---
+
+## [1.0.0] - 2024-10-15
+
+### 🚀 Production Ready Release
+
+#### Fixed (Critical Issues)
+- **CRITICAL FIX**: Corrected Tuya port configuration (6667 instead of 6668)
+- **CRITICAL FIX**: Enhanced Device ID validation (exactly 20 characters required)
+- **CRITICAL FIX**: Improved connection error handling with detailed feedback
+- **CRITICAL FIX**: Fixed mDNS Device ID extraction from TXT records instead of service name
+- **CRITICAL FIX**: Resolved IP address hostname resolution issues
+
+#### Improved
+- **Enhanced UDP Discovery**: Better compatibility with Local Tuya coexistence
+- **Threading/Async**: Eliminated all threading and async operation issues
+- **Stability**: Production-ready integration with robust error handling
+
+#### Result
+- **Stable Production Integration**: Ready for daily use with comprehensive error handling
+
+---
+
+## [0.3.8] - 2024-10-14
+
+### Fixed
+- All Home Assistant compliance warnings resolved
+- RuntimeWarning "coroutine never awaited" eliminated
+- Proper Zeroconf shared instance usage
+
+### Improved
+- Full async TinyTuya integration (no blocking operations)
+- Enhanced error messages instead of generic "Unexpected error"
+- All entities now use proper async methods
+
+---
+
+## [0.3.0] - 2024-10-13
+
+### 🏠 MAJOR FEATURE: Home Assistant Auto-Discovery
+
+#### Added
+- **Home Assistant Auto-Discovery**: Automatic discovery on HA startup without official PR
+- **Zeroconf Integration**: Seamless device recognition using Home Assistant's built-in discovery
+- **"Retry automatic discovery"**: Option to re-scan for devices
+- **Complete Translations**: Full German and English UI translations
+- **Enhanced Debug Modes**: Advanced network analysis and troubleshooting tools
+
+#### Technical
+- **Non-intrusive Discovery**: Works without modifying Home Assistant core
+- **Zeroconf Integration**: Leverages HA's existing discovery infrastructure
+
+---
+
+## [0.2.2] - 2024-10-12
+
+### Fixed
+- **MAJOR FIX**: Recognition of KKT devices as generic Tuya devices
+- **Enhanced Detection**: Tuya Device ID pattern detection (`bf` + hex)
+- **Improved Recognition**: Specific KKT Device ID patterns from real-world testing
+
+### Added
+- **Debug Modes**: Advanced debugging and test device simulation
+- **TXT Record Analysis**: Enhanced device recognition through TXT record analysis
+
+---
+
+## [0.2.1] - 2024-10-11
+
+### Fixed
+- **mDNS Discovery Timing**: Immediate start during config flow
+- **Smart Wait Logic**: Maximum 5 seconds with 500ms interval checks
+- **Debug Logging**: Enhanced troubleshooting capabilities
+
+### Improved
+- **Extended mDNS Service Types**: Broader device discovery coverage
+
+---
+
+## [0.2.0] - 2024-10-10
+
+### ✨ MAJOR FEATURE: mDNS Automatic Device Discovery
+
+#### Added
+- **mDNS Automatic Device Discovery**: Zero-configuration device finding
+- **Simplified Setup Process**: Reduced manual configuration steps
+- **Automatic Device Type Detection**: Smart recognition of device capabilities
+- **Multi-Step Config Flow**: Intuitive setup wizard
+- **Bilingual Support**: German and English translations
+
+#### Technical
+- **mDNS/Zeroconf**: Network-based device discovery
+- **Pattern Matching**: Intelligent device identification
+- **Model Detection**: Automatic assignment of known device models
+
+---
+
+## [0.1.0] - 2024-10-09
+
+### 🎉 Initial Release
+
+#### Added
+- **Basic Integration**: Core KKT Kolbe device support
+- **Device Types**: HERMES & STYLE hood and IND7705HC cooktop
+- **Manual Configuration**: IP address and credential-based setup
+- **Core Entities**: Basic fan, light, and sensor support
+
+#### Supported Devices
+- **KKT Kolbe HERMES & STYLE**: Range Hood with fan control, lighting, and timer
+- **KKT IND7705HC**: Induction Cooktop with 5 zones and advanced features
+
+#### Technical Foundation
+- **Tuya Protocol**: TinyTuya-based communication
+- **Home Assistant Integration**: Standard HA integration architecture
+- **Entity Support**: Fan, Light, Switch, Sensor, Select, and Number entities
+
+---
+
+## Security Notes
+
+⚠️ **Important Security Information**:
+- This integration was generated using AI (Claude) and requires careful testing
+- For induction cooktops, manual confirmation at the device is required for safety
+- Always review code before use, especially for cooking appliances
+- Use at your own risk - see [SECURITY.md](SECURITY.md) for full details
+
+## Links
+
+- **Repository**: [GitHub](https://github.com/moag1000/HA-kkt-kolbe-integration)
+- **Issues**: [Bug Reports](https://github.com/moag1000/HA-kkt-kolbe-integration/issues)
+- **Releases**: [All Releases](https://github.com/moag1000/HA-kkt-kolbe-integration/releases)
+- **HACS**: [Custom Repository](https://github.com/moag1000/HA-kkt-kolbe-integration)
+
+[1.2.0]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.2.0
+[1.1.11]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.1.11
+[1.0.0]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.0.0
+[0.3.8]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v0.3.8
+[0.3.0]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v0.3.0
+[0.2.2]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v0.2.2
+[0.2.1]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v0.2.1
+[0.2.0]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v0.2.0
+[0.1.0]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v0.1.0

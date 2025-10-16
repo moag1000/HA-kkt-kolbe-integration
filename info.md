@@ -47,6 +47,13 @@ Die Integration findet KKT Geräte automatisch im Netzwerk!
 
 ### 🎯 Features
 
+#### 🆕 NEU in v1.2.0: Intelligente Geräteerkennung
+- ✨ **Automatische Geräteerkennung anhand Device ID** - Keine manuelle Typauswahl mehr nötig
+- 🎭 **Benutzerfreundliches Setup** - Klare Geräteauswahl mit Dropdown-Menü
+- 🗄️ **Zentrale Gerätedatenbank** - Zuverlässige Erkennung aller unterstützten Modelle
+- 🔄 **Universelle Kompatibilität** - Funktioniert mit allen Setup-Methoden
+
+#### 🏠 Bewährte Features
 - ✅ **Automatische Geräteerkennung** (mDNS + UDP)
 - ✅ **Vollständige Home Assistant Integration**
 - ✅ **Deutsche & Englische Übersetzung**
@@ -65,7 +72,7 @@ Diese Integration wurde von KI (Claude) erstellt. Bei Kochfeldern ist besondere 
 
 ---
 
-**Version**: 1.1.1 | **Lizenz**: MIT | **Autor**: [@moag1000](https://github.com/moag1000)
+**Version**: 1.2.0 | **Lizenz**: MIT | **Autor**: [@moag1000](https://github.com/moag1000)
 
 [commits-shield]: https://img.shields.io/github/commit-activity/y/moag1000/HA-kkt-kolbe-integration.svg?style=for-the-badge
 [commits]: https://github.com/moag1000/HA-kkt-kolbe-integration/commits/main
@@ -73,5 +80,5 @@ Diese Integration wurde von KI (Claude) erstellt. Bei Kochfeldern ist besondere 
 [hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
 [license-shield]: https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge
 [license-url]: https://opensource.org/licenses/MIT
-[releases-shield]: https://img.shields.io/badge/version-v1.1.11-blue.svg?style=for-the-badge
+[releases-shield]: https://img.shields.io/badge/version-v1.2.0-blue.svg?style=for-the-badge
 [releases]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases
