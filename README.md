@@ -144,7 +144,7 @@ The integration supports configuration via UI. You'll need:
 ✅ **HACS Ready**: Installation über HACS Custom Repositories möglich
 
 - Repository: `https://github.com/moag1000/HA-kkt-kolbe-integration`
-- **Current Version: `v0.2.1`** 🆕
+- **Current Version: `v0.2.2`** 🆕
 - **New: mDNS Automatic Device Discovery** 🔍
 - Updates: Über HACS automatisch verfügbar
 
@@ -166,7 +166,14 @@ The integration supports configuration via UI. You'll need:
 - ❌ Mögliche Fehler bei der Gerätesteuerung
 - ❌ Sicherheitsrisiken bei Kochfeld-Steuerung
 
-### 🆕 Changelog v0.2.1
+### 🆕 Changelog v0.2.2
+- 🎯 **MAJOR FIX**: Erkennt KKT Geräte als generische Tuya Devices
+- ✨ **NEW**: Tuya Device ID Pattern Detection (`bf` + hex)
+- 🔍 **NEW**: Spezifische KKT Device ID Patterns aus echten Tests
+- 🛠️ **NEW**: Debug-Modi und Test Device Simulation
+- 📊 **Improved**: TXT Record Analyse für bessere Geräteerkennung
+
+### Changelog v0.2.1
 - 🔧 **Fixed**: mDNS Discovery Timing - startet sofort beim Config Flow
 - 🔧 **Fixed**: Smarte Wartelogik (max 5s, prüft alle 500ms)
 - ✨ **Improved**: Erweiterte mDNS Service Types
