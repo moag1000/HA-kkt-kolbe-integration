@@ -29,11 +29,11 @@ class KKTKolbeTuyaDevice:
         try:
             loop = asyncio.get_event_loop()
 
-            # Use the ORIGINAL working logic from v1.0.2
+            # LocalTuya-inspired authentication with enhanced protocol detection
             if self.version == "auto":
                 _LOGGER.info(f"Auto-detecting Tuya protocol version for {self.ip_address}")
-                # Try version 3.3 first (most common for KKT), then 3.4, then 3.1
-                for test_version in ["3.3", "3.4", "3.1"]:
+                # LocalTuya order: 3.3 default first, then 3.4, 3.1, 3.2 (proven compatibility)
+                for test_version in [3.3, 3.4, 3.1, 3.2]:
                     try:
                         test_device = await loop.run_in_executor(
                             None,
@@ -41,43 +41,56 @@ class KKTKolbeTuyaDevice:
                                 dev_id=self.device_id,
                                 address=self.ip_address,
                                 local_key=self.local_key,
-                                version=v
+                                version=float(v)  # Use float like LocalTuya
                             )
                         )
 
-                        # SIMPLE test like in v1.0.2 - just check for dps
+                        # Configure device with LocalTuya-style settings
+                        test_device.set_socketPersistent(True)
+                        test_device.set_socketNODELAY(True)
+                        test_device.set_socketTimeout(5)
+                        test_device.set_socketRetryLimit(3)
+
+                        # Enhanced validation - check for valid DPS data
                         test_status = await loop.run_in_executor(
                             None,
                             test_device.status
                         )
 
-                        # Original working condition from v1.0.2 + minimal validation
-                        if test_status and isinstance(test_status, dict) and "dps" in test_status:
-                            self.version = test_version
+                        # LocalTuya-style validation: Check for datapoints like LocalTuya does
+                        if (test_status and isinstance(test_status, dict) and
+                            "dps" in test_status and test_status["dps"] and
+                            len(test_status["dps"]) > 0):
+                            self.version = str(test_version)
                             _LOGGER.info(f"Detected Tuya protocol version: {test_version}")
                             self._device = test_device
-                            self._device.set_socketPersistent(True)
                             self._connected = True
                             return
 
-                    except Exception:
+                    except Exception as e:
+                        _LOGGER.debug(f"Version {test_version} failed: {e}")
                         continue
 
                 # If we reach here, auto-detection failed
-                _LOGGER.error(f"Auto-detection failed for all versions (3.3, 3.4, 3.1)")
+                _LOGGER.error(f"Auto-detection failed for all versions (3.3, 3.4, 3.1, 3.2)")
                 raise Exception("No compatible version found - device not responding to any Tuya protocol")
             else:
-                # Use specified version
+                # Use specified version with LocalTuya-style configuration
+                version_float = float(self.version) if self.version != "auto" else 3.3
                 self._device = await loop.run_in_executor(
                     None,
                     lambda: tinytuya.Device(
                         dev_id=self.device_id,
                         address=self.ip_address,
                         local_key=self.local_key,
-                        version=self.version
+                        version=version_float
                     )
                 )
+                # Apply LocalTuya-style socket configuration
                 self._device.set_socketPersistent(True)
+                self._device.set_socketNODELAY(True)
+                self._device.set_socketTimeout(5)
+                self._device.set_socketRetryLimit(3)
                 self._connected = True
                 _LOGGER.info(f"Connected to KKT Kolbe device at {self.ip_address} (version {self.version})")
 
@@ -124,7 +137,8 @@ class KKTKolbeTuyaDevice:
                 return status
         except Exception as e:
             _LOGGER.error(f"Failed to get device status: {e}")
-            self._connected = False  # Mark as disconnected on error
+            self._connected = False  # Mark as disconnected on error - LocalTuya pattern
+            self._device = None  # Clear device reference like LocalTuya
 
         return {}
 
@@ -145,7 +159,8 @@ class KKTKolbeTuyaDevice:
                 self._status = status
         except Exception as e:
             _LOGGER.error(f"Failed to update device status: {e}")
-            self._connected = False  # Mark as disconnected on error
+            self._connected = False  # Mark as disconnected on error - LocalTuya pattern
+            self._device = None  # Clear device reference like LocalTuya
 
     async def async_set_dp(self, dp: int, value: Any) -> bool:
         """Set data point value asynchronously."""
@@ -165,6 +180,8 @@ class KKTKolbeTuyaDevice:
             return True
         except Exception as e:
             _LOGGER.error(f"Failed to set DP {dp} to {value}: {e}")
+            self._connected = False  # Mark as disconnected on error - LocalTuya pattern
+            self._device = None  # Clear device reference like LocalTuya
             return False
 
     def turn_on(self):
