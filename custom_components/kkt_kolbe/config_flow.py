@@ -170,28 +170,25 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle the initial step."""
-        # Start discovery first if not already running
-        from .discovery import async_start_discovery
+        # Start simple LocalTuya-style discovery
+        from .discovery import simple_tuya_discover
 
-        _LOGGER.info("Starting KKT Kolbe device discovery...")
-        await async_start_discovery(self.hass)
+        _LOGGER.warning("🔍 Starting LocalTuya-style device discovery...")
+        discovered_devices = await simple_tuya_discover(timeout=6)
 
-        # Wait for discovery to find devices (with timeout)
-        import asyncio
-        max_wait = 5  # Maximum 5 seconds
-        wait_interval = 0.5  # Check every 500ms
+        # Convert discovered devices to our format
+        self._discovered_devices = {}
+        for device_id, device_info in discovered_devices.items():
+            self._discovered_devices[device_id] = {
+                "device_id": device_id,
+                "host": device_info.get("ip", ""),
+                "name": f"KKT Device {device_id[:8]}...",
+                "discovered_via": "UDP",
+                "product_name": "KKT Kolbe Device",
+                "device_type": "auto"
+            }
 
-        _LOGGER.info(f"Waiting up to {max_wait}s for device discovery...")
-
-        for i in range(int(max_wait / wait_interval)):
-            from .discovery import get_discovered_devices
-            self._discovered_devices = get_discovered_devices()
-            _LOGGER.debug(f"Discovery check {i+1}: Found {len(self._discovered_devices)} devices")
-            if self._discovered_devices:
-                break
-            await asyncio.sleep(wait_interval)
-
-        _LOGGER.info(f"Discovery finished: Found {len(self._discovered_devices)} KKT Kolbe devices")
+        _LOGGER.warning(f"🎯 Discovery finished: Found {len(self._discovered_devices)} KKT Kolbe devices")
 
         if self._discovered_devices:
             return await self.async_step_discovery()
