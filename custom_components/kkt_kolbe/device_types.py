@@ -166,10 +166,10 @@ KNOWN_DEVICES = {
                 {"dp": 164, "name": "Zone 3 Keep Warm", "device_class": "running", "zone": 3},
                 {"dp": 164, "name": "Zone 4 Keep Warm", "device_class": "running", "zone": 4},
                 {"dp": 164, "name": "Zone 5 Keep Warm", "device_class": "running", "zone": 5},
-                {"dp": 165, "name": "Flex Zone Left", "device_class": "running"},
-                {"dp": 165, "name": "Flex Zone Right", "device_class": "running"},
-                {"dp": 166, "name": "BBQ Mode Left", "device_class": "running"},
-                {"dp": 166, "name": "BBQ Mode Right", "device_class": "running"}
+                {"dp": 165, "name": "Flex Zone Left", "device_class": "running", "zone": 1},
+                {"dp": 165, "name": "Flex Zone Right", "device_class": "running", "zone": 2},
+                {"dp": 166, "name": "BBQ Mode Left", "device_class": "running", "zone": 1},
+                {"dp": 166, "name": "BBQ Mode Right", "device_class": "running", "zone": 2}
             ]
         }
     }

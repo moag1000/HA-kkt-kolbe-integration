@@ -158,8 +158,14 @@ class KKTKolbeTuyaDevice:
                 self._status = status
         except Exception as e:
             _LOGGER.error(f"Failed to update device status: {e}")
-            self._connected = False  # Mark as disconnected on error - LocalTuya pattern
-            self._device = None  # Clear device reference like LocalTuya
+            # Properly close connection on error like LocalTuya
+            if self._device:
+                try:
+                    self._device.close()
+                except:
+                    pass  # Ignore errors during cleanup
+            self._connected = False
+            self._device = None
 
     async def async_set_dp(self, dp: int, value: Any) -> bool:
         """Set data point value asynchronously."""
@@ -179,8 +185,14 @@ class KKTKolbeTuyaDevice:
             return True
         except Exception as e:
             _LOGGER.error(f"Failed to set DP {dp} to {value}: {e}")
-            self._connected = False  # Mark as disconnected on error - LocalTuya pattern
-            self._device = None  # Clear device reference like LocalTuya
+            # Properly close connection on error like LocalTuya
+            if self._device:
+                try:
+                    self._device.close()
+                except:
+                    pass  # Ignore errors during cleanup
+            self._connected = False
+            self._device = None
             return False
 
     def turn_on(self):
