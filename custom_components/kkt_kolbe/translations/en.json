@@ -1,0 +1,24 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "KKT Kolbe Hood Setup",
+        "description": "Configure your KKT Kolbe range hood (Tuya device).",
+        "data": {
+          "host": "IP Address",
+          "device_id": "Tuya Device ID",
+          "access_token": "Tuya Local Key",
+          "name": "Device Name"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to device",
+      "invalid_auth": "Invalid authentication",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "Device is already configured"
+    }
+  }
+}

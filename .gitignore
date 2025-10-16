@@ -1,0 +1,47 @@
+# Security - NEVER commit credentials!
+config.yaml
+secrets.yaml
+*.key
+*.pem
+local_key.txt
+device_info.json
+
+# Personal configuration
+my_config.yaml
+personal_settings.yaml
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Home Assistant
+.storage/
+.cloud/
+.HA_VERSION
+home-assistant.log
+home-assistant_v2.db
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Sensitive data patterns
+*_local_key*
+*_device_id*
+*_credentials*
+*_private*
