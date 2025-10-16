@@ -135,10 +135,13 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
             local_key=local_key,
         )
 
-        status = await device.async_get_status()
+        # Use same connection method as setup for consistency
+        await device.async_connect()
 
+        # Additional validation to ensure device responds correctly
+        status = await device.async_get_status()
         if not status or not isinstance(status, dict) or "dps" not in status:
-            raise ConnectionTestError("Device did not respond with valid status - check device ID and local key")
+            raise ConnectionTestError("Device connected but did not provide valid status - check device ID and local key")
 
     except Exception as e:
         error_msg = str(e).lower()
