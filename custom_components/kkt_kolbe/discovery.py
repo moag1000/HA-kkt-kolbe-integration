@@ -59,63 +59,65 @@ class TuyaUDPDiscovery(asyncio.DatagramProtocol):
     def datagram_received(self, data, addr):
         """Process received UDP datagram from Tuya device."""
         try:
-            _LOGGER.debug(f"UDP broadcast received from {addr}: {data[:50]}...")
+            _LOGGER.warning(f"RAW UDP received from {addr[0]}: length={len(data)}, data={data.hex()[:100]}...")
 
-            # Try to decrypt the message
+            # Try to decrypt the message using LocalTuya approach
             decrypted = self._decrypt_udp_message(data)
             if decrypted:
                 try:
                     device_info = json.loads(decrypted.decode())
                     _LOGGER.warning(f"TUYA DEVICE FOUND via UDP from {addr[0]}: {device_info}")
 
-                    # Skip our own broadcast message
-                    if device_info.get("from") == "app" and len(device_info) == 1:
-                        _LOGGER.debug("Ignoring our own broadcast message")
-                        return
-
                     # Add IP address from UDP source
                     device_info["ip"] = addr[0]
 
                     # Check if this could be a KKT device
                     if self._is_potential_kkt_device(device_info):
-                        _LOGGER.warning(f"KKT DEVICE IDENTIFIED: {device_info}")
+                        _LOGGER.warning(f"🎯 KKT DEVICE IDENTIFIED: {device_info}")
                         self.devices_found_callback(device_info)
                     else:
                         _LOGGER.warning(f"Non-KKT Tuya device (add to whitelist?): {device_info.get('gwId', 'unknown')}")
 
                 except json.JSONDecodeError as e:
-                    _LOGGER.debug(f"Decrypted data is not valid JSON: {e}")
-                    # Log raw decrypted data for debugging
-                    _LOGGER.debug(f"Raw decrypted data: {decrypted}")
+                    _LOGGER.warning(f"Decrypted data is not valid JSON: {e}")
+                    _LOGGER.warning(f"Raw decrypted data: {decrypted.hex() if isinstance(decrypted, bytes) else decrypted}")
             else:
-                # Log undecryptable data for debugging
-                _LOGGER.debug(f"Could not decrypt UDP data from {addr[0]}: {data.hex()}")
+                _LOGGER.warning(f"❌ Could not decrypt UDP data from {addr[0]} (length={len(data)})")
+                _LOGGER.debug(f"Full hex dump: {data.hex()}")
 
         except Exception as e:
-            _LOGGER.debug(f"Failed to process UDP message from {addr}: {e}")
+            _LOGGER.error(f"Failed to process UDP message from {addr}: {e}", exc_info=True)
 
     def _decrypt_udp_message(self, data):
-        """Decrypt Tuya UDP broadcast message."""
+        """Decrypt Tuya UDP broadcast message like LocalTuya."""
         try:
-            # Try to decrypt using Tuya UDP key
-            cipher = AES.new(UDP_KEY, AES.MODE_ECB)
-            decrypted = cipher.decrypt(data)
+            # LocalTuya approach: Strip first 20 and last 8 bytes, then decrypt
+            if len(data) < 28:  # Must be at least 20+8 bytes
+                _LOGGER.debug(f"UDP message too short: {len(data)} bytes")
+                return None
 
-            # Remove padding and extract JSON
+            # Strip first 20 and last 8 bytes (LocalTuya protocol)
+            encrypted_payload = data[20:-8]
+
+            if len(encrypted_payload) % 16 != 0:
+                _LOGGER.debug(f"Invalid encrypted payload length: {len(encrypted_payload)}")
+                return None
+
+            # Decrypt using Tuya UDP key
+            cipher = AES.new(UDP_KEY, AES.MODE_ECB)
+            decrypted = cipher.decrypt(encrypted_payload)
+
+            # Remove PKCS7 padding
             padding_length = decrypted[-1]
-            if padding_length <= 16:
+            if 1 <= padding_length <= 16:
                 decrypted = decrypted[:-padding_length]
                 return decrypted
+            else:
+                _LOGGER.debug(f"Invalid padding length: {padding_length}")
+                return None
 
         except Exception as e:
             _LOGGER.debug(f"Failed to decrypt UDP message: {e}")
-
-        # Also try unencrypted data
-        try:
-            json.loads(data.decode())
-            return data
-        except:
-            pass
 
         return None
 
@@ -194,35 +196,10 @@ class KKTKolbeDiscovery(ServiceListener):
             _LOGGER.error(f"Failed to start discovery: {e}", exc_info=True)
 
     async def _send_udp_broadcast(self) -> None:
-        """Send UDP broadcast to trigger device responses."""
-        try:
-            # Create broadcast message (empty encrypted payload triggers response)
-            import json
-            from Crypto.Cipher import AES
-
-            # Create the discovery request
-            broadcast_data = json.dumps({"from": "app"}).encode()
-
-            # Pad data to AES block size
-            padding_length = 16 - (len(broadcast_data) % 16)
-            broadcast_data += bytes([padding_length] * padding_length)
-
-            # Encrypt with UDP key
-            cipher = AES.new(UDP_KEY, AES.MODE_ECB)
-            encrypted = cipher.encrypt(broadcast_data)
-
-            # Send broadcast on both ports
-            for transport, protocol in self._udp_listeners:
-                try:
-                    # Send to broadcast address
-                    transport.sendto(encrypted, ('255.255.255.255', 6667))
-                    transport.sendto(encrypted, ('255.255.255.255', 6666))
-                    _LOGGER.debug("Sent UDP broadcast to trigger device discovery")
-                except Exception as e:
-                    _LOGGER.warning(f"Failed to send UDP broadcast: {e}")
-
-        except Exception as e:
-            _LOGGER.error(f"Failed to prepare UDP broadcast: {e}")
+        """LocalTuya approach: Don't send broadcasts, just listen."""
+        # LocalTuya does NOT send UDP broadcasts - devices broadcast automatically
+        # We only listen for incoming device broadcasts
+        _LOGGER.debug("UDP discovery: Passive listening mode (LocalTuya approach) - no broadcasts sent")
 
     async def _start_udp_discovery(self) -> None:
         """Start UDP discovery on Tuya broadcast ports."""
@@ -245,10 +222,9 @@ class KKTKolbeDiscovery(ServiceListener):
 
             if self._udp_listeners:
                 _LOGGER.info(f"Started {len(self._udp_listeners)} UDP listeners on ports {UDP_PORTS}")
-                # Send UDP broadcast multiple times to trigger device responses (like Local Tuya does)
-                for i in range(3):  # Send 3 times
-                    await self._send_udp_broadcast()
-                    await asyncio.sleep(0.5)  # Wait 500ms between broadcasts
+                # LocalTuya approach: Don't send broadcasts, just listen
+                # Devices automatically broadcast their presence
+                _LOGGER.debug("UDP discovery started - listening for automatic device broadcasts")
             else:
                 _LOGGER.warning(
                     "UDP discovery disabled: Ports 6666/6667 in use. "
