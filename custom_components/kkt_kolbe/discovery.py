@@ -131,6 +131,7 @@ class KKTKolbeDiscovery(ServiceListener):
         self._zeroconf: Optional[AsyncZeroconf] = None
         self._browsers: List[ServiceBrowser] = []
         self._udp_listeners: List = []
+        self._discovery_callback = self._schedule_discovery_trigger
 
     async def async_start(self) -> None:
         """Start mDNS and UDP discovery."""
@@ -199,12 +200,23 @@ class KKTKolbeDiscovery(ServiceListener):
                 self.discovered_devices[device_id] = formatted_device
 
                 # Trigger Home Assistant discovery flow
-                asyncio.create_task(self._async_trigger_discovery(formatted_device))
+                # Use callback to schedule in the main event loop
+                if hasattr(self, '_discovery_callback'):
+                    self._discovery_callback(formatted_device)
+                else:
+                    _LOGGER.warning("No discovery callback available for UDP device")
 
                 _LOGGER.info(f"Added UDP discovered KKT device: {device_id}")
 
         except Exception as e:
             _LOGGER.error(f"Failed to process UDP device: {e}")
+
+    def _schedule_discovery_trigger(self, device_info: Dict) -> None:
+        """Schedule discovery trigger in the main event loop."""
+        try:
+            self.hass.async_create_task(self._async_trigger_discovery(device_info))
+        except Exception as e:
+            _LOGGER.error(f"Failed to schedule discovery trigger: {e}")
 
     async def async_stop(self) -> None:
         """Stop mDNS and UDP discovery."""
@@ -226,7 +238,11 @@ class KKTKolbeDiscovery(ServiceListener):
 
     def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
         """Called when a service is discovered."""
-        asyncio.create_task(self._async_add_service(zc, type_, name))
+        try:
+            # Schedule the async function to run in the Home Assistant event loop
+            self.hass.async_create_task(self._async_add_service(zc, type_, name))
+        except Exception as e:
+            _LOGGER.error(f"Failed to schedule async service addition: {e}")
 
     async def _async_add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
         """Handle discovered service asynchronously."""
@@ -428,7 +444,10 @@ class KKTKolbeDiscovery(ServiceListener):
     def update_service(self, zc: Zeroconf, type_: str, name: str) -> None:
         """Called when a service is updated."""
         # Re-process the service in case of updates
-        self.add_service(zc, type_, name)
+        try:
+            self.hass.async_create_task(self._async_add_service(zc, type_, name))
+        except Exception as e:
+            _LOGGER.error(f"Failed to schedule async service update: {e}")
 
 
 # Global discovery instance
