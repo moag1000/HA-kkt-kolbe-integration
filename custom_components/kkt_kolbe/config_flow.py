@@ -580,13 +580,24 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             vol.Optional(CONF_DEVICE_ID, default=self._discovery_info.get("device_id", "")): str,
         })
 
+        # Debug the discovery info for zeroconf
+        device_name = self._discovery_info.get("name", "Unknown")
+        device_host = self._discovery_info.get("host", "Unknown")
+        device_id = self._discovery_info.get("device_id", "Unknown")
+
+        _LOGGER.warning(f"🔍 Zeroconf credentials form placeholders:")
+        _LOGGER.warning(f"  - device_name: {device_name}")
+        _LOGGER.warning(f"  - device_host: {device_host}")
+        _LOGGER.warning(f"  - device_id: {device_id}")
+        _LOGGER.warning(f"  - full discovery_info: {self._discovery_info}")
+
         return self.async_show_form(
             step_id="zeroconf_credentials",
             data_schema=credentials_schema,
             errors=errors,
             description_placeholders={
-                "device_name": self._discovery_info["name"],
-                "device_host": self._discovery_info["host"],
-                "device_id": self._discovery_info.get("device_id", "Unknown")
+                "device_name": device_name,
+                "device_host": device_host,
+                "device_id": device_id,
             }
         )
