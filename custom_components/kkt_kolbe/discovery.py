@@ -5,8 +5,7 @@ import logging
 import socket
 from hashlib import md5
 from typing import Dict, List, Optional
-from zeroconf import ServiceBrowser, ServiceListener, Zeroconf
-from zeroconf.asyncio import AsyncZeroconf
+from zeroconf import ServiceBrowser, ServiceListener
 from Crypto.Cipher import AES
 
 from homeassistant.core import HomeAssistant, callback
@@ -128,7 +127,7 @@ class KKTKolbeDiscovery(ServiceListener):
         """Initialize the discovery service."""
         self.hass = hass
         self.discovered_devices: Dict[str, Dict] = {}
-        self._zeroconf: Optional[AsyncZeroconf] = None
+        self._zeroconf = None
         self._browsers: List[ServiceBrowser] = []
         self._udp_listeners: List = []
         self._discovery_callback = self._schedule_discovery_trigger
@@ -236,7 +235,7 @@ class KKTKolbeDiscovery(ServiceListener):
 
         _LOGGER.info("Stopped KKT Kolbe discovery (mDNS and UDP)")
 
-    def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
+    def add_service(self, zc, type_: str, name: str) -> None:
         """Called when a service is discovered."""
         try:
             # Schedule the async function to run in the Home Assistant event loop
@@ -244,7 +243,7 @@ class KKTKolbeDiscovery(ServiceListener):
         except Exception as e:
             _LOGGER.error(f"Failed to schedule async service addition: {e}")
 
-    async def _async_add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
+    async def _async_add_service(self, zc, type_: str, name: str) -> None:
         """Handle discovered service asynchronously."""
         try:
             info = zc.get_service_info(type_, name)
@@ -436,12 +435,12 @@ class KKTKolbeDiscovery(ServiceListener):
         except Exception as e:
             _LOGGER.error(f"Failed to trigger discovery: {e}", exc_info=True)
 
-    def remove_service(self, zc: Zeroconf, type_: str, name: str) -> None:
+    def remove_service(self, zc, type_: str, name: str) -> None:
         """Called when a service is removed."""
         # Could implement device removal logic here
         pass
 
-    def update_service(self, zc: Zeroconf, type_: str, name: str) -> None:
+    def update_service(self, zc, type_: str, name: str) -> None:
         """Called when a service is updated."""
         # Re-process the service in case of updates
         try:
@@ -501,6 +500,8 @@ def add_test_device() -> None:
 
 async def debug_scan_network() -> Dict[str, List[str]]:
     """Scan network for mDNS services and test UDP discovery (debugging only)."""
+    global _discovery_instance
+
     try:
         results = {
             "mDNS_services": {},
@@ -511,7 +512,6 @@ async def debug_scan_network() -> Dict[str, List[str]]:
         # mDNS Scan
         try:
             # Use the existing discovery instance's zeroconf if available
-            global _discovery_instance
             if _discovery_instance and _discovery_instance._zeroconf:
                 zeroconf = _discovery_instance._zeroconf.zeroconf
 
@@ -577,7 +577,6 @@ async def debug_scan_network() -> Dict[str, List[str]]:
             results["UDP_discovery"]["error"] = f"UDP test failed: {e}"
 
         # Discovery status
-        global _discovery_instance
         if _discovery_instance:
             results["discovery_status"]["active"] = True
             results["discovery_status"]["mDNS_browsers"] = len(_discovery_instance._browsers)
