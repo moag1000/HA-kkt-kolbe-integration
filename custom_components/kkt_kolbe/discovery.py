@@ -263,6 +263,7 @@ class KKTKolbeDiscovery(ServiceListener):
             if device_id:
                 formatted_device = {
                     "device_id": device_id,
+                    "gwId": device_id,  # Keep gwId for zeroconf discovery
                     "host": device_info.get("ip"),
                     "name": f"KKT Device {device_id[:8]}...",
                     "discovered_via": "UDP",
@@ -511,13 +512,19 @@ class KKTKolbeDiscovery(ServiceListener):
     async def _async_trigger_discovery(self, device_info: Dict) -> None:
         """Trigger Home Assistant discovery flow."""
         try:
+            # Extract device_id from UDP discovery data (gwId) or use existing device_id
+            device_id = device_info.get("device_id") or device_info.get("gwId")
+
             discovery_info = {
                 "host": device_info["host"],
-                "device_id": device_info.get("device_id"),
+                "device_id": device_id,
                 "model": device_info.get("model"),
                 "name": device_info.get("product_name", device_info["name"]),
-                "discovered_via": "mDNS",
+                "discovered_via": device_info.get("discovered_via", "mDNS"),
             }
+
+            _LOGGER.warning(f"🔗 Creating discovery_info with device_id: {device_id}")
+            _LOGGER.warning(f"🔗 Full discovery_info: {discovery_info}")
 
             # Create a unique identifier for this discovery
             unique_id = device_info.get("device_id", device_info["host"])
