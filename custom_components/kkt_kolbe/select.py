@@ -87,6 +87,9 @@ class KKTKolbeSelect(SelectEntity):
             current_value = self._device.get_dp_value(self._dp, self._options[0])
             return current_value if current_value in self._options else self._options[0]
 
+        elif self._dp == 11:  # Hood fan speed setting
+            return self._device.fan_speed_setting
+
         else:
             current_value = self._device.get_dp_value(self._dp, self._options[0])
             return str(current_value) if current_value in self._options else str(self._options[0])
@@ -114,6 +117,10 @@ class KKTKolbeSelect(SelectEntity):
         elif self._dp in [153, 154, 155]:  # Cooktop save/set/power limit
             if option in self._options:
                 await self._device.async_set_dp(self._dp, option)
+
+        elif self._dp == 11:  # Hood fan speed setting
+            if option in self._options:
+                self._device.set_fan_speed_direct(option)
 
         else:
             # Generic handling

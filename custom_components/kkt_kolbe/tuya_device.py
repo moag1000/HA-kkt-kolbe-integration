@@ -257,6 +257,58 @@ class KKTKolbeTuyaDevice:
         """Get current countdown timer minutes."""
         return self.get_dp_value(13, 0)
 
+    @property
+    def light_brightness(self) -> int:
+        """Get current light brightness (DP 5)."""
+        return self.get_dp_value(5, 255)
+
+    def set_light_brightness(self, brightness: int):
+        """Set light brightness (DP 5)."""
+        self.set_dp(5, max(0, min(255, brightness)))
+
+    @property
+    def rgb_brightness(self) -> int:
+        """Get current RGB brightness (DP 102)."""
+        return self.get_dp_value(102, 255)
+
+    def set_rgb_brightness(self, brightness: int):
+        """Set RGB brightness (DP 102)."""
+        self.set_dp(102, max(0, min(255, brightness)))
+
+    @property
+    def filter_hours(self) -> int:
+        """Get filter usage hours (DP 14)."""
+        return self.get_dp_value(14, 0)
+
+    def reset_filter(self):
+        """Reset filter (DP 15)."""
+        self.set_dp(15, True)
+
+    def set_fan_speed_direct(self, speed: str):
+        """Set fan speed directly (DP 11)."""
+        speed_map = {
+            "off": 0,
+            "low": 1,
+            "middle": 2,
+            "high": 3,
+            "strong": 4
+        }
+        if speed in speed_map:
+            self.set_dp(11, speed_map[speed])
+
+    @property
+    def fan_speed_setting(self) -> str:
+        """Get current fan speed setting (DP 11)."""
+        speed_value = self.get_dp_value(11, 0)
+        speed_map = {
+            0: "off",
+            1: "low",
+            2: "middle",
+            3: "high",
+            4: "strong"
+        }
+        return speed_map.get(speed_value, "off")
+
     # === COOKTOP METHODS FOR IND7705HC ===
 
     def get_zone_power_level(self, zone: int) -> int:

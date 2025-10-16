@@ -61,6 +61,10 @@ class KKTKolbeSensor(SensorEntity):
         if self._attr_device_class != SensorDeviceClass.ENUM:
             self._attr_state_class = SensorStateClass.MEASUREMENT
 
+        # Set options for enum sensors
+        if self._attr_device_class == SensorDeviceClass.ENUM and "options" in config:
+            self._attr_options = config["options"]
+
         self._attr_native_unit_of_measurement = config.get("unit")
 
     def _get_icon(self) -> str:
@@ -74,6 +78,12 @@ class KKTKolbeSensor(SensorEntity):
             return "mdi:timer"
         elif "filter" in name_lower:
             return "mdi:air-filter"
+        elif "speed" in name_lower:
+            return "mdi:fan"
+        elif "brightness" in name_lower:
+            return "mdi:brightness-6"
+        elif "hours" in name_lower:
+            return "mdi:clock-time-eight"
         else:
             return "mdi:information"
 
@@ -86,6 +96,8 @@ class KKTKolbeSensor(SensorEntity):
             return SensorDeviceClass.TEMPERATURE
         elif "error" in name_lower or "problem" in self._config.get("device_class", ""):
             return SensorDeviceClass.ENUM
+        elif "speed" in name_lower or "enum" in self._config.get("device_class", ""):
+            return SensorDeviceClass.ENUM
         elif "timer" in name_lower or "min" in unit:
             return SensorDeviceClass.DURATION
         else:
@@ -94,8 +106,21 @@ class KKTKolbeSensor(SensorEntity):
     @property
     def native_value(self):
         """Return the state of the sensor."""
-        # Basic sensor reading from DP
-        return self._device.get_dp_value(self._dp, 0)
+        if self._dp == 10:  # Fan speed enum
+            speed_value = self._device.get_dp_value(10, 0)
+            speed_options = self._config.get("options", ["off", "low", "middle", "high", "strong"])
+            if isinstance(speed_value, int) and 0 <= speed_value < len(speed_options):
+                return speed_options[speed_value]
+            return "off"
+        elif self._dp == 14:  # Filter hours
+            return self._device.filter_hours
+        elif self._dp == 5:  # Light brightness
+            return int((self._device.light_brightness / 255) * 100)  # Convert to percentage
+        elif self._dp == 102:  # RGB brightness
+            return int((self._device.rgb_brightness / 255) * 100)  # Convert to percentage
+        else:
+            # Basic sensor reading from DP
+            return self._device.get_dp_value(self._dp, 0)
 
     @property
     def device_info(self):
@@ -134,6 +159,10 @@ class KKTKolbeZoneSensor(SensorEntity):
         # Only set state class for measurement sensors, not for enum sensors
         if self._attr_device_class != SensorDeviceClass.ENUM:
             self._attr_state_class = SensorStateClass.MEASUREMENT
+
+        # Set options for enum sensors
+        if self._attr_device_class == SensorDeviceClass.ENUM and "options" in config:
+            self._attr_options = config["options"]
 
         self._attr_native_unit_of_measurement = config.get("unit")
 
