@@ -29,7 +29,7 @@ labels: bug
 **KKT Modell:** [z.B. HERMES & STYLE, IND7705HC]
 **Gerätetyp:** [Dunstabzugshaube, Kochfeld]
 **Home Assistant Version:** [z.B. 2024.1.0]
-**Integration Version:** [z.B. 0.1.0]
+**Integration Version:** [z.B. 1.2.0]
 
 ## Schritte zur Reproduktion
 

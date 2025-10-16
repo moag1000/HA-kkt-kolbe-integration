@@ -35,6 +35,27 @@ Ich habe mich mit der local tuya Implementierung schwer getan, weil diverseste F
 
 ## Features
 
+### 🎯 NEW in v1.2.0: Intelligent Device Recognition
+
+**🚀 Revolutionary Device Setup Experience!**
+
+#### ✨ Smart Auto-Detection by Device ID
+- **Automatic Device Type Recognition**: Simply enter your Device ID - the integration automatically identifies whether it's a HERMES & STYLE hood or IND7705HC cooktop
+- **Zero Configuration Guesswork**: No more manual device type selection
+- **Universal Compatibility**: Works with all setup methods (auto-discovery, manual, HACS)
+
+#### 🎛️ User-Friendly Manual Setup
+- **Intuitive Device Dropdown**: Clear selection between "Range Hood (HERMES & STYLE)" and "Induction Cooktop (IND7705HC)"
+- **Smart Validation**: Device ID validation ensures compatibility before setup
+- **Streamlined Process**: Fewer steps, clearer options
+
+#### 🗄️ Centralized Device Database
+- **Future-Ready Architecture**: Easily expandable for new KKT Kolbe models
+- **Consistent Recognition**: Reliable device identification across all use cases
+- **Professional Integration**: Enterprise-level device management
+
+**Perfect for both automatic discovery users and manual setup users!**
+
 ### Supported Models
 - **KKT Kolbe HERMES & STYLE** - Range Hood (Model ID: e1k6i0zo)
 - **KKT IND7705HC** - Induction Cooktop (Product ID: p8volecsgzdyun29)
@@ -168,7 +189,7 @@ The integration supports configuration via UI. You'll need:
 ✅ **HACS Ready**: Installation über HACS Custom Repositories möglich
 
 - Repository: `https://github.com/moag1000/HA-kkt-kolbe-integration`
-- **Current Version: `v1.0.0`** 🚀 **STABLE & PRODUCTION READY**
+- **Current Version: `v1.2.0`** 🚀 **STABLE & PRODUCTION READY**
 - **✅ All Critical Issues Fixed** - Stable UDP/mDNS Discovery
 - **✅ Full Home Assistant Compliance** - No warnings
 - **✅ Robust Error Handling** - Clear user feedback
@@ -194,7 +215,16 @@ The integration supports configuration via UI. You'll need:
 - ✅ Umfassende Error Handling und Debug-Modi
 - ⚠️ Bei Kochfeldern Sicherheitshinweise beachten ([COOKTOP_SAFETY.md](COOKTOP_SAFETY.md))
 
-### 🚀 Changelog v1.0.0 (LATEST) - Production Ready!
+### 🚀 Changelog v1.2.0 (LATEST) - Intelligent Device Recognition!
+- 🎯 **MAJOR FEATURE**: Intelligent auto-detection of devices by Device ID
+- ✨ **NEW**: Automatic device type recognition (HERMES & STYLE vs IND7705HC)
+- 🎭 **NEW**: User-friendly manual setup with clear device dropdown selection
+- 🗄️ **NEW**: Centralized device database for consistent recognition
+- 🔄 **IMPROVED**: Universal setup compatibility across all configuration methods
+- 🛠️ **ENHANCED**: Streamlined setup process with fewer manual steps
+- 🎯 **RESULT**: Revolutionary device setup experience with zero guesswork
+
+### 🚀 Changelog v1.0.0 - Production Ready Foundation
 - 🔧 **CRITICAL FIX**: Korrekter Tuya Port (6667 statt 6668)
 - 🔧 **CRITICAL FIX**: Device ID Validation (exakt 20 Zeichen)
 - 🔧 **CRITICAL FIX**: Connection Error Handling verbessert
@@ -355,7 +385,7 @@ GitHub: [@moag1000](https://github.com/moag1000)
 [hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
 [license-shield]: https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge
 [license-url]: https://opensource.org/licenses/MIT
-[releases-shield]: https://img.shields.io/badge/version-v1.1.11-blue.svg?style=for-the-badge
+[releases-shield]: https://img.shields.io/badge/version-v1.2.0-blue.svg?style=for-the-badge
 [releases]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases
 [maintenance-shield]: https://img.shields.io/badge/maintainer-%40moag1000-blue.svg?style=for-the-badge
 [user_profile]: https://github.com/moag1000
