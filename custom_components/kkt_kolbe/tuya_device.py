@@ -18,7 +18,7 @@ _LOGGER = logging.getLogger(__name__)
 class KKTKolbeTuyaDevice:
     """Handle communication with KKT Kolbe device via Tuya protocol."""
 
-    def __init__(self, device_id: str, ip_address: str, local_key: str, version: str = "3.3"):
+    def __init__(self, device_id: str, ip_address: str, local_key: str, version: str = "auto"):
         """Initialize the Tuya device connection."""
         self.device_id = device_id
         self.ip_address = ip_address
@@ -31,14 +31,40 @@ class KKTKolbeTuyaDevice:
     def _connect(self):
         """Establish connection to the device."""
         try:
-            self._device = tinytuya.Device(
-                dev_id=self.device_id,
-                address=self.ip_address,
-                local_key=self.local_key,
-                version=self.version
-            )
-            self._device.set_socketPersistent(True)
-            _LOGGER.info(f"Connected to KKT Kolbe device at {self.ip_address}")
+            # Auto-detect version if needed
+            if self.version == "auto":
+                _LOGGER.info(f"Auto-detecting Tuya protocol version for {self.ip_address}")
+                # Try version 3.4 first (newer), then 3.3
+                for test_version in ["3.4", "3.3", "3.1"]:
+                    try:
+                        test_device = tinytuya.Device(
+                            dev_id=self.device_id,
+                            address=self.ip_address,
+                            local_key=self.local_key,
+                            version=test_version
+                        )
+                        test_status = test_device.status()
+                        if test_status and "dps" in test_status:
+                            self.version = test_version
+                            _LOGGER.info(f"Detected Tuya protocol version: {test_version}")
+                            self._device = test_device
+                            break
+                    except Exception as e:
+                        _LOGGER.debug(f"Version {test_version} failed: {e}")
+                        continue
+            else:
+                self._device = tinytuya.Device(
+                    dev_id=self.device_id,
+                    address=self.ip_address,
+                    local_key=self.local_key,
+                    version=self.version
+                )
+
+            if self._device:
+                self._device.set_socketPersistent(True)
+                _LOGGER.info(f"Connected to KKT Kolbe device at {self.ip_address} (version {self.version})")
+            else:
+                _LOGGER.error(f"Failed to connect to device - no compatible version found")
         except Exception as e:
             _LOGGER.error(f"Failed to connect to device: {e}")
             self._device = None
@@ -51,13 +77,13 @@ class KKTKolbeTuyaDevice:
             self._device = await loop.run_in_executor(
                 None,
                 lambda: tinytuya.Device(
-                    dev_id=self._device_id,
-                    address=self._ip_address,
-                    local_key=self._local_key,
-                    version=3.3
+                    dev_id=self.device_id,
+                    address=self.ip_address,
+                    local_key=self.local_key,
+                    version=3.4  # Try 3.4 as default for newer devices
                 )
             )
-            _LOGGER.info(f"Connected to KKT Kolbe device at {self._ip_address}")
+            _LOGGER.info(f"Connected to KKT Kolbe device at {self.ip_address}")
         except Exception as e:
             _LOGGER.error(f"Failed to connect to device: {e}")
             self._device = None

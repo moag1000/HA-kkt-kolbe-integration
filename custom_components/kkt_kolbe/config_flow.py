@@ -105,6 +105,8 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
 
     # Test Tuya device connection
     try:
+        _LOGGER.info(f"Testing connection to device: {host} with ID: {device_id[:10]}...")
+
         device = KKTKolbeTuyaDevice(
             device_id=device_id,
             ip_address=host,
@@ -112,8 +114,10 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
         )
 
         status = await device.async_update_status()
+        _LOGGER.debug(f"Device status response: {status}")
+
         if not status:
-            raise ConnectionTestError("Device did not respond to status request")
+            raise ConnectionTestError("Device did not respond to status request - check device ID and local key")
 
     except Exception as e:
         error_msg = str(e).lower()
