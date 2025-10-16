@@ -55,8 +55,8 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     local_key = data[CONF_ACCESS_TOKEN]
 
     # First validate inputs
-    if not device_id or len(device_id) < 10:
-        raise ValueError("Device ID seems too short or invalid")
+    if not device_id or len(device_id) != 20:
+        raise ValueError("Device ID must be exactly 20 characters (Tuya standard)")
 
     if not local_key or len(local_key) < 10:
         raise AuthenticationError("Local Key seems too short or invalid")
@@ -74,7 +74,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
         # Quick socket test to see if host is reachable
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(3)
-        result = sock.connect_ex((host, 6668))  # Common Tuya port
+        result = sock.connect_ex((host, 6667))  # Standard Tuya device port
         sock.close()
 
         if result != 0:

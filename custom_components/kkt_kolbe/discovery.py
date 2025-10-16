@@ -297,13 +297,28 @@ class KKTKolbeDiscovery(ServiceListener):
 
         _LOGGER.debug(f"Checking device: {info.name} at {info.parsed_addresses()}")
 
-        # First check if this looks like a Tuya device ID pattern
-        name_lower = info.name.lower()
+        # Extract device ID from TXT records first
+        device_id = None
+        if hasattr(info, 'properties') and info.properties:
+            for key, value in info.properties.items():
+                try:
+                    key_str = key.decode('utf-8').lower()
+                    value_str = value.decode('utf-8')
+                    if key_str in ['id', 'devid', 'device_id']:
+                        device_id = value_str
+                        break
+                except UnicodeDecodeError:
+                    continue
 
-        # Tuya device IDs often start with bf followed by hex characters
+        # Check if device ID matches Tuya pattern
+        if device_id and device_id.startswith('bf') and len(device_id) >= 20:
+            _LOGGER.info(f"Found potential Tuya device with ID: {device_id}")
+            return self._check_tuya_device_info(info)
+
+        # Fallback: Check service name for Tuya pattern (less reliable)
+        name_lower = info.name.lower()
         if name_lower.startswith('bf') and len(name_lower) >= 20:
-            _LOGGER.info(f"Found potential Tuya device: {info.name}")
-            # For Tuya devices, check TXT records for model info
+            _LOGGER.info(f"Found potential Tuya device by name: {info.name}")
             return self._check_tuya_device_info(info)
 
         # Check device name for KKT patterns (fallback)
