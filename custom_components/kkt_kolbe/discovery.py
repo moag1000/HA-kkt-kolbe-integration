@@ -65,14 +65,17 @@ class TuyaUDPDiscovery(asyncio.DatagramProtocol):
             decrypted = self._decrypt_udp_message(data)
             if decrypted:
                 device_info = json.loads(decrypted.decode())
-                _LOGGER.info(f"Tuya device discovered via UDP: {device_info}")
+                _LOGGER.warning(f"TUYA DEVICE FOUND via UDP from {addr[0]}: {device_info}")
 
                 # Add IP address from UDP source
                 device_info["ip"] = addr[0]
 
                 # Check if this could be a KKT device
                 if self._is_potential_kkt_device(device_info):
+                    _LOGGER.warning(f"KKT DEVICE IDENTIFIED: {device_info}")
                     self.devices_found_callback(device_info)
+                else:
+                    _LOGGER.warning(f"Non-KKT Tuya device (add to whitelist?): {device_info.get('gwId', 'unknown')}")
 
         except Exception as e:
             _LOGGER.debug(f"Failed to process UDP message from {addr}: {e}")
@@ -217,8 +220,10 @@ class KKTKolbeDiscovery(ServiceListener):
 
             if self._udp_listeners:
                 _LOGGER.info(f"Started {len(self._udp_listeners)} UDP listeners on ports {UDP_PORTS}")
-                # Send UDP broadcast to trigger device responses (like Local Tuya does)
-                await self._send_udp_broadcast()
+                # Send UDP broadcast multiple times to trigger device responses (like Local Tuya does)
+                for i in range(3):  # Send 3 times
+                    await self._send_udp_broadcast()
+                    await asyncio.sleep(0.5)  # Wait 500ms between broadcasts
             else:
                 _LOGGER.warning(
                     "UDP discovery disabled: Ports 6666/6667 in use. "
