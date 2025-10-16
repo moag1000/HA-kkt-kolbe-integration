@@ -482,9 +482,16 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # Extract discovery information
         host = discovery_info.get("host")
         name = discovery_info.get("name", discovery_info.get("hostname", "Unknown"))
-        device_id = discovery_info.get("properties", {}).get("id") or discovery_info.get("properties", {}).get("devid")
+        # Check for device_id in multiple formats (UDP vs mDNS)
+        device_id = (
+            discovery_info.get("device_id") or  # UDP discovery format
+            discovery_info.get("properties", {}).get("id") or  # mDNS format
+            discovery_info.get("properties", {}).get("devid")  # Alternative mDNS format
+        )
 
-        # If no device_id from mDNS, check global discovery instance for this IP
+        _LOGGER.warning(f"🔍 Zeroconf step received: host={host}, name={name}, device_id={device_id}, discovered_via={discovery_info.get('discovered_via')}")
+
+        # If still no device_id, try global discovery as fallback (for pure mDNS)
         if not device_id:
             from .discovery import _discovery_instance
             if _discovery_instance and _discovery_instance.discovered_devices:
@@ -496,7 +503,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         udp_name = device_data.get("product_name")
                         if udp_name and udp_name != "KKT Kolbe Device":
                             name = udp_name
-                        _LOGGER.warning(f"🔍 Found device_id {device_id} and name {name} for IP {host} via global discovery in zeroconf step")
+                        _LOGGER.warning(f"🔍 Fallback: Found device_id {device_id} and name {name} for IP {host} via global discovery")
                         break
 
         if not host:
