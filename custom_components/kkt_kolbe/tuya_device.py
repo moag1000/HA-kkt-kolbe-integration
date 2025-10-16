@@ -1,4 +1,5 @@
 """Tuya device communication for KKT Kolbe integration."""
+import asyncio
 import logging
 import tinytuya
 from typing import Any, Dict, Optional
@@ -42,8 +43,47 @@ class KKTKolbeTuyaDevice:
             _LOGGER.error(f"Failed to connect to device: {e}")
             self._device = None
 
+    async def async_connect(self) -> None:
+        """Establish async connection to the device."""
+        try:
+            # Run the blocking connection in executor
+            loop = asyncio.get_event_loop()
+            self._device = await loop.run_in_executor(
+                None,
+                lambda: tinytuya.Device(
+                    dev_id=self._device_id,
+                    address=self._ip_address,
+                    local_key=self._local_key,
+                    version=3.3
+                )
+            )
+            _LOGGER.info(f"Connected to KKT Kolbe device at {self._ip_address}")
+        except Exception as e:
+            _LOGGER.error(f"Failed to connect to device: {e}")
+            self._device = None
+
+    async def async_update_status(self) -> Dict[str, Any]:
+        """Get current status from device (async version)."""
+        if not self._device:
+            await self.async_connect()
+
+        try:
+            # Run the blocking tinytuya call in executor to avoid blocking the event loop
+            loop = asyncio.get_event_loop()
+            status = await loop.run_in_executor(None, self._device.status)
+
+            if "dps" in status:
+                self._status = status["dps"]
+                _LOGGER.debug(f"Device status updated: {self._status}")
+            return self._status
+        except Exception as e:
+            _LOGGER.error(f"Failed to get device status: {e}")
+            return {}
+
     def update_status(self) -> Dict[str, Any]:
-        """Get current status from device."""
+        """Get current status from device (legacy sync version)."""
+        _LOGGER.warning("Using deprecated sync update_status, use async_update_status instead")
+
         if not self._device:
             self._connect()
 
@@ -56,6 +96,22 @@ class KKTKolbeTuyaDevice:
         except Exception as e:
             _LOGGER.error(f"Failed to get device status: {e}")
             return {}
+
+    async def async_set_dp(self, dp_code: str, value: Any) -> bool:
+        """Set a data point value (async version)."""
+        if not self._device:
+            await self.async_connect()
+
+        try:
+            # Run the blocking tinytuya call in executor
+            loop = asyncio.get_event_loop()
+            result = await loop.run_in_executor(None, self._device.set_value, dp_code, value)
+
+            _LOGGER.debug(f"Set DP {dp_code} to {value}: {result}")
+            return result and result.get("dps") is not None
+        except Exception as e:
+            _LOGGER.error(f"Failed to set DP {dp_code} to {value}: {e}")
+            return False
 
     def set_dp(self, dp_code: str, value: Any) -> bool:
         """Set a data point value."""

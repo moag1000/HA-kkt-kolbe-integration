@@ -95,7 +95,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
             local_key=local_key,
         )
 
-        status = device.update_status()
+        status = await device.async_update_status()
         if not status:
             raise ConnectionTestError("Device did not respond to status request")
 
