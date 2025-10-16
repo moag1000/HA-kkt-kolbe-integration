@@ -19,6 +19,21 @@ from . import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
+def get_manual_setup_schema():
+    """Get manual setup schema with dynamic device choices."""
+    from .device_types import get_known_device_choices
+
+    device_choices = get_known_device_choices()
+
+    return vol.Schema({
+        vol.Required(CONF_HOST): str,
+        vol.Required(CONF_DEVICE_ID): str,
+        vol.Required(CONF_ACCESS_TOKEN): str,
+        vol.Required("device_type", default="unknown"): vol.In(device_choices),
+        vol.Optional(CONF_NAME, default="KKT Kolbe Device"): str,
+    })
+
+# Legacy schema for compatibility
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_HOST): str,
@@ -338,34 +353,26 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             try:
-                # For manual setup, use intelligent auto-detection
-                from .device_types import auto_detect_device_config
+                # For manual setup, use user-friendly device selection
+                from .device_types import get_product_name_from_device_choice, auto_detect_device_config
 
                 manual_config = user_input.copy()
                 device_id = user_input.get(CONF_DEVICE_ID, "")
-                device_type = user_input.get(CONF_TYPE, "auto")
-                provided_product_name = user_input.get("product_name", "").strip()
+                selected_device_type = user_input.get("device_type", "unknown")
 
-                # Auto-detect device configuration
-                detected_config = auto_detect_device_config(
-                    device_id=device_id,
-                    provided_product_name=provided_product_name
-                )
+                # First try auto-detection by device ID
+                detected_config = auto_detect_device_config(device_id=device_id)
 
                 if detected_config:
-                    # Known device detected - use specific configuration
+                    # Device ID recognized - use auto-detected configuration
                     manual_config["product_name"] = detected_config["product_name"]
-                    _LOGGER.info(f"Device auto-detected via {detected_config['detected_method']}: "
-                                f"{detected_config['name']} (product: {detected_config['product_name']})")
+                    _LOGGER.info(f"Device auto-detected from ID: {detected_config['name']} "
+                                f"(product: {detected_config['product_name']})")
                 else:
-                    # Unknown device - fallback to user type selection
-                    if device_type == "hood":
-                        manual_config["product_name"] = "manual_hood"
-                    elif device_type == "cooktop":
-                        manual_config["product_name"] = "manual_cooktop"
-                    else:
-                        manual_config["product_name"] = "unknown"  # auto or unspecified
-                    _LOGGER.info(f"Device not auto-detected, using manual type: {device_type}")
+                    # Use user's device type selection
+                    manual_config["product_name"] = get_product_name_from_device_choice(selected_device_type)
+                    _LOGGER.info(f"Using user-selected device type: {selected_device_type} "
+                                f"→ product_name: {manual_config['product_name']}")
 
                 info = await validate_input(self.hass, manual_config)
                 return self.async_create_entry(title=info["title"], data=manual_config)
@@ -394,11 +401,26 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "unknown"
                 errors["general"] = f"Unexpected error: {str(e)}"
 
-        # Preserve user input on error
-        if user_input is not None:
-            data_schema = self._create_schema_with_defaults(user_input)
-        else:
-            data_schema = STEP_USER_DATA_SCHEMA
+        # Use the new user-friendly device selection schema
+        data_schema = get_manual_setup_schema()
+
+        # Preserve user input on error (simplified)
+        if user_input is not None and errors:
+            try:
+                # Create schema with user's current values as defaults
+                from .device_types import get_known_device_choices
+                device_choices = get_known_device_choices()
+
+                data_schema = vol.Schema({
+                    vol.Required(CONF_HOST, default=user_input.get(CONF_HOST, "")): str,
+                    vol.Required(CONF_DEVICE_ID, default=user_input.get(CONF_DEVICE_ID, "")): str,
+                    vol.Required(CONF_ACCESS_TOKEN, default=user_input.get(CONF_ACCESS_TOKEN, "")): str,
+                    vol.Required("device_type", default=user_input.get("device_type", "unknown")): vol.In(device_choices),
+                    vol.Optional(CONF_NAME, default=user_input.get(CONF_NAME, "KKT Kolbe Device")): str,
+                })
+            except Exception:
+                # Fallback to default schema
+                data_schema = get_manual_setup_schema()
 
         return self.async_show_form(
             step_id="manual", data_schema=data_schema, errors=errors
