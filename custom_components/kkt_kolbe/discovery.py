@@ -60,21 +60,21 @@ class TuyaUDPDiscovery(asyncio.DatagramProtocol):
     def datagram_received(self, data, addr):
         """Process received UDP datagram from Tuya device."""
         try:
-            _LOGGER.warning(f"RAW UDP received from {addr[0]}: length={len(data)}, data={data.hex()[:100]}...")
+            _LOGGER.debug(f"RAW UDP received from {addr[0]}: length={len(data)}, data={data.hex()[:100]}...")
 
             # Try to decrypt the message using LocalTuya approach
             decrypted = self._decrypt_udp_message(data)
             if decrypted:
                 try:
                     device_info = json.loads(decrypted.decode())
-                    _LOGGER.warning(f"TUYA DEVICE FOUND via UDP from {addr[0]}: {device_info}")
+                    _LOGGER.debug(f"TUYA DEVICE FOUND via UDP from {addr[0]}: {device_info}")
 
                     # Add IP address from UDP source
                     device_info["ip"] = addr[0]
 
                     # Check if this could be a KKT device
                     if self._is_potential_kkt_device(device_info):
-                        _LOGGER.warning(f"🎯 KKT DEVICE IDENTIFIED: {device_info}")
+                        _LOGGER.info(f"KKT Device discovered: {device_info.get('gwId', 'unknown')} at {device_info['ip']}")
 
                         # DIRECT FIX: Add device to global discovery instance
                         global _discovery_instance
@@ -99,18 +99,18 @@ class TuyaUDPDiscovery(asyncio.DatagramProtocol):
                                 "device_type": "auto"
                             }
                             _discovery_instance.discovered_devices[device_id] = formatted_device
-                            _LOGGER.warning(f"✅ Added device {device_id} to discovered_devices")
+                            _LOGGER.debug(f"Added device {device_id} to discovered_devices")
 
                         # Also call callback
                         self.devices_found_callback(device_info)
                     else:
-                        _LOGGER.warning(f"Non-KKT Tuya device (add to whitelist?): {device_info.get('gwId', 'unknown')}")
+                        _LOGGER.debug(f"Non-KKT Tuya device: {device_info.get('gwId', 'unknown')}")
 
                 except json.JSONDecodeError as e:
                     _LOGGER.warning(f"Decrypted data is not valid JSON: {e}")
                     _LOGGER.warning(f"Raw decrypted data: {decrypted.hex() if isinstance(decrypted, bytes) else decrypted}")
             else:
-                _LOGGER.warning(f"❌ Could not decrypt UDP data from {addr[0]} (length={len(data)})")
+                _LOGGER.debug(f"Could not decrypt UDP data from {addr[0]} (length={len(data)})")
                 _LOGGER.debug(f"Full hex dump: {data.hex()}")
 
         except Exception as e:
