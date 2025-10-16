@@ -81,13 +81,21 @@ class TuyaUDPDiscovery(asyncio.DatagramProtocol):
                         if _discovery_instance:
                             device_id = device_info.get("gwId", "")
 
+                            # Extract product name from UDP data if available
+                            product_name = (
+                                device_info.get("productName") or
+                                device_info.get("productKey") or
+                                device_info.get("product_name") or
+                                "KKT Kolbe Device"
+                            )
+
                             # LocalTuya approach: Just collect all devices, let config flow filter duplicates
                             formatted_device = {
                                 "device_id": device_id,
                                 "host": device_info.get("ip"),
                                 "name": f"KKT Device {device_id[:8]}...",
                                 "discovered_via": "UDP",
-                                "product_name": "KKT Kolbe Device",
+                                "product_name": product_name,
                                 "device_type": "auto"
                             }
                             _discovery_instance.discovered_devices[device_id] = formatted_device
@@ -261,13 +269,21 @@ class KKTKolbeDiscovery(ServiceListener):
             # Convert UDP device info to our format
             device_id = device_info.get("gwId", "")
             if device_id:
+                # Extract product name from UDP data if available
+                product_name = (
+                    device_info.get("productName") or
+                    device_info.get("productKey") or
+                    device_info.get("product_name") or
+                    "KKT Kolbe Device"
+                )
+
                 formatted_device = {
                     "device_id": device_id,
                     "gwId": device_id,  # Keep gwId for zeroconf discovery
                     "host": device_info.get("ip"),
                     "name": f"KKT Device {device_id[:8]}...",
                     "discovered_via": "UDP",
-                    "product_name": "KKT Kolbe Device",
+                    "product_name": product_name,
                     "device_type": "auto"
                 }
 
