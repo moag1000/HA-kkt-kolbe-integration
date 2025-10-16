@@ -1,4 +1,4 @@
-"""KKT Kolbe Tuya Device Handler."""
+"""KKT Kolbe Tuya Device Handler - Based on working v1.0.2 logic."""
 import asyncio
 import logging
 from typing import Any, Dict
@@ -19,7 +19,7 @@ class KKTKolbeTuyaDevice:
         self._device = None
         self._status = {}
         self._connected = False
-        # Connection will be established async when needed
+        # Don't connect in __init__ - will be done async
 
     async def async_connect(self) -> None:
         """Establish async connection to the device."""
@@ -29,105 +29,65 @@ class KKTKolbeTuyaDevice:
         try:
             loop = asyncio.get_event_loop()
 
-            # Auto-detect version if needed
-            if self.version == "auto" or self.version is None:
+            # Use the ORIGINAL working logic from v1.0.2
+            if self.version == "auto":
                 _LOGGER.info(f"Auto-detecting Tuya protocol version for {self.ip_address}")
-
-                # Try versions in order (3.3 is most common for KKT)
+                # Try version 3.3 first (most common for KKT), then 3.4, then 3.1
                 for test_version in ["3.3", "3.4", "3.1"]:
                     try:
-                        # Create device in executor to avoid blocking
                         test_device = await loop.run_in_executor(
                             None,
-                            self._create_device,
-                            test_version
+                            lambda v=test_version: tinytuya.Device(
+                                dev_id=self.device_id,
+                                address=self.ip_address,
+                                local_key=self.local_key,
+                                version=v
+                            )
                         )
 
-                        # Test connection in executor
+                        # SIMPLE test like in v1.0.2 - just check for dps
                         test_status = await loop.run_in_executor(
                             None,
                             test_device.status
                         )
 
-                        _LOGGER.debug(f"Version {test_version} status response: {test_status}")
+                        # Original working condition from v1.0.2
+                        if test_status and "dps" in test_status:
+                            self.version = test_version
+                            _LOGGER.info(f"Detected Tuya protocol version: {test_version}")
+                            self._device = test_device
+                            self._device.set_socketPersistent(True)
+                            self._connected = True
+                            return
 
-                        # Check for valid response
-                        if test_status and isinstance(test_status, dict):
-                            if "dps" in test_status or "devId" in test_status:
-                                self.version = test_version
-                                self._device = test_device
-                                self._device.set_socketPersistent(True)
-                                self._connected = True
-                                _LOGGER.info(f"✅ Detected Tuya protocol version: {test_version}")
-                                return
-                            elif "Err" in str(test_status):
-                                _LOGGER.debug(f"Version {test_version} returned error: {test_status}")
-                                # Only treat specific auth errors as authentication failures
-                                if "907" in str(test_status) or "json decode error" in str(test_status).lower():
-                                    _LOGGER.warning(f"Possible authentication issue with version {test_version}")
-                                # Continue trying other versions instead of failing immediately
                     except Exception as e:
                         _LOGGER.debug(f"Version {test_version} failed: {e}")
                         continue
-
-                # If auto-detection failed, try 3.3 as fallback
-                if not self._device:
-                    _LOGGER.warning(f"Auto-detection failed, trying version 3.3 as fallback")
-                    try:
-                        self.version = "3.3"
-                        self._device = await loop.run_in_executor(
-                            None,
-                            self._create_device,
-                            "3.3"
-                        )
-
-                        # Test the fallback connection
-                        fallback_status = await loop.run_in_executor(
-                            None,
-                            self._device.status
-                        )
-
-                        if fallback_status and isinstance(fallback_status, dict) and "dps" in fallback_status:
-                            self._device.set_socketPersistent(True)
-                            self._connected = True
-                            _LOGGER.info(f"✅ Fallback connection successful with version 3.3")
-                        else:
-                            _LOGGER.error(f"❌ Fallback connection failed. Status: {fallback_status}")
-                            _LOGGER.error(f"Device may be offline or credentials may be incorrect")
-                            raise Exception(f"Connection failed - device not responding correctly")
-                    except Exception as fallback_error:
-                        _LOGGER.error(f"Fallback connection failed: {fallback_error}")
-                        raise Exception(f"Unable to connect with any protocol version. Please check: 1) Device is powered on and connected to network, 2) IP address is correct, 3) Local key is valid")
             else:
                 # Use specified version
                 self._device = await loop.run_in_executor(
                     None,
-                    self._create_device,
-                    self.version
+                    lambda: tinytuya.Device(
+                        dev_id=self.device_id,
+                        address=self.ip_address,
+                        local_key=self.local_key,
+                        version=self.version
+                    )
                 )
                 self._device.set_socketPersistent(True)
                 self._connected = True
 
-            _LOGGER.info(f"✅ Connected to KKT Kolbe device at {self.ip_address} (version {self.version})")
+            if self._device:
+                _LOGGER.info(f"Connected to KKT Kolbe device at {self.ip_address} (version {self.version})")
+            else:
+                _LOGGER.error(f"Failed to connect to device - no compatible version found")
+                raise Exception("No compatible version found")
 
         except Exception as e:
             self._connected = False
             _LOGGER.error(f"Failed to connect to device: {e}")
-            _LOGGER.error(f"Device ID: {self.device_id}, IP: {self.ip_address}")
             self._device = None
             raise
-
-    def _create_device(self, version):
-        """Create a device instance with the given version."""
-        device = tinytuya.Device(
-            dev_id=self.device_id,
-            address=self.ip_address,
-            local_key=self.local_key,
-            version=version
-        )
-        device.set_socketTimeout(5)
-        device.set_socketRetryLimit(3)
-        return device
 
     async def async_ensure_connected(self):
         """Ensure device is connected (async)."""
