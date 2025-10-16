@@ -185,6 +185,7 @@ kkt_kolbe_integration/
 │       ├── cooktop.py          # Cooktop specific entities
 │       └── translations/       # UI translations
 ├── config_example.yaml         # Example configuration (safe)
+├── LOCAL_TUYA_GUIDE.md         # Alternative: Local Tuya setup
 ├── SECURITY.md                 # Security guidelines
 └── .gitignore                  # Prevents credential commits
 ```
@@ -193,6 +194,20 @@ kkt_kolbe_integration/
 
 - Home Assistant 2024.1.0 or newer
 - Python 3.11+
+
+## 🔄 Alternative: Local Tuya
+
+**Bevorzugen Sie eine stabile, erprobte Lösung?**
+
+Falls Ihnen die experimentelle KI-Integration zu riskant ist, haben wir eine vollständige Anleitung für die Einrichtung in **Local Tuya** erstellt:
+
+👉 **[Local Tuya Setup Guide](LOCAL_TUYA_GUIDE.md)**
+
+**Local Tuya Vorteile:**
+- ✅ Erprobt und stabil (tausende Nutzer)
+- ✅ Community-validiert und sicher
+- ✅ Regelmäßige Updates
+- ⚠️ Begrenzte Funktionen bei komplexen Geräten
 
 ## 🤝 Contributing
 
