@@ -77,13 +77,22 @@ Ich habe mich mit der local tuya Implementierung schwer getan, weil diverseste F
 5. **Home Assistant neu starten**
 6. **Integration hinzufügen:** Settings → Devices & Services → Add Integration → KKT Kolbe
 
-### 🔍 Automatische Geräteerkennung
+### 🔍 Automatische Geräteerkennung (NEU in v0.2.0!)
 
 **✨ mDNS Discovery**: Die Integration erkennt KKT Kolbe Geräte automatisch im Netzwerk!
 
-- **Automatisch**: Gefundene Geräte werden zur Auswahl angeboten
-- **Nur Local Key nötig**: IP und Device ID werden automatisch erkannt
-- **Fallback**: Manuelle Konfiguration weiterhin möglich
+#### 🎆 Vorteile der automatischen Erkennung:
+- **📡 Zero-Configuration**: Keine IP-Suche mehr nötig
+- **🔑 Nur Local Key**: IP-Adresse und Device ID automatisch erkannt
+- **⚡ Schnell**: Ein Klick zur Geräteauswahl
+- **🔄 Fallback**: Manuelle Konfiguration weiterhin verfügbar
+- **🎯 Smart**: Erkennt HERMES & STYLE und IND7705HC automatisch
+
+#### 🛠️ Technische Details:
+- **mDNS/Zeroconf**: Nutzt Home Assistant's eingebaute Discovery
+- **Pattern Matching**: Erkennt KKT Geräte anhand Namen und TXT-Records
+- **Model Detection**: Automatische Zuordnung bekannter Modelle
+- **Network Scan**: Scannt kontinuierlich nach neuen Geräten
 
 ### 📁 Manual Installation
 1. Download neueste [Release](https://github.com/moag1000/HA-kkt-kolbe-integration/releases)
@@ -135,7 +144,8 @@ The integration supports configuration via UI. You'll need:
 ✅ **HACS Ready**: Installation über HACS Custom Repositories möglich
 
 - Repository: `https://github.com/moag1000/HA-kkt-kolbe-integration`
-- Current Version: `v0.1.0`
+- **Current Version: `v0.2.0`** 🆕
+- **New: mDNS Automatic Device Discovery** 🔍
 - Updates: Über HACS automatisch verfügbar
 
 ## Development Status
@@ -156,12 +166,20 @@ The integration supports configuration via UI. You'll need:
 - ❌ Mögliche Fehler bei der Gerätesteuerung
 - ❌ Sicherheitsrisiken bei Kochfeld-Steuerung
 
+### 🆕 Changelog v0.2.0
+- ✨ **NEU**: mDNS Automatic Device Discovery
+- ✨ **NEU**: Vereinfachter Setup-Prozess
+- ✨ **NEU**: Automatische Gerätetyp-Erkennung
+- 🔧 **Verbessert**: Multi-Step Config Flow
+- 🌍 **Erweitert**: Deutsche/Englische Übersetzungen
+
 ### TODO (für mutige Tester)
 - [ ] Test with actual hardware (AUF EIGENE GEFAHR!)
 - [ ] Code-Review durch erfahrene Entwickler
 - [ ] Sicherheits-Audit besonders für Kochfeld
-- [ ] Add device discovery via mDNS
+- [✅] ~~Add device discovery via mDNS~~ **ERLEDIGT in v0.2.0**
 - [ ] Add energy monitoring if supported
+- [ ] Test mDNS discovery with real devices
 
 ## 🚀 Weitere Geräte hinzufügen
 
@@ -201,7 +219,8 @@ kkt_kolbe_integration/
 │       ├── __init__.py         # Integration setup
 │       ├── manifest.json       # Integration metadata
 │       ├── icon.svg            # Integration logo
-│       ├── config_flow.py      # Configuration UI
+│       ├── config_flow.py      # Configuration UI (multi-step)
+│       ├── discovery.py        # 🆕 mDNS auto-discovery
 │       ├── const.py            # Constants and models
 │       ├── device_types.py     # Device type definitions
 │       ├── tuya_device.py      # Tuya communication
@@ -212,7 +231,8 @@ kkt_kolbe_integration/
 │       ├── select.py           # RGB mode selector
 │       ├── number.py           # Timer controls
 │       ├── cooktop.py          # Cooktop specific entities
-│       └── translations/       # UI translations
+│       ├── cooktop_utils.py    # Bitmasking utilities
+│       └── translations/       # UI translations (de/en)
 ├── config_example.yaml         # Example configuration (safe)
 ├── LOCAL_TUYA_GUIDE.md         # Alternative: Local Tuya setup
 ├── COOKTOP_SAFETY.md           # Induction cooktop safety info
