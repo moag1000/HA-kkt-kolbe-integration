@@ -5,6 +5,7 @@ This is a Tuya API security feature, not a limitation of this integration.
 A person must be present at the cooktop to press the confirmation button.
 """
 import logging
+from datetime import timedelta
 from typing import Any
 from homeassistant.components.number import NumberEntity
 from homeassistant.components.switch import SwitchEntity
@@ -12,7 +13,7 @@ from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.const import CONF_TYPE
+from homeassistant.const import CONF_TYPE, UnitOfTime
 
 from .const import DOMAIN, CATEGORY_COOKTOP
 from .cooktop_utils import (
@@ -26,6 +27,8 @@ from .cooktop_utils import (
 from .device_types import QUICK_LEVELS
 
 _LOGGER = logging.getLogger(__name__)
+
+PARALLEL_UPDATES = 0
 
 async def async_setup_entry_number(
     hass: HomeAssistant,
@@ -53,18 +56,27 @@ async def async_setup_entry_number(
 class CooktopZonePower(NumberEntity):
     """Power control for a cooking zone."""
 
+    _attr_should_poll = False
+
     def __init__(self, entry: ConfigEntry, device, zone: int):
         """Initialize the zone power control."""
         self._entry = entry
         self._device = device
         self._zone = zone
         self._attr_unique_id = f"{entry.entry_id}_zone{zone}_power"
-        self._attr_name = f"KKT Cooktop Zone {zone} Power"
+        self._attr_has_entity_name = True
+        self._attr_name = f"Zone {zone} Power"
         self._attr_icon = "mdi:stove"
         self._attr_native_min_value = 0
         self._attr_native_max_value = 9
         self._attr_native_step = 1
-        self._attr_native_unit_of_measurement = "level"
+        # Power level is dimensionless
+        self._attr_native_unit_of_measurement = None
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        return self._device.is_connected
 
     @property
     def native_value(self) -> float:
@@ -90,8 +102,34 @@ class CooktopZonePower(NumberEntity):
         self._device._device.set_value(162, encoded)
         self.async_write_ha_state()
 
+    @property
+    def device_info(self):
+        """Return device info for device registry."""
+        return {
+            "identifiers": {(DOMAIN, self._entry.entry_id)},
+            "name": "KKT Kolbe Cooktop",
+            "manufacturer": "KKT Kolbe",
+            "model": "IND7705HC",
+        }
+
+    async def async_added_to_hass(self) -> None:
+        """Run when entity is added to hass."""
+        self.async_on_remove(
+            self.hass.helpers.event.async_track_time_interval(
+                self._async_update,
+                timedelta(seconds=30)
+            )
+        )
+
+    async def _async_update(self, now=None) -> None:
+        """Update the entity."""
+        await self._device.async_update_status()
+        self.async_write_ha_state()
+
 class CooktopZoneTimer(NumberEntity):
     """Timer control for a cooking zone."""
+
+    _attr_should_poll = False
 
     def __init__(self, entry: ConfigEntry, device, zone: int):
         """Initialize the zone timer."""
@@ -99,12 +137,18 @@ class CooktopZoneTimer(NumberEntity):
         self._device = device
         self._zone = zone
         self._attr_unique_id = f"{entry.entry_id}_zone{zone}_timer"
-        self._attr_name = f"KKT Cooktop Zone {zone} Timer"
+        self._attr_has_entity_name = True
+        self._attr_name = f"Zone {zone} Timer"
         self._attr_icon = "mdi:timer"
         self._attr_native_min_value = 0
         self._attr_native_max_value = 180
         self._attr_native_step = 1
-        self._attr_native_unit_of_measurement = "min"
+        self._attr_native_unit_of_measurement = UnitOfTime.MINUTES
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        return self._device.is_connected
 
     @property
     def native_value(self) -> float:
@@ -128,6 +172,30 @@ class CooktopZoneTimer(NumberEntity):
         # Encode and send
         encoded = encode_zone_bitfield(timers)
         self._device._device.set_value(167, encoded)
+        self.async_write_ha_state()
+
+    @property
+    def device_info(self):
+        """Return device info for device registry."""
+        return {
+            "identifiers": {(DOMAIN, self._entry.entry_id)},
+            "name": "KKT Kolbe Cooktop",
+            "manufacturer": "KKT Kolbe",
+            "model": "IND7705HC",
+        }
+
+    async def async_added_to_hass(self) -> None:
+        """Run when entity is added to hass."""
+        self.async_on_remove(
+            self.hass.helpers.event.async_track_time_interval(
+                self._async_update,
+                timedelta(seconds=30)
+            )
+        )
+
+    async def _async_update(self, now=None) -> None:
+        """Update the entity."""
+        await self._device.async_update_status()
         self.async_write_ha_state()
 
 async def async_setup_entry_switch(
@@ -156,13 +224,21 @@ async def async_setup_entry_switch(
 class CooktopMainSwitch(SwitchEntity):
     """Main power switch for cooktop."""
 
+    _attr_should_poll = False
+
     def __init__(self, entry: ConfigEntry, device):
         """Initialize the switch."""
         self._entry = entry
         self._device = device
         self._attr_unique_id = f"{entry.entry_id}_cooktop_power"
-        self._attr_name = "KKT Cooktop Power"
+        self._attr_has_entity_name = True
+        self._attr_name = "Power"
         self._attr_icon = "mdi:power"
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        return self._device.is_connected
 
     @property
     def is_on(self) -> bool:
@@ -179,16 +255,48 @@ class CooktopMainSwitch(SwitchEntity):
         self._device._device.set_value(101, False)
         self.async_write_ha_state()
 
+    @property
+    def device_info(self):
+        """Return device info for device registry."""
+        return {
+            "identifiers": {(DOMAIN, self._entry.entry_id)},
+            "name": "KKT Kolbe Cooktop",
+            "manufacturer": "KKT Kolbe",
+            "model": "IND7705HC",
+        }
+
+    async def async_added_to_hass(self) -> None:
+        """Run when entity is added to hass."""
+        self.async_on_remove(
+            self.hass.helpers.event.async_track_time_interval(
+                self._async_update,
+                timedelta(seconds=30)
+            )
+        )
+
+    async def _async_update(self, now=None) -> None:
+        """Update the entity."""
+        await self._device.async_update_status()
+        self.async_write_ha_state()
+
 class CooktopChildLock(SwitchEntity):
     """Child lock for cooktop."""
+
+    _attr_should_poll = False
 
     def __init__(self, entry: ConfigEntry, device):
         """Initialize the switch."""
         self._entry = entry
         self._device = device
         self._attr_unique_id = f"{entry.entry_id}_child_lock"
-        self._attr_name = "KKT Cooktop Child Lock"
+        self._attr_has_entity_name = True
+        self._attr_name = "Child Lock"
         self._attr_icon = "mdi:lock-outline"
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        return self._device.is_connected
 
     @property
     def is_on(self) -> bool:
@@ -205,16 +313,48 @@ class CooktopChildLock(SwitchEntity):
         self._device._device.set_value(103, False)
         self.async_write_ha_state()
 
+    @property
+    def device_info(self):
+        """Return device info for device registry."""
+        return {
+            "identifiers": {(DOMAIN, self._entry.entry_id)},
+            "name": "KKT Kolbe Cooktop",
+            "manufacturer": "KKT Kolbe",
+            "model": "IND7705HC",
+        }
+
+    async def async_added_to_hass(self) -> None:
+        """Run when entity is added to hass."""
+        self.async_on_remove(
+            self.hass.helpers.event.async_track_time_interval(
+                self._async_update,
+                timedelta(seconds=30)
+            )
+        )
+
+    async def _async_update(self, now=None) -> None:
+        """Update the entity."""
+        await self._device.async_update_status()
+        self.async_write_ha_state()
+
 class CooktopPause(SwitchEntity):
     """Pause function for cooktop."""
+
+    _attr_should_poll = False
 
     def __init__(self, entry: ConfigEntry, device):
         """Initialize the switch."""
         self._entry = entry
         self._device = device
         self._attr_unique_id = f"{entry.entry_id}_pause"
-        self._attr_name = "KKT Cooktop Pause"
+        self._attr_has_entity_name = True
+        self._attr_name = "Pause"
         self._attr_icon = "mdi:pause"
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        return self._device.is_connected
 
     @property
     def is_on(self) -> bool:
@@ -231,16 +371,48 @@ class CooktopPause(SwitchEntity):
         self._device._device.set_value(102, False)
         self.async_write_ha_state()
 
+    @property
+    def device_info(self):
+        """Return device info for device registry."""
+        return {
+            "identifiers": {(DOMAIN, self._entry.entry_id)},
+            "name": "KKT Kolbe Cooktop",
+            "manufacturer": "KKT Kolbe",
+            "model": "IND7705HC",
+        }
+
+    async def async_added_to_hass(self) -> None:
+        """Run when entity is added to hass."""
+        self.async_on_remove(
+            self.hass.helpers.event.async_track_time_interval(
+                self._async_update,
+                timedelta(seconds=30)
+            )
+        )
+
+    async def _async_update(self, now=None) -> None:
+        """Update the entity."""
+        await self._device.async_update_status()
+        self.async_write_ha_state()
+
 class CooktopSeniorMode(SwitchEntity):
     """Senior/Old people mode for cooktop."""
+
+    _attr_should_poll = False
 
     def __init__(self, entry: ConfigEntry, device):
         """Initialize the switch."""
         self._entry = entry
         self._device = device
         self._attr_unique_id = f"{entry.entry_id}_senior_mode"
-        self._attr_name = "KKT Cooktop Senior Mode"
+        self._attr_has_entity_name = True
+        self._attr_name = "Senior Mode"
         self._attr_icon = "mdi:account"
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        return self._device.is_connected
 
     @property
     def is_on(self) -> bool:
@@ -257,8 +429,34 @@ class CooktopSeniorMode(SwitchEntity):
         self._device._device.set_value(145, False)
         self.async_write_ha_state()
 
+    @property
+    def device_info(self):
+        """Return device info for device registry."""
+        return {
+            "identifiers": {(DOMAIN, self._entry.entry_id)},
+            "name": "KKT Kolbe Cooktop",
+            "manufacturer": "KKT Kolbe",
+            "model": "IND7705HC",
+        }
+
+    async def async_added_to_hass(self) -> None:
+        """Run when entity is added to hass."""
+        self.async_on_remove(
+            self.hass.helpers.event.async_track_time_interval(
+                self._async_update,
+                timedelta(seconds=30)
+            )
+        )
+
+    async def _async_update(self, now=None) -> None:
+        """Update the entity."""
+        await self._device.async_update_status()
+        self.async_write_ha_state()
+
 class CooktopZoneBoost(SwitchEntity):
     """Boost mode for specific zone."""
+
+    _attr_should_poll = False
 
     def __init__(self, entry: ConfigEntry, device, zone: int):
         """Initialize the switch."""
@@ -266,8 +464,14 @@ class CooktopZoneBoost(SwitchEntity):
         self._device = device
         self._zone = zone
         self._attr_unique_id = f"{entry.entry_id}_zone{zone}_boost"
-        self._attr_name = f"KKT Zone {zone} Boost"
+        self._attr_has_entity_name = True
+        self._attr_name = f"Zone {zone} Boost"
         self._attr_icon = "mdi:flash"
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        return self._device.is_connected
 
     @property
     def is_on(self) -> bool:
@@ -296,8 +500,34 @@ class CooktopZoneBoost(SwitchEntity):
         self._device._device.set_value(163, encoded)
         self.async_write_ha_state()
 
+    @property
+    def device_info(self):
+        """Return device info for device registry."""
+        return {
+            "identifiers": {(DOMAIN, self._entry.entry_id)},
+            "name": "KKT Kolbe Cooktop",
+            "manufacturer": "KKT Kolbe",
+            "model": "IND7705HC",
+        }
+
+    async def async_added_to_hass(self) -> None:
+        """Run when entity is added to hass."""
+        self.async_on_remove(
+            self.hass.helpers.event.async_track_time_interval(
+                self._async_update,
+                timedelta(seconds=30)
+            )
+        )
+
+    async def _async_update(self, now=None) -> None:
+        """Update the entity."""
+        await self._device.async_update_status()
+        self.async_write_ha_state()
+
 class CooktopZoneWarm(SwitchEntity):
     """Keep warm mode for specific zone."""
+
+    _attr_should_poll = False
 
     def __init__(self, entry: ConfigEntry, device, zone: int):
         """Initialize the switch."""
@@ -305,8 +535,14 @@ class CooktopZoneWarm(SwitchEntity):
         self._device = device
         self._zone = zone
         self._attr_unique_id = f"{entry.entry_id}_zone{zone}_warm"
-        self._attr_name = f"KKT Zone {zone} Keep Warm"
+        self._attr_has_entity_name = True
+        self._attr_name = f"Zone {zone} Keep Warm"
         self._attr_icon = "mdi:radiator"
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        return self._device.is_connected
 
     @property
     def is_on(self) -> bool:
@@ -335,8 +571,34 @@ class CooktopZoneWarm(SwitchEntity):
         self._device._device.set_value(164, encoded)
         self.async_write_ha_state()
 
+    @property
+    def device_info(self):
+        """Return device info for device registry."""
+        return {
+            "identifiers": {(DOMAIN, self._entry.entry_id)},
+            "name": "KKT Kolbe Cooktop",
+            "manufacturer": "KKT Kolbe",
+            "model": "IND7705HC",
+        }
+
+    async def async_added_to_hass(self) -> None:
+        """Run when entity is added to hass."""
+        self.async_on_remove(
+            self.hass.helpers.event.async_track_time_interval(
+                self._async_update,
+                timedelta(seconds=30)
+            )
+        )
+
+    async def _async_update(self, now=None) -> None:
+        """Update the entity."""
+        await self._device.async_update_status()
+        self.async_write_ha_state()
+
 class CooktopZoneQuickLevel(SelectEntity):
     """Quick level preset for specific zone."""
+
+    _attr_should_poll = False
 
     def __init__(self, entry: ConfigEntry, device, zone: int):
         """Initialize the selector."""
@@ -344,9 +606,15 @@ class CooktopZoneQuickLevel(SelectEntity):
         self._device = device
         self._zone = zone
         self._attr_unique_id = f"{entry.entry_id}_zone{zone}_quick"
-        self._attr_name = f"KKT Zone {zone} Quick Level"
+        self._attr_has_entity_name = True
+        self._attr_name = f"Zone {zone} Quick Level"
         self._attr_icon = "mdi:speedometer"
         self._attr_options = ["Level 1", "Level 2", "Level 3", "Level 4", "Level 5"]
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        return self._device.is_connected
 
     @property
     def current_option(self) -> str:
@@ -365,20 +633,52 @@ class CooktopZoneQuickLevel(SelectEntity):
             self._device._device.set_value(dp_index, QUICK_LEVELS[level_num])
             self.async_write_ha_state()
 
+    @property
+    def device_info(self):
+        """Return device info for device registry."""
+        return {
+            "identifiers": {(DOMAIN, self._entry.entry_id)},
+            "name": "KKT Kolbe Cooktop",
+            "manufacturer": "KKT Kolbe",
+            "model": "IND7705HC",
+        }
+
+    async def async_added_to_hass(self) -> None:
+        """Run when entity is added to hass."""
+        self.async_on_remove(
+            self.hass.helpers.event.async_track_time_interval(
+                self._async_update,
+                timedelta(seconds=30)
+            )
+        )
+
+    async def _async_update(self, now=None) -> None:
+        """Update the entity."""
+        await self._device.async_update_status()
+        self.async_write_ha_state()
+
 class CooktopGeneralTimer(NumberEntity):
     """General countdown timer for cooktop."""
+
+    _attr_should_poll = False
 
     def __init__(self, entry: ConfigEntry, device):
         """Initialize the timer."""
         self._entry = entry
         self._device = device
         self._attr_unique_id = f"{entry.entry_id}_general_timer"
-        self._attr_name = "KKT Cooktop General Timer"
+        self._attr_has_entity_name = True
+        self._attr_name = "General Timer"
         self._attr_icon = "mdi:timer-outline"
         self._attr_native_min_value = 0
         self._attr_native_max_value = 99
         self._attr_native_step = 1
-        self._attr_native_unit_of_measurement = "min"
+        self._attr_native_unit_of_measurement = UnitOfTime.MINUTES
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        return self._device.is_connected
 
     @property
     def native_value(self) -> float:
@@ -388,4 +688,28 @@ class CooktopGeneralTimer(NumberEntity):
     async def async_set_native_value(self, value: float) -> None:
         """Set the timer."""
         self._device._device.set_value(134, int(value))
+        self.async_write_ha_state()
+
+    @property
+    def device_info(self):
+        """Return device info for device registry."""
+        return {
+            "identifiers": {(DOMAIN, self._entry.entry_id)},
+            "name": "KKT Kolbe Cooktop",
+            "manufacturer": "KKT Kolbe",
+            "model": "IND7705HC",
+        }
+
+    async def async_added_to_hass(self) -> None:
+        """Run when entity is added to hass."""
+        self.async_on_remove(
+            self.hass.helpers.event.async_track_time_interval(
+                self._async_update,
+                timedelta(seconds=30)
+            )
+        )
+
+    async def _async_update(self, now=None) -> None:
+        """Update the entity."""
+        await self._device.async_update_status()
         self.async_write_ha_state()

@@ -1,5 +1,6 @@
 """Fan platform for KKT Kolbe Dunstabzugshaube."""
 import logging
+from datetime import timedelta
 from typing import Any
 from homeassistant.components.fan import (
     FanEntity,
@@ -8,10 +9,13 @@ from homeassistant.components.fan import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, FAN_SPEEDS, FAN_SPEED_TO_DP
 
 _LOGGER = logging.getLogger(__name__)
+
+PARALLEL_UPDATES = 0
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -20,35 +24,46 @@ async def async_setup_entry(
 ) -> None:
     """Set up KKT Kolbe fan entity."""
     device_data = hass.data[DOMAIN][entry.entry_id]
-    device = device_data["device"]
+    coordinator = device_data["coordinator"]
     device_info = device_data["device_info"]
 
     # Only create fan entity for hood devices
     if device_info.get("category") == "hood":
-        async_add_entities([KKTKolbeFan(entry, device, device_info)])
+        async_add_entities([KKTKolbeFan(coordinator, entry)])
 
-class KKTKolbeFan(FanEntity):
+class KKTKolbeFan(CoordinatorEntity, FanEntity):
     """Representation of KKT Kolbe Dunstabzugshaube fan."""
 
-    def __init__(self, entry: ConfigEntry, device, device_info: dict):
+    def __init__(self, coordinator, entry: ConfigEntry):
         """Initialize the fan."""
+        super().__init__(coordinator)
         self._entry = entry
-        self._device = device
-        self._device_info = device_info
         self._attr_unique_id = f"{entry.entry_id}_fan"
-        self._attr_name = f"{device_info.get('name', 'KKT Kolbe')} Fan"
+        self._attr_has_entity_name = True
+        self._attr_name = "Fan"
         self._attr_supported_features = FanEntityFeature.SET_SPEED
-        self._attr_speed_count = 4
+        self._attr_speed_count = 5  # off, low, middle, high, strong
+
+    @property
+    def device_info(self):
+        """Return device information."""
+        return self.coordinator.device_info
 
     @property
     def is_on(self) -> bool:
         """Return if the fan is on."""
-        return self._device.is_on and self._device.fan_speed != "off"
+        data = self.coordinator.data
+        if not data:
+            return False
+        return data.get(1, False) and data.get(10, "off") != "off"
 
     @property
     def percentage(self) -> int:
         """Return the current speed percentage."""
-        speed = self._device.fan_speed
+        data = self.coordinator.data
+        if not data:
+            return 0
+        speed = data.get(10, "off")
         return FAN_SPEEDS.get(speed, 0)
 
     async def async_turn_on(
@@ -58,20 +73,17 @@ class KKTKolbeFan(FanEntity):
         **kwargs: Any,
     ) -> None:
         """Turn on the fan."""
-        if not self._device.is_on:
-            self._device.turn_on()
+        # Turn on device first
+        await self.coordinator.async_set_data_point(1, True)
 
         if percentage is not None:
             await self.async_set_percentage(percentage)
         else:
-            self._device.set_fan_speed("low")
-
-        self.async_write_ha_state()
+            await self.coordinator.async_set_data_point(10, "low")
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the fan."""
-        self._device.set_fan_speed("off")
-        self.async_write_ha_state()
+        await self.coordinator.async_set_data_point(10, "off")
 
     async def async_set_percentage(self, percentage: int) -> None:
         """Set the speed percentage of the fan."""
@@ -87,20 +99,4 @@ class KKTKolbeFan(FanEntity):
         else:
             speed_name = "strong"
 
-        self._device.set_fan_speed(speed_name)
-        self.async_write_ha_state()
-
-    @property
-    def device_info(self):
-        """Return device info for device registry."""
-        return {
-            "identifiers": {(DOMAIN, self._entry.entry_id)},
-            "name": self._device_info.get("name", "KKT Kolbe Device"),
-            "manufacturer": "KKT Kolbe",
-            "model": self._device_info.get("model_id", "Unknown"),
-            "sw_version": "1.3.0",
-        }
-
-    async def async_update(self) -> None:
-        """Update the entity."""
-        await self._device.async_update_status()
+        await self.coordinator.async_set_data_point(10, speed_name)
