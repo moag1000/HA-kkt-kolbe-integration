@@ -53,12 +53,8 @@ def _get_device_selection_schema(discovered_devices: Dict[str, Dict[str, Any]]):
     """Generate device selection schema based on discovered devices."""
     if not discovered_devices:
         return vol.Schema({
-            vol.Optional("retry_discovery"): selector.selector({
-                "button": {}
-            }),
-            vol.Optional("use_manual_config"): selector.selector({
-                "button": {}
-            })
+            vol.Optional("retry_discovery", default=False): bool,
+            vol.Optional("use_manual_config", default=False): bool
         })
 
     device_options = []
@@ -78,22 +74,14 @@ def _get_device_selection_schema(discovered_devices: Dict[str, Dict[str, Any]]):
                 "mode": "dropdown"
             }
         }),
-        vol.Optional("retry_discovery"): selector.selector({
-            "button": {}
-        }),
-        vol.Optional("use_manual_config"): selector.selector({
-            "button": {}
-        })
+        vol.Optional("retry_discovery", default=False): bool,
+        vol.Optional("use_manual_config", default=False): bool
     })
 
 STEP_AUTHENTICATION_DATA_SCHEMA = vol.Schema({
     vol.Required("local_key"): str,
-    vol.Optional("test_connection"): selector.selector({
-        "button": {}
-    }),
-    vol.Optional("back_to_previous"): selector.selector({
-        "button": {}
-    }),
+    vol.Optional("test_connection", default=True): bool,
+    vol.Optional("back_to_previous", default=False): bool,
 })
 
 STEP_SETTINGS_DATA_SCHEMA = vol.Schema({
@@ -117,9 +105,7 @@ STEP_SETTINGS_DATA_SCHEMA = vol.Schema({
             "translation_key": "zone_naming"
         }
     }),
-    vol.Optional("back_to_authentication"): selector.selector({
-        "button": {}
-    }),
+    vol.Optional("back_to_authentication", default=False): bool,
 })
 
 
@@ -328,12 +314,8 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         # Create schema with pre-filled local key and back option
         auth_schema = vol.Schema({
             vol.Required("local_key", default=default_local_key): str,
-            vol.Optional("test_connection"): selector.selector({
-                "button": {}
-            }),
-            vol.Optional("back_to_previous"): selector.selector({
-                "button": {}
-            }),
+            vol.Optional("test_connection", default=True): bool,
+            vol.Optional("back_to_previous", default=False): bool,
         })
 
         return self.async_show_form(
@@ -415,12 +397,8 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="confirmation",
             data_schema=vol.Schema({
-                vol.Optional("confirm"): selector.selector({
-                    "button": {}
-                }),
-                vol.Optional("back_to_settings"): selector.selector({
-                    "button": {}
-                })
+                vol.Optional("confirm", default=False): bool,
+                vol.Optional("back_to_settings", default=False): bool
             }),
             description_placeholders=summary_info
         )
@@ -532,9 +510,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
                     "mode": "dropdown"
                 }
             }),
-            vol.Optional("test_connection"): selector.selector({
-                "button": {}
-            }),
+            vol.Optional("test_connection", default=True): bool,
         })
 
         return self.async_show_form(
