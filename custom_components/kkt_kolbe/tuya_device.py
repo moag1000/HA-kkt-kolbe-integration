@@ -1,4 +1,4 @@
-"""KKT Kolbe Tuya Device Handler - v1.5.5 with enhanced error handling and timeout protection."""
+"""KKT Kolbe Tuya Device Handler - v1.5.6 with enhanced error handling and timeout protection."""
 import asyncio
 import logging
 from typing import Any, Dict

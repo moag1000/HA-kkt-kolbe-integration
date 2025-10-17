@@ -165,9 +165,9 @@ Ich habe mich mit der local tuya Implementierung schwer getan, weil diverseste F
 
 ## 🏪 HACS Status
 
-✅ **PRODUCTION READY**: v1.5.5
+✅ **PRODUCTION READY**: v1.5.6
 
-- **Current Version: `v1.5.5`** 🎯 **ADVANCED HA ARCHITECTURE**
+- **Current Version: `v1.5.6`** 🎯 **ADVANCED HA ARCHITECTURE**
 - **✅ DataUpdateCoordinator** - Zentrale Datenverwaltung nach HA Best Practices
 - **✅ CoordinatorEntity Pattern** - Alle Entitäten nutzen moderne Patterns
 - **✅ Binary Sensor Support** - Vollständige Gerätestatus-Überwachung
@@ -195,7 +195,7 @@ Ich habe mich mit der local tuya Implementierung schwer getan, weil diverseste F
 - ✅ Umfassende Error Handling und Debug-Modi
 - ⚠️ Bei Kochfeldern Sicherheitshinweise beachten ([COOKTOP_SAFETY.md](COOKTOP_SAFETY.md))
 
-### 🚀 Changelog v1.5.5 (LATEST) - Config Flow Navigation & UX!
+### 🚀 Changelog v1.5.6 (LATEST) - Translation & Discovery Bugfixes!
 - 🏗️ **DataUpdateCoordinator**: Zentrale Datenverwaltung nach HA Best Practices
 - 🔗 **CoordinatorEntity Pattern**: Alle Entitäten verwenden moderne HA-Patterns
 - 🟢 **Binary Sensor Support**: Vollständige Gerätestatus-Überwachung
@@ -367,7 +367,7 @@ GitHub: [@moag1000](https://github.com/moag1000)
 [hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
 [license-shield]: https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge
 [license-url]: https://opensource.org/licenses/MIT
-[releases-shield]: https://img.shields.io/badge/version-v1.5.5-blue.svg?style=for-the-badge
+[releases-shield]: https://img.shields.io/badge/version-v1.5.6-blue.svg?style=for-the-badge
 [releases]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases
 [maintenance-shield]: https://img.shields.io/badge/maintainer-%40moag1000-blue.svg?style=for-the-badge
 [user_profile]: https://github.com/moag1000
