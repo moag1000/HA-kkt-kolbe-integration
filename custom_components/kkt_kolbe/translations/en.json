@@ -13,16 +13,18 @@
         "description": "Discovery Status: {discovery_status}\\n\\nFound Devices: {found_devices}\\n\\n{fallback_info}",
         "data": {
           "selected_device": "Select Device",
-          "retry_discovery": "Retry Discovery"
+          "retry_discovery": "Retry Discovery",
+          "use_manual_config": "Use Manual Configuration"
         }
       },
       "manual": {
         "title": "Manual Configuration",
-        "description": "Configure your KKT Kolbe device manually.\\n\\nExamples:\\nIP Address: {ip_example}\\nDevice ID: {device_id_example}\\n\\nLocal Key Info: {local_key_info}",
+        "description": "Enter basic information for your KKT Kolbe device.\\n\\nExamples:\\nIP Address: {ip_example}\\nDevice ID: {device_id_example}\\n\\nNote: Local Key will be requested in the next step.",
         "data": {
           "ip_address": "IP Address",
           "device_id": "Tuya Device ID",
-          "local_key": "Local Key"
+          "device_type": "Device Type",
+          "back_to_discovery": "Back to Discovery"
         }
       },
       "authentication": {
@@ -30,7 +32,8 @@
         "description": "Enter the Local Key for your device:\\n\\nDevice: {device_name}\\nDevice ID: {device_id}\\nIP Address: {ip_address}",
         "data": {
           "local_key": "Local Key",
-          "test_connection": "Test Connection"
+          "test_connection": "Test Connection",
+          "back_to_previous": "Back to Previous Step"
         }
       },
       "settings": {
@@ -40,14 +43,16 @@
           "update_interval": "Update Interval",
           "enable_debug_logging": "Enable Debug Logging",
           "enable_advanced_entities": "Enable Advanced Entities",
-          "zone_naming_scheme": "Zone Naming Scheme"
+          "zone_naming_scheme": "Zone Naming Scheme",
+          "back_to_authentication": "Back to Authentication"
         }
       },
       "confirmation": {
         "title": "Setup Confirmation",
         "description": "Please confirm your configuration:\\n\\nDevice: {device_name}\\nIP: {ip_address}\\nDevice ID: {device_id}\\nProduct: {product_name}\\n\\nSettings:\\nUpdate Interval: {update_interval} seconds\\nDebug Logging: {debug_logging}\\nAdvanced Entities: {advanced_entities}",
         "data": {
-          "confirm": "Confirm Setup"
+          "confirm": "Confirm Setup",
+          "back_to_settings": "Back to Settings"
         }
       }
     },
@@ -96,6 +101,14 @@
         "zone": "Zone 1, Zone 2, ...",
         "numeric": "1, 2, 3, ...",
         "custom": "Custom Names"
+      }
+    },
+    "device_type": {
+      "options": {
+        "hermes_style": "KKT Kolbe HERMES & STYLE (Range Hood)",
+        "hermes": "KKT Kolbe HERMES (Range Hood)",
+        "ecco_hcm": "KKT Kolbe ECCO HCM (Range Hood)",
+        "ind7705hc": "KKT IND7705HC (Induction Cooktop)"
       }
     }
   }

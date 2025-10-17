@@ -165,15 +165,7 @@ Ich habe mich mit der local tuya Implementierung schwer getan, weil diverseste F
 
 ## 🏪 HACS Status
 
-✅ **PRODUCTION READY**: v1.5.6
-
-- **Current Version: `v1.5.6`** 🎯 **ADVANCED HA ARCHITECTURE**
-- **✅ DataUpdateCoordinator** - Zentrale Datenverwaltung nach HA Best Practices
-- **✅ CoordinatorEntity Pattern** - Alle Entitäten nutzen moderne Patterns
-- **✅ Binary Sensor Support** - Vollständige Gerätestatus-Überwachung
-- **✅ Translation Support** - Vollständige Internationalisierung
-- **✅ Enhanced Async Patterns** - Kein Fire-and-Forget, sauberes Error Handling
-- Updates: Über HACS automatisch verfügbar
+✅ **PRODUCTION READY** - Verfügbar über HACS
 
 ## Development Status
 
@@ -195,65 +187,13 @@ Ich habe mich mit der local tuya Implementierung schwer getan, weil diverseste F
 - ✅ Umfassende Error Handling und Debug-Modi
 - ⚠️ Bei Kochfeldern Sicherheitshinweise beachten ([COOKTOP_SAFETY.md](COOKTOP_SAFETY.md))
 
-### 🚀 Changelog v1.5.6 (LATEST) - Translation & Discovery Bugfixes!
-- 🏗️ **DataUpdateCoordinator**: Zentrale Datenverwaltung nach HA Best Practices
-- 🔗 **CoordinatorEntity Pattern**: Alle Entitäten verwenden moderne HA-Patterns
-- 🟢 **Binary Sensor Support**: Vollständige Gerätestatus-Überwachung
-- 🌍 **Translation Support**: Vollständige Internationalisierung (de/en)
-- 🔄 **Enhanced Async Patterns**: Kein Fire-and-Forget, sauberes Error Handling
-- 🧹 **Code Cleanup**: Entfernung veralteter Dateien und Patterns
-
-### 🚀 Changelog v1.0.0 - Production Ready Foundation
-- 🔧 **CRITICAL FIX**: Korrekter Tuya Port (6667 statt 6668)
-- 🔧 **CRITICAL FIX**: Device ID Validation (exakt 20 Zeichen)
-- 🔧 **CRITICAL FIX**: Connection Error Handling verbessert
-- 🔧 **CRITICAL FIX**: mDNS Device ID aus TXT Records statt Service Name
-- 🛠️ **IMPROVED**: IP-Adresse Hostname Resolution behoben
-- 🌐 **IMPROVED**: UDP Discovery mit Local Tuya Koexistenz
-- 🧵 **FIXED**: Alle Threading/Async Probleme eliminiert
-- 🎯 **RESULT**: Stabile, produktionsreife Integration
-
-### Changelog v0.3.1-0.3.8
-- 🔧 **FIXED**: Alle Home Assistant Compliance Warnings behoben
-- ✨ **NEW**: Async TinyTuya Integration (keine blocking operations)
-- 🔧 **FIXED**: RuntimeWarning coroutine never awaited
-- 🔧 **FIXED**: Zeroconf shared instance usage
-- 🛠️ **IMPROVED**: Entities verwenden async methods
-- 📊 **ENHANCED**: Bessere Error Messages statt "Unerwarteter Fehler"
-
-### Changelog v0.3.0
-- 🏠 **MAJOR FEATURE**: Home Assistant Auto-Discovery ohne offiziellen PR!
-- ✨ **NEW**: Automatische Discovery beim HA Start
-- 🎯 **NEW**: Zeroconf Integration für nahtlose Geräteerkennung
-- 🔄 **NEW**: "Retry automatic discovery" Option
-- 🌍 **NEW**: Vollständige deutsche/englische Übersetzungen
-- 🛠️ **Improved**: Erweiterte Debug-Modi und Network Analysis
-
-### Changelog v0.2.2
-- 🎯 **MAJOR FIX**: Erkennt KKT Geräte als generische Tuya Devices
-- ✨ **NEW**: Tuya Device ID Pattern Detection (`bf` + hex)
-- 🔍 **NEW**: Spezifische KKT Device ID Patterns aus echten Tests
-- 🛠️ **NEW**: Debug-Modi und Test Device Simulation
-- 📊 **Improved**: TXT Record Analyse für bessere Geräteerkennung
-
-### Changelog v0.2.1
-- 🔧 **Fixed**: mDNS Discovery Timing - startet sofort beim Config Flow
-- 🔧 **Fixed**: Smarte Wartelogik (max 5s, prüft alle 500ms)
-- ✨ **Improved**: Erweiterte mDNS Service Types
-- 🐛 **Fixed**: Debug-Logging für besseres Troubleshooting
-
-### Changelog v0.2.0
-- ✨ **NEU**: mDNS Automatic Device Discovery
-- ✨ **NEU**: Vereinfachter Setup-Prozess
-- ✨ **NEU**: Automatische Gerätetyp-Erkennung
-- 🔧 **Verbessert**: Multi-Step Config Flow
-- 🌍 **Erweitert**: Deutsche/Englische Übersetzungen
+**📋 Vollständige Versionshistorie:** Siehe [CHANGELOG.md](CHANGELOG.md)
 
 ### TODO (für mutige Tester)
 - [ ] Test with actual hardware (AUF EIGENE GEFAHR!)
 - [ ] Code-Review durch erfahrene Entwickler
 - [ ] Sicherheits-Audit besonders für Kochfeld
-- [✅] ~~Add device discovery via mDNS~~ **ERLEDIGT in v0.2.0**
+- [✅] ~~Add device discovery via mDNS~~ **ERLEDIGT**
 - [ ] Add energy monitoring if supported
 - [ ] Test mDNS discovery with real devices
 
@@ -367,7 +307,7 @@ GitHub: [@moag1000](https://github.com/moag1000)
 [hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
 [license-shield]: https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge
 [license-url]: https://opensource.org/licenses/MIT
-[releases-shield]: https://img.shields.io/badge/version-v1.5.6-blue.svg?style=for-the-badge
+[releases-shield]: https://img.shields.io/badge/version-v1.5.7-blue.svg?style=for-the-badge
 [releases]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases
 [maintenance-shield]: https://img.shields.io/badge/maintainer-%40moag1000-blue.svg?style=for-the-badge
 [user_profile]: https://github.com/moag1000
