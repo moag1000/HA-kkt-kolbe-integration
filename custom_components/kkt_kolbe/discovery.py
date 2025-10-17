@@ -5,7 +5,7 @@ import logging
 import socket
 from hashlib import md5
 from typing import Dict, List, Optional
-from zeroconf import ServiceBrowser, ServiceListener
+from zeroconf import ServiceBrowser, ServiceListener, ServiceInfo
 
 # Compatibility: AsyncServiceInfo might not be available in older zeroconf versions
 try:
@@ -351,12 +351,13 @@ class KKTKolbeDiscovery(ServiceListener):
             if AsyncServiceInfo is not None:
                 info = await AsyncServiceInfo.async_request(zc, type_, name, timeout=3000)
             else:
-                # Fallback for older zeroconf versions
-                import asyncio
-                loop = asyncio.get_event_loop()
-                info = await loop.run_in_executor(
-                    None, zc.get_service_info, type_, name
+                # Skip async service info for older zeroconf versions
+                # This is optional functionality and graceful degradation is acceptable
+                _LOGGER.debug(
+                    "AsyncServiceInfo not available - skipping detailed service info for %s",
+                    name
                 )
+                return
 
             if not info:
                 return
@@ -727,12 +728,13 @@ async def debug_scan_network() -> Dict[str, List[str]]:
                                 zeroconf, service_type, service_type, timeout=2000
                             )
                         else:
-                            # Fallback for older zeroconf versions
-                            import asyncio
-                            loop = asyncio.get_event_loop()
-                            service_info = await loop.run_in_executor(
-                                None, zeroconf.get_service_info, service_type, service_type
+                            # Skip detailed service enumeration for older zeroconf versions
+                            # This is diagnostic functionality and graceful degradation is acceptable
+                            _LOGGER.debug(
+                                "AsyncServiceInfo not available - skipping service enumeration for %s",
+                                service_type
                             )
+                            continue
 
                         if service_info:
                             results["mDNS_services"][service_type] = [str(service_info)]
