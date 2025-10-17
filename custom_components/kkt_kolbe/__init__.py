@@ -41,10 +41,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await async_start_discovery(hass)
 
     # Initialize Tuya device connection (async)
+    # Use correct key names from config entry
+    ip_address = entry.data.get(CONF_IP_ADDRESS) or entry.data.get("ip_address") or entry.data.get("host")
+    device_id = entry.data.get(CONF_DEVICE_ID) or entry.data.get("device_id")
+    local_key = entry.data.get(CONF_ACCESS_TOKEN) or entry.data.get("local_key")
+
     device = KKTKolbeTuyaDevice(
-        device_id=entry.data[CONF_DEVICE_ID],
-        ip_address=entry.data[CONF_HOST],
-        local_key=entry.data[CONF_ACCESS_TOKEN],
+        device_id=device_id,
+        ip_address=ip_address,
+        local_key=local_key,
     )
 
     # Initialize coordinator

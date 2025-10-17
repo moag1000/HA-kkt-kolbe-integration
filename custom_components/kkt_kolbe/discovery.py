@@ -391,12 +391,14 @@ class KKTKolbeDiscovery(ServiceListener):
         if hasattr(info, 'properties') and info.properties:
             for key, value in info.properties.items():
                 try:
+                    if key is None or value is None:
+                        continue
                     key_str = key.decode('utf-8').lower()
                     value_str = value.decode('utf-8')
                     if key_str in ['id', 'devid', 'device_id']:
                         device_id = value_str
                         break
-                except UnicodeDecodeError:
+                except (UnicodeDecodeError, AttributeError):
                     continue
 
         # Check if device ID matches Tuya pattern
@@ -421,10 +423,12 @@ class KKTKolbeDiscovery(ServiceListener):
             txt_data = {}
             for key, value in info.properties.items():
                 try:
+                    if key is None or value is None:
+                        continue
                     key_str = key.decode('utf-8').lower()
                     value_str = value.decode('utf-8').lower()
                     txt_data[key_str] = value_str
-                except UnicodeDecodeError:
+                except (UnicodeDecodeError, AttributeError):
                     continue
 
             # Look for KKT/Kolbe in TXT records
@@ -461,10 +465,12 @@ class KKTKolbeDiscovery(ServiceListener):
         txt_data = {}
         for key, value in info.properties.items():
             try:
+                if key is None or value is None:
+                    continue
                 key_str = key.decode('utf-8').lower()
                 value_str = value.decode('utf-8')
                 txt_data[key_str] = value_str
-            except UnicodeDecodeError:
+            except (UnicodeDecodeError, AttributeError):
                 continue
 
         _LOGGER.debug(f"Tuya device TXT data: {txt_data}")
@@ -514,6 +520,10 @@ class KKTKolbeDiscovery(ServiceListener):
         if hasattr(info, 'properties') and info.properties:
             for key, value in info.properties.items():
                 try:
+                    # Handle None values gracefully
+                    if key is None or value is None:
+                        continue
+
                     key_str = key.decode('utf-8')
                     value_str = value.decode('utf-8')
 
@@ -527,7 +537,7 @@ class KKTKolbeDiscovery(ServiceListener):
                     elif key_str.lower() in ['manufacturer', 'mfg']:
                         device_info["manufacturer"] = value_str
 
-                except UnicodeDecodeError:
+                except (UnicodeDecodeError, AttributeError):
                     continue
 
         # Determine device type from model
