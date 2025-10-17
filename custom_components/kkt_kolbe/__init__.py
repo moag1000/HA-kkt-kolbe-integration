@@ -36,10 +36,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up KKT Kolbe from a config entry."""
     hass.data.setdefault(DOMAIN, {})
 
-    # Start mDNS discovery if this is the first device
-    if not hass.data[DOMAIN]:
-        from .discovery import async_start_discovery
-        await async_start_discovery(hass)
+    # Discovery is already started in async_setup, no need to start again
 
     # Initialize Tuya device connection (async)
     # Use correct key names from config entry with robust fallbacks

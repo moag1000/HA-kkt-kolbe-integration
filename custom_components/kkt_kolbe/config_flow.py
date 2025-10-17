@@ -51,7 +51,8 @@ def _get_device_selection_schema(discovered_devices: Dict[str, Dict[str, Any]]):
     for device_id, device in discovered_devices.items():
         product_name = device.get("product_name", "Unknown Device")
         device_name = device.get("name", device_id[:8])
-        ip_address = device.get("ip", "Unknown IP")
+        # Try both possible IP keys from discovery
+        ip_address = device.get("ip") or device.get("host") or "Unknown IP"
 
         label = f"{product_name} - {device_name} ({ip_address})"
         device_options.append({"value": device_id, "label": label})
@@ -191,7 +192,8 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
 
         description_placeholders = {
             "found_devices": len(self._discovery_data),
-            "discovery_status": "completed" if self._discovery_data else "no_devices"
+            "discovery_status": "completed" if self._discovery_data else "no_devices",
+            "fallback_info": ""  # Always provide fallback_info, even if empty
         }
 
         if not self._discovery_data:

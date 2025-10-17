@@ -93,7 +93,7 @@ class TuyaUDPDiscovery(asyncio.DatagramProtocol):
                             # LocalTuya approach: Just collect all devices, let config flow filter duplicates
                             formatted_device = {
                                 "device_id": device_id,
-                                "host": device_info.get("ip"),
+                                "ip": device_info.get("ip"),  # Use consistent "ip" key
                                 "name": f"KKT Device {device_id[:8]}...",
                                 "discovered_via": "UDP",
                                 "product_name": product_name,
@@ -213,6 +213,11 @@ class KKTKolbeDiscovery(ServiceListener):
     async def async_start(self) -> None:
         """Start mDNS and UDP discovery."""
         try:
+            # Skip if already started
+            if self._browsers or self._udp_listeners:
+                _LOGGER.debug("Discovery already started, skipping")
+                return
+
             # Start mDNS discovery using Home Assistant's shared instance
             from homeassistant.components import zeroconf as ha_zeroconf
             self._zeroconf = await ha_zeroconf.async_get_async_instance(self.hass)
@@ -289,7 +294,7 @@ class KKTKolbeDiscovery(ServiceListener):
                 formatted_device = {
                     "device_id": device_id,
                     "gwId": device_id,  # Keep gwId for zeroconf discovery
-                    "host": device_info.get("ip"),
+                    "ip": device_info.get("ip"),  # Use consistent "ip" key
                     "name": f"KKT Device {device_id[:8]}...",
                     "discovered_via": "UDP",
                     "product_name": product_name,
@@ -512,7 +517,7 @@ class KKTKolbeDiscovery(ServiceListener):
 
         device_info = {
             "name": info.name,
-            "host": str(info.parsed_addresses()[0]) if info.parsed_addresses() else None,
+            "ip": str(info.parsed_addresses()[0]) if info.parsed_addresses() else None,  # Use consistent "ip" key
             "port": info.port,
         }
 
@@ -546,7 +551,7 @@ class KKTKolbeDiscovery(ServiceListener):
             device_info["device_type"] = MODELS[model]["category"]
             device_info["product_name"] = MODELS[model]["name"]
 
-        return device_info if device_info.get("host") else None
+        return device_info if device_info.get("ip") else None
 
     async def _async_trigger_discovery(self, device_info: Dict) -> None:
         """Trigger Home Assistant discovery flow."""
@@ -555,7 +560,7 @@ class KKTKolbeDiscovery(ServiceListener):
             device_id = device_info.get("device_id") or device_info.get("gwId")
 
             discovery_info = {
-                "host": device_info["host"],
+                "host": device_info["ip"],  # Use ip but keep "host" key for compatibility
                 "device_id": device_id,
                 "model": device_info.get("model"),
                 "name": device_info.get("product_name", device_info["name"]),
@@ -564,7 +569,7 @@ class KKTKolbeDiscovery(ServiceListener):
 
 
             # Create a unique identifier for this discovery
-            unique_id = device_info.get("device_id", device_info["host"])
+            unique_id = device_info.get("device_id", device_info["ip"])
 
             # Trigger automatic discovery flow
             try:
@@ -691,7 +696,7 @@ def add_test_device(host: str = None, device_id: str = None) -> None:
         # Use provided values or real defaults based on user's actual device
         test_device = {
             "device_id": device_id or "bf735dfe2ad64fba7cpyhn",  # User's actual device ID
-            "host": host or "192.168.2.43",  # User's actual IP
+            "ip": host or "192.168.2.43",  # User's actual IP - use consistent "ip" key
             "name": "Test KKT HERMES & STYLE",
             "model": "e1k6i0zo",
             "device_type": "hood",
@@ -699,7 +704,7 @@ def add_test_device(host: str = None, device_id: str = None) -> None:
             "discovered_via": "test_simulation"
         }
         _discovery_instance.discovered_devices["test_device"] = test_device
-        _LOGGER.warning(f"Added test device for debugging: {test_device['host']} / {test_device['device_id'][:10]}...")
+        _LOGGER.warning(f"Added test device for debugging: {test_device['ip']} / {test_device['device_id'][:10]}...")
 
 
 async def debug_scan_network() -> Dict[str, List[str]]:
