@@ -1,84 +1,102 @@
 {
   "config": {
     "step": {
-      "discovery": {
-        "title": "Discovered KKT Kolbe Devices",
-        "description": "Found {devices_found} KKT Kolbe device(s) on your network. Select one to configure:",
+      "user": {
+        "title": "KKT Kolbe Setup",
+        "description": "{setup_mode}",
         "data": {
-          "device": "Select Device"
+          "connection_method": "Setup Method"
         }
       },
-      "credentials": {
-        "title": "Device Credentials",
-        "description": "Enter the Tuya Local Key for:\n\nDevice: {device_name}\nIP: {device_host}\nID: {device_id}",
+      "discovery": {
+        "title": "Device Discovery",
+        "description": "Discovery Status: {discovery_status}\\n\\nFound Devices: {found_devices}\\n\\n{fallback_info}",
         "data": {
-          "access_token": "Tuya Local Key",
-          "name": "Device Name"
+          "selected_device": "Select Device",
+          "retry_discovery": "Retry Discovery"
         }
       },
       "manual": {
-        "title": "Manual KKT Kolbe Setup",
-        "description": "Configure your KKT Kolbe device manually.",
+        "title": "Manual Configuration",
+        "description": "Configure your KKT Kolbe device manually.\\n\\nExamples:\\nIP Address: {ip_example}\\nDevice ID: {device_id_example}\\n\\nLocal Key Info: {local_key_info}",
         "data": {
-          "host": "IP Address",
+          "ip_address": "IP Address",
           "device_id": "Tuya Device ID",
-          "access_token": "Tuya Local Key",
-          "type": "Device Type",
-          "name": "Device Name"
+          "local_key": "Local Key"
         }
       },
-      "choose_setup": {
-        "title": "Choose Setup Method",
-        "description": "No KKT Kolbe devices found via automatic discovery.\\n\\nReason: {reason}\\n\\nChoose a setup method:",
+      "authentication": {
+        "title": "Device Authentication",
+        "description": "Enter the Local Key for your device:\\n\\nDevice: {device_name}\\nDevice ID: {device_id}\\nIP Address: {ip_address}",
         "data": {
-          "setup_choice": "Setup Method"
+          "local_key": "Local Key",
+          "test_connection": "Test Connection"
         }
       },
-      "debug_info": {
-        "title": "Discovery Debug Information",
-        "description": "{debug_info}",
+      "settings": {
+        "title": "Advanced Settings",
+        "description": "Configure advanced settings for {device_name}.\\n\\nRecommended: {recommended_interval}",
         "data": {
-          "back": "Back to selection"
+          "update_interval": "Update Interval",
+          "enable_debug_logging": "Enable Debug Logging",
+          "enable_advanced_entities": "Enable Advanced Entities",
+          "zone_naming_scheme": "Zone Naming Scheme"
         }
       },
-      "zeroconf_confirm": {
-        "title": "KKT Kolbe Device Found",
-        "description": "A potential KKT Kolbe device was automatically discovered:\\n\\nName: {name}\\nIP Address: {host}\\nDevice ID: {device_id}\\n\\nWould you like to set up this device?",
-        "data": {}
-      },
-      "zeroconf_credentials": {
-        "title": "Device Credentials (Auto-Discovery)",
-        "description": "Enter the Tuya Local Key for the automatically discovered device:\\n\\nDevice: {device_name}\\nIP: {device_host}\\nID: {device_id}",
+      "confirmation": {
+        "title": "Setup Confirmation",
+        "description": "Please confirm your configuration:\\n\\nDevice: {device_name}\\nIP: {ip_address}\\nDevice ID: {device_id}\\nProduct: {product_name}\\n\\nSettings:\\nUpdate Interval: {update_interval} seconds\\nDebug Logging: {debug_logging}\\nAdvanced Entities: {advanced_entities}",
         "data": {
-          "access_token": "Tuya Local Key",
-          "name": "Device Name",
-          "device_id": "Device ID (if different)"
-        }
-      },
-      "user": {
-        "title": "KKT Kolbe Setup",
-        "description": "Configure your KKT Kolbe device (Tuya device).",
-        "data": {
-          "host": "IP Address",
-          "device_id": "Tuya Device ID",
-          "access_token": "Tuya Local Key",
-          "type": "Device Type",
-          "name": "Device Name"
+          "confirm": "Confirm Setup"
         }
       }
     },
     "error": {
       "cannot_connect": "Failed to connect to device",
       "invalid_auth": "Invalid Local Key or authentication failed",
-      "unknown": "Unexpected error",
-      "missing_device_id": "Device ID missing or could not be auto-detected",
-      "no_host": "No IP address found",
-      "invalid_input": "Invalid input - please check your data",
-      "network_error": "Network error - device not reachable",
-      "connection_test": "Connection test failed"
+      "discovery_failed": "Device discovery failed",
+      "device_not_found": "Selected device not found",
+      "invalid_ip": "Invalid IP address format",
+      "invalid_device_id": "Invalid device ID format (must be 20+ characters)",
+      "invalid_local_key": "Invalid local key format (must be 16+ characters)",
+      "connection_test_failed": "Connection test failed",
+      "unknown": "Unexpected error"
     },
     "abort": {
       "already_configured": "Device is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "KKT Kolbe Options",
+        "description": "Configure options for {device_name}.\\n\\nCurrent Update Interval: {current_interval} seconds",
+        "data": {
+          "scan_interval": "Update Interval",
+          "enable_debug_logging": "Enable Debug Logging",
+          "enable_advanced_entities": "Enable Advanced Entities",
+          "zone_naming_scheme": "Zone Naming Scheme",
+          "test_connection": "Test Connection"
+        }
+      }
+    },
+    "error": {
+      "connection_test_failed": "Connection test failed - check device availability"
+    }
+  },
+  "selector": {
+    "connection_method": {
+      "options": {
+        "discovery": "Automatic Discovery",
+        "manual": "Manual Configuration"
+      }
+    },
+    "zone_naming": {
+      "options": {
+        "zone": "Zone 1, Zone 2, ...",
+        "numeric": "1, 2, 3, ...",
+        "custom": "Custom Names"
+      }
     }
   }
 }

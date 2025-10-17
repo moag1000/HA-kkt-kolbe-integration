@@ -1,6 +1,5 @@
 """Sensor platform for KKT Kolbe devices."""
 import logging
-from datetime import timedelta
 from homeassistant.components.sensor import (
     SensorEntity,
     SensorDeviceClass,
@@ -10,9 +9,8 @@ from homeassistant.const import UnitOfTemperature
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.entity import EntityCategory
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from .base_entity import KKTBaseEntity, KKTZoneBaseEntity
 from .const import DOMAIN
 from .device_types import get_device_entities
 
@@ -27,7 +25,6 @@ async def async_setup_entry(
 ) -> None:
     """Set up KKT Kolbe sensor entities."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-    device_info = hass.data[DOMAIN][entry.entry_id]["device_info"]
     product_name = hass.data[DOMAIN][entry.entry_id].get("product_name", "unknown")
 
     entities = []
@@ -44,160 +41,93 @@ async def async_setup_entry(
     if entities:
         async_add_entities(entities)
 
-class KKTKolbeSensor(CoordinatorEntity, SensorEntity):
+class KKTKolbeSensor(KKTBaseEntity, SensorEntity):
     """Representation of a KKT Kolbe sensor."""
 
     def __init__(self, coordinator, entry: ConfigEntry, config: dict):
         """Initialize the sensor."""
-        super().__init__(coordinator)
-        self._entry = entry
-        self._config = config
-        self._dp = config["dp"]
-        self._name = config["name"]
-        self._attr_unique_id = f"{entry.entry_id}_sensor_{self._name.lower().replace(' ', '_')}"
-        self._attr_has_entity_name = True
-        self._attr_name = self._name
-        self._attr_device_class = config.get("device_class")
-        self._attr_native_unit_of_measurement = config.get("unit")
-        self._attr_state_class = self._get_state_class()
-        self._attr_entity_category = self._get_entity_category()
-        self._attr_icon = self._get_icon()
+        super().__init__(coordinator, entry, config, "sensor")
 
-        # Set options for enum sensors
-        if self._attr_device_class == SensorDeviceClass.ENUM and "options" in config:
-            self._attr_options = config["options"]
+        # Set sensor-specific attributes
+        self._attr_state_class = config.get("state_class")
+        self._attr_native_unit_of_measurement = config.get("unit_of_measurement")
+        self._attr_icon = self._get_icon()
 
     def _get_icon(self) -> str:
         """Get appropriate icon for the sensor."""
         name_lower = self._name.lower()
-        if "error" in name_lower:
-            return "mdi:alert-circle"
-        elif "temp" in name_lower:
+        device_class = self._attr_device_class
+
+        if device_class == SensorDeviceClass.TEMPERATURE:
             return "mdi:thermometer"
         elif "timer" in name_lower:
-            return "mdi:timer"
+            return "mdi:timer-outline"
         elif "filter" in name_lower:
             return "mdi:air-filter"
-        elif "speed" in name_lower:
-            return "mdi:fan"
-        elif "brightness" in name_lower:
-            return "mdi:brightness-6"
-        elif "hours" in name_lower:
-            return "mdi:clock-time-eight"
-        else:
-            return "mdi:information"
+        elif "status" in name_lower:
+            return "mdi:information-outline"
+        elif "error" in name_lower:
+            return "mdi:alert-circle-outline"
 
-    def _get_entity_category(self):
-        """Get appropriate entity category for the sensor."""
-        name_lower = self._name.lower()
-
-        # Diagnostic sensors: errors, filter hours, etc.
-        if any(word in name_lower for word in ["error", "problem", "filter", "hours"]):
-            return EntityCategory.DIAGNOSTIC
-
-        return None
-
-    def _get_state_class(self):
-        """Get appropriate state class for the sensor."""
-        name_lower = self._name.lower()
-
-        # Enum sensors have no state class
-        if self._attr_device_class == SensorDeviceClass.ENUM:
-            return None
-
-        # Timer/countdown sensors have no state class (not measurements)
-        if any(word in name_lower for word in ["timer", "countdown"]):
-            return None
-
-        # Filter hours are cumulative - use TOTAL_INCREASING
-        if "hours" in name_lower and "filter" in name_lower:
-            return SensorStateClass.TOTAL_INCREASING
-
-        # Temperature and brightness are measurements
-        if self._attr_device_class == SensorDeviceClass.TEMPERATURE:
-            return SensorStateClass.MEASUREMENT
-
-        if "brightness" in name_lower:
-            return SensorStateClass.MEASUREMENT
-
-        # Default: no state class for unknown sensor types
-        return None
+        return "mdi:gauge"
 
     @property
     def native_value(self):
         """Return the state of the sensor."""
-        data = self.coordinator.data
-        if not data:
+        value = self._get_data_point_value()
+        if value is None:
             return None
 
-        value = data.get(self._dp)
-
-        # Handle special conversions
-        if self._dp == 10:  # Fan speed enum
-            speed_options = self._config.get("options", ["off", "low", "middle", "high", "strong"])
-            if isinstance(value, int) and 0 <= value < len(speed_options):
-                return speed_options[value]
-            return "off"
-        elif self._dp in [5, 102]:  # Brightness values
-            if value is not None:
-                return int((value / 255) * 100)  # Convert to percentage
+        # Convert temperature values if needed
+        if self._attr_device_class == SensorDeviceClass.TEMPERATURE:
+            if isinstance(value, (int, float)):
+                # Assuming device reports in Celsius
+                return value
 
         return value
 
-    @property
-    def device_info(self):
-        """Return device information."""
-        return self.coordinator.device_info
 
-
-class KKTKolbeZoneSensor(CoordinatorEntity, SensorEntity):
-    """Representation of a KKT Kolbe zone-specific sensor."""
+class KKTKolbeZoneSensor(KKTZoneBaseEntity, SensorEntity):
+    """Zone-specific sensor for KKT Kolbe devices."""
 
     def __init__(self, coordinator, entry: ConfigEntry, config: dict):
         """Initialize the zone sensor."""
-        super().__init__(coordinator)
-        self._entry = entry
-        self._config = config
-        self._dp = config["dp"]
-        self._zone = config["zone"]
-        self._name = config["name"]
-        self._attr_unique_id = f"{entry.entry_id}_sensor_zone{self._zone}_{self._name.lower().replace(' ', '_')}"
-        self._attr_has_entity_name = True
-        self._attr_name = self._name
-        self._attr_device_class = config.get("device_class")
-        self._attr_native_unit_of_measurement = config.get("unit")
+        super().__init__(coordinator, entry, config, "sensor")
+
+        # Set sensor-specific attributes
+        self._attr_state_class = config.get("state_class")
+        self._attr_native_unit_of_measurement = config.get("unit_of_measurement")
         self._attr_icon = self._get_icon()
 
     def _get_icon(self) -> str:
-        """Get appropriate icon for the sensor."""
+        """Get appropriate icon for the zone sensor."""
         name_lower = self._name.lower()
-        if "error" in name_lower:
-            return "mdi:alert-circle"
-        elif "temp" in name_lower:
+
+        if "temperature" in name_lower:
             return "mdi:thermometer"
-        else:
-            return "mdi:information"
+        elif "timer" in name_lower:
+            return "mdi:timer"
+        elif "power" in name_lower:
+            return "mdi:lightning-bolt"
+        elif "level" in name_lower:
+            return "mdi:gauge"
+
+        return "mdi:circle-slice-8"
 
     @property
     def native_value(self):
-        """Return the state of the sensor."""
-        data = self.coordinator.data
-        if not data:
-            return None
-
-        # Zone sensors often use bitfield data
-        raw_value = data.get(self._dp)
+        """Return the state of the zone sensor."""
+        raw_value = self._get_data_point_value()
         if raw_value is None:
             return None
 
-        # Extract zone-specific data from bitfield
-        if isinstance(raw_value, (bytes, bytearray)):
-            if self._zone - 1 < len(raw_value):
-                return raw_value[self._zone - 1]
+        # For zone-specific values, extract from bitfield if needed
+        if isinstance(raw_value, int) and raw_value > 255:
+            # Likely a bitfield, extract zone-specific value
+            # This depends on the specific data point structure
+            zone_offset = (self._zone - 1) * 8  # Assuming 8 bits per zone
+            zone_mask = 0xFF << zone_offset
+            zone_value = (raw_value & zone_mask) >> zone_offset
+            return zone_value
 
         return raw_value
-
-    @property
-    def device_info(self):
-        """Return device information."""
-        return self.coordinator.device_info

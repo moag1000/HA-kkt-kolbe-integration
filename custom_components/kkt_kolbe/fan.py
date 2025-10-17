@@ -1,21 +1,23 @@
-"""Fan platform for KKT Kolbe Dunstabzugshaube."""
+"""Fan platform for KKT Kolbe devices."""
 import logging
-from datetime import timedelta
-from typing import Any
-from homeassistant.components.fan import (
-    FanEntity,
-    FanEntityFeature,
-)
+from homeassistant.components.fan import FanEntity, FanEntityFeature
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util.percentage import (
+    ordered_list_item_to_percentage,
+    percentage_to_ordered_list_item,
+)
 
-from .const import DOMAIN, FAN_SPEEDS, FAN_SPEED_TO_DP
+from .base_entity import KKTBaseEntity
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
 PARALLEL_UPDATES = 0
+
+# Fan speed mapping for KKT Kolbe HERMES & STYLE
+SPEED_LIST = ["off", "low", "middle", "high", "strong"]
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -23,80 +25,70 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up KKT Kolbe fan entity."""
-    device_data = hass.data[DOMAIN][entry.entry_id]
-    coordinator = device_data["coordinator"]
-    device_info = device_data["device_info"]
+    coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+    product_name = hass.data[DOMAIN][entry.entry_id].get("product_name", "unknown")
 
-    # Only create fan entity for hood devices
-    if device_info.get("category") == "hood":
+    # Only add fan entity for HERMES & STYLE (range hood)
+    if "HERMES" in product_name and "STYLE" in product_name:
         async_add_entities([KKTKolbeFan(coordinator, entry)])
 
-class KKTKolbeFan(CoordinatorEntity, FanEntity):
-    """Representation of KKT Kolbe Dunstabzugshaube fan."""
+
+class KKTKolbeFan(KKTBaseEntity, FanEntity):
+    """Representation of a KKT Kolbe fan."""
 
     def __init__(self, coordinator, entry: ConfigEntry):
         """Initialize the fan."""
-        super().__init__(coordinator)
-        self._entry = entry
-        self._attr_unique_id = f"{entry.entry_id}_fan"
-        self._attr_has_entity_name = True
-        self._attr_name = "Fan"
+        config = {
+            "dp": 2,
+            "name": "Fan",
+        }
+        super().__init__(coordinator, entry, config, "fan")
+
         self._attr_supported_features = FanEntityFeature.SET_SPEED
-        self._attr_speed_count = 5  # off, low, middle, high, strong
+        self._attr_speed_count = len(SPEED_LIST) - 1  # Exclude 'off'
+        self._attr_icon = "mdi:fan"
 
     @property
-    def device_info(self):
-        """Return device information."""
-        return self.coordinator.device_info
+    def is_on(self) -> bool | None:
+        """Return true if the fan is on."""
+        speed_level = self._get_data_point_value()
+        return speed_level is not None and speed_level > 0
 
     @property
-    def is_on(self) -> bool:
-        """Return if the fan is on."""
-        data = self.coordinator.data
-        if not data:
-            return False
-        return data.get(1, False) and data.get(10, "off") != "off"
-
-    @property
-    def percentage(self) -> int:
+    def percentage(self) -> int | None:
         """Return the current speed percentage."""
-        data = self.coordinator.data
-        if not data:
+        speed_level = self._get_data_point_value()
+        if speed_level is None or speed_level == 0:
             return 0
-        speed = data.get(10, "off")
-        return FAN_SPEEDS.get(speed, 0)
 
-    async def async_turn_on(
-        self,
-        percentage: int | None = None,
-        preset_mode: str | None = None,
-        **kwargs: Any,
-    ) -> None:
-        """Turn on the fan."""
-        # Turn on device first
-        await self.coordinator.async_set_data_point(1, True)
-
-        if percentage is not None:
-            await self.async_set_percentage(percentage)
-        else:
-            await self.coordinator.async_set_data_point(10, "low")
-
-    async def async_turn_off(self, **kwargs: Any) -> None:
-        """Turn off the fan."""
-        await self.coordinator.async_set_data_point(10, "off")
+        # Convert Tuya speed (1-4) to percentage
+        return ordered_list_item_to_percentage(SPEED_LIST, SPEED_LIST[speed_level])
 
     async def async_set_percentage(self, percentage: int) -> None:
         """Set the speed percentage of the fan."""
-        # Find closest speed setting
         if percentage == 0:
-            speed_name = "off"
-        elif percentage <= 25:
-            speed_name = "low"
-        elif percentage <= 50:
-            speed_name = "middle"
-        elif percentage <= 75:
-            speed_name = "high"
-        else:
-            speed_name = "strong"
+            await self.async_turn_off()
+            return
 
-        await self.coordinator.async_set_data_point(10, speed_name)
+        # Convert percentage to Tuya speed level
+        speed_name = percentage_to_ordered_list_item(SPEED_LIST, percentage)
+        speed_level = SPEED_LIST.index(speed_name)
+
+        await self._async_set_data_point(2, speed_level)
+        self._log_entity_state("Set Speed", f"Speed level: {speed_level} ({speed_name})")
+
+    async def async_turn_on(
+        self, percentage: int | None = None, preset_mode: str | None = None, **kwargs
+    ) -> None:
+        """Turn on the fan."""
+        if percentage is not None:
+            await self.async_set_percentage(percentage)
+        else:
+            # Default to "low" speed
+            await self._async_set_data_point(2, 1)
+            self._log_entity_state("Turn On", "Default speed: low")
+
+    async def async_turn_off(self, **kwargs) -> None:
+        """Turn off the fan."""
+        await self._async_set_data_point(2, 0)
+        self._log_entity_state("Turn Off", "Speed level: 0")
