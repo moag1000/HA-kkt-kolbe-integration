@@ -5,7 +5,14 @@ import logging
 import socket
 from hashlib import md5
 from typing import Dict, List, Optional
-from zeroconf import ServiceBrowser, ServiceListener, AsyncServiceInfo
+from zeroconf import ServiceBrowser, ServiceListener
+
+# Compatibility: AsyncServiceInfo might not be available in older zeroconf versions
+try:
+    from zeroconf import AsyncServiceInfo
+except ImportError:
+    # Fallback for older zeroconf versions
+    AsyncServiceInfo = None
 from Crypto.Cipher import AES
 
 from homeassistant.core import HomeAssistant, callback
@@ -340,8 +347,17 @@ class KKTKolbeDiscovery(ServiceListener):
     async def _async_add_service(self, zc, type_: str, name: str) -> None:
         """Handle discovered service asynchronously."""
         try:
-            # Use AsyncServiceInfo.async_request for async context
-            info = await AsyncServiceInfo.async_request(zc, type_, name, timeout=3000)
+            # Use AsyncServiceInfo.async_request for async context if available
+            if AsyncServiceInfo is not None:
+                info = await AsyncServiceInfo.async_request(zc, type_, name, timeout=3000)
+            else:
+                # Fallback for older zeroconf versions
+                import asyncio
+                loop = asyncio.get_event_loop()
+                info = await loop.run_in_executor(
+                    None, zc.get_service_info, type_, name
+                )
+
             if not info:
                 return
 
@@ -706,9 +722,18 @@ async def debug_scan_network() -> Dict[str, List[str]]:
 
                 for service_type in common_services:
                     try:
-                        service_info = await AsyncServiceInfo.async_request(
-                            zeroconf, service_type, service_type, timeout=2000
-                        )
+                        if AsyncServiceInfo is not None:
+                            service_info = await AsyncServiceInfo.async_request(
+                                zeroconf, service_type, service_type, timeout=2000
+                            )
+                        else:
+                            # Fallback for older zeroconf versions
+                            import asyncio
+                            loop = asyncio.get_event_loop()
+                            service_info = await loop.run_in_executor(
+                                None, zeroconf.get_service_info, service_type, service_type
+                            )
+
                         if service_info:
                             results["mDNS_services"][service_type] = [str(service_info)]
                     except Exception as e:
