@@ -4,6 +4,33 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.5] - 2025-10-18
+
+### 🚀 MAJOR IMPROVEMENT: Config Flow Navigation & UX
+
+#### Added
+- **Bi-directional Navigation**: Full back/forward navigation between all config flow steps
+- **Discovery ↔ Manual Switching**: Switch between automatic discovery and manual configuration at any time
+- **Navigation Buttons**: "Back to..." buttons in all config flow steps for intuitive navigation
+- **Smart Discovery Caching**: Discovery results cached between navigation to avoid re-scanning
+- **Improved UX**: Logical flow progression with escape routes at every step
+
+#### Enhanced Config Flow Steps
+- **Discovery Step**: Added "Use Manual Configuration" option when no devices found
+- **Manual Step**: Added "Back to Discovery" option for easy switching
+- **Authentication Step**: Added "Back to Previous Step" with smart routing
+- **Settings Step**: Added "Back to Authentication" option
+- **Confirmation Step**: Added "Back to Settings" option for final review
+
+#### Technical Improvements
+- **Optimized Discovery**: Discovery only runs on first visit or explicit retry request
+- **State Preservation**: User choices preserved during navigation between steps
+- **Error Recovery**: Better error handling with navigation alternatives
+- **Flow Logic**: Improved step routing logic for intuitive user experience
+
+#### Breaking Changes
+**None** - This enhancement maintains full backward compatibility.
+
 ## [1.5.4] - 2025-10-17
 
 ### 🚨 CRITICAL HOTFIX: Missing Import NameError
@@ -378,6 +405,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Releases**: [All Releases](https://github.com/moag1000/HA-kkt-kolbe-integration/releases)
 - **HACS**: [Custom Repository](https://github.com/moag1000/HA-kkt-kolbe-integration)
 
+[1.5.5]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.5
 [1.5.4]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.4
 [1.5.3]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.3
 [1.5.2]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.2
