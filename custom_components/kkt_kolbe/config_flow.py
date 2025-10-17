@@ -35,16 +35,30 @@ STEP_USER_DATA_SCHEMA = vol.Schema({
 STEP_MANUAL_DATA_SCHEMA = vol.Schema({
     vol.Required(CONF_IP_ADDRESS): str,
     vol.Required("device_id"): str,
-    vol.Required("local_key"): str,
-    vol.Optional("back_to_discovery", default=False): bool,
+    vol.Required("device_type"): selector.selector({
+        "select": {
+            "options": [
+                {"value": "hermes_style", "label": "KKT Kolbe HERMES & STYLE (Range Hood)"},
+                {"value": "hermes", "label": "KKT Kolbe HERMES (Range Hood)"},
+                {"value": "ecco_hcm", "label": "KKT Kolbe ECCO HCM (Range Hood)"},
+                {"value": "ind7705hc", "label": "KKT IND7705HC (Induction Cooktop)"}
+            ],
+            "mode": "dropdown",
+            "translation_key": "device_type"
+        }
+    })
 })
 
 def _get_device_selection_schema(discovered_devices: Dict[str, Dict[str, Any]]):
     """Generate device selection schema based on discovered devices."""
     if not discovered_devices:
         return vol.Schema({
-            vol.Optional("retry_discovery", default=False): bool,
-            vol.Optional("use_manual_config", default=False): bool
+            vol.Optional("retry_discovery"): selector.selector({
+                "button": {}
+            }),
+            vol.Optional("use_manual_config"): selector.selector({
+                "button": {}
+            })
         })
 
     device_options = []
@@ -64,14 +78,22 @@ def _get_device_selection_schema(discovered_devices: Dict[str, Dict[str, Any]]):
                 "mode": "dropdown"
             }
         }),
-        vol.Optional("retry_discovery", default=False): bool,
-        vol.Optional("use_manual_config", default=False): bool
+        vol.Optional("retry_discovery"): selector.selector({
+            "button": {}
+        }),
+        vol.Optional("use_manual_config"): selector.selector({
+            "button": {}
+        })
     })
 
 STEP_AUTHENTICATION_DATA_SCHEMA = vol.Schema({
     vol.Required("local_key"): str,
-    vol.Optional("test_connection", default=True): bool,
-    vol.Optional("back_to_previous", default=False): bool,
+    vol.Optional("test_connection"): selector.selector({
+        "button": {}
+    }),
+    vol.Optional("back_to_previous"): selector.selector({
+        "button": {}
+    }),
 })
 
 STEP_SETTINGS_DATA_SCHEMA = vol.Schema({
@@ -95,7 +117,9 @@ STEP_SETTINGS_DATA_SCHEMA = vol.Schema({
             "translation_key": "zone_naming"
         }
     }),
-    vol.Optional("back_to_authentication", default=False): bool,
+    vol.Optional("back_to_authentication"): selector.selector({
+        "button": {}
+    }),
 })
 
 
@@ -220,16 +244,31 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             if user_input.get("back_to_discovery"):
                 return await self.async_step_discovery()
 
-            # Validate input format
+            # Validate input format (without local_key)
             validation_errors = await self._validate_manual_input(user_input)
             if not validation_errors:
+                device_type = user_input["device_type"]
+
+                # Map device types to proper names
+                device_type_mapping = {
+                    "hermes_style": "HERMES & STYLE",
+                    "hermes": "HERMES",
+                    "ecco_hcm": "ECCO HCM",
+                    "ind7705hc": "IND7705HC"
+                }
+
+                device_name = device_type_mapping.get(device_type, device_type.upper())
+                is_cooktop = device_type == "ind7705hc"
+                category = "Induction Cooktop" if is_cooktop else "Range Hood"
+
                 self._device_info = {
                     "ip": user_input[CONF_IP_ADDRESS],
                     "device_id": user_input["device_id"],
-                    "name": f"KKT Kolbe {user_input['device_id'][:8]}",
-                    "product_name": "Manual Configuration"
+                    "name": f"KKT Kolbe {device_name} {user_input['device_id'][:8]}",
+                    "product_name": f"KKT Kolbe {device_name} ({category})",
+                    "device_type": device_type
                 }
-                self._local_key = user_input["local_key"]
+                # Don't set local_key here - it will be asked in authentication step
                 return await self.async_step_authentication()
             else:
                 errors.update(validation_errors)
@@ -289,8 +328,12 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         # Create schema with pre-filled local key and back option
         auth_schema = vol.Schema({
             vol.Required("local_key", default=default_local_key): str,
-            vol.Optional("test_connection", default=True): bool,
-            vol.Optional("back_to_previous", default=False): bool,
+            vol.Optional("test_connection"): selector.selector({
+                "button": {}
+            }),
+            vol.Optional("back_to_previous"): selector.selector({
+                "button": {}
+            }),
         })
 
         return self.async_show_form(
@@ -372,14 +415,18 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="confirmation",
             data_schema=vol.Schema({
-                vol.Optional("confirm", default=True): bool,
-                vol.Optional("back_to_settings", default=False): bool
+                vol.Optional("confirm"): selector.selector({
+                    "button": {}
+                }),
+                vol.Optional("back_to_settings"): selector.selector({
+                    "button": {}
+                })
             }),
             description_placeholders=summary_info
         )
 
     async def _validate_manual_input(self, user_input: Dict[str, Any]) -> Dict[str, str]:
-        """Validate manual input data."""
+        """Validate manual input data (IP and device ID only)."""
         errors = {}
 
         # Validate IP address
@@ -392,10 +439,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         if not self._is_valid_device_id(device_id):
             errors["device_id"] = "invalid_device_id"
 
-        # Validate local key
-        local_key = user_input.get("local_key", "")
-        if not self._is_valid_local_key(local_key):
-            errors["local_key"] = "invalid_local_key"
+        # Note: local_key validation is now done in authentication step
 
         return errors
 
@@ -488,7 +532,9 @@ class KKTKolbeOptionsFlow(OptionsFlow):
                     "mode": "dropdown"
                 }
             }),
-            vol.Optional("test_connection", default=False): bool,
+            vol.Optional("test_connection"): selector.selector({
+                "button": {}
+            }),
         })
 
         return self.async_show_form(

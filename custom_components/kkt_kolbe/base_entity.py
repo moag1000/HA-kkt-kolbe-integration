@@ -115,8 +115,8 @@ class KKTBaseEntity(CoordinatorEntity):
                 if fw_version:
                     return str(fw_version)
 
-        # Fallback to integration version
-        return "1.5.6"
+        # Fallback to integration version from manifest
+        return "Unknown"
 
     def _get_hardware_version(self) -> str:
         """Get hardware version from device data."""

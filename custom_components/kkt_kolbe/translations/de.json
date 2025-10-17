@@ -13,16 +13,18 @@
         "description": "Erkennungsstatus: {discovery_status}\\n\\nGefundene Geräte: {found_devices}\\n\\n{fallback_info}",
         "data": {
           "selected_device": "Gerät auswählen",
-          "retry_discovery": "Erkennung wiederholen"
+          "retry_discovery": "Erkennung wiederholen",
+          "use_manual_config": "Manuelle Konfiguration verwenden"
         }
       },
       "manual": {
         "title": "Manuelle Konfiguration",
-        "description": "Konfigurieren Sie Ihr KKT Kolbe Gerät manuell.\\n\\nBeispiele:\\nIP-Adresse: {ip_example}\\nGeräte-ID: {device_id_example}\\n\\nLocal Key Info: {local_key_info}",
+        "description": "Geben Sie die Grunddaten Ihres KKT Kolbe Geräts ein.\\n\\nBeispiele:\\nIP-Adresse: {ip_example}\\nGeräte-ID: {device_id_example}\\n\\nHinweis: Der Local Key wird im nächsten Schritt abgefragt.",
         "data": {
           "ip_address": "IP-Adresse",
           "device_id": "Tuya Geräte-ID",
-          "local_key": "Local Key"
+          "device_type": "Gerätetyp",
+          "back_to_discovery": "Zurück zur Erkennung"
         }
       },
       "authentication": {
@@ -30,7 +32,8 @@
         "description": "Geben Sie den Local Key für Ihr Gerät ein:\\n\\nGerät: {device_name}\\nGeräte-ID: {device_id}\\nIP-Adresse: {ip_address}",
         "data": {
           "local_key": "Local Key",
-          "test_connection": "Verbindung testen"
+          "test_connection": "Verbindung testen",
+          "back_to_previous": "Zurück zum vorherigen Schritt"
         }
       },
       "settings": {
@@ -40,14 +43,16 @@
           "update_interval": "Aktualisierungsintervall",
           "enable_debug_logging": "Debug-Protokollierung aktivieren",
           "enable_advanced_entities": "Erweiterte Entitäten aktivieren",
-          "zone_naming_scheme": "Zonenbenennung"
+          "zone_naming_scheme": "Zonenbenennung",
+          "back_to_authentication": "Zurück zur Authentifizierung"
         }
       },
       "confirmation": {
         "title": "Einrichtung bestätigen",
         "description": "Bitte bestätigen Sie Ihre Konfiguration:\\n\\nGerät: {device_name}\\nIP: {ip_address}\\nGeräte-ID: {device_id}\\nProdukt: {product_name}\\n\\nEinstellungen:\\nAktualisierungsintervall: {update_interval} Sekunden\\nDebug-Protokollierung: {debug_logging}\\nErweiterte Entitäten: {advanced_entities}",
         "data": {
-          "confirm": "Einrichtung bestätigen"
+          "confirm": "Einrichtung bestätigen",
+          "back_to_settings": "Zurück zu Einstellungen"
         }
       }
     },
@@ -96,6 +101,14 @@
         "zone": "Zone 1, Zone 2, ...",
         "numeric": "1, 2, 3, ...",
         "custom": "Benutzerdefinierte Namen"
+      }
+    },
+    "device_type": {
+      "options": {
+        "hermes_style": "KKT Kolbe HERMES & STYLE (Dunstabzugshaube)",
+        "hermes": "KKT Kolbe HERMES (Dunstabzugshaube)",
+        "ecco_hcm": "KKT Kolbe ECCO HCM (Dunstabzugshaube)",
+        "ind7705hc": "KKT IND7705HC (Induktionskochfeld)"
       }
     }
   }

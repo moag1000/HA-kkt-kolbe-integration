@@ -4,6 +4,29 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.7] - 2025-10-18
+
+### 🎯 ENHANCEMENT: Advanced Config Flow & Device Selection
+
+#### Added
+- **Device Type Selection**: Manual configuration now includes specific device type selection (HERMES & STYLE, HERMES, ECCO HCM, IND7705HC)
+- **Proper Button Navigation**: All config flow navigation now uses proper button selectors instead of boolean fields
+- **Enhanced Device Information**: Manual device setup now creates proper device names and categories based on selected type
+
+#### Fixed
+- **Config Flow UX**: Replaced confusing boolean checkboxes with proper action buttons for navigation
+- **Device Type Logic**: Fixed manual configuration device type mapping to work with new specific device selection
+- **Translation Completeness**: Added missing translation keys for device type selector in both German and English
+
+#### Technical Improvements
+- **config_flow.py**: Updated all navigation schemas to use `selector.button()` instead of boolean fields
+- **config_flow.py**: Enhanced manual step with proper device type mapping and naming
+- **translations/**: Added complete translation support for new device type selector
+- **Better UX**: Navigation buttons now appear as clickable buttons rather than toggle switches
+
+#### Breaking Changes
+**None** - This enhancement maintains full backward compatibility while significantly improving user experience.
+
 ## [1.5.6] - 2025-10-18
 
 ### 🐛 BUGFIX: Translation & Discovery Issues
@@ -426,6 +449,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Releases**: [All Releases](https://github.com/moag1000/HA-kkt-kolbe-integration/releases)
 - **HACS**: [Custom Repository](https://github.com/moag1000/HA-kkt-kolbe-integration)
 
+[1.5.7]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.7
 [1.5.6]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.6
 [1.5.5]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.5
 [1.5.4]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.4
