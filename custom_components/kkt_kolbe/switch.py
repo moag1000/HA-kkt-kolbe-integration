@@ -1,15 +1,20 @@
 """Switch platform for KKT Kolbe devices."""
 import logging
+from datetime import timedelta
 from typing import Any
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity import EntityCategory
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 from .device_types import get_device_entities
 
 _LOGGER = logging.getLogger(__name__)
+
+PARALLEL_UPDATES = 0
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -17,7 +22,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up KKT Kolbe switch entities."""
-    device = hass.data[DOMAIN][entry.entry_id]["device"]
+    coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
     device_info = hass.data[DOMAIN][entry.entry_id]["device_info"]
     product_name = hass.data[DOMAIN][entry.entry_id].get("product_name", "unknown")
 
@@ -25,28 +30,27 @@ async def async_setup_entry(
     switch_configs = get_device_entities(product_name, "switch")
 
     for config in switch_configs:
-        entities.append(KKTKolbeSwitch(entry, device, device_info, config))
+        entities.append(KKTKolbeSwitch(coordinator, entry, config))
 
     if entities:
         async_add_entities(entities)
 
-class KKTKolbeSwitch(SwitchEntity):
+class KKTKolbeSwitch(CoordinatorEntity, SwitchEntity):
     """Representation of a KKT Kolbe switch."""
 
-    def __init__(self, entry: ConfigEntry, device, device_info, config: dict):
+    def __init__(self, coordinator, entry: ConfigEntry, config: dict):
         """Initialize the switch."""
+        super().__init__(coordinator)
         self._entry = entry
-        self._device = device
-        self._device_info = device_info
         self._config = config
         self._dp = config["dp"]
         self._name = config["name"]
-
-        # Set up entity attributes
-        self._attr_unique_id = f"{entry.entry_id}_{self._name.lower().replace(' ', '_')}"
-        self._attr_name = f"{self._device_info.get('name', 'KKT Kolbe')} {self._name}"
+        self._attr_unique_id = f"{entry.entry_id}_switch_{self._name.lower().replace(' ', '_')}"
+        self._attr_has_entity_name = True
+        self._attr_name = self._name
         self._attr_icon = self._get_icon()
         self._attr_device_class = config.get("device_class")
+        self._attr_entity_category = self._get_entity_category()
 
     def _get_icon(self) -> str:
         """Get appropriate icon for the switch."""
@@ -66,85 +70,37 @@ class KKTKolbeSwitch(SwitchEntity):
         else:
             return "mdi:toggle-switch"
 
-    @property
-    def is_on(self) -> bool:
-        """Return if the switch is on."""
-        if self._dp == 1:  # Hood main power
-            return self._device.is_on
-        elif self._dp == 6:  # Hood filter reminder
-            return self._device.get_dp_value(6, False)
-        elif self._dp == 101:  # Cooktop main power
-            return self._device.cooktop_power_on
-        elif self._dp == 102:  # Cooktop pause
-            return self._device.cooktop_paused
-        elif self._dp == 103:  # Cooktop child lock
-            return self._device.cooktop_child_lock
-        elif self._dp == 145:  # Cooktop senior mode
-            return self._device.cooktop_senior_mode
-        elif self._dp == 108:  # Cooktop confirm action
-            return self._device.get_dp_value(108, False)
-        elif self._dp == 15:  # Hood filter reset
-            return self._device.get_dp_value(15, False)
-        else:
-            return self._device.get_dp_value(self._dp, False)
+    def _get_entity_category(self):
+        """Get appropriate entity category for the switch."""
+        name_lower = self._name.lower()
 
-    async def async_turn_on(self, **kwargs: Any) -> None:
-        """Turn on the switch."""
-        if self._dp == 1:  # Hood main power
-            self._device.turn_on()
-        elif self._dp == 6:  # Hood filter reminder
-            await self._device.async_set_dp(6, True)
-        elif self._dp == 101:  # Cooktop main power
-            self._device.set_cooktop_power(True)
-        elif self._dp == 102:  # Cooktop pause
-            self._device.set_cooktop_pause(True)
-        elif self._dp == 103:  # Cooktop child lock
-            self._device.set_cooktop_child_lock(True)
-        elif self._dp == 145:  # Cooktop senior mode
-            self._device.set_cooktop_senior_mode(True)
-        elif self._dp == 108:  # Cooktop confirm action
-            self._device.set_cooktop_confirm(True)
-        elif self._dp == 15:  # Hood filter reset
-            self._device.reset_filter()
-        else:
-            await self._device.async_set_dp(self._dp, True)
+        # Config switches: child lock, senior mode
+        if any(word in name_lower for word in ["lock", "senior", "pause"]):
+            return EntityCategory.CONFIG
 
-        self.async_write_ha_state()
+        # Diagnostic switches: filter reset, filter reminder
+        if "filter" in name_lower:
+            return EntityCategory.DIAGNOSTIC
 
-    async def async_turn_off(self, **kwargs: Any) -> None:
-        """Turn off the switch."""
-        if self._dp == 1:  # Hood main power
-            self._device.turn_off()
-        elif self._dp == 6:  # Hood filter reminder
-            await self._device.async_set_dp(6, False)
-        elif self._dp == 101:  # Cooktop main power
-            self._device.set_cooktop_power(False)
-        elif self._dp == 102:  # Cooktop pause
-            self._device.set_cooktop_pause(False)
-        elif self._dp == 103:  # Cooktop child lock
-            self._device.set_cooktop_child_lock(False)
-        elif self._dp == 145:  # Cooktop senior mode
-            self._device.set_cooktop_senior_mode(False)
-        elif self._dp == 108:  # Cooktop confirm action
-            self._device.set_cooktop_confirm(False)
-        elif self._dp == 15:  # Hood filter reset
-            # Filter reset is a toggle action, do nothing on off
-            pass
-        else:
-            await self._device.async_set_dp(self._dp, False)
-
-        self.async_write_ha_state()
+        return None
 
     @property
     def device_info(self):
-        """Return device info for device registry."""
-        return {
-            "identifiers": {(DOMAIN, self._entry.entry_id)},
-            "name": self._device_info.get("name", "KKT Kolbe Device"),
-            "manufacturer": "KKT Kolbe",
-            "model": self._device_info.get("model_id", "Unknown"),
-        }
+        """Return device information."""
+        return self.coordinator.device_info
 
-    async def async_update(self) -> None:
-        """Update the entity."""
-        await self._device.async_update_status()
+    @property
+    def is_on(self) -> bool:
+        """Return if the switch is on."""
+        data = self.coordinator.data
+        if not data:
+            return False
+        return data.get(self._dp, False)
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Turn on the switch."""
+        await self.coordinator.async_set_data_point(self._dp, True)
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Turn off the switch."""
+        await self.coordinator.async_set_data_point(self._dp, False)

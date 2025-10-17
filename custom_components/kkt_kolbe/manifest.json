@@ -7,7 +7,8 @@
   "after_dependencies": ["tuya"],
   "documentation": "https://github.com/moag1000/HA-kkt-kolbe-integration",
   "issue_tracker": "https://github.com/moag1000/HA-kkt-kolbe-integration/issues",
+  "integration_type": "device",
   "iot_class": "local_push",
   "requirements": ["tinytuya>=1.13.0", "pycryptodome>=3.15.0"],
-  "version": "1.4.2"
+  "version": "1.4.3"
 }

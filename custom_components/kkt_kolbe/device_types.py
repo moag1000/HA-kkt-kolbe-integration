@@ -1,5 +1,12 @@
 """Device type specific configurations for KKT Kolbe devices."""
 
+from homeassistant.const import (
+    PERCENTAGE,
+    UnitOfTemperature,
+    UnitOfTime,
+    UnitOfSoundPressure,
+)
+
 from .const import CATEGORY_HOOD, CATEGORY_COOKTOP
 
 
@@ -102,14 +109,14 @@ KNOWN_DEVICES = {
             ],
             "sensor": [
                 {"dp": 6, "name": "Filter Status", "device_class": "problem"},
-                {"dp": 7, "name": "Temperature", "unit": "°C", "device_class": "temperature"},
-                {"dp": 8, "name": "Humidity", "unit": "%", "device_class": "humidity"},
+                {"dp": 7, "name": "Temperature", "unit": UnitOfTemperature.CELSIUS, "device_class": "temperature"},
+                {"dp": 8, "name": "Humidity", "unit": PERCENTAGE, "device_class": "humidity"},
                 {"dp": 9, "name": "Air Quality", "device_class": "aqi"},
                 {"dp": 10, "name": "Fan Speed", "device_class": "enum", "options": ["off", "low", "middle", "high", "strong"]},
-                {"dp": 14, "name": "Filter Hours", "unit": "h", "device_class": "duration"},
-                {"dp": 16, "name": "Noise Level", "unit": "dB"},
-                {"dp": 5, "name": "Light Brightness", "unit": "%"},
-                {"dp": 102, "name": "RGB Brightness", "unit": "%"},
+                {"dp": 14, "name": "Filter Hours", "unit": UnitOfTime.HOURS, "device_class": "duration"},
+                {"dp": 16, "name": "Noise Level", "unit": UnitOfSoundPressure.DECIBEL},
+                {"dp": 5, "name": "Light Brightness", "unit": PERCENTAGE},
+                {"dp": 102, "name": "RGB Brightness", "unit": PERCENTAGE},
                 {"dp": 103, "name": "Color Temperature", "unit": "K"}
             ],
             "select": [
@@ -119,7 +126,7 @@ KNOWN_DEVICES = {
                 {"dp": 103, "name": "Color Temperature", "options": ["warm", "neutral", "cool"]}
             ],
             "number": [
-                {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": "min"}
+                {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES}
             ]
         }
     },
@@ -156,14 +163,14 @@ KNOWN_DEVICES = {
             ],
             "sensor": [
                 {"dp": 6, "name": "Filter Status", "device_class": "problem"},
-                {"dp": 7, "name": "Temperature", "unit": "°C", "device_class": "temperature"},
-                {"dp": 8, "name": "Humidity", "unit": "%", "device_class": "humidity"},
+                {"dp": 7, "name": "Temperature", "unit": UnitOfTemperature.CELSIUS, "device_class": "temperature"},
+                {"dp": 8, "name": "Humidity", "unit": PERCENTAGE, "device_class": "humidity"},
                 {"dp": 9, "name": "Air Quality", "device_class": "aqi"},
                 {"dp": 10, "name": "Fan Speed", "device_class": "enum", "options": ["off", "low", "middle", "high", "strong"]},
-                {"dp": 14, "name": "Filter Hours", "unit": "h", "device_class": "duration"},
-                {"dp": 16, "name": "Noise Level", "unit": "dB"},
-                {"dp": 5, "name": "Light Brightness", "unit": "%"},
-                {"dp": 102, "name": "RGB Brightness", "unit": "%"},
+                {"dp": 14, "name": "Filter Hours", "unit": UnitOfTime.HOURS, "device_class": "duration"},
+                {"dp": 16, "name": "Noise Level", "unit": UnitOfSoundPressure.DECIBEL},
+                {"dp": 5, "name": "Light Brightness", "unit": PERCENTAGE},
+                {"dp": 102, "name": "RGB Brightness", "unit": PERCENTAGE},
                 {"dp": 103, "name": "Color Temperature", "unit": "K"}
             ],
             "select": [
@@ -173,10 +180,68 @@ KNOWN_DEVICES = {
                 {"dp": 103, "name": "Color Temperature", "options": ["warm", "neutral", "cool"]}
             ],
             "number": [
-                {"dp": 13, "name": "Countdown Timer", "min": 0, "max": 60, "unit": "min"},
-                {"dp": 5, "name": "Light Brightness Level", "min": 0, "max": 255, "unit": "%"},
-                {"dp": 102, "name": "RGB Brightness Level", "min": 0, "max": 255, "unit": "%"},
+                {"dp": 13, "name": "Countdown Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES},
+                {"dp": 5, "name": "Light Brightness Level", "min": 0, "max": 255, "unit": PERCENTAGE},
+                {"dp": 102, "name": "RGB Brightness Level", "min": 0, "max": 255, "unit": PERCENTAGE},
                 {"dp": 103, "name": "Color Temperature Level", "min": 2700, "max": 6500, "unit": "K"}
+            ]
+        }
+    },
+
+    # KKT Kolbe ECCO HCM Hood
+    "ecco_hcm_hood": {
+        "model_id": "edjsx0",
+        "category": CATEGORY_HOOD,
+        "name": "KKT Kolbe ECCO HCM Hood",
+        "product_names": ["gwdgkteknzvsattn"],
+        "device_ids": ["bfd0c94cb36bf4f28epxcf"],
+        "device_id_patterns": ["bfd0c94cb36bf4f28e"],
+        "platforms": ["fan", "light", "switch", "sensor", "select", "number"],
+        "data_points": {
+            1: "switch",              # Main power
+            4: "light",              # Main light on/off
+            6: "switch_lamp",        # RGB switch trigger
+            7: "switch_wash",        # Setting/Wash mode
+            102: "fan_speed",        # Fan speed (0-9)
+            103: "day",              # Carbon filter days (0-250)
+            104: "switch_led_1",     # LED light
+            105: "countdown_1",      # Countdown timer (0-60 min)
+            106: "switch_led",       # Confirm
+            107: "colour_data",      # RGB color data (string)
+            108: "work_mode",        # RGB work mode (white/colour/scene/music)
+            109: "day_1",            # Metal filter days (0-40)
+        },
+        "entities": {
+            "fan": {
+                "dp": 102,  # fan_speed (0-9)
+                "speeds": ["off", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+            },
+            "light": {
+                "dp": 4,  # main light on/off
+                "brightness_dp": None,  # No dedicated brightness
+                "rgb_dp": 107,  # RGB color data
+                "rgb_mode_dp": 108  # RGB work mode
+            },
+            "switch": [
+                {"dp": 1, "name": "Power", "device_class": "switch"},
+                {"dp": 6, "name": "RGB Light", "device_class": "switch"},
+                {"dp": 7, "name": "Wash Mode", "device_class": "switch"},
+                {"dp": 104, "name": "LED Light", "device_class": "switch"},
+                {"dp": 106, "name": "Confirm", "device_class": "switch"}
+            ],
+            "sensor": [
+                {"dp": 102, "name": "Fan Speed", "device_class": "enum", "options": ["off", "1", "2", "3", "4", "5", "6", "7", "8", "9"]},
+                {"dp": 103, "name": "Carbon Filter Usage", "unit": "days", "device_class": "duration"},
+                {"dp": 109, "name": "Metal Filter Usage", "unit": "days", "device_class": "duration"}
+            ],
+            "select": [
+                {"dp": 108, "name": "RGB Mode", "options": ["white", "colour", "scene", "music"]},
+                {"dp": 102, "name": "Fan Speed Level", "options": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]}
+            ],
+            "number": [
+                {"dp": 105, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES},
+                {"dp": 103, "name": "Carbon Filter Reset", "min": 0, "max": 250, "unit": "days"},
+                {"dp": 109, "name": "Metal Filter Reset", "min": 0, "max": 40, "unit": "days"}
             ]
         }
     },
@@ -201,22 +266,22 @@ KNOWN_DEVICES = {
             ],
             "number": [
                 {"dp": 104, "name": "Max Power Level", "min": 0, "max": 25},
-                {"dp": 134, "name": "General Timer", "min": 0, "max": 99, "unit": "min"},
+                {"dp": 134, "name": "General Timer", "min": 0, "max": 99, "unit": UnitOfTime.MINUTES},
                 {"dp": 162, "name": "Zone 1 Power", "min": 0, "max": 25, "zone": 1},
                 {"dp": 162, "name": "Zone 2 Power", "min": 0, "max": 25, "zone": 2},
                 {"dp": 162, "name": "Zone 3 Power", "min": 0, "max": 25, "zone": 3},
                 {"dp": 162, "name": "Zone 4 Power", "min": 0, "max": 25, "zone": 4},
                 {"dp": 162, "name": "Zone 5 Power", "min": 0, "max": 25, "zone": 5},
-                {"dp": 167, "name": "Zone 1 Timer", "min": 0, "max": 255, "unit": "min", "zone": 1},
-                {"dp": 167, "name": "Zone 2 Timer", "min": 0, "max": 255, "unit": "min", "zone": 2},
-                {"dp": 167, "name": "Zone 3 Timer", "min": 0, "max": 255, "unit": "min", "zone": 3},
-                {"dp": 167, "name": "Zone 4 Timer", "min": 0, "max": 255, "unit": "min", "zone": 4},
-                {"dp": 167, "name": "Zone 5 Timer", "min": 0, "max": 255, "unit": "min", "zone": 5},
-                {"dp": 168, "name": "Zone 1 Core Temp", "min": 0, "max": 300, "unit": "°C", "zone": 1},
-                {"dp": 168, "name": "Zone 2 Core Temp", "min": 0, "max": 300, "unit": "°C", "zone": 2},
-                {"dp": 168, "name": "Zone 3 Core Temp", "min": 0, "max": 300, "unit": "°C", "zone": 3},
-                {"dp": 168, "name": "Zone 4 Core Temp", "min": 0, "max": 300, "unit": "°C", "zone": 4},
-                {"dp": 168, "name": "Zone 5 Core Temp", "min": 0, "max": 300, "unit": "°C", "zone": 5}
+                {"dp": 167, "name": "Zone 1 Timer", "min": 0, "max": 255, "unit": UnitOfTime.MINUTES, "zone": 1},
+                {"dp": 167, "name": "Zone 2 Timer", "min": 0, "max": 255, "unit": UnitOfTime.MINUTES, "zone": 2},
+                {"dp": 167, "name": "Zone 3 Timer", "min": 0, "max": 255, "unit": UnitOfTime.MINUTES, "zone": 3},
+                {"dp": 167, "name": "Zone 4 Timer", "min": 0, "max": 255, "unit": UnitOfTime.MINUTES, "zone": 4},
+                {"dp": 167, "name": "Zone 5 Timer", "min": 0, "max": 255, "unit": UnitOfTime.MINUTES, "zone": 5},
+                {"dp": 168, "name": "Zone 1 Core Temp", "min": 0, "max": 300, "unit": UnitOfTemperature.CELSIUS, "zone": 1},
+                {"dp": 168, "name": "Zone 2 Core Temp", "min": 0, "max": 300, "unit": UnitOfTemperature.CELSIUS, "zone": 2},
+                {"dp": 168, "name": "Zone 3 Core Temp", "min": 0, "max": 300, "unit": UnitOfTemperature.CELSIUS, "zone": 3},
+                {"dp": 168, "name": "Zone 4 Core Temp", "min": 0, "max": 300, "unit": UnitOfTemperature.CELSIUS, "zone": 4},
+                {"dp": 168, "name": "Zone 5 Core Temp", "min": 0, "max": 300, "unit": UnitOfTemperature.CELSIUS, "zone": 5}
             ],
             "select": [
                 {"dp": 148, "name": "Zone 1 Quick Level", "options": QUICK_LEVELS},
@@ -234,11 +299,11 @@ KNOWN_DEVICES = {
                 {"dp": 105, "name": "Zone 3 Error", "device_class": "problem", "zone": 3},
                 {"dp": 105, "name": "Zone 4 Error", "device_class": "problem", "zone": 4},
                 {"dp": 105, "name": "Zone 5 Error", "device_class": "problem", "zone": 5},
-                {"dp": 169, "name": "Zone 1 Core Temp Display", "unit": "°C", "zone": 1},
-                {"dp": 169, "name": "Zone 2 Core Temp Display", "unit": "°C", "zone": 2},
-                {"dp": 169, "name": "Zone 3 Core Temp Display", "unit": "°C", "zone": 3},
-                {"dp": 169, "name": "Zone 4 Core Temp Display", "unit": "°C", "zone": 4},
-                {"dp": 169, "name": "Zone 5 Core Temp Display", "unit": "°C", "zone": 5}
+                {"dp": 169, "name": "Zone 1 Core Temp Display", "unit": UnitOfTemperature.CELSIUS, "zone": 1},
+                {"dp": 169, "name": "Zone 2 Core Temp Display", "unit": UnitOfTemperature.CELSIUS, "zone": 2},
+                {"dp": 169, "name": "Zone 3 Core Temp Display", "unit": UnitOfTemperature.CELSIUS, "zone": 3},
+                {"dp": 169, "name": "Zone 4 Core Temp Display", "unit": UnitOfTemperature.CELSIUS, "zone": 4},
+                {"dp": 169, "name": "Zone 5 Core Temp Display", "unit": UnitOfTemperature.CELSIUS, "zone": 5}
             ],
             "binary_sensor": [
                 {"dp": 161, "name": "Zone 1 Selected", "device_class": "running", "zone": 1},

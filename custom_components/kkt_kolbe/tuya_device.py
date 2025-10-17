@@ -21,6 +21,19 @@ class KKTKolbeTuyaDevice:
         self._connected = False
         # Don't connect in __init__ - will be done async
 
+    def _handle_task_result(self, task):
+        """Handle completed async task results and log errors."""
+        try:
+            task.result()  # This will raise the exception if the task failed
+        except Exception as e:
+            _LOGGER.error(f"Async task failed: {e}")
+
+    def _create_safe_task(self, coro):
+        """Create async task with error handling."""
+        task = asyncio.create_task(coro)
+        task.add_done_callback(self._handle_task_result)
+        return task
+
     async def async_connect(self) -> None:
         """Establish async connection to the device."""
         if self._connected:
@@ -141,6 +154,27 @@ class KKTKolbeTuyaDevice:
 
         return {}
 
+    async def async_get_status(self) -> Dict:
+        """Get current device status asynchronously."""
+        await self.async_ensure_connected()
+
+        if not self._device:
+            return {}
+
+        try:
+            loop = asyncio.get_event_loop()
+            status = await loop.run_in_executor(
+                None,
+                self._device.status
+            )
+            if status and isinstance(status, dict):
+                self._status = status
+                return self._status.get("dps", {})
+            return {}
+        except Exception as e:
+            _LOGGER.error(f"Failed to get device status: {e}")
+            return {}
+
     async def async_update_status(self) -> None:
         """Update device status asynchronously."""
         await self.async_ensure_connected()
@@ -196,15 +230,18 @@ class KKTKolbeTuyaDevice:
             return False
 
     def turn_on(self):
-        """Turn device on (DP 1 = True)."""
-        asyncio.create_task(self.async_set_dp(1, True))
+        """Turn device on (DP 1 = True). DEPRECATED: Use coordinator.async_set_data_point() instead."""
+        _LOGGER.warning("turn_on() is deprecated. Use coordinator.async_set_data_point() instead.")
+        self._create_safe_task(self.async_set_dp(1, True))
 
     def turn_off(self):
-        """Turn device off (DP 1 = False)."""
-        asyncio.create_task(self.async_set_dp(1, False))
+        """Turn device off (DP 1 = False). DEPRECATED: Use coordinator.async_set_data_point() instead."""
+        _LOGGER.warning("turn_off() is deprecated. Use coordinator.async_set_data_point() instead.")
+        self._create_safe_task(self.async_set_dp(1, False))
 
     def set_fan_speed(self, speed: str):
-        """Set fan speed (DP 10)."""
+        """Set fan speed (DP 10). DEPRECATED: Use coordinator.async_set_data_point() instead."""
+        _LOGGER.warning("set_fan_speed() is deprecated. Use coordinator.async_set_data_point() instead.")
         speed_map = {
             "off": "0",
             "low": "1",
@@ -213,7 +250,7 @@ class KKTKolbeTuyaDevice:
             "strong": "4"
         }
         if speed in speed_map:
-            asyncio.create_task(self.async_set_dp(10, speed_map[speed]))
+            self._create_safe_task(self.async_set_dp(10, speed_map[speed]))
 
     @property
     def fan_speed(self) -> str:
@@ -230,7 +267,7 @@ class KKTKolbeTuyaDevice:
 
     def set_light(self, state: bool):
         """Set light state (DP 4)."""
-        asyncio.create_task(self.async_set_dp(4, state))
+        self._create_safe_task(self.async_set_dp(4, state))
 
     @property
     def light_on(self) -> bool:
@@ -240,7 +277,7 @@ class KKTKolbeTuyaDevice:
     def set_rgb_mode(self, mode: int):
         """Set RGB mode (DP 101)."""
         if 0 <= mode <= 9:
-            asyncio.create_task(self.async_set_dp(101, mode))
+            self._create_safe_task(self.async_set_dp(101, mode))
 
     @property
     def rgb_mode(self) -> int:
@@ -250,7 +287,7 @@ class KKTKolbeTuyaDevice:
     def set_countdown(self, minutes: int):
         """Set countdown timer (DP 13)."""
         if 0 <= minutes <= 60:
-            asyncio.create_task(self.async_set_dp(13, minutes))
+            self._create_safe_task(self.async_set_dp(13, minutes))
 
     @property
     def countdown_minutes(self) -> int:
@@ -264,7 +301,7 @@ class KKTKolbeTuyaDevice:
 
     def set_light_brightness(self, brightness: int):
         """Set light brightness (DP 5)."""
-        asyncio.create_task(self.async_set_dp(5, max(0, min(255, brightness))))
+        self._create_safe_task(self.async_set_dp(5, max(0, min(255, brightness))))
 
     @property
     def rgb_brightness(self) -> int:
@@ -273,7 +310,7 @@ class KKTKolbeTuyaDevice:
 
     def set_rgb_brightness(self, brightness: int):
         """Set RGB brightness (DP 102)."""
-        asyncio.create_task(self.async_set_dp(102, max(0, min(255, brightness))))
+        self._create_safe_task(self.async_set_dp(102, max(0, min(255, brightness))))
 
     @property
     def filter_hours(self) -> int:
@@ -282,7 +319,7 @@ class KKTKolbeTuyaDevice:
 
     def reset_filter(self):
         """Reset filter (DP 15)."""
-        asyncio.create_task(self.async_set_dp(15, True))
+        self._create_safe_task(self.async_set_dp(15, True))
 
     def set_fan_speed_direct(self, speed: str):
         """Set fan speed directly (DP 11)."""
@@ -294,7 +331,7 @@ class KKTKolbeTuyaDevice:
             "strong": 4
         }
         if speed in speed_map:
-            asyncio.create_task(self.async_set_dp(11, speed_map[speed]))
+            self._create_safe_task(self.async_set_dp(11, speed_map[speed]))
 
     @property
     def fan_speed_setting(self) -> str:
@@ -331,7 +368,7 @@ class KKTKolbeTuyaDevice:
             data = bytearray(5)
         if len(data) >= zone:
             data[zone - 1] = level
-            asyncio.create_task(self.async_set_dp(162, bytes(data)))
+            self._create_safe_task(self.async_set_dp(162, bytes(data)))
 
     def get_zone_timer(self, zone: int) -> int:
         """Get timer for specific zone (1-5) from DP 167 bitfield."""
@@ -353,7 +390,7 @@ class KKTKolbeTuyaDevice:
             data = bytearray(5)
         if len(data) >= zone:
             data[zone - 1] = minutes
-            asyncio.create_task(self.async_set_dp(167, bytes(data)))
+            self._create_safe_task(self.async_set_dp(167, bytes(data)))
 
     def get_zone_core_temp(self, zone: int) -> int:
         """Get core temperature for specific zone (1-5) from DP 168 bitfield."""
@@ -375,7 +412,7 @@ class KKTKolbeTuyaDevice:
             data = bytearray(5)
         if len(data) >= zone:
             data[zone - 1] = temp
-            asyncio.create_task(self.async_set_dp(168, bytes(data)))
+            self._create_safe_task(self.async_set_dp(168, bytes(data)))
 
     def get_zone_core_temp_display(self, zone: int) -> int:
         """Get displayed core temperature for specific zone (1-5) from DP 169 bitfield."""
@@ -417,7 +454,7 @@ class KKTKolbeTuyaDevice:
             data |= (1 << (zone - 1))
         else:
             data &= ~(1 << (zone - 1))
-        asyncio.create_task(self.async_set_dp(161, bytes([data])))
+        self._create_safe_task(self.async_set_dp(161, bytes([data])))
 
     def is_zone_boost(self, zone: int) -> bool:
         """Check if specific zone (1-5) is in boost mode from DP 163 bitfield."""
@@ -441,7 +478,7 @@ class KKTKolbeTuyaDevice:
             data |= (1 << (zone - 1))
         else:
             data &= ~(1 << (zone - 1))
-        asyncio.create_task(self.async_set_dp(163, bytes([data])))
+        self._create_safe_task(self.async_set_dp(163, bytes([data])))
 
     def is_zone_keep_warm(self, zone: int) -> bool:
         """Check if specific zone (1-5) is in keep warm mode from DP 164 bitfield."""
@@ -465,7 +502,7 @@ class KKTKolbeTuyaDevice:
             data |= (1 << (zone - 1))
         else:
             data &= ~(1 << (zone - 1))
-        asyncio.create_task(self.async_set_dp(164, bytes([data])))
+        self._create_safe_task(self.async_set_dp(164, bytes([data])))
 
     def is_flex_zone_active(self, side: str) -> bool:
         """Check if flex zone is active (left/right) from DP 165 bitfield."""
@@ -491,7 +528,7 @@ class KKTKolbeTuyaDevice:
             data |= (1 << bit)
         else:
             data &= ~(1 << bit)
-        asyncio.create_task(self.async_set_dp(165, bytes([data])))
+        self._create_safe_task(self.async_set_dp(165, bytes([data])))
 
     def is_bbq_mode_active(self, side: str) -> bool:
         """Check if BBQ mode is active (left/right) from DP 166 bitfield."""
@@ -517,7 +554,7 @@ class KKTKolbeTuyaDevice:
             data |= (1 << bit)
         else:
             data &= ~(1 << bit)
-        asyncio.create_task(self.async_set_dp(166, bytes([data])))
+        self._create_safe_task(self.async_set_dp(166, bytes([data])))
 
     # Basic cooktop properties
     @property
@@ -552,30 +589,30 @@ class KKTKolbeTuyaDevice:
 
     def set_cooktop_power(self, state: bool):
         """Set cooktop main power (DP 101)."""
-        asyncio.create_task(self.async_set_dp(101, state))
+        self._create_safe_task(self.async_set_dp(101, state))
 
     def set_cooktop_pause(self, state: bool):
         """Set cooktop pause state (DP 102)."""
-        asyncio.create_task(self.async_set_dp(102, state))
+        self._create_safe_task(self.async_set_dp(102, state))
 
     def set_cooktop_child_lock(self, state: bool):
         """Set cooktop child lock (DP 103)."""
-        asyncio.create_task(self.async_set_dp(103, state))
+        self._create_safe_task(self.async_set_dp(103, state))
 
     def set_cooktop_max_level(self, level: int):
         """Set cooktop max power level (DP 104)."""
         if 0 <= level <= 25:
-            asyncio.create_task(self.async_set_dp(104, level))
+            self._create_safe_task(self.async_set_dp(104, level))
 
     def set_cooktop_timer(self, minutes: int):
         """Set cooktop general timer (DP 134)."""
         if 0 <= minutes <= 99:
-            asyncio.create_task(self.async_set_dp(134, minutes))
+            self._create_safe_task(self.async_set_dp(134, minutes))
 
     def set_cooktop_senior_mode(self, state: bool):
         """Set cooktop senior mode (DP 145)."""
-        asyncio.create_task(self.async_set_dp(145, state))
+        self._create_safe_task(self.async_set_dp(145, state))
 
     def set_cooktop_confirm(self, state: bool):
         """Set cooktop confirm action (DP 108)."""
-        asyncio.create_task(self.async_set_dp(108, state))
+        self._create_safe_task(self.async_set_dp(108, state))

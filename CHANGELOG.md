@@ -4,6 +4,95 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.3] - 2024-10-17
+
+### 🏗️ MAJOR ARCHITECTURE: Modern Home Assistant Patterns
+
+#### Added
+- **DataUpdateCoordinator Implementation**: Central data management following Home Assistant best practices
+- **CoordinatorEntity Pattern**: All entities now inherit from CoordinatorEntity for optimal performance
+- **Binary Sensor Platform**: Full support for device status monitoring with proper entity categories
+- **Enhanced Translation Support**: Complete internationalization framework with German and English support
+- **Device Database Module**: Centralized device identification and management system
+
+#### Improved
+- **Modern Async Patterns**: Eliminated fire-and-forget patterns with proper error handling
+- **Centralized State Management**: All entities use coordinator for consistent data access
+- **Performance Optimization**: Reduced API calls through coordinated updates (30-second intervals)
+- **Entity Relationship Management**: Proper device registry integration for all entities
+- **Code Organization**: Clean separation of concerns with modern HA architecture
+
+#### Technical Enhancements
+- **coordinator.py**: New DataUpdateCoordinator implementation with device registry
+- **Enhanced Entity Classes**: All platform files converted to CoordinatorEntity pattern
+- **Binary Sensor Support**: Zone-specific and general binary sensors with proper device classes
+- **Translation Framework**: Complete UI translation support in translations/ directory
+- **Error Handling**: Comprehensive async error handling without silent failures
+
+#### Fixed
+- **Fire-and-Forget Patterns**: Replaced with proper task management and error callbacks
+- **Import Inconsistencies**: Standardized imports across all modules
+- **Syntax Errors**: Complete code review and cleanup
+- **Missing Platform Support**: Added binary_sensor to supported platforms
+
+#### Removed
+- **Deprecated Files**: Moved cooktop.py and cooktop_utils.py to .backup (functionality preserved)
+- **Direct Device Polling**: Replaced with coordinator-based updates
+- **Outdated Patterns**: Removed legacy entity implementations
+
+---
+
+## [1.4.2] - 2024-10-17
+
+### Fixed
+- Minor stability improvements and code optimizations
+- Enhanced device communication reliability
+
+---
+
+## [1.4.1] - 2024-10-17
+
+### Fixed
+- Bug fixes and performance enhancements
+- Improved error handling for edge cases
+
+---
+
+## [1.4.0] - 2024-10-17
+
+### Added
+- Enhanced device support and compatibility improvements
+- Expanded entity functionality
+
+---
+
+## [1.3.2] - 2024-10-16
+
+### Fixed
+- Documentation cleanup and professional polish
+- Streamlined setup instructions
+- Reduced logging for production readiness
+
+---
+
+## [1.3.1] - 2024-10-16
+
+### Fixed
+- Minor bug fixes and stability improvements
+- Enhanced error messages
+
+---
+
+## [1.3.0] - 2024-10-16
+
+### Added
+- Production readiness improvements
+- Enhanced device area assignment
+- Clean entity creation process
+- Professional logging implementation
+
+---
+
 ## [1.2.0] - 2024-10-16
 
 ### 🎯 MAJOR FEATURE: Intelligent Device Recognition
@@ -177,6 +266,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Releases**: [All Releases](https://github.com/moag1000/HA-kkt-kolbe-integration/releases)
 - **HACS**: [Custom Repository](https://github.com/moag1000/HA-kkt-kolbe-integration)
 
+[1.4.3]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.4.3
+[1.4.2]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.4.2
+[1.4.1]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.4.1
+[1.4.0]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.4.0
+[1.3.2]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.3.2
+[1.3.1]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.3.1
+[1.3.0]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.3.0
 [1.2.0]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.2.0
 [1.1.11]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.1.11
 [1.0.0]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.0.0

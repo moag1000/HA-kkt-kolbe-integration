@@ -11,11 +11,12 @@ from homeassistant.const import (
 
 from .const import DOMAIN
 from .tuya_device import KKTKolbeTuyaDevice
+from .coordinator import KKTKolbeUpdateCoordinator
 # Lazy import discovery to reduce startup time
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = [Platform.SENSOR, Platform.FAN, Platform.LIGHT, Platform.SWITCH, Platform.SELECT, Platform.NUMBER]
+PLATFORMS = [Platform.SENSOR, Platform.FAN, Platform.LIGHT, Platform.SWITCH, Platform.SELECT, Platform.NUMBER, Platform.BINARY_SENSOR]
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
@@ -45,9 +46,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         local_key=entry.data[CONF_ACCESS_TOKEN],
     )
 
+    # Initialize coordinator
+    coordinator = KKTKolbeUpdateCoordinator(hass, entry, device)
+
     # Test connection to validate credentials early
     try:
         await device.async_connect()
+        # Perform initial data fetch
+        await coordinator.async_config_entry_first_refresh()
     except Exception as e:
         _LOGGER.error(f"Failed to connect to device during setup: {e}")
         raise
@@ -71,11 +77,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     platforms = get_device_platforms(device_info["category"])
 
     hass.data[DOMAIN][entry.entry_id] = {
+        "coordinator": coordinator,
         "device": device,
         "config": entry.data,
         "device_info": device_info,
         "product_name": product_name,
     }
+
+    # Register device in device registry
+    from homeassistant.helpers import device_registry as dr
+    device_registry = dr.async_get(hass)
+    device_registry.async_get_or_create(
+        config_entry_id=entry.entry_id,
+        **coordinator.device_info
+    )
 
     # Load only the platforms needed for this specific device
     await hass.config_entries.async_forward_entry_setups(entry, platforms)

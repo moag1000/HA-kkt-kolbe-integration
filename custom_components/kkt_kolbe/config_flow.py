@@ -15,7 +15,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 import homeassistant.helpers.config_validation as cv
 
-from . import DOMAIN
+from .const import DOMAIN
 # Lazy import discovery to reduce blocking time
 
 _LOGGER = logging.getLogger(__name__)

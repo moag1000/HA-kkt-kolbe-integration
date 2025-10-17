@@ -35,15 +35,16 @@ Ich habe mich mit der local tuya Implementierung schwer getan, weil diverseste F
 
 ## Features
 
-### ✅ v1.3.2: Production Ready & Polished
+### ✅ v1.4.3: Modern Architecture & Best Practices
 
-**🎯 Alle kritischen Fehler behoben - Integration ist jetzt vollständig funktional!**
+**🎯 Moderne Home Assistant Architektur mit DataUpdateCoordinator!**
 
-#### ✅ Fehlerfreie Funktionalität
-- **Device Area Assignment**: Geräte können jetzt korrekt Bereichen zugewiesen werden
-- **Clean Entity Creation**: Alle Entitäten werden fehlerfrei erstellt
-- **Professional Logging**: Reduziertes, produktionsreifes Logging
-- **Runtime Error Free**: Alle gemeldeten Laufzeitfehler behoben
+#### ✅ Moderne HA-Patterns
+- **DataUpdateCoordinator**: Zentrale Datenverwaltung für optimale Performance
+- **CoordinatorEntity**: Alle Entitäten nutzen moderne HA-Patterns
+- **Binary Sensor Support**: Vollständige Unterstützung für Gerätestatus
+- **Enhanced Error Handling**: Async-Pattern ohne Fire-and-Forget
+- **Translation Support**: Vollständige Internationalisierung
 
 #### 🚀 Smart Device Detection
 - **Automatic Device Recognition**: Device ID automatisch erkannt - HERMES & STYLE oder IND7705HC
@@ -158,13 +159,14 @@ Ich habe mich mit der local tuya Implementierung schwer getan, weil diverseste F
 
 ## 🏪 HACS Status
 
-✅ **PRODUCTION READY**: v1.3.2
+✅ **PRODUCTION READY**: v1.4.3
 
-- **Current Version: `v1.3.2`** 🎯 **STABLE & POLISHED**
-- **✅ All Runtime Errors Fixed** - Geräte funktionieren vollständig
-- **✅ Device Area Assignment** - Bereiche können zugewiesen werden
-- **✅ Clean Entity Creation** - Alle Entitäten fehlerfrei
-- **✅ Professional Logging** - Produktionsreifes Logging
+- **Current Version: `v1.4.3`** 🎯 **MODERN HA ARCHITECTURE**
+- **✅ DataUpdateCoordinator** - Zentrale Datenverwaltung nach HA Best Practices
+- **✅ CoordinatorEntity Pattern** - Alle Entitäten nutzen moderne Patterns
+- **✅ Binary Sensor Support** - Vollständige Gerätestatus-Überwachung
+- **✅ Translation Support** - Vollständige Internationalisierung
+- **✅ Enhanced Async Patterns** - Kein Fire-and-Forget, sauberes Error Handling
 - Updates: Über HACS automatisch verfügbar
 
 ## Development Status
@@ -187,12 +189,13 @@ Ich habe mich mit der local tuya Implementierung schwer getan, weil diverseste F
 - ✅ Umfassende Error Handling und Debug-Modi
 - ⚠️ Bei Kochfeldern Sicherheitshinweise beachten ([COOKTOP_SAFETY.md](COOKTOP_SAFETY.md))
 
-### 🚀 Changelog v1.3.2 (LATEST) - Polished & Professional!
-- 📝 **Documentation Overhaul**: README komplett aufgeräumt und aktualisiert
-- 🔇 **Minimal Logging**: Weitere Reduzierung auf produktionsreife Logs
-- ✨ **Professional Polish**: Streamlined Setup-Anweisungen
-- 🎯 **User-Friendly**: Fokus auf aktuelle v1.3.x Funktionalität
-- 📦 **HACS Ready**: Optimiert für professionelle HACS-Distribution
+### 🚀 Changelog v1.4.3 (LATEST) - Modern HA Architecture!
+- 🏗️ **DataUpdateCoordinator**: Zentrale Datenverwaltung nach HA Best Practices
+- 🔗 **CoordinatorEntity Pattern**: Alle Entitäten verwenden moderne HA-Patterns
+- 🟢 **Binary Sensor Support**: Vollständige Gerätestatus-Überwachung
+- 🌍 **Translation Support**: Vollständige Internationalisierung (de/en)
+- 🔄 **Enhanced Async Patterns**: Kein Fire-and-Forget, sauberes Error Handling
+- 🧹 **Code Cleanup**: Entfernung veralteter Dateien und Patterns
 
 ### 🚀 Changelog v1.0.0 - Production Ready Foundation
 - 🔧 **CRITICAL FIX**: Korrekter Tuya Port (6667 statt 6668)
@@ -285,22 +288,23 @@ Detaillierte Anleitung: [CONTRIBUTING.md](CONTRIBUTING.md)
 kkt_kolbe_integration/
 ├── custom_components/
 │   └── kkt_kolbe/
-│       ├── __init__.py         # Integration setup
+│       ├── __init__.py         # Integration setup with coordinator
 │       ├── manifest.json       # Integration metadata
 │       ├── icon.svg            # Integration logo
 │       ├── config_flow.py      # Configuration UI (multi-step)
-│       ├── discovery.py        # 🆕 mDNS auto-discovery
+│       ├── coordinator.py      # 🆕 DataUpdateCoordinator implementation
+│       ├── discovery.py        # mDNS auto-discovery
 │       ├── const.py            # Constants and models
+│       ├── device_database.py  # Device identification database
 │       ├── device_types.py     # Device type definitions
 │       ├── tuya_device.py      # Tuya communication
-│       ├── sensor.py           # Sensor entities
-│       ├── fan.py              # Fan control (hood)
-│       ├── light.py            # Light control (hood)
-│       ├── switch.py           # Switch entities
-│       ├── select.py           # RGB mode selector
-│       ├── number.py           # Timer controls
-│       ├── cooktop.py          # Cooktop specific entities
-│       ├── cooktop_utils.py    # Bitmasking utilities
+│       ├── sensor.py           # Sensor entities (coordinator-based)
+│       ├── fan.py              # Fan control (coordinator-based)
+│       ├── light.py            # Light control (coordinator-based)
+│       ├── switch.py           # Switch entities (coordinator-based)
+│       ├── select.py           # RGB mode selector (coordinator-based)
+│       ├── number.py           # Timer controls (coordinator-based)
+│       ├── binary_sensor.py    # 🆕 Binary sensor entities
 │       └── translations/       # UI translations (de/en)
 ├── config_example.yaml         # Example configuration (safe)
 ├── LOCAL_TUYA_GUIDE.md         # Alternative: Local Tuya setup
@@ -357,7 +361,7 @@ GitHub: [@moag1000](https://github.com/moag1000)
 [hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
 [license-shield]: https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge
 [license-url]: https://opensource.org/licenses/MIT
-[releases-shield]: https://img.shields.io/badge/version-v1.3.2-blue.svg?style=for-the-badge
+[releases-shield]: https://img.shields.io/badge/version-v1.4.3-blue.svg?style=for-the-badge
 [releases]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases
 [maintenance-shield]: https://img.shields.io/badge/maintainer-%40moag1000-blue.svg?style=for-the-badge
 [user_profile]: https://github.com/moag1000

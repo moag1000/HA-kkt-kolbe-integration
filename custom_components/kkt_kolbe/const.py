@@ -22,14 +22,6 @@ MODELS = {
     },
 }
 
-# Tuya Data Points (DPs) mapping based on device capabilities
-DP_POWER = "switch"  # DP1: Main power
-DP_LIGHT = "light"  # DP4: Light on/off
-DP_FILTER_ALERT = "switch_lamp"  # DP6: Filter cleaning reminder
-DP_FAN_SPEED = "fan_speed_enum"  # DP10: Fan speed (off, low, middle, high, strong)
-DP_COUNTDOWN = "countdown"  # DP13: Timer (0-60 min)
-DP_RGB_LIGHT = "RGB"  # DP101: RGB light mode (0-9)
-
 # Fan speed mappings
 FAN_SPEEDS = {
     "off": 0,
