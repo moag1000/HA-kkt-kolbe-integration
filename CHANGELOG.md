@@ -4,6 +4,24 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.4] - 2025-10-17
+
+### 🚨 CRITICAL HOTFIX: Missing Import NameError
+
+#### Fixed
+- **NameError: 'CONF_IP_ADDRESS' not defined**: Added missing import to __init__.py
+- **Integration Loading**: Integration now loads successfully without NameError
+- **Config Entry Validation**: Added robust parameter validation with clear error messages
+- **Setup Stability**: Proper error handling for missing config entry data
+
+#### Technical Fixes
+- **__init__.py**: Added `CONF_IP_ADDRESS` to imports from homeassistant.const
+- **Parameter Validation**: Added validation for ip_address, device_id, and local_key
+- **Error Messages**: Clear ValueError messages for missing required parameters
+
+#### Breaking Changes
+**None** - This hotfix maintains full backward compatibility.
+
 ## [1.5.3] - 2025-10-17
 
 ### 🚨 HOTFIX: Config Entry & Discovery Stability
@@ -360,6 +378,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Releases**: [All Releases](https://github.com/moag1000/HA-kkt-kolbe-integration/releases)
 - **HACS**: [Custom Repository](https://github.com/moag1000/HA-kkt-kolbe-integration)
 
+[1.5.4]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.4
 [1.5.3]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.3
 [1.5.2]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.2
 [1.5.1]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.1
