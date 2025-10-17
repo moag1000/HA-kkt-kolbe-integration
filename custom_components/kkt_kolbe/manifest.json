@@ -9,6 +9,6 @@
   "issue_tracker": "https://github.com/moag1000/HA-kkt-kolbe-integration/issues",
   "integration_type": "device",
   "iot_class": "local_push",
-  "requirements": ["tinytuya>=1.13.0", "pycryptodome>=3.15.0"],
+  "requirements": ["tinytuya>=1.13.0", "pycryptodome>=3.15.0", "zeroconf>=0.38.0"],
   "version": "1.5.0"
 }

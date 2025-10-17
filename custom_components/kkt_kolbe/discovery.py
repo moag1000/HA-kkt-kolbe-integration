@@ -5,14 +5,7 @@ import logging
 import socket
 from hashlib import md5
 from typing import Dict, List, Optional
-from zeroconf import ServiceBrowser, ServiceListener, ServiceInfo
-
-# Compatibility: AsyncServiceInfo might not be available in older zeroconf versions
-try:
-    from zeroconf import AsyncServiceInfo
-except ImportError:
-    # Fallback for older zeroconf versions
-    AsyncServiceInfo = None
+from zeroconf import ServiceBrowser, ServiceListener, ServiceInfo, AsyncServiceInfo
 from Crypto.Cipher import AES
 
 from homeassistant.core import HomeAssistant, callback
@@ -347,17 +340,8 @@ class KKTKolbeDiscovery(ServiceListener):
     async def _async_add_service(self, zc, type_: str, name: str) -> None:
         """Handle discovered service asynchronously."""
         try:
-            # Use AsyncServiceInfo.async_request for async context if available
-            if AsyncServiceInfo is not None:
-                info = await AsyncServiceInfo.async_request(zc, type_, name, timeout=3000)
-            else:
-                # Skip async service info for older zeroconf versions
-                # This is optional functionality and graceful degradation is acceptable
-                _LOGGER.debug(
-                    "AsyncServiceInfo not available - skipping detailed service info for %s",
-                    name
-                )
-                return
+            # Use AsyncServiceInfo.async_request for proper async context
+            info = await AsyncServiceInfo.async_request(zc, type_, name, timeout=3000)
 
             if not info:
                 return
@@ -723,18 +707,9 @@ async def debug_scan_network() -> Dict[str, List[str]]:
 
                 for service_type in common_services:
                     try:
-                        if AsyncServiceInfo is not None:
-                            service_info = await AsyncServiceInfo.async_request(
-                                zeroconf, service_type, service_type, timeout=2000
-                            )
-                        else:
-                            # Skip detailed service enumeration for older zeroconf versions
-                            # This is diagnostic functionality and graceful degradation is acceptable
-                            _LOGGER.debug(
-                                "AsyncServiceInfo not available - skipping service enumeration for %s",
-                                service_type
-                            )
-                            continue
+                        service_info = await AsyncServiceInfo.async_request(
+                            zeroconf, service_type, service_type, timeout=2000
+                        )
 
                         if service_info:
                             results["mDNS_services"][service_type] = [str(service_info)]
