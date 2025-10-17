@@ -1,84 +1,102 @@
 {
   "config": {
     "step": {
-      "discovery": {
-        "title": "Gefundene KKT Kolbe Geräte",
-        "description": "{devices_found} KKT Kolbe Gerät(e) in Ihrem Netzwerk gefunden. Wählen Sie eines zur Konfiguration:",
+      "user": {
+        "title": "KKT Kolbe Einrichtung",
+        "description": "{setup_mode}",
         "data": {
-          "device": "Gerät auswählen"
+          "connection_method": "Einrichtungsmethode"
         }
       },
-      "credentials": {
-        "title": "Gerätezugangsdaten",
-        "description": "Geben Sie den Tuya Local Key ein für:\n\nGerät: {device_name}\nIP: {device_host}\nID: {device_id}",
+      "discovery": {
+        "title": "Geräteerkennung",
+        "description": "Erkennungsstatus: {discovery_status}\\n\\nGefundene Geräte: {found_devices}\\n\\n{fallback_info}",
         "data": {
-          "access_token": "Tuya Local Key",
-          "name": "Gerätename"
+          "selected_device": "Gerät auswählen",
+          "retry_discovery": "Erkennung wiederholen"
         }
       },
       "manual": {
-        "title": "Manuelle KKT Kolbe Einrichtung",
-        "description": "Konfigurieren Sie Ihr KKT Kolbe Gerät manuell.",
+        "title": "Manuelle Konfiguration",
+        "description": "Konfigurieren Sie Ihr KKT Kolbe Gerät manuell.\\n\\nBeispiele:\\nIP-Adresse: {ip_example}\\nGeräte-ID: {device_id_example}\\n\\nLocal Key Info: {local_key_info}",
         "data": {
-          "host": "IP-Adresse",
+          "ip_address": "IP-Adresse",
           "device_id": "Tuya Geräte-ID",
-          "access_token": "Tuya Local Key",
-          "type": "Gerätetyp",
-          "name": "Gerätename"
+          "local_key": "Local Key"
         }
       },
-      "choose_setup": {
-        "title": "Einrichtungsmethode wählen",
-        "description": "Keine KKT Kolbe Geräte automatisch gefunden.\\n\\nGrund: {reason}\\n\\nWählen Sie eine Einrichtungsmethode:",
+      "authentication": {
+        "title": "Geräte-Authentifizierung",
+        "description": "Geben Sie den Local Key für Ihr Gerät ein:\\n\\nGerät: {device_name}\\nGeräte-ID: {device_id}\\nIP-Adresse: {ip_address}",
         "data": {
-          "setup_choice": "Einrichtung"
+          "local_key": "Local Key",
+          "test_connection": "Verbindung testen"
         }
       },
-      "debug_info": {
-        "title": "Discovery Debug Information",
-        "description": "{debug_info}",
+      "settings": {
+        "title": "Erweiterte Einstellungen",
+        "description": "Konfigurieren Sie erweiterte Einstellungen für {device_name}.\\n\\nEmpfohlen: {recommended_interval}",
         "data": {
-          "back": "Zurück zur Auswahl"
+          "update_interval": "Aktualisierungsintervall",
+          "enable_debug_logging": "Debug-Protokollierung aktivieren",
+          "enable_advanced_entities": "Erweiterte Entitäten aktivieren",
+          "zone_naming_scheme": "Zonenbenennung"
         }
       },
-      "zeroconf_confirm": {
-        "title": "KKT Kolbe Gerät gefunden",
-        "description": "Ein potenzielles KKT Kolbe Gerät wurde automatisch erkannt:\\n\\nName: {name}\\nIP-Adresse: {host}\\nGeräte-ID: {device_id}\\n\\nMöchten Sie dieses Gerät einrichten?",
-        "data": {}
-      },
-      "zeroconf_credentials": {
-        "title": "Gerätezugangsdaten (Auto-Discovery)",
-        "description": "Geben Sie den Tuya Local Key für das automatisch erkannte Gerät ein:\\n\\nGerät: {device_name}\\nIP: {device_host}\\nID: {device_id}",
+      "confirmation": {
+        "title": "Einrichtung bestätigen",
+        "description": "Bitte bestätigen Sie Ihre Konfiguration:\\n\\nGerät: {device_name}\\nIP: {ip_address}\\nGeräte-ID: {device_id}\\nProdukt: {product_name}\\n\\nEinstellungen:\\nAktualisierungsintervall: {update_interval} Sekunden\\nDebug-Protokollierung: {debug_logging}\\nErweiterte Entitäten: {advanced_entities}",
         "data": {
-          "access_token": "Tuya Local Key",
-          "name": "Gerätename",
-          "device_id": "Geräte-ID (falls anders)"
-        }
-      },
-      "user": {
-        "title": "KKT Kolbe Einrichtung",
-        "description": "Konfigurieren Sie Ihr KKT Kolbe Gerät (Tuya-Gerät).",
-        "data": {
-          "host": "IP-Adresse",
-          "device_id": "Tuya Geräte-ID",
-          "access_token": "Tuya Local Key",
-          "type": "Gerätetyp",
-          "name": "Gerätename"
+          "confirm": "Einrichtung bestätigen"
         }
       }
     },
     "error": {
       "cannot_connect": "Verbindung zum Gerät fehlgeschlagen",
       "invalid_auth": "Ungültiger Local Key oder Authentifizierung fehlgeschlagen",
-      "unknown": "Unerwarteter Fehler",
-      "missing_device_id": "Geräte-ID fehlt oder konnte nicht automatisch erkannt werden",
-      "no_host": "Keine IP-Adresse gefunden",
-      "invalid_input": "Ungültige Eingabe - bitte überprüfen Sie Ihre Daten",
-      "network_error": "Netzwerkfehler - Gerät nicht erreichbar",
-      "connection_test": "Verbindungstest fehlgeschlagen"
+      "discovery_failed": "Geräteerkennung fehlgeschlagen",
+      "device_not_found": "Ausgewähltes Gerät nicht gefunden",
+      "invalid_ip": "Ungültiges IP-Adressformat",
+      "invalid_device_id": "Ungültiges Geräte-ID-Format (muss 20+ Zeichen haben)",
+      "invalid_local_key": "Ungültiges Local Key Format (muss 16+ Zeichen haben)",
+      "connection_test_failed": "Verbindungstest fehlgeschlagen",
+      "unknown": "Unerwarteter Fehler"
     },
     "abort": {
       "already_configured": "Gerät ist bereits konfiguriert"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "KKT Kolbe Optionen",
+        "description": "Konfigurieren Sie Optionen für {device_name}.\\n\\nAktuelles Aktualisierungsintervall: {current_interval} Sekunden",
+        "data": {
+          "scan_interval": "Aktualisierungsintervall",
+          "enable_debug_logging": "Debug-Protokollierung aktivieren",
+          "enable_advanced_entities": "Erweiterte Entitäten aktivieren",
+          "zone_naming_scheme": "Zonenbenennung",
+          "test_connection": "Verbindung testen"
+        }
+      }
+    },
+    "error": {
+      "connection_test_failed": "Verbindungstest fehlgeschlagen - prüfen Sie die Geräteverfügbarkeit"
+    }
+  },
+  "selector": {
+    "connection_method": {
+      "options": {
+        "discovery": "Automatische Erkennung",
+        "manual": "Manuelle Konfiguration"
+      }
+    },
+    "zone_naming": {
+      "options": {
+        "zone": "Zone 1, Zone 2, ...",
+        "numeric": "1, 2, 3, ...",
+        "custom": "Benutzerdefinierte Namen"
+      }
     }
   }
 }

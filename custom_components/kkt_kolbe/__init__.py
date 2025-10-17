@@ -12,6 +12,7 @@ from homeassistant.const import (
 from .const import DOMAIN
 from .tuya_device import KKTKolbeTuyaDevice
 from .coordinator import KKTKolbeUpdateCoordinator
+from .services import async_setup_services, async_unload_services
 # Lazy import discovery to reduce startup time
 
 _LOGGER = logging.getLogger(__name__)
@@ -94,6 +95,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Load only the platforms needed for this specific device
     await hass.config_entries.async_forward_entry_setups(entry, platforms)
+
+    # Set up services when the first device is added
+    if len(hass.data[DOMAIN]) == 1:
+        await async_setup_services(hass)
+        _LOGGER.info("KKT Kolbe services initialized")
+
     return True
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -109,8 +116,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id)
 
-        # Stop discovery if no more devices
+        # Unload services when the last device is removed
         if not hass.data[DOMAIN]:
+            await async_unload_services(hass)
+            _LOGGER.info("KKT Kolbe services unloaded")
+
             from .discovery import async_stop_discovery
             await async_stop_discovery()
 

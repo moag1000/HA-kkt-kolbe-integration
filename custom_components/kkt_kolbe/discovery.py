@@ -5,7 +5,7 @@ import logging
 import socket
 from hashlib import md5
 from typing import Dict, List, Optional
-from zeroconf import ServiceBrowser, ServiceListener
+from zeroconf import ServiceBrowser, ServiceListener, AsyncServiceInfo
 from Crypto.Cipher import AES
 
 from homeassistant.core import HomeAssistant, callback
@@ -340,7 +340,8 @@ class KKTKolbeDiscovery(ServiceListener):
     async def _async_add_service(self, zc, type_: str, name: str) -> None:
         """Handle discovered service asynchronously."""
         try:
-            info = zc.get_service_info(type_, name)
+            # Use AsyncServiceInfo.async_request for async context
+            info = await AsyncServiceInfo.async_request(zc, type_, name, timeout=3000)
             if not info:
                 return
 
@@ -704,9 +705,14 @@ async def debug_scan_network() -> Dict[str, List[str]]:
                 ]
 
                 for service_type in common_services:
-                    service_info = zeroconf.get_service_info(service_type, timeout=2)
-                    if service_info:
-                        results["mDNS_services"][service_type] = [str(service_info)]
+                    try:
+                        service_info = await AsyncServiceInfo.async_request(
+                            zeroconf, service_type, service_type, timeout=2000
+                        )
+                        if service_info:
+                            results["mDNS_services"][service_type] = [str(service_info)]
+                    except Exception as e:
+                        _LOGGER.debug(f"Failed to get service info for {service_type}: {e}")
             else:
                 results["mDNS_services"]["error"] = ["Discovery service not active"]
         except Exception as e:

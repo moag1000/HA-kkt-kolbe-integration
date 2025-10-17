@@ -35,7 +35,7 @@ Ich habe mich mit der local tuya Implementierung schwer getan, weil diverseste F
 
 ## Features
 
-### ✅ v1.4.3: Modern Architecture & Best Practices
+### ✅ v1.5.0: Advanced Architecture & Production Readiness
 
 **🎯 Moderne Home Assistant Architektur mit DataUpdateCoordinator!**
 
@@ -47,17 +47,23 @@ Ich habe mich mit der local tuya Implementierung schwer getan, weil diverseste F
 - **Translation Support**: Vollständige Internationalisierung
 
 #### 🚀 Smart Device Detection
-- **Automatic Device Recognition**: Device ID automatisch erkannt - HERMES & STYLE oder IND7705HC
+- **Automatic Device Recognition**: Device ID automatisch erkannt - 4 Gerätemodelle unterstützt
 - **Zero Configuration**: Keine manuelle Gerätetyp-Auswahl nötig
 - **Universal Setup**: Funktioniert mit Auto-Discovery und manueller Konfiguration
 
-### Supported Models
+### Supported Models (4 Geräte)
+
+#### 🌬️ Range Hoods (3 Modelle)
 - **KKT Kolbe HERMES & STYLE** - Range Hood (Model ID: e1k6i0zo)
+- **KKT Kolbe HERMES** - Range Hood (Model ID: 0fcj8kha86svfmve)
+- **KKT Kolbe ECCO HCM** - Range Hood (Model ID: edjsx0)
+
+#### 🔥 Induction Cooktops (1 Modell)
 - **KKT IND7705HC** - Induction Cooktop (Product ID: p8volecsgzdyun29)
 
 ### Entities Based on Device Type
 
-#### Range Hood (HERMES & STYLE)
+#### Range Hood (HERMES & STYLE / HERMES / ECCO HCM)
 - **Fan**: Control with 5 speed levels (off, low, middle, high, strong)
 - **Light**: Main hood lighting on/off
 - **RGB Light Mode**: 10 different lighting modes
@@ -117,7 +123,7 @@ Ich habe mich mit der local tuya Implementierung schwer getan, weil diverseste F
 
 #### ✨ Discovery-Features:
 - **mDNS + UDP Discovery**: Wie LocalTuya - findet Geräte zuverlässig
-- **Automatische Typerkennung**: HERMES & STYLE vs IND7705HC
+- **Automatische Typerkennung**: 4 Gerätemodelle (3 Hoods + 1 Cooktop)
 - **Zero-Config**: Keine IP-Suche oder Device ID-Eingabe nötig
 - **Fallback**: Manuelle Konfiguration weiterhin verfügbar
 
@@ -159,9 +165,9 @@ Ich habe mich mit der local tuya Implementierung schwer getan, weil diverseste F
 
 ## 🏪 HACS Status
 
-✅ **PRODUCTION READY**: v1.4.3
+✅ **PRODUCTION READY**: v1.5.0
 
-- **Current Version: `v1.4.3`** 🎯 **MODERN HA ARCHITECTURE**
+- **Current Version: `v1.5.0`** 🎯 **ADVANCED HA ARCHITECTURE**
 - **✅ DataUpdateCoordinator** - Zentrale Datenverwaltung nach HA Best Practices
 - **✅ CoordinatorEntity Pattern** - Alle Entitäten nutzen moderne Patterns
 - **✅ Binary Sensor Support** - Vollständige Gerätestatus-Überwachung
@@ -180,7 +186,7 @@ Ich habe mich mit der local tuya Implementierung schwer getan, weil diverseste F
 - ✅ **Comprehensive Error Handling** mit spezifischen Fehlermeldungen
 - ✅ **Multi-Step Config Flow** mit automatischer Geräteerkennung
 - ✅ **Full Translations** (deutsch/englisch)
-- ✅ **All Device Data Points** für HERMES & STYLE und IND7705HC
+- ✅ **All Device Data Points** für alle 4 unterstützten Gerätemodelle
 - ✅ **Debug & Troubleshooting** Modi
 
 ### ⚠️ WICHTIG: Experimenteller Status
@@ -189,7 +195,7 @@ Ich habe mich mit der local tuya Implementierung schwer getan, weil diverseste F
 - ✅ Umfassende Error Handling und Debug-Modi
 - ⚠️ Bei Kochfeldern Sicherheitshinweise beachten ([COOKTOP_SAFETY.md](COOKTOP_SAFETY.md))
 
-### 🚀 Changelog v1.4.3 (LATEST) - Modern HA Architecture!
+### 🚀 Changelog v1.5.0 (LATEST) - Advanced Architecture & Production Readiness!
 - 🏗️ **DataUpdateCoordinator**: Zentrale Datenverwaltung nach HA Best Practices
 - 🔗 **CoordinatorEntity Pattern**: Alle Entitäten verwenden moderne HA-Patterns
 - 🟢 **Binary Sensor Support**: Vollständige Gerätestatus-Überwachung
@@ -361,7 +367,7 @@ GitHub: [@moag1000](https://github.com/moag1000)
 [hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
 [license-shield]: https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge
 [license-url]: https://opensource.org/licenses/MIT
-[releases-shield]: https://img.shields.io/badge/version-v1.4.3-blue.svg?style=for-the-badge
+[releases-shield]: https://img.shields.io/badge/version-v1.5.0-blue.svg?style=for-the-badge
 [releases]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases
 [maintenance-shield]: https://img.shields.io/badge/maintainer-%40moag1000-blue.svg?style=for-the-badge
 [user_profile]: https://github.com/moag1000

@@ -1,17 +1,11 @@
-"""Light platform for KKT Kolbe Dunstabzugshaube."""
+"""Light platform for KKT Kolbe devices."""
 import logging
-from datetime import timedelta
-from typing import Any
-from homeassistant.components.light import (
-    LightEntity,
-    ColorMode,
-    ATTR_BRIGHTNESS,
-)
+from homeassistant.components.light import LightEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from .base_entity import KKTBaseEntity
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -24,56 +18,38 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up KKT Kolbe light entity."""
-    device_data = hass.data[DOMAIN][entry.entry_id]
-    coordinator = device_data["coordinator"]
-    device_info = device_data["device_info"]
+    coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+    product_name = hass.data[DOMAIN][entry.entry_id].get("product_name", "unknown")
 
-    # Only create light entity for hood devices
-    if device_info.get("category") == "hood":
+    # Only add light entity for HERMES & STYLE (range hood)
+    if "HERMES" in product_name and "STYLE" in product_name:
         async_add_entities([KKTKolbeLight(coordinator, entry)])
 
-class KKTKolbeLight(CoordinatorEntity, LightEntity):
-    """Representation of KKT Kolbe Dunstabzugshaube light."""
+
+class KKTKolbeLight(KKTBaseEntity, LightEntity):
+    """Representation of a KKT Kolbe light."""
 
     def __init__(self, coordinator, entry: ConfigEntry):
         """Initialize the light."""
-        super().__init__(coordinator)
-        self._entry = entry
-        self._attr_unique_id = f"{entry.entry_id}_light"
-        self._attr_has_entity_name = True
-        self._attr_name = "Light"
-        self._attr_color_mode = ColorMode.BRIGHTNESS
-        self._attr_supported_color_modes = {ColorMode.BRIGHTNESS}
+        config = {
+            "dp": 3,
+            "name": "Light",
+        }
+        super().__init__(coordinator, entry, config, "light")
+        self._attr_icon = "mdi:lightbulb"
 
     @property
-    def is_on(self) -> bool:
-        """Return if the light is on."""
-        data = self.coordinator.data
-        if not data:
-            return False
-        return data.get(4, False)
+    def is_on(self) -> bool | None:
+        """Return true if the light is on."""
+        value = self._get_data_point_value()
+        return value is not None and bool(value)
 
-    @property
-    def brightness(self) -> int | None:
-        """Return the brightness of the light."""
-        data = self.coordinator.data
-        if not data:
-            return None
-        return data.get(5, 255)
-
-    async def async_turn_on(self, **kwargs: Any) -> None:
+    async def async_turn_on(self, **kwargs) -> None:
         """Turn on the light."""
-        if ATTR_BRIGHTNESS in kwargs:
-            brightness = kwargs[ATTR_BRIGHTNESS]
-            await self.coordinator.async_set_data_point(5, brightness)
+        await self._async_set_data_point(self._dp, True)
+        self._log_entity_state("Turn On", f"DP {self._dp} set to True")
 
-        await self.coordinator.async_set_data_point(4, True)
-
-    async def async_turn_off(self, **kwargs: Any) -> None:
+    async def async_turn_off(self, **kwargs) -> None:
         """Turn off the light."""
-        await self.coordinator.async_set_data_point(4, False)
-
-    @property
-    def device_info(self):
-        """Return device information."""
-        return self.coordinator.device_info
+        await self._async_set_data_point(self._dp, False)
+        self._log_entity_state("Turn Off", f"DP {self._dp} set to False")

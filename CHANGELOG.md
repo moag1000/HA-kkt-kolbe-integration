@@ -4,6 +4,42 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2025-10-17
+
+### 🚀 MAJOR RELEASE: Advanced Architecture & Production Readiness
+
+#### Added
+- **Base Entity Pattern**: Code deduplication with KKTBaseEntity and KKTZoneBaseEntity - achieved 27% code reduction
+- **Multi-Step Config Flow**: Modern 6-step configuration with dynamic device selection, authentication, and settings
+- **Integration Services**: 8 comprehensive services for device control, automation, and emergency operations
+- **Custom Exception Hierarchy**: 9 specialized exception classes for precise error handling and debugging
+- **Enhanced Device Communication**: Explicit TinyTuya status retrieval, data point writing, and timeout protection
+- **AsyncServiceInfo Compatibility**: Modern zeroconf integration for future Home Assistant versions
+
+#### Improved
+- **Config Flow UX**: Dynamic device discovery, connection testing, and configuration validation
+- **Error Handling**: Timeout protection (8-15s), connection retries, and graceful error recovery
+- **Device Discovery**: Enhanced protocol detection (3.3, 3.4, 3.1, 3.2) with DPS validation
+- **Services Framework**: Bulk operations, emergency stop, device synchronization, and filter management
+- **Translation Coverage**: Complete EN/DE internationalization with 74 translation keys
+
+#### Technical Enhancements
+- **services.py**: 8 integration services with entity validation and error handling
+- **exceptions.py**: Typed exception hierarchy with contextual error information
+- **config_flow.py**: VERSION 2 with modern selectors and options flow
+- **tuya_device.py**: Enhanced timeout protection and explicit TinyTuya operations
+- **translations/**: Complete bilingual support for all UI elements
+
+#### Services Added
+- `set_cooking_timer`: Zone-specific timer control
+- `set_zone_power`: Individual zone power management
+- `bulk_power_off`: Emergency shutdown with device type filtering
+- `sync_all_devices`: Force refresh with online/offline filtering
+- `set_hood_fan_speed`: Range hood fan control
+- `set_hood_lighting`: Lighting control with brightness
+- `emergency_stop`: Immediate stop all cooking operations
+- `reset_filter_timer`: Filter maintenance management
+
 ## [1.4.3] - 2024-10-17
 
 ### 🏗️ MAJOR ARCHITECTURE: Modern Home Assistant Patterns
@@ -240,8 +276,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Manual Configuration**: IP address and credential-based setup
 - **Core Entities**: Basic fan, light, and sensor support
 
-#### Supported Devices
+#### Supported Devices (4 Models)
+##### Range Hoods (3 Models)
 - **KKT Kolbe HERMES & STYLE**: Range Hood with fan control, lighting, and timer
+- **KKT Kolbe HERMES**: Range Hood with advanced RGB and eco mode controls
+- **KKT Kolbe ECCO HCM**: Range Hood with 9-level fan control and dual filter monitoring
+##### Induction Cooktops (1 Model)
 - **KKT IND7705HC**: Induction Cooktop with 5 zones and advanced features
 
 #### Technical Foundation
@@ -266,6 +306,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Releases**: [All Releases](https://github.com/moag1000/HA-kkt-kolbe-integration/releases)
 - **HACS**: [Custom Repository](https://github.com/moag1000/HA-kkt-kolbe-integration)
 
+[1.5.0]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.0
 [1.4.3]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.4.3
 [1.4.2]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.4.2
 [1.4.1]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.4.1

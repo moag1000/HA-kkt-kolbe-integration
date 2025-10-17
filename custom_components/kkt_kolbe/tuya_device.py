@@ -1,9 +1,15 @@
-"""KKT Kolbe Tuya Device Handler - Based on working v1.0.2 logic."""
+"""KKT Kolbe Tuya Device Handler - v1.5.0 with enhanced error handling and timeout protection."""
 import asyncio
 import logging
 from typing import Any, Dict
 
 import tinytuya
+
+from .exceptions import (
+    KKTConnectionError,
+    KKTTimeoutError,
+    KKTDataPointError
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -35,92 +41,150 @@ class KKTKolbeTuyaDevice:
         return task
 
     async def async_connect(self) -> None:
-        """Establish async connection to the device."""
+        """Establish async connection to the device with timeout protection."""
         if self._connected:
             return
 
         try:
-            loop = asyncio.get_event_loop()
+            # Apply timeout protection for connection operations
+            await asyncio.wait_for(self._perform_connection(), timeout=15.0)
 
-            # LocalTuya-inspired authentication with enhanced protocol detection
-            if self.version == "auto":
-                _LOGGER.info(f"Auto-detecting Tuya protocol version for {self.ip_address}")
-                # LocalTuya order: 3.3 default first, then 3.4, 3.1, 3.2 (proven compatibility)
-                for test_version in [3.3, 3.4, 3.1, 3.2]:
-                    try:
-                        test_device = await loop.run_in_executor(
-                            None,
-                            lambda v=test_version: tinytuya.Device(
-                                dev_id=self.device_id,
-                                address=self.ip_address,
-                                local_key=self.local_key,
-                                version=float(v)  # Use float like LocalTuya
-                            )
-                        )
-
-                        # Configure device with LocalTuya-style settings
-                        test_device.set_socketPersistent(True)
-                        test_device.set_socketNODELAY(True)
-                        test_device.set_socketTimeout(5)
-                        test_device.set_socketRetryLimit(3)
-
-                        # Enhanced validation - check for valid DPS data
-                        test_status = await loop.run_in_executor(
-                            None,
-                            test_device.status
-                        )
-
-                        # LocalTuya-style validation: Check for datapoints like LocalTuya does
-                        if (test_status and isinstance(test_status, dict) and
-                            "dps" in test_status and test_status["dps"] and
-                            len(test_status["dps"]) > 0):
-                            self.version = str(test_version)
-                            _LOGGER.info(f"Detected Tuya protocol version: {test_version}")
-                            self._device = test_device
-                            self._connected = True
-                            return
-
-                    except Exception as e:
-                        continue
-
-                # If we reach here, auto-detection failed
-                _LOGGER.error(f"Auto-detection failed for all versions (3.3, 3.4, 3.1, 3.2)")
-                raise Exception("No compatible version found - device not responding to any Tuya protocol")
-            else:
-                # Use specified version with LocalTuya-style configuration
-                version_float = float(self.version) if self.version != "auto" else 3.3
-                self._device = await loop.run_in_executor(
-                    None,
-                    lambda: tinytuya.Device(
-                        dev_id=self.device_id,
-                        address=self.ip_address,
-                        local_key=self.local_key,
-                        version=version_float
-                    )
-                )
-                # Apply LocalTuya-style socket configuration
-                self._device.set_socketPersistent(True)
-                self._device.set_socketNODELAY(True)
-                self._device.set_socketTimeout(5)
-                self._device.set_socketRetryLimit(3)
-                self._connected = True
-                _LOGGER.info(f"Connected to KKT Kolbe device at {self.ip_address} (version {self.version})")
-
+        except asyncio.TimeoutError:
+            self._connected = False
+            _LOGGER.error(f"Connection timeout after 15 seconds for device {self.ip_address}")
+            self._device = None
+            raise KKTTimeoutError(
+                operation="connect",
+                device_id=self.device_id[:8],
+                timeout=15.0
+            )
         except Exception as e:
             self._connected = False
             _LOGGER.error(f"Failed to connect to device: {e}")
             self._device = None
-            raise
+            raise KKTConnectionError(
+                operation="connect",
+                device_id=self.device_id[:8],
+                reason=str(e)
+            )
+
+    async def _perform_connection(self) -> None:
+        """Perform the actual connection logic."""
+        loop = asyncio.get_event_loop()
+
+        # LocalTuya-inspired authentication with enhanced protocol detection
+        if self.version == "auto":
+            _LOGGER.info(f"Auto-detecting Tuya protocol version for {self.ip_address}")
+            # LocalTuya order: 3.3 default first, then 3.4, 3.1, 3.2 (proven compatibility)
+            for test_version in [3.3, 3.4, 3.1, 3.2]:
+                try:
+                    test_device = await loop.run_in_executor(
+                        None,
+                        lambda v=test_version: tinytuya.Device(
+                            dev_id=self.device_id,
+                            address=self.ip_address,
+                            local_key=self.local_key,
+                            version=float(v)  # Use float like LocalTuya
+                        )
+                    )
+
+                    # Configure device with LocalTuya-style settings
+                    test_device.set_socketPersistent(True)
+                    test_device.set_socketNODELAY(True)
+                    test_device.set_socketTimeout(5)
+                    test_device.set_socketRetryLimit(3)
+
+                    # Enhanced validation with explicit status() call and DPS detection
+                    test_status = await asyncio.wait_for(
+                        loop.run_in_executor(None, test_device.status),
+                        timeout=5.0
+                    )
+
+                    # Try to detect available DPS for enhanced validation
+                    try:
+                        available_dps = await asyncio.wait_for(
+                            loop.run_in_executor(None, test_device.detect_available_dps),
+                            timeout=3.0
+                        )
+                        _LOGGER.debug(f"Detected DPS for version {test_version}: {available_dps}")
+                    except Exception:
+                        # DPS detection is optional - continue if it fails
+                        pass
+
+                    # LocalTuya-style validation: Check for datapoints like LocalTuya does
+                    if (test_status and isinstance(test_status, dict) and
+                        "dps" in test_status and test_status["dps"] and
+                        len(test_status["dps"]) > 0):
+                        self.version = str(test_version)
+                        _LOGGER.info(f"Detected Tuya protocol version: {test_version}")
+                        self._device = test_device
+                        self._connected = True
+                        return
+
+                except asyncio.TimeoutError:
+                    _LOGGER.debug(f"Version {test_version} timeout - trying next version")
+                    continue
+                except Exception as e:
+                    _LOGGER.debug(f"Version {test_version} failed: {e} - trying next version")
+                    continue
+
+            # If we reach here, auto-detection failed
+            _LOGGER.error(f"Auto-detection failed for all versions (3.3, 3.4, 3.1, 3.2)")
+            raise KKTConnectionError(
+                operation="auto_detect",
+                device_id=self.device_id[:8],
+                reason="No compatible version found - device not responding to any Tuya protocol"
+            )
+        else:
+            # Use specified version with LocalTuya-style configuration
+            version_float = float(self.version) if self.version != "auto" else 3.3
+            self._device = await loop.run_in_executor(
+                None,
+                lambda: tinytuya.Device(
+                    dev_id=self.device_id,
+                    address=self.ip_address,
+                    local_key=self.local_key,
+                    version=version_float
+                )
+            )
+            # Apply LocalTuya-style socket configuration
+            self._device.set_socketPersistent(True)
+            self._device.set_socketNODELAY(True)
+            self._device.set_socketTimeout(5)
+            self._device.set_socketRetryLimit(3)
+            self._connected = True
+            _LOGGER.info(f"Connected to KKT Kolbe device at {self.ip_address} (version {self.version})")
 
     async def async_ensure_connected(self):
-        """Ensure device is connected (async)."""
+        """Ensure device is connected (async) with proper error handling."""
         if not self._connected:
-            await self.async_connect()
+            try:
+                await self.async_connect()
+            except (KKTConnectionError, KKTTimeoutError):
+                # Re-raise our custom exceptions
+                raise
+            except Exception as e:
+                # Convert any other exceptions to our format
+                raise KKTConnectionError(
+                    operation="ensure_connected",
+                    device_id=self.device_id[:8],
+                    reason=str(e)
+                )
 
     @property
     def is_connected(self) -> bool:
         """Return True if device is connected."""
         return self._connected and self._device is not None
+
+    async def async_test_connection(self) -> bool:
+        """Test connection to device without throwing exceptions (for config flow)."""
+        try:
+            await self.async_get_status()
+            return True
+        except (KKTConnectionError, KKTTimeoutError, KKTDataPointError):
+            return False
+        except Exception:
+            return False
 
     @property
     def is_on(self) -> bool:
@@ -131,65 +195,107 @@ class KKTKolbeTuyaDevice:
         """Get data point value from cached status."""
         return self._status.get("dps", {}).get(str(dp), default)
 
-    async def async_get_status(self) -> dict:
-        """Get device status asynchronously."""
+    async def async_get_status(self) -> Dict:
+        """Get current device status asynchronously with explicit status retrieval logic."""
         await self.async_ensure_connected()
 
         if not self._device:
-            return {}
+            raise KKTConnectionError(
+                operation="get_status",
+                device_id=self.device_id[:8],
+                reason="Device not connected"
+            )
 
         try:
             loop = asyncio.get_event_loop()
-            status = await loop.run_in_executor(
-                None,
-                self._device.status
+
+            # Explicit status() call with timeout protection
+            status = await asyncio.wait_for(
+                loop.run_in_executor(None, self._device.status),
+                timeout=10.0
             )
-            if status and isinstance(status, dict):
-                self._status = status
-                return status
+
+            # Enhanced validation and error handling
+            if not status:
+                raise KKTDataPointError(
+                    operation="get_status",
+                    device_id=self.device_id[:8],
+                    reason="Device returned empty status"
+                )
+
+            if not isinstance(status, dict):
+                raise KKTDataPointError(
+                    operation="get_status",
+                    device_id=self.device_id[:8],
+                    reason=f"Invalid status format: {type(status)}"
+                )
+
+            if "dps" not in status:
+                raise KKTDataPointError(
+                    operation="get_status",
+                    device_id=self.device_id[:8],
+                    reason="Status missing 'dps' field"
+                )
+
+            self._status = status
+            _LOGGER.debug(f"Retrieved status with {len(status.get('dps', {}))} data points")
+            return self._status.get("dps", {})
+
+        except asyncio.TimeoutError:
+            self._connected = False
+            self._device = None
+            raise KKTTimeoutError(
+                operation="get_status",
+                device_id=self.device_id[:8],
+                timeout=10.0
+            )
+        except (KKTDataPointError, KKTTimeoutError):
+            # Re-raise our custom exceptions
+            raise
         except Exception as e:
             _LOGGER.error(f"Failed to get device status: {e}")
             self._connected = False  # Mark as disconnected on error - LocalTuya pattern
             self._device = None  # Clear device reference like LocalTuya
-
-        return {}
-
-    async def async_get_status(self) -> Dict:
-        """Get current device status asynchronously."""
-        await self.async_ensure_connected()
-
-        if not self._device:
-            return {}
-
-        try:
-            loop = asyncio.get_event_loop()
-            status = await loop.run_in_executor(
-                None,
-                self._device.status
+            raise KKTConnectionError(
+                operation="get_status",
+                device_id=self.device_id[:8],
+                reason=str(e)
             )
-            if status and isinstance(status, dict):
-                self._status = status
-                return self._status.get("dps", {})
-            return {}
-        except Exception as e:
-            _LOGGER.error(f"Failed to get device status: {e}")
-            return {}
 
     async def async_update_status(self) -> None:
-        """Update device status asynchronously."""
+        """Update device status asynchronously with timeout protection."""
         await self.async_ensure_connected()
 
         if not self._device:
-            return
+            raise KKTConnectionError(
+                operation="update_status",
+                device_id=self.device_id[:8],
+                reason="Device not connected"
+            )
 
         try:
             loop = asyncio.get_event_loop()
-            status = await loop.run_in_executor(
-                None,
-                self._device.status
+
+            # Explicit status() call with timeout protection
+            status = await asyncio.wait_for(
+                loop.run_in_executor(None, self._device.status),
+                timeout=10.0
             )
+
             if status and isinstance(status, dict):
                 self._status = status
+                _LOGGER.debug(f"Status updated with {len(status.get('dps', {}))} data points")
+            else:
+                _LOGGER.warning("Received invalid status during update")
+
+        except asyncio.TimeoutError:
+            self._connected = False
+            self._device = None
+            raise KKTTimeoutError(
+                operation="update_status",
+                device_id=self.device_id[:8],
+                timeout=10.0
+            )
         except Exception as e:
             _LOGGER.error(f"Failed to update device status: {e}")
             # Properly close connection on error like LocalTuya
@@ -200,23 +306,53 @@ class KKTKolbeTuyaDevice:
                     pass  # Ignore errors during cleanup
             self._connected = False
             self._device = None
+            raise KKTConnectionError(
+                operation="update_status",
+                device_id=self.device_id[:8],
+                reason=str(e)
+            )
 
     async def async_set_dp(self, dp: int, value: Any) -> bool:
-        """Set data point value asynchronously."""
+        """Set data point value asynchronously with explicit data point writing logic."""
         await self.async_ensure_connected()
 
         if not self._device:
-            return False
+            raise KKTConnectionError(
+                operation="set_dp",
+                device_id=self.device_id[:8],
+                reason="Device not connected"
+            )
 
         try:
             loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(
-                None,
-                self._device.set_value,
-                dp,
-                value
+
+            # Explicit set_value() call with timeout protection
+            result = await asyncio.wait_for(
+                loop.run_in_executor(
+                    None,
+                    self._device.set_value,
+                    dp,
+                    value
+                ),
+                timeout=8.0
             )
+
+            # Validate the result
+            if result is None:
+                _LOGGER.warning(f"set_value returned None for DP {dp} = {value}")
+
+            _LOGGER.debug(f"Successfully set DP {dp} to {value}")
             return True
+
+        except asyncio.TimeoutError:
+            self._connected = False
+            self._device = None
+            raise KKTTimeoutError(
+                operation="set_dp",
+                device_id=self.device_id[:8],
+                data_point=dp,
+                timeout=8.0
+            )
         except Exception as e:
             _LOGGER.error(f"Failed to set DP {dp} to {value}: {e}")
             # Properly close connection on error like LocalTuya
@@ -227,7 +363,12 @@ class KKTKolbeTuyaDevice:
                     pass  # Ignore errors during cleanup
             self._connected = False
             self._device = None
-            return False
+            raise KKTDataPointError(
+                operation="set_dp",
+                device_id=self.device_id[:8],
+                data_point=dp,
+                reason=str(e)
+            )
 
     def turn_on(self):
         """Turn device on (DP 1 = True). DEPRECATED: Use coordinator.async_set_data_point() instead."""

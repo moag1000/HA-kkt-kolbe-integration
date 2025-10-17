@@ -1,0 +1,181 @@
+set_cooking_timer:
+  name: Set Cooking Timer
+  description: Set a cooking timer for a specific cooktop zone
+  fields:
+    entity_id:
+      name: Zone Entity
+      description: Cooktop zone timer entity (number domain)
+      required: true
+      selector:
+        entity:
+          filter:
+            - integration: kkt_kolbe
+            - domain: number
+    timer_minutes:
+      name: Timer Duration
+      description: Timer duration in minutes (1-255)
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 255
+          unit_of_measurement: minutes
+          mode: box
+
+set_zone_power:
+  name: Set Zone Power Level
+  description: Set power level for a specific cooktop zone
+  fields:
+    entity_id:
+      name: Zone Entity
+      description: Cooktop zone power entity (number domain)
+      required: true
+      selector:
+        entity:
+          filter:
+            - integration: kkt_kolbe
+            - domain: number
+    power_level:
+      name: Power Level
+      description: Power level (0-9, 0 = off)
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 9
+          step: 1
+          mode: slider
+
+bulk_power_off:
+  name: Bulk Power Off
+  description: Turn off all or specific types of KKT Kolbe devices
+  fields:
+    device_types:
+      name: Device Types
+      description: Which device types to turn off
+      required: false
+      default: ["all"]
+      selector:
+        select:
+          options:
+            - value: "all"
+              label: "All Devices"
+            - value: "cooktop"
+              label: "Cooktops Only"
+            - value: "hood"
+              label: "Range Hoods Only"
+          multiple: true
+          mode: dropdown
+    confirm:
+      name: Confirm Action
+      description: Confirm that you want to turn off devices
+      required: true
+      default: false
+      selector:
+        boolean:
+
+sync_all_devices:
+  name: Sync All Devices
+  description: Force refresh data for all KKT Kolbe devices
+  fields:
+    device_filter:
+      name: Device Filter
+      description: Optional filter for specific devices
+      required: false
+      selector:
+        select:
+          options:
+            - value: "all"
+              label: "All Devices"
+            - value: "online_only"
+              label: "Online Devices Only"
+            - value: "offline_only"
+              label: "Offline Devices Only"
+          mode: dropdown
+
+set_hood_fan_speed:
+  name: Set Hood Fan Speed
+  description: Set fan speed for KKT Kolbe range hood
+  fields:
+    entity_id:
+      name: Hood Entity
+      description: Range hood fan speed entity
+      required: true
+      selector:
+        entity:
+          filter:
+            - integration: kkt_kolbe
+            - domain: number
+    fan_speed:
+      name: Fan Speed
+      description: Fan speed level (0-5, 0 = off)
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 5
+          step: 1
+          mode: slider
+
+set_hood_lighting:
+  name: Set Hood Lighting
+  description: Control range hood lighting
+  fields:
+    entity_id:
+      name: Hood Entity
+      description: Range hood lighting entity
+      required: true
+      selector:
+        entity:
+          filter:
+            - integration: kkt_kolbe
+            - domain: switch
+    brightness:
+      name: Brightness
+      description: Light brightness level (1-5), omit to toggle
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 5
+          step: 1
+          mode: slider
+
+emergency_stop:
+  name: Emergency Stop
+  description: Emergency stop all KKT Kolbe cooking operations
+  fields:
+    confirm:
+      name: Confirm Emergency Stop
+      description: This will immediately stop all cooking operations
+      required: true
+      default: false
+      selector:
+        boolean:
+    notification:
+      name: Send Notification
+      description: Send notification after emergency stop
+      required: false
+      default: true
+      selector:
+        boolean:
+
+reset_filter_timer:
+  name: Reset Filter Timer
+  description: Reset the filter change timer for range hood
+  fields:
+    entity_id:
+      name: Hood Entity
+      description: Range hood entity to reset filter timer
+      required: true
+      selector:
+        entity:
+          filter:
+            - integration: kkt_kolbe
+    confirm:
+      name: Confirm Reset
+      description: Confirm that filter has been changed
+      required: true
+      default: false
+      selector:
+        boolean:
