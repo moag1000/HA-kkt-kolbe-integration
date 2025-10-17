@@ -4,6 +4,24 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.2] - 2025-10-17
+
+### 🚨 HOTFIX: Missing async_discover_devices Method
+
+#### Fixed
+- **KKTKolbeDiscovery AttributeError**: Added missing `async_discover_devices` method to KKTKolbeDiscovery class
+- **Config Flow Discovery**: Config flow now works correctly with device discovery
+- **Discovery Timeout**: Proper timeout handling for device discovery (configurable, default 6 seconds)
+- **Discovery Integration**: Seamless integration between config flow and discovery service
+
+#### Technical Fixes
+- **discovery.py**: Added `async_discover_devices(timeout: int = 6)` method to KKTKolbeDiscovery class
+- **Config Flow Compatibility**: Restored proper discovery functionality in multi-step config flow
+- **Error Handling**: Graceful handling of discovery timeouts and failures
+
+#### Breaking Changes
+**None** - This hotfix maintains full backward compatibility.
+
 ## [1.5.1] - 2025-10-17
 
 ### 🚨 HOTFIX: AsyncServiceInfo API Corrections
@@ -324,6 +342,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Releases**: [All Releases](https://github.com/moag1000/HA-kkt-kolbe-integration/releases)
 - **HACS**: [Custom Repository](https://github.com/moag1000/HA-kkt-kolbe-integration)
 
+[1.5.2]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.2
 [1.5.1]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.1
 [1.5.0]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.0
 [1.4.3]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.4.3
