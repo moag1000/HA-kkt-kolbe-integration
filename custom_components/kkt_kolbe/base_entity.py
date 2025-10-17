@@ -40,8 +40,14 @@ class KKTBaseEntity(CoordinatorEntity):
         # Set up entity attributes
         self._setup_entity_attributes()
 
-        # Build device info
-        self._device_info = self._build_device_info()
+        # Device info will be built as property when needed (self.hass not available in __init__)
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device information about this entity."""
+        if not hasattr(self, '_device_info_cached'):
+            self._device_info_cached = self._build_device_info()
+        return self._device_info_cached
 
     def _setup_entity_attributes(self):
         """Set up common entity attributes."""
@@ -72,9 +78,14 @@ class KKTBaseEntity(CoordinatorEntity):
 
     def _build_device_info(self) -> DeviceInfo:
         """Build standardized device info."""
-        # Get device data from hass.data
-        device_data = self.hass.data[DOMAIN][self._entry.entry_id]
-        product_name = device_data.get("product_name", "Unknown")
+        # Get device data from hass.data (now available via property access)
+        if not self.hass:
+            # Fallback for cases where hass is not yet available
+            device_data = {}
+            product_name = "KKT Kolbe Device"
+        else:
+            device_data = self.hass.data.get(DOMAIN, {}).get(self._entry.entry_id, {})
+            product_name = device_data.get("product_name", "KKT Kolbe Device")
 
         # Extract device information
         device_id = self._entry.data.get("device_id", "unknown")
@@ -128,7 +139,10 @@ class KKTBaseEntity(CoordinatorEntity):
                     return str(hw_version)
 
         # Fallback based on product name
-        product_name = self.hass.data[DOMAIN][self._entry.entry_id].get("product_name", "")
+        if self.hass:
+            product_name = self.hass.data.get(DOMAIN, {}).get(self._entry.entry_id, {}).get("product_name", "")
+        else:
+            product_name = ""
         if "IND7705HC" in product_name:
             return "IND7705HC"
         elif "HERMES" in product_name:
@@ -138,7 +152,10 @@ class KKTBaseEntity(CoordinatorEntity):
 
     def _get_suggested_area(self) -> str:
         """Get suggested area for the device."""
-        product_name = self.hass.data[DOMAIN][self._entry.entry_id].get("product_name", "")
+        if self.hass:
+            product_name = self.hass.data.get(DOMAIN, {}).get(self._entry.entry_id, {}).get("product_name", "")
+        else:
+            product_name = ""
 
         if "IND7705HC" in product_name:
             return "Kitchen"

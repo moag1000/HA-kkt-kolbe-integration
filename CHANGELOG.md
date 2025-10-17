@@ -4,6 +4,34 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.9] - 2025-10-18
+
+### 🚨 CRITICAL HOTFIX: Entity Platform Setup Failures
+
+#### Fixed
+- **CRITICAL FIX**: Fixed `AttributeError: 'NoneType' object has no attribute 'data'` in entity initialization
+- **CRITICAL FIX**: Fixed UDP port conflicts (6666/6667 in use) causing discovery failures
+- **Platform Setup**: All entity platforms (switch, sensor, number, etc.) now load correctly
+- **Device Info Access**: Implemented safe `device_info` property pattern for CoordinatorEntity
+- **Entity Loading**: Entities now properly initialize and appear in Home Assistant
+- **Discovery Stability**: Fixed multiple discovery instance creation causing port conflicts
+
+#### Technical Fixes
+- **base_entity.py**: Converted `device_info` from `__init__` attribute to property with lazy loading
+- **Safe hass.data Access**: All `self.hass.data` access now safely handles None values
+- **CoordinatorEntity Pattern**: Proper implementation following Home Assistant best practices
+- **Entity Lifecycle**: Fixed entity initialization order to prevent None access errors
+- **config_flow.py**: Fixed UDP port conflicts by using global discovery instance instead of creating multiple instances
+- **Discovery Singleton**: Config flow now uses `async_start_discovery()` instead of creating `KKTKolbeDiscovery()` instances
+
+#### Root Cause
+- `self.hass` is not available during entity `__init__` in CoordinatorEntity pattern
+- Device info was being built too early, causing AttributeError on all entity platforms
+- Solution: Device info now built as property when first accessed (after hass is available)
+
+#### Breaking Changes
+**None** - This hotfix restores entity functionality without breaking existing configurations.
+
 ## [1.5.8] - 2025-10-18
 
 ### 🚨 CRITICAL HOTFIX: Invalid Button Selector Type
@@ -467,6 +495,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Releases**: [All Releases](https://github.com/moag1000/HA-kkt-kolbe-integration/releases)
 - **HACS**: [Custom Repository](https://github.com/moag1000/HA-kkt-kolbe-integration)
 
+[1.5.9]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.9
 [1.5.8]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.8
 [1.5.7]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.7
 [1.5.6]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.6

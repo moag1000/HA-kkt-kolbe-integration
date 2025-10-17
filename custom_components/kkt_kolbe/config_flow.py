@@ -13,7 +13,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import homeassistant.helpers.config_validation as cv
 
 from .const import DOMAIN
-from .discovery import KKTKolbeDiscovery
+from .discovery import async_start_discovery, async_stop_discovery, get_discovered_devices
 from .tuya_device import KKTKolbeTuyaDevice
 
 _LOGGER = logging.getLogger(__name__)
@@ -122,7 +122,6 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         self._connection_method: Optional[str] = None
         self._local_key: Optional[str] = None
         self._advanced_settings: Dict[str, Any] = {}
-        self._discovery = None
 
     async def async_step_user(
         self, user_input: Optional[Dict[str, Any]] = None
@@ -162,16 +161,16 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
 
         if should_run_discovery:
             try:
-                if not self._discovery:
-                    self._discovery = KKTKolbeDiscovery(self.hass)
-
                 # Show progress to user
                 self.hass.bus.async_fire("kkt_kolbe_discovery_started", {
                     "integration": DOMAIN,
                     "status": "scanning"
                 })
 
-                discovered = await self._discovery.async_discover_devices(timeout=15)
+                # Use global discovery instance (prevents UDP port conflicts)
+                await async_start_discovery(self.hass)
+                await asyncio.sleep(15)  # Discovery timeout
+                discovered = get_discovered_devices()
                 self._discovery_data = discovered
 
                 self.hass.bus.async_fire("kkt_kolbe_discovery_completed", {
