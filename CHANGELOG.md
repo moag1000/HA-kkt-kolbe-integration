@@ -4,6 +4,24 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.8] - 2025-10-18
+
+### 🚨 CRITICAL HOTFIX: Invalid Button Selector Type
+
+#### Fixed
+- **CRITICAL FIX**: Replaced unsupported `selector.button()` with proper `bool` fields in config flow
+- **Import Error**: Fixed "Unknown selector type button found" that prevented integration loading
+- **Config Flow Compatibility**: All navigation now uses Home Assistant supported selector types
+
+#### Technical Fixes
+- **config_flow.py**: Replaced all `selector.selector({"button": {}})` with `vol.Optional(..., default=False/True): bool`
+- **Navigation Logic**: Maintained existing navigation behavior with proper boolean fields
+- **Test Connection**: Kept `default=True` for `test_connection` fields to maintain expected behavior
+- **All Platforms**: Ensured compatibility with all Home Assistant versions
+
+#### Breaking Changes
+**None** - This hotfix maintains full functionality while fixing critical loading errors.
+
 ## [1.5.7] - 2025-10-18
 
 ### 🎯 ENHANCEMENT: Advanced Config Flow & Device Selection
@@ -449,6 +467,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Releases**: [All Releases](https://github.com/moag1000/HA-kkt-kolbe-integration/releases)
 - **HACS**: [Custom Repository](https://github.com/moag1000/HA-kkt-kolbe-integration)
 
+[1.5.8]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.8
 [1.5.7]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.7
 [1.5.6]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.6
 [1.5.5]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.5
