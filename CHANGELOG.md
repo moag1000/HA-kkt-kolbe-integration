@@ -4,6 +4,24 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.1] - 2025-10-17
+
+### 🚨 HOTFIX: AsyncServiceInfo API Corrections
+
+#### Fixed
+- **AsyncServiceInfo Import Error**: Import from `zeroconf.asyncio.AsyncServiceInfo` instead of `zeroconf.AsyncServiceInfo`
+- **AsyncServiceInfo API Usage**: Use correct instance method pattern per zeroconf documentation
+- **Config Flow Loading**: Integration now loads without import errors
+- **Discovery Service**: Proper async service discovery functionality restored
+
+#### Technical Fixes
+- **discovery.py**: Corrected import path and API usage for AsyncServiceInfo
+- **manifest.json**: Removed redundant zeroconf requirement (already in HA core)
+- **Compatibility**: Ensured compatibility with HA's zeroconf==0.148.0
+
+#### Breaking Changes
+**None** - This hotfix maintains full backward compatibility.
+
 ## [1.5.0] - 2025-10-17
 
 ### 🚀 MAJOR RELEASE: Advanced Architecture & Production Readiness
@@ -306,6 +324,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Releases**: [All Releases](https://github.com/moag1000/HA-kkt-kolbe-integration/releases)
 - **HACS**: [Custom Repository](https://github.com/moag1000/HA-kkt-kolbe-integration)
 
+[1.5.1]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.1
 [1.5.0]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.0
 [1.4.3]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.4.3
 [1.4.2]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.4.2
