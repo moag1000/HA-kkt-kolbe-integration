@@ -36,13 +36,15 @@ STEP_MANUAL_DATA_SCHEMA = vol.Schema({
     vol.Required(CONF_IP_ADDRESS): str,
     vol.Required("device_id"): str,
     vol.Required("local_key"): str,
+    vol.Optional("back_to_discovery", default=False): bool,
 })
 
 def _get_device_selection_schema(discovered_devices: Dict[str, Dict[str, Any]]):
     """Generate device selection schema based on discovered devices."""
     if not discovered_devices:
         return vol.Schema({
-            vol.Optional("retry_discovery", default=True): bool
+            vol.Optional("retry_discovery", default=False): bool,
+            vol.Optional("use_manual_config", default=False): bool
         })
 
     device_options = []
@@ -61,12 +63,14 @@ def _get_device_selection_schema(discovered_devices: Dict[str, Dict[str, Any]]):
                 "mode": "dropdown"
             }
         }),
-        vol.Optional("retry_discovery", default=False): bool
+        vol.Optional("retry_discovery", default=False): bool,
+        vol.Optional("use_manual_config", default=False): bool
     })
 
 STEP_AUTHENTICATION_DATA_SCHEMA = vol.Schema({
     vol.Required("local_key"): str,
     vol.Optional("test_connection", default=True): bool,
+    vol.Optional("back_to_previous", default=False): bool,
 })
 
 STEP_SETTINGS_DATA_SCHEMA = vol.Schema({
@@ -89,7 +93,8 @@ STEP_SETTINGS_DATA_SCHEMA = vol.Schema({
             "mode": "dropdown",
             "translation_key": "zone_naming"
         }
-    })
+    }),
+    vol.Optional("back_to_authentication", default=False): bool,
 })
 
 
@@ -138,7 +143,13 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: Dict[str, str] = {}
 
         # Initialize discovery if not done yet or retry requested
-        if not self._discovery_data or (user_input and user_input.get("retry_discovery")):
+        # Only run discovery on first visit or explicit retry request
+        should_run_discovery = (
+            not self._discovery_data or
+            (user_input and user_input.get("retry_discovery"))
+        )
+
+        if should_run_discovery:
             try:
                 if not self._discovery:
                     self._discovery = KKTKolbeDiscovery(self.hass)
@@ -162,6 +173,11 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                 errors["base"] = "discovery_failed"
 
         if user_input is not None and not user_input.get("retry_discovery"):
+            # Check if user wants to switch to manual configuration
+            if user_input.get("use_manual_config"):
+                return await self.async_step_manual()
+
+            # Handle device selection
             if "selected_device" in user_input:
                 device_id = user_input["selected_device"]
                 if device_id in self._discovery_data:
@@ -198,6 +214,10 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: Dict[str, str] = {}
 
         if user_input is not None:
+            # Check if user wants to go back to discovery
+            if user_input.get("back_to_discovery"):
+                return await self.async_step_discovery()
+
             # Validate input format
             validation_errors = await self._validate_manual_input(user_input)
             if not validation_errors:
@@ -230,6 +250,14 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: Dict[str, str] = {}
 
         if user_input is not None:
+            # Check if user wants to go back
+            if user_input.get("back_to_previous"):
+                # Go back to manual or discovery based on where we came from
+                if self._device_info.get("product_name") == "Manual Configuration":
+                    return await self.async_step_manual()
+                else:
+                    return await self.async_step_discovery()
+
             local_key = user_input["local_key"]
             test_connection = user_input.get("test_connection", True)
 
@@ -256,10 +284,11 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         # Pre-fill local key if we have it
         default_local_key = self._local_key or ""
 
-        # Create schema with pre-filled local key
+        # Create schema with pre-filled local key and back option
         auth_schema = vol.Schema({
             vol.Required("local_key", default=default_local_key): str,
             vol.Optional("test_connection", default=True): bool,
+            vol.Optional("back_to_previous", default=False): bool,
         })
 
         return self.async_show_form(
@@ -278,6 +307,10 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Handle advanced settings step."""
         if user_input is not None:
+            # Check if user wants to go back
+            if user_input.get("back_to_authentication"):
+                return await self.async_step_authentication()
+
             self._advanced_settings = user_input
             return await self.async_step_confirmation()
 
@@ -295,6 +328,10 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Handle confirmation and create config entry."""
         if user_input is not None:
+            # Check if user wants to go back to settings
+            if user_input.get("back_to_settings"):
+                return await self.async_step_settings()
+
             # Create the config entry
             title = f"KKT Kolbe {self._device_info.get('name', 'Device')}"
 
@@ -333,7 +370,8 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="confirmation",
             data_schema=vol.Schema({
-                vol.Optional("confirm", default=True): bool
+                vol.Optional("confirm", default=True): bool,
+                vol.Optional("back_to_settings", default=False): bool
             }),
             description_placeholders=summary_info
         )
