@@ -198,6 +198,18 @@ class KKTKolbeDiscovery(ServiceListener):
         self._udp_listeners: List = []
         self._discovery_callback = self._schedule_discovery_trigger
 
+    async def async_discover_devices(self, timeout: int = 6) -> Dict[str, Dict]:
+        """Discover devices and return discovered devices dict."""
+        # Start discovery if not already running
+        if not self._browsers and not self._udp_listeners:
+            await self.async_start()
+
+        # Wait for discovery to find devices
+        await asyncio.sleep(timeout)
+
+        # Return discovered devices
+        return self.discovered_devices.copy()
+
     async def async_start(self) -> None:
         """Start mDNS and UDP discovery."""
         try:
