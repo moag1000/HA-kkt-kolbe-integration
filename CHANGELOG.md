@@ -4,6 +4,24 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.3] - 2025-10-17
+
+### 🚨 HOTFIX: Config Entry & Discovery Stability
+
+#### Fixed
+- **KeyError 'host'**: Fixed missing config entry key handling in __init__.py setup
+- **NoneType AttributeError**: Added None value checks for mDNS TXT record processing
+- **Config Entry Compatibility**: Robust fallback for different config entry key formats
+- **Discovery Stability**: Graceful handling of non-Tuya mDNS services (Brother printers, etc.)
+
+#### Technical Fixes
+- **__init__.py**: Added fallback key resolution for ip_address/host/device_id/local_key
+- **discovery.py**: None value checks before decode() calls in all TXT record processing
+- **Error Handling**: Proper AttributeError handling alongside UnicodeDecodeError
+
+#### Breaking Changes
+**None** - This hotfix maintains full backward compatibility.
+
 ## [1.5.2] - 2025-10-17
 
 ### 🚨 HOTFIX: Missing async_discover_devices Method
@@ -342,6 +360,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Releases**: [All Releases](https://github.com/moag1000/HA-kkt-kolbe-integration/releases)
 - **HACS**: [Custom Repository](https://github.com/moag1000/HA-kkt-kolbe-integration)
 
+[1.5.3]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.3
 [1.5.2]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.2
 [1.5.1]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.1
 [1.5.0]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.0
