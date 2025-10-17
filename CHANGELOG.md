@@ -4,6 +4,27 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.10] - 2025-10-18
+
+### 🚨 EMERGENCY HOTFIX: Duplicate device_info Property
+
+#### Fixed
+- **CRITICAL FIX**: Removed duplicate `device_info` property definition causing AttributeError
+- **Entity Loading**: All entity platforms now load correctly without property conflicts
+- **Property Implementation**: Fixed device_info property overriding correct lazy-loading implementation
+
+#### Root Cause
+- Duplicate `device_info` property on lines 168-170 was overriding the correct implementation
+- Second property referenced non-existent `self._device_info` attribute
+- Result: `AttributeError: 'KKTKolbeSwitch' object has no attribute '_device_info'`
+
+#### Technical Fix
+- **base_entity.py**: Removed duplicate property definition (lines 168-170)
+- **Property Access**: Correct lazy-loading implementation with `_device_info_cached` now works
+- **All Platforms**: Switch, sensor, number, select, binary_sensor platforms now load correctly
+
+---
+
 ## [1.5.9] - 2025-10-18
 
 ### 🚨 CRITICAL HOTFIX: Entity Platform Setup Failures
@@ -495,6 +516,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Releases**: [All Releases](https://github.com/moag1000/HA-kkt-kolbe-integration/releases)
 - **HACS**: [Custom Repository](https://github.com/moag1000/HA-kkt-kolbe-integration)
 
+[1.5.10]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.10
 [1.5.9]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.9
 [1.5.8]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.8
 [1.5.7]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.7
