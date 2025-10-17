@@ -164,10 +164,6 @@ class KKTBaseEntity(CoordinatorEntity):
 
         return "Kitchen"
 
-    @property
-    def device_info(self) -> DeviceInfo:
-        """Return device information."""
-        return self._device_info
 
     @property
     def available(self) -> bool:
