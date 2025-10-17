@@ -5,6 +5,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.const import (
     Platform,
     CONF_HOST,
+    CONF_IP_ADDRESS,
     CONF_DEVICE_ID,
     CONF_ACCESS_TOKEN,
 )
@@ -41,10 +42,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await async_start_discovery(hass)
 
     # Initialize Tuya device connection (async)
-    # Use correct key names from config entry
+    # Use correct key names from config entry with robust fallbacks
     ip_address = entry.data.get(CONF_IP_ADDRESS) or entry.data.get("ip_address") or entry.data.get("host")
     device_id = entry.data.get(CONF_DEVICE_ID) or entry.data.get("device_id")
     local_key = entry.data.get(CONF_ACCESS_TOKEN) or entry.data.get("local_key")
+
+    # Validate required parameters
+    if not ip_address:
+        raise ValueError("IP address not found in config entry data")
+    if not device_id:
+        raise ValueError("Device ID not found in config entry data")
+    if not local_key:
+        raise ValueError("Local key not found in config entry data")
 
     device = KKTKolbeTuyaDevice(
         device_id=device_id,
