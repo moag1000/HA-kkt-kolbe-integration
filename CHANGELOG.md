@@ -4,6 +4,26 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.2] - 2025-10-18
+
+### 🔧 HOTFIX: Temperature Unit Configuration
+
+#### Fixed
+- **Temperature Sensor Units**: Fixed missing unit_of_measurement for Zone temperature sensors
+- **Timer Units**: Corrected unit_of_measurement configuration for all timer entities
+- **Home Assistant Compliance**: Resolved warnings about invalid temperature units
+
+#### Technical Details
+- Changed `unit` to `unit_of_measurement` in entity configurations
+- Added proper UnitOfTemperature.CELSIUS for all temperature sensors
+- Added proper UnitOfTime.MINUTES for all timer entities
+- Ensures compliance with Home Assistant entity standards
+
+#### Affected Entities
+- Zone 1-5: Current Temperature sensors now show proper °C units
+- Zone 1-5: Timer controls now show proper minute units
+- General Timer: Now shows proper minute units
+
 ## [1.7.1] - 2025-10-18
 
 ### 🔧 CRITICAL: Home Assistant Best Practices Implementation
