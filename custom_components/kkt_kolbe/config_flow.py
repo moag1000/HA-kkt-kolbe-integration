@@ -64,7 +64,7 @@ def _get_device_selection_schema(discovered_devices: Dict[str, Dict[str, Any]]):
         # Try both possible IP keys from discovery
         ip_address = device.get("ip") or device.get("host") or "Unknown IP"
 
-        label = f"{product_name} - {device_name} ({ip_address})"
+        label = f"{product_name} - {device_id} ({ip_address})"
         device_options.append({"value": device_id, "label": label})
 
     return vol.Schema({
@@ -84,29 +84,40 @@ STEP_AUTHENTICATION_DATA_SCHEMA = vol.Schema({
     vol.Optional("back_to_previous", default=False): bool,
 })
 
-STEP_SETTINGS_DATA_SCHEMA = vol.Schema({
-    vol.Optional("update_interval", default=30): selector.selector({
-        "number": {
-            "min": 10, "max": 300, "step": 5,
-            "unit_of_measurement": "seconds",
-            "mode": "slider"
-        }
-    }),
-    vol.Optional("enable_debug_logging", default=False): bool,
-    vol.Optional("enable_advanced_entities", default=False): bool,
-    vol.Optional("zone_naming_scheme", default="zone"): selector.selector({
-        "select": {
-            "options": [
-                {"value": "zone", "label": "Zone 1, Zone 2, ..."},
-                {"value": "numeric", "label": "1, 2, 3, ..."},
-                {"value": "custom", "label": "Custom Names"}
-            ],
-            "mode": "dropdown",
-            "translation_key": "zone_naming"
-        }
-    }),
-    vol.Optional("back_to_authentication", default=False): bool,
-})
+def get_settings_schema(device_type: str = None) -> vol.Schema:
+    """Get settings schema based on device type."""
+    schema_dict = {
+        vol.Optional("update_interval", default=30): selector.selector({
+            "number": {
+                "min": 10, "max": 300, "step": 5,
+                "unit_of_measurement": "seconds",
+                "mode": "slider"
+            }
+        }),
+        vol.Optional("enable_debug_logging", default=False): bool,
+    }
+
+    # Only show advanced entities option for induction cooktops
+    if device_type in ["ind7705hc", "induction_cooktop"]:
+        schema_dict[vol.Optional("enable_advanced_entities", default=False)] = bool
+        schema_dict[vol.Optional("zone_naming_scheme", default="zone")] = selector.selector({
+            "select": {
+                "options": [
+                    {"value": "zone", "label": "Zone 1, Zone 2, ..."},
+                    {"value": "numeric", "label": "1, 2, 3, ..."},
+                    {"value": "custom", "label": "Custom Names"}
+                ],
+                "mode": "dropdown",
+                "translation_key": "zone_naming"
+            }
+        })
+
+    schema_dict[vol.Optional("back_to_authentication", default=False)] = bool
+
+    return vol.Schema(schema_dict)
+
+# Keep backwards compatibility
+STEP_SETTINGS_DATA_SCHEMA = get_settings_schema()
 
 
 class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -249,7 +260,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                 self._device_info = {
                     "ip": user_input[CONF_IP_ADDRESS],
                     "device_id": user_input["device_id"],
-                    "name": f"KKT Kolbe {device_name} {user_input['device_id'][:8]}",
+                    "name": f"KKT Kolbe {device_name} {user_input['device_id']}",
                     "product_name": f"KKT Kolbe {device_name} ({category})",
                     "device_type": device_type
                 }
@@ -340,9 +351,12 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             self._advanced_settings = user_input
             return await self.async_step_confirmation()
 
+        # Get device type for dynamic schema
+        device_type = self._device_info.get("device_type", "")
+
         return self.async_show_form(
             step_id="settings",
-            data_schema=STEP_SETTINGS_DATA_SCHEMA,
+            data_schema=get_settings_schema(device_type),
             description_placeholders={
                 "device_name": self._device_info.get("name", "Unknown"),
                 "recommended_interval": "30 seconds for real-time control"

@@ -161,28 +161,23 @@ KNOWN_DEVICES = {
         "product_names": ["0fcj8kha86svfmve", "KKT Kolbe HERMES"],
         "device_ids": [],  # Will be filled when users report
         "device_id_patterns": [],
-        "platforms": ["fan", "light", "switch", "sensor", "select", "number"],
+        "platforms": ["fan", "switch", "sensor", "select", "number"],
         "data_points": HOOD_DPS,
         "entities": {
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
+                {"dp": 4, "name": "Light", "device_class": "switch", "icon": "mdi:lightbulb"},
                 {"dp": 6, "name": "Filter Cleaning Reminder", "icon": "mdi:air-filter"}
             ],
             "fan": {
                 "dp": 10,  # fan_speed_enum
                 "speeds": ["off", "low", "middle", "high", "strong"]
             },
-            "light": {
-                "dp": 4,  # light on/off
-                "brightness_dp": None,  # No brightness control
-                "rgb_dp": 101,  # RGB mode
-                "rgb_brightness_dp": None  # No RGB brightness
-            },
             "select": [
-                {"dp": 10, "name": "Fan Speed", "options": ["off", "low", "middle", "high", "strong"]},
-                {"dp": 101, "name": "RGB Mode", "options": list(range(10))}
+                {"dp": 10, "name": "Fan Speed", "options": ["off", "low", "middle", "high", "strong"]}
             ],
             "number": [
+                {"dp": 101, "name": "RGB Mode", "min": 0, "max": 9, "step": 1, "icon": "mdi:palette"},
                 {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"}
             ],
             "sensor": [
@@ -199,7 +194,7 @@ KNOWN_DEVICES = {
         "product_names": ["gwdgkteknzvsattn"],
         "device_ids": ["bfd0c94cb36bf4f28epxcf"],
         "device_id_patterns": ["bfd0c94cb36bf4f28e"],
-        "platforms": ["fan", "light", "switch", "sensor", "select", "number"],
+        "platforms": ["fan", "switch", "sensor", "select", "number"],
         "data_points": {
             1: "switch",              # Main power
             4: "light",              # Main light on/off
@@ -217,17 +212,12 @@ KNOWN_DEVICES = {
         "entities": {
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
+                {"dp": 4, "name": "Light", "device_class": "switch", "icon": "mdi:lightbulb"},
                 {"dp": 6, "name": "RGB Light", "device_class": "switch", "icon": "mdi:palette"},
                 {"dp": 7, "name": "Wash Mode", "device_class": "switch", "icon": "mdi:spray-bottle"},
                 {"dp": 104, "name": "LED Light", "device_class": "switch", "icon": "mdi:led-strip"},
                 {"dp": 106, "name": "Confirm", "device_class": "switch", "icon": "mdi:check"}
             ],
-            "light": {
-                "dp": 4,  # main light on/off
-                "brightness_dp": None,  # No dedicated brightness
-                "rgb_dp": 107,  # RGB color data
-                "rgb_mode_dp": 108  # RGB work mode
-            },
             "select": [
                 {"dp": 108, "name": "RGB Mode", "options": ["white", "colour", "scene", "music"]}
             ],
