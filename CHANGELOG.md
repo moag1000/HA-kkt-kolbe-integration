@@ -4,6 +4,36 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.12] - 2025-10-18
+
+### 🎯 MAJOR FIX: Correct Device Data Points Based on API Analysis
+
+#### Fixed
+- **CRITICAL**: HERMES & STYLE device configuration corrected to match actual API properties
+- **Data Point Accuracy**: Removed non-existent DPs that were causing "unknown" entity states
+- **Entity Cleanup**: Eliminated redundant entities that don't exist in real device model
+- **Switch Consolidation**: Proper Power switch behavior vs Fan speed control separation
+
+#### Technical Analysis
+- **API Verification**: Used actual Tuya API "Query Things Data Model" to verify properties
+- **HERMES & STYLE**: Reduced from 20+ DPs to actual 6 DPs (1, 4, 6, 10, 13, 101)
+- **Removed Phantom Entities**: Eliminated sensors/switches for non-existent DPs (2, 3, 5, 7-9, 11-12, 14-17, 102-103)
+- **Entity Optimization**: Only create entities for properties that actually exist
+
+#### Root Cause
+The integration was creating entities for data points that don't exist in the actual device firmware, causing:
+- Multiple "unknown" status entities
+- Redundant controls for same functionality
+- Confusion between main power (DP 1) and fan speed (DP 10)
+
+#### User Impact
+- **Cleaner UI**: No more phantom entities showing "unknown" status
+- **Correct Controls**: Clear separation between device power and fan speed
+- **Better Performance**: Fewer unnecessary entities to update
+- **Accurate Status**: All entities now reflect actual device state
+
+---
+
 ## [1.5.11] - 2025-10-18
 
 ### 🔧 HOTFIX: Exception Handling & Entity Status
@@ -545,6 +575,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Releases**: [All Releases](https://github.com/moag1000/HA-kkt-kolbe-integration/releases)
 - **HACS**: [Custom Repository](https://github.com/moag1000/HA-kkt-kolbe-integration)
 
+[1.5.12]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.12
 [1.5.11]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.11
 [1.5.10]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.10
 [1.5.9]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.9
