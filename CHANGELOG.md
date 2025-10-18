@@ -4,6 +4,30 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.14] - 2025-10-18
+
+### 📋 DOCUMENTATION: Device Verification Status & Community Support
+
+#### Improved
+- **Device Status Documentation**: Clear verification status for all 5 supported devices
+- **API Verification Methodology**: Documented process for ensuring device accuracy
+- **Community Support Call**: Added section requesting HERMES device API verification
+- **Transparency**: Clear indication of which devices are API-verified vs specification-based
+
+#### Documentation Updates
+- **Device List**: Added verification status indicators (✅/❓) for each device
+- **API-Verified Devices (4/5)**: HERMES & STYLE, FLAT, ECCO HCM, IND7705HC
+- **Community Needed (1/5)**: KKT HERMES requires real device API data
+- **Verification Files**: Referenced actual API data files in known_configs/
+
+#### User Benefits
+- **Clear Expectations**: Users know which devices have been verified with real API data
+- **Community Engagement**: HERMES users can contribute to improve integration reliability
+- **Transparency**: Open about current limitations and how to address them
+- **Quality Assurance**: Emphasis on API-verified configurations for best experience
+
+---
+
 ## [1.5.13] - 2025-10-18
 
 ### 🆕 NEW DEVICE: KKT Kolbe FLAT Hood Support
@@ -608,6 +632,7 @@ The integration was creating entities for data points that don't exist in the ac
 - **Releases**: [All Releases](https://github.com/moag1000/HA-kkt-kolbe-integration/releases)
 - **HACS**: [Custom Repository](https://github.com/moag1000/HA-kkt-kolbe-integration)
 
+[1.5.14]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.14
 [1.5.13]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.13
 [1.5.12]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.12
 [1.5.11]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.11
