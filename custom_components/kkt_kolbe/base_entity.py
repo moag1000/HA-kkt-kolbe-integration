@@ -217,7 +217,9 @@ class KKTBaseEntity(CoordinatorEntity):
             return None
 
         # Try both string and integer keys for compatibility
-        value = self.coordinator.data.get(str(data_point)) or self.coordinator.data.get(data_point)
+        value = self.coordinator.data.get(str(data_point))
+        if value is None:
+            value = self.coordinator.data.get(data_point)
 
         if value is None:
             _LOGGER.warning(
