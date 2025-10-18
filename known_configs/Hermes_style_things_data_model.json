@@ -1,0 +1,8 @@
+{
+  "result": {
+    "model": "{\"modelId\":\"e1k6i0zo\",\"services\":[{\"actions\":[],\"code\":\"\",\"description\":\"\",\"events\":[],\"name\":\"默认服务\",\"properties\":[{\"abilityId\":1,\"accessMode\":\"rw\",\"code\":\"switch\",\"description\":\"\",\"extensions\":{\"iconName\":\"icon-dp_power3\",\"attribute\":\"128\"},\"name\":\"开关\",\"typeSpec\":{\"type\":\"bool\"}},{\"abilityId\":4,\"accessMode\":\"rw\",\"code\":\"light\",\"description\":\"\",\"extensions\":{\"iconName\":\"icon-deng\",\"attribute\":\"128\"},\"name\":\"灯光\",\"typeSpec\":{\"type\":\"bool\"}},{\"abilityId\":6,\"accessMode\":\"rw\",\"code\":\"switch_lamp\",\"description\":\"\",\"extensions\":{\"iconName\":\"icon-dp_light\",\"attribute\":\"128\"},\"name\":\"清洗滤网提示\",\"typeSpec\":{\"type\":\"bool\"}},{\"abilityId\":10,\"accessMode\":\"rw\",\"code\":\"fan_speed_enum\",\"description\":\"\",\"extensions\":{\"attribute\":\"128\"},\"name\":\"风速\",\"typeSpec\":{\"type\":\"enum\",\"range\":[\"off\",\"low\",\"middle\",\"high\",\"strong\"]}},{\"abilityId\":13,\"accessMode\":\"rw\",\"code\":\"countdown\",\"description\":\"\",\"extensions\":{\"iconName\":\"icon-dp_time3\",\"attribute\":\"128\"},\"name\":\"定时关机\",\"typeSpec\":{\"type\":\"value\",\"max\":60,\"min\":0,\"scale\":0,\"step\":1,\"unit\":\"min\"}},{\"abilityId\":101,\"accessMode\":\"rw\",\"code\":\"RGB\",\"description\":\"\",\"name\":\"RGB灯\",\"typeSpec\":{\"type\":\"value\",\"max\":9,\"min\":0,\"scale\":0,\"step\":1,\"unit\":\"\"}}]}]}"
+  },
+  "success": true,
+  "t": 1760779718097,
+  "tid": "d3b66440ac0411f0a25e9ed280a40f39"
+}

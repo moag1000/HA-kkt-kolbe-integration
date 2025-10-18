@@ -1,0 +1,220 @@
+{
+  "result": {
+    "properties": [
+      {
+        "code": "user_device_power_switch",
+        "custom_name": "",
+        "dp_id": 101,
+        "time": 1760746601682,
+        "type": "bool",
+        "value": false
+      },
+      {
+        "code": "user_device_pause_switch",
+        "custom_name": "",
+        "dp_id": 102,
+        "time": 1760746601685,
+        "type": "bool",
+        "value": false
+      },
+      {
+        "code": "user_device_lock_switch",
+        "custom_name": "",
+        "dp_id": 103,
+        "time": 1760746601771,
+        "type": "bool",
+        "value": false
+      },
+      {
+        "code": "user_device_cur_max_level",
+        "custom_name": "",
+        "dp_id": 104,
+        "time": 1757079091615,
+        "type": "value",
+        "value": 0
+      },
+      {
+        "code": "oem_hob_error_num",
+        "custom_name": "",
+        "dp_id": 105,
+        "time": 1757844249386,
+        "type": "raw"
+      },
+      {
+        "code": "oem_device_chef_level",
+        "custom_name": "",
+        "dp_id": 106,
+        "time": 1757844249386,
+        "type": "raw"
+      },
+      {
+        "code": "oem_hob_bbq_timer",
+        "custom_name": "",
+        "dp_id": 107,
+        "time": 1757844249386,
+        "type": "raw"
+      },
+      {
+        "code": "oem_device_confirm",
+        "custom_name": "",
+        "dp_id": 108,
+        "time": 1757079091615,
+        "type": "bool",
+        "value": false
+      },
+      {
+        "code": "oem_device_timer_num",
+        "custom_name": "",
+        "dp_id": 134,
+        "time": 1760746599722,
+        "type": "value",
+        "value": 0
+      },
+      {
+        "code": "oem_device_old_people",
+        "custom_name": "",
+        "dp_id": 145,
+        "time": 1760746599724,
+        "type": "bool",
+        "value": false
+      },
+      {
+        "code": "oem_hob_1_quick_level",
+        "custom_name": "",
+        "dp_id": 148,
+        "time": 1757079091615,
+        "type": "enum",
+        "value": "set_quick_level_1"
+      },
+      {
+        "code": "oem_hob_2_quick_level",
+        "custom_name": "",
+        "dp_id": 149,
+        "time": 1757079091615,
+        "type": "enum",
+        "value": "set_quick_level_1"
+      },
+      {
+        "code": "oem_hob_3_quick_level",
+        "custom_name": "",
+        "dp_id": 150,
+        "time": 1757079091615,
+        "type": "enum",
+        "value": "set_quick_level_1"
+      },
+      {
+        "code": "oem_hob_4_quick_level",
+        "custom_name": "",
+        "dp_id": 151,
+        "time": 1757079091615,
+        "type": "enum",
+        "value": "set_quick_level_1"
+      },
+      {
+        "code": "oem_hob_5_quick_level",
+        "custom_name": "",
+        "dp_id": 152,
+        "time": 1757079091615,
+        "type": "enum",
+        "value": "set_quick_level_1"
+      },
+      {
+        "code": "oem_device_save_level",
+        "custom_name": "",
+        "dp_id": 153,
+        "time": 1760745720067,
+        "type": "enum",
+        "value": "save_hob1"
+      },
+      {
+        "code": "oem_device_set_level",
+        "custom_name": "",
+        "dp_id": 154,
+        "time": 1757079091615,
+        "type": "enum",
+        "value": "set_hob1"
+      },
+      {
+        "code": "oem_device_power_limit",
+        "custom_name": "",
+        "dp_id": 155,
+        "time": 1757079091615,
+        "type": "enum",
+        "value": "power_limit_1"
+      },
+      {
+        "code": "oem_hob_selected_switch",
+        "custom_name": "",
+        "dp_id": 161,
+        "time": 1760784702032,
+        "type": "raw",
+        "value": "AA=="
+      },
+      {
+        "code": "oem_hob_level_num",
+        "custom_name": "",
+        "dp_id": 162,
+        "time": 1760784697966,
+        "type": "raw",
+        "value": "AAAAAAA="
+      },
+      {
+        "code": "oem_hob_boost_switch",
+        "custom_name": "",
+        "dp_id": 163,
+        "time": 1760784699983,
+        "type": "raw",
+        "value": "AA=="
+      },
+      {
+        "code": "oem_hob_warm_switch",
+        "custom_name": "",
+        "dp_id": 164,
+        "time": 1760784698037,
+        "type": "raw",
+        "value": "AA=="
+      },
+      {
+        "code": "oem_hob_flex_switch",
+        "custom_name": "",
+        "dp_id": 165,
+        "time": 1760784697991,
+        "type": "raw",
+        "value": "AA=="
+      },
+      {
+        "code": "oem_hob_bbq_switch",
+        "custom_name": "",
+        "dp_id": 166,
+        "time": 1760784698012,
+        "type": "raw",
+        "value": "AA=="
+      },
+      {
+        "code": "oem_hob_timer_num",
+        "custom_name": "",
+        "dp_id": 167,
+        "time": 1760784700011,
+        "type": "raw",
+        "value": "AAAAAAA="
+      },
+      {
+        "code": "oem_hob_set_core_sensor",
+        "custom_name": "",
+        "dp_id": 168,
+        "time": 1757844249386,
+        "type": "raw"
+      },
+      {
+        "code": "oem_hob_disp_coresensor",
+        "custom_name": "",
+        "dp_id": 169,
+        "time": 1757844249386,
+        "type": "raw"
+      }
+    ]
+  },
+  "success": true,
+  "t": 1760784704184,
+  "tid": "6fa1248fac1011f0805d96c8b66247b7"
+}

@@ -1,0 +1,57 @@
+{
+  "result": {
+    "properties": [
+      {
+        "code": "switch",
+        "custom_name": "",
+        "dp_id": 1,
+        "time": 1760782215454,
+        "type": "bool",
+        "value": true
+      },
+      {
+        "code": "light",
+        "custom_name": "",
+        "dp_id": 4,
+        "time": 1760746897625,
+        "type": "bool",
+        "value": false
+      },
+      {
+        "code": "switch_lamp",
+        "custom_name": "",
+        "dp_id": 6,
+        "time": 1760746897871,
+        "type": "bool",
+        "value": true
+      },
+      {
+        "code": "fan_speed_enum",
+        "custom_name": "",
+        "dp_id": 10,
+        "time": 1760782265245,
+        "type": "enum",
+        "value": "off"
+      },
+      {
+        "code": "countdown",
+        "custom_name": "",
+        "dp_id": 13,
+        "time": 1760782190882,
+        "type": "value",
+        "value": 0
+      },
+      {
+        "code": "RGB",
+        "custom_name": "",
+        "dp_id": 101,
+        "time": 1760724400260,
+        "type": "value",
+        "value": 4
+      }
+    ]
+  },
+  "success": true,
+  "t": 1760782467275,
+  "tid": "3a50011dac0b11f08e5dda57e8f5d0ed"
+}

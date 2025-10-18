@@ -77,7 +77,7 @@ QUICK_LEVELS = [
 # CENTRAL DEVICE DATABASE - Single source of truth for all devices
 # Add new devices only here!
 KNOWN_DEVICES = {
-    # HERMES & STYLE Hood
+    # HERMES & STYLE Hood - Corrected based on actual data model
     "hermes_style_hood": {
         "model_id": "e1k6i0zo",
         "category": CATEGORY_HOOD,
@@ -86,47 +86,34 @@ KNOWN_DEVICES = {
         "device_ids": ["bf735dfe2ad64fba7cpyhn"],
         "device_id_patterns": ["bf735dfe2ad64fba7c"],
         "platforms": ["fan", "light", "switch", "sensor", "select", "number"],
-        "data_points": HOOD_DPS,
+        "data_points": {
+            1: "switch",              # Main power
+            4: "light",               # Light on/off
+            6: "switch_lamp",         # Filter cleaning reminder
+            10: "fan_speed_enum",     # Fan speed
+            13: "countdown",          # Timer
+            101: "RGB"                # RGB lighting modes
+        },
         "entities": {
             "fan": {
-                "dp": 10,  # fan_speed_enum
+                "dp": 10,  # fan_speed_enum includes "off" state
                 "speeds": ["off", "low", "middle", "high", "strong"]
             },
             "light": {
                 "dp": 4,  # light on/off
-                "brightness_dp": 5,  # light brightness
-                "rgb_dp": 101,  # RGB mode
-                "rgb_brightness_dp": 102  # RGB brightness
+                "rgb_dp": 101  # RGB mode (0-9)
             },
             "switch": [
-                {"dp": 1, "name": "Power", "device_class": "switch"},
-                {"dp": 2, "name": "Delay Shutdown", "device_class": "switch"},
-                {"dp": 3, "name": "Auto Mode", "device_class": "switch"},
-                {"dp": 6, "name": "Filter Reminder", "device_class": "switch"},
-                {"dp": 12, "name": "Auto Clean", "device_class": "switch"},
-                {"dp": 15, "name": "Filter Reset", "device_class": "switch"},
-                {"dp": 17, "name": "Eco Mode", "device_class": "switch"}
+                {"dp": 1, "name": "Power", "device_class": "outlet", "icon": "mdi:power"},
+                {"dp": 6, "name": "Filter Cleaning Reminder", "device_class": "switch"}
             ],
             "sensor": [
-                {"dp": 6, "name": "Filter Status", "device_class": "problem"},
-                {"dp": 7, "name": "Temperature", "unit": UnitOfTemperature.CELSIUS, "device_class": "temperature"},
-                {"dp": 8, "name": "Humidity", "unit": PERCENTAGE, "device_class": "humidity"},
-                {"dp": 9, "name": "Air Quality", "device_class": "aqi"},
                 {"dp": 10, "name": "Fan Speed", "device_class": "enum", "options": ["off", "low", "middle", "high", "strong"]},
-                {"dp": 14, "name": "Filter Hours", "unit": UnitOfTime.HOURS, "device_class": "duration"},
-                {"dp": 16, "name": "Noise Level", "unit": UnitOfSoundPressure.DECIBEL},
-                {"dp": 5, "name": "Light Brightness", "unit": PERCENTAGE},
-                {"dp": 102, "name": "RGB Brightness", "unit": PERCENTAGE},
-                {"dp": 103, "name": "Color Temperature", "unit": "K"}
-            ],
-            "select": [
-                {"dp": 101, "name": "RGB Mode", "options": list(range(10))},
-                {"dp": 11, "name": "Fan Speed Setting", "options": ["off", "low", "middle", "high", "strong"]},
-                {"dp": 16, "name": "Noise Level", "options": ["silent", "low", "normal", "high"]},
-                {"dp": 103, "name": "Color Temperature", "options": ["warm", "neutral", "cool"]}
+                {"dp": 6, "name": "Filter Status", "device_class": "problem"}
             ],
             "number": [
-                {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES}
+                {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES},
+                {"dp": 101, "name": "RGB Mode", "min": 0, "max": 9, "step": 1}
             ]
         }
     },

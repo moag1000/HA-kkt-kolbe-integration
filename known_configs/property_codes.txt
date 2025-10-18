@@ -1,0 +1,1 @@
+switch,light,switch_lamp,fan_speed_enum,countdown,RGB
