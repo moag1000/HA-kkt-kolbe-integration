@@ -30,7 +30,7 @@ MODE_API_DISCOVERY = "api_discovery"
 MODE_HYBRID = "hybrid"
 
 
-class KKTKolbeConfigFlowV2(config_entries.ConfigFlow, domain=DOMAIN):
+class KKTKolbeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Enhanced configuration flow with API support."""
 
     VERSION = 2
@@ -93,6 +93,10 @@ class KKTKolbeConfigFlowV2(config_entries.ConfigFlow, domain=DOMAIN):
             if not all([device_id, host, local_key]):
                 errors["base"] = "missing_required_fields"
             else:
+                # Set unique_id to prevent duplicate entries (HA standard)
+                await self.async_set_unique_id(device_id)
+                self._abort_if_unique_id_configured()
+
                 # Create entry for manual configuration
                 config_data = {
                     CONF_DEVICE_ID: device_id,
@@ -256,6 +260,10 @@ class KKTKolbeConfigFlowV2(config_entries.ConfigFlow, domain=DOMAIN):
             return await self.async_step_api_discovery()
 
         device_id = self.selected_device["id"]
+
+        # Set unique_id to prevent duplicate entries (HA standard)
+        await self.async_set_unique_id(device_id)
+        self._abort_if_unique_id_configured()
 
         try:
             # Get device properties from API

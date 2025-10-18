@@ -1,0 +1,86 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "KKT Kolbe Integration Setup",
+        "description": "Choose your integration mode for KKT Kolbe devices.",
+        "data": {
+          "integration_mode": "Integration Mode"
+        },
+        "data_description": {
+          "integration_mode": "Select how you want to configure your KKT Kolbe device"
+        }
+      },
+      "manual_config": {
+        "title": "Manual Configuration",
+        "description": "Enter device details manually.",
+        "data": {
+          "device_id": "Device ID",
+          "host": "IP Address",
+          "local_key": "Local Key"
+        },
+        "data_description": {
+          "device_id": "20-character device ID from Tuya/Smart Life app",
+          "host": "IP address of the device on your network",
+          "local_key": "Local encryption key (16 characters)"
+        }
+      },
+      "api_config": {
+        "title": "API Configuration",
+        "description": "Configure TinyTuya Cloud API credentials.",
+        "data": {
+          "api_client_id": "Client ID",
+          "api_client_secret": "Client Secret",
+          "api_endpoint": "API Endpoint"
+        },
+        "data_description": {
+          "api_client_id": "Access ID from Tuya IoT Platform project",
+          "api_client_secret": "Access Secret from Tuya IoT Platform project",
+          "api_endpoint": "API endpoint (EU: openapi.tuyaeu.com, US: openapi.tuyaus.com)"
+        }
+      },
+      "api_discovery": {
+        "title": "Device Discovery",
+        "description": "Select your KKT Kolbe device from discovered devices.",
+        "data": {
+          "selected_device": "Device"
+        }
+      },
+      "hybrid_manual_details": {
+        "title": "Local Connection Details",
+        "description": "Enter local connection details for hybrid mode.",
+        "data": {
+          "host": "IP Address",
+          "local_key": "Local Key"
+        },
+        "data_description": {
+          "host": "IP address for local communication",
+          "local_key": "Local encryption key for direct communication"
+        }
+      }
+    },
+    "error": {
+      "missing_required_fields": "Please fill in all required fields",
+      "api_connection_failed": "Could not connect to Tuya Cloud API",
+      "api_auth_failed": "API authentication failed. Check your credentials",
+      "api_error": "API error occurred",
+      "unknown_api_error": "Unknown API error occurred",
+      "device_not_found": "Selected device not found",
+      "discovery_failed": "Device discovery failed",
+      "analysis_failed": "Device analysis failed",
+      "no_kkt_devices_found": "No KKT Kolbe devices found",
+      "missing_local_details": "Please provide local connection details"
+    },
+    "abort": {
+      "already_configured": "Device is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "KKT Kolbe Options",
+        "description": "Configure options for your KKT Kolbe device."
+      }
+    }
+  }
+}
