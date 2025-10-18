@@ -13,6 +13,8 @@ from homeassistant.const import (
 from .const import DOMAIN
 from .tuya_device import KKTKolbeTuyaDevice
 from .coordinator import KKTKolbeUpdateCoordinator
+from .hybrid_coordinator import KKTKolbeHybridCoordinator
+from .api import TuyaCloudClient
 from .services import async_setup_services, async_unload_services
 # Lazy import discovery to reduce startup time
 
@@ -38,32 +40,73 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Discovery is already started in async_setup, no need to start again
 
-    # Initialize Tuya device connection (async)
-    # Use correct key names from config entry with robust fallbacks
+    # Check integration mode (V2 config flow adds this)
+    integration_mode = entry.data.get("integration_mode", "manual")
+    api_enabled = entry.data.get("api_enabled", False)
+
+    device = None
+    api_client = None
+    coordinator = None
+
+    # Initialize API client if enabled
+    if api_enabled:
+        client_id = entry.data.get("api_client_id")
+        client_secret = entry.data.get("api_client_secret")
+        endpoint = entry.data.get("api_endpoint", "https://openapi.tuyaeu.com")
+
+        if client_id and client_secret:
+            api_client = TuyaCloudClient(
+                client_id=client_id,
+                client_secret=client_secret,
+                endpoint=endpoint,
+            )
+            _LOGGER.info("API client initialized for TinyTuya Cloud API")
+
+    # Initialize local device if we have local connection details
     ip_address = entry.data.get(CONF_IP_ADDRESS) or entry.data.get("ip_address") or entry.data.get("host")
     device_id = entry.data.get(CONF_DEVICE_ID) or entry.data.get("device_id")
     local_key = entry.data.get(CONF_ACCESS_TOKEN) or entry.data.get("local_key")
 
-    # Validate required parameters
-    if not ip_address:
-        raise ValueError("IP address not found in config entry data")
-    if not device_id:
-        raise ValueError("Device ID not found in config entry data")
-    if not local_key:
-        raise ValueError("Local key not found in config entry data")
+    if ip_address and device_id and local_key:
+        device = KKTKolbeTuyaDevice(
+            device_id=device_id,
+            ip_address=ip_address,
+            local_key=local_key,
+        )
+        _LOGGER.info("Local device initialized")
+    elif integration_mode == "manual":
+        # For manual mode, local connection is required
+        if not device_id:
+            raise ValueError("Device ID not found in config entry data")
+        if not ip_address:
+            raise ValueError("IP address not found in config entry data")
+        if not local_key:
+            raise ValueError("Local key not found in config entry data")
 
-    device = KKTKolbeTuyaDevice(
-        device_id=device_id,
-        ip_address=ip_address,
-        local_key=local_key,
-    )
-
-    # Initialize coordinator
-    coordinator = KKTKolbeUpdateCoordinator(hass, entry, device)
+    # Initialize appropriate coordinator based on mode
+    if integration_mode in ["hybrid", "api_discovery"] and (device or api_client):
+        coordinator = KKTKolbeHybridCoordinator(
+            hass=hass,
+            device_id=device_id,
+            local_device=device,
+            api_client=api_client,
+            prefer_local=(integration_mode == "hybrid"),
+        )
+        _LOGGER.info(f"Hybrid coordinator initialized in {integration_mode} mode")
+    elif device:
+        # Legacy mode - local only
+        coordinator = KKTKolbeUpdateCoordinator(hass, entry, device)
+        _LOGGER.info("Legacy coordinator initialized for local communication")
+    else:
+        raise ValueError("No valid communication method configured")
 
     # Test connection to validate credentials early
     try:
-        await device.async_connect()
+        if device:
+            await device.async_connect()
+        if api_client:
+            await api_client.test_connection()
+
         # Perform initial data fetch
         await coordinator.async_config_entry_first_refresh()
     except Exception as e:
@@ -91,9 +134,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN][entry.entry_id] = {
         "coordinator": coordinator,
         "device": device,
+        "api_client": api_client,
         "config": entry.data,
         "device_info": device_info,
         "product_name": product_name,
+        "integration_mode": integration_mode,
     }
 
     # Register device in device registry
