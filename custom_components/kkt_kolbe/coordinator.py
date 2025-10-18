@@ -36,22 +36,36 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self) -> Dict[str, Any]:
         """Fetch data from the device."""
+        from .exceptions import KKTTimeoutError, KKTConnectionError
+
         try:
             # Ensure device is connected
             if not self.device.is_connected:
+                _LOGGER.debug(f"Device {self.device.device_id[:8]} not connected, attempting to connect")
                 await self.device.async_connect()
 
             # Get current device status
             status = await self.device.async_get_status()
 
             if not status:
+                _LOGGER.warning(f"Device {self.device.device_id[:8]} returned empty status")
                 raise UpdateFailed("Failed to get device status")
 
-            _LOGGER.debug(f"Updated device status: {status}")
+            _LOGGER.debug(f"Device {self.device.device_id[:8]} status updated: {status}")
             return status
 
+        except KKTTimeoutError as err:
+            _LOGGER.warning(f"Timeout communicating with device {self.device.device_id[:8]}: {err}")
+            # Don't raise UpdateFailed for timeouts - keep last known state
+            return self.data or {}
+
+        except KKTConnectionError as err:
+            _LOGGER.warning(f"Connection error with device {self.device.device_id[:8]}: {err}")
+            # Don't raise UpdateFailed for connection errors - keep last known state
+            return self.data or {}
+
         except Exception as err:
-            _LOGGER.error(f"Error communicating with device {self.device.device_id}: {err}")
+            _LOGGER.error(f"Unexpected error communicating with device {self.device.device_id[:8]}: {err}")
             raise UpdateFailed(f"Error communicating with device: {err}") from err
 
     async def async_set_data_point(self, dp: int, value: Any) -> None:
