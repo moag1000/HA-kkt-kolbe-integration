@@ -268,7 +268,7 @@ KNOWN_DEVICES = {
             "number": [
                 # Global controls
                 {"dp": 104, "name": "Max Power Level", "min": 0, "max": 25, "mode": "slider", "icon": "mdi:flash"},
-                {"dp": 134, "name": "General Timer", "min": 0, "max": 99, "unit": UnitOfTime.MINUTES, "device_class": "duration", "mode": "slider", "icon": "mdi:timer"},
+                {"dp": 134, "name": "General Timer", "min": 0, "max": 99, "unit_of_measurement": UnitOfTime.MINUTES, "device_class": "duration", "mode": "slider", "icon": "mdi:timer"},
 
                 # Zone-specific controls (bitfield-decoded)
                 {"dp": 162, "name": "Zone 1: Power Level", "min": 0, "max": 25, "zone": 1, "mode": "slider", "icon": "mdi:numeric-1-circle"},
@@ -277,17 +277,17 @@ KNOWN_DEVICES = {
                 {"dp": 162, "name": "Zone 4: Power Level", "min": 0, "max": 25, "zone": 4, "mode": "slider", "icon": "mdi:numeric-4-circle"},
                 {"dp": 162, "name": "Zone 5: Power Level", "min": 0, "max": 25, "zone": 5, "mode": "slider", "icon": "mdi:numeric-5-circle"},
 
-                {"dp": 167, "name": "Zone 1: Timer", "min": 0, "max": 255, "unit": UnitOfTime.MINUTES, "device_class": "duration", "zone": 1, "mode": "slider", "icon": "mdi:timer-outline"},
-                {"dp": 167, "name": "Zone 2: Timer", "min": 0, "max": 255, "unit": UnitOfTime.MINUTES, "device_class": "duration", "zone": 2, "mode": "slider", "icon": "mdi:timer-outline"},
-                {"dp": 167, "name": "Zone 3: Timer", "min": 0, "max": 255, "unit": UnitOfTime.MINUTES, "device_class": "duration", "zone": 3, "mode": "slider", "icon": "mdi:timer-outline"},
-                {"dp": 167, "name": "Zone 4: Timer", "min": 0, "max": 255, "unit": UnitOfTime.MINUTES, "device_class": "duration", "zone": 4, "mode": "slider", "icon": "mdi:timer-outline"},
-                {"dp": 167, "name": "Zone 5: Timer", "min": 0, "max": 255, "unit": UnitOfTime.MINUTES, "device_class": "duration", "zone": 5, "mode": "slider", "icon": "mdi:timer-outline"},
+                {"dp": 167, "name": "Zone 1: Timer", "min": 0, "max": 255, "unit_of_measurement": UnitOfTime.MINUTES, "device_class": "duration", "zone": 1, "mode": "slider", "icon": "mdi:timer-outline"},
+                {"dp": 167, "name": "Zone 2: Timer", "min": 0, "max": 255, "unit_of_measurement": UnitOfTime.MINUTES, "device_class": "duration", "zone": 2, "mode": "slider", "icon": "mdi:timer-outline"},
+                {"dp": 167, "name": "Zone 3: Timer", "min": 0, "max": 255, "unit_of_measurement": UnitOfTime.MINUTES, "device_class": "duration", "zone": 3, "mode": "slider", "icon": "mdi:timer-outline"},
+                {"dp": 167, "name": "Zone 4: Timer", "min": 0, "max": 255, "unit_of_measurement": UnitOfTime.MINUTES, "device_class": "duration", "zone": 4, "mode": "slider", "icon": "mdi:timer-outline"},
+                {"dp": 167, "name": "Zone 5: Timer", "min": 0, "max": 255, "unit_of_measurement": UnitOfTime.MINUTES, "device_class": "duration", "zone": 5, "mode": "slider", "icon": "mdi:timer-outline"},
 
-                {"dp": 168, "name": "Zone 1: Target Temp", "min": 0, "max": 300, "unit": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 1, "mode": "slider", "icon": "mdi:thermometer"},
-                {"dp": 168, "name": "Zone 2: Target Temp", "min": 0, "max": 300, "unit": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 2, "mode": "slider", "icon": "mdi:thermometer"},
-                {"dp": 168, "name": "Zone 3: Target Temp", "min": 0, "max": 300, "unit": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 3, "mode": "slider", "icon": "mdi:thermometer"},
-                {"dp": 168, "name": "Zone 4: Target Temp", "min": 0, "max": 300, "unit": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 4, "mode": "slider", "icon": "mdi:thermometer"},
-                {"dp": 168, "name": "Zone 5: Target Temp", "min": 0, "max": 300, "unit": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 5, "mode": "slider", "icon": "mdi:thermometer"}
+                {"dp": 168, "name": "Zone 1: Target Temp", "min": 0, "max": 300, "unit_of_measurement": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 1, "mode": "slider", "icon": "mdi:thermometer"},
+                {"dp": 168, "name": "Zone 2: Target Temp", "min": 0, "max": 300, "unit_of_measurement": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 2, "mode": "slider", "icon": "mdi:thermometer"},
+                {"dp": 168, "name": "Zone 3: Target Temp", "min": 0, "max": 300, "unit_of_measurement": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 3, "mode": "slider", "icon": "mdi:thermometer"},
+                {"dp": 168, "name": "Zone 4: Target Temp", "min": 0, "max": 300, "unit_of_measurement": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 4, "mode": "slider", "icon": "mdi:thermometer"},
+                {"dp": 168, "name": "Zone 5: Target Temp", "min": 0, "max": 300, "unit_of_measurement": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 5, "mode": "slider", "icon": "mdi:thermometer"}
             ],
             "select": [
                 {"dp": 148, "name": "Zone 1: Quick Level", "options": QUICK_LEVELS, "icon": "mdi:numeric-1-circle-outline"},
@@ -301,11 +301,11 @@ KNOWN_DEVICES = {
             ],
             "sensor": [
                 # Zone temperature sensors (bitfield-decoded)
-                {"dp": 169, "name": "Zone 1: Current Temp", "unit": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 1, "icon": "mdi:thermometer"},
-                {"dp": 169, "name": "Zone 2: Current Temp", "unit": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 2, "icon": "mdi:thermometer"},
-                {"dp": 169, "name": "Zone 3: Current Temp", "unit": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 3, "icon": "mdi:thermometer"},
-                {"dp": 169, "name": "Zone 4: Current Temp", "unit": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 4, "icon": "mdi:thermometer"},
-                {"dp": 169, "name": "Zone 5: Current Temp", "unit": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 5, "icon": "mdi:thermometer"}
+                {"dp": 169, "name": "Zone 1: Current Temp", "unit_of_measurement": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 1, "icon": "mdi:thermometer"},
+                {"dp": 169, "name": "Zone 2: Current Temp", "unit_of_measurement": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 2, "icon": "mdi:thermometer"},
+                {"dp": 169, "name": "Zone 3: Current Temp", "unit_of_measurement": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 3, "icon": "mdi:thermometer"},
+                {"dp": 169, "name": "Zone 4: Current Temp", "unit_of_measurement": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 4, "icon": "mdi:thermometer"},
+                {"dp": 169, "name": "Zone 5: Current Temp", "unit_of_measurement": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 5, "icon": "mdi:thermometer"}
             ],
             "binary_sensor": [
                 # Zone error status (bitfield-decoded)
