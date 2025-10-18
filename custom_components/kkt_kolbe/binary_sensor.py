@@ -11,6 +11,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .base_entity import KKTBaseEntity, KKTZoneBaseEntity
 from .const import DOMAIN
 from .device_types import get_device_entities
+from .bitfield_utils import get_zone_value_from_coordinator, BITFIELD_CONFIG
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -47,6 +48,10 @@ class KKTKolbeBinarySensor(KKTBaseEntity, BinarySensorEntity):
         """Initialize the binary sensor."""
         super().__init__(coordinator, entry, config, "binary_sensor")
         self._attr_icon = self._get_icon()
+        self._cached_state = None
+
+        # Initialize state from coordinator data
+        self._update_cached_state()
 
     def _get_icon(self) -> str:
         """Get appropriate icon for the binary sensor."""
@@ -68,22 +73,22 @@ class KKTKolbeBinarySensor(KKTBaseEntity, BinarySensorEntity):
 
         return "mdi:circle"
 
+    def _update_cached_state(self) -> None:
+        """Update the cached state from coordinator data."""
+        value = self._get_data_point_value()
+        if value is None:
+            self._cached_state = None
+        elif isinstance(value, bool):
+            self._cached_state = value
+        elif isinstance(value, int):
+            self._cached_state = bool(value)
+        else:
+            self._cached_state = False
+
     @property
     def is_on(self) -> bool | None:
         """Return true if the binary sensor is on."""
-        value = self._get_data_point_value()
-        if value is None:
-            return None
-
-        # For simple boolean DPs
-        if isinstance(value, bool):
-            return value
-
-        # For bitfield DPs (like zone selections)
-        if isinstance(value, int):
-            return bool(value)
-
-        return False
+        return self._cached_state
 
 
 class KKTKolbeZoneBinarySensor(KKTZoneBaseEntity, BinarySensorEntity):
@@ -98,6 +103,10 @@ class KKTKolbeZoneBinarySensor(KKTZoneBaseEntity, BinarySensorEntity):
             self._attr_device_class = BinarySensorDeviceClass.RUNNING
 
         self._attr_icon = self._get_icon()
+        self._cached_state = None
+
+        # Initialize state from coordinator data
+        self._update_cached_state()
 
     def _get_icon(self) -> str:
         """Get appropriate icon for the zone binary sensor."""
@@ -116,7 +125,18 @@ class KKTKolbeZoneBinarySensor(KKTZoneBaseEntity, BinarySensorEntity):
 
         return "mdi:play-circle"
 
+    def _update_cached_state(self) -> None:
+        """Update the cached state from coordinator data."""
+        # Check if this DP uses bitfield encoding
+        if self._dp in BITFIELD_CONFIG and BITFIELD_CONFIG[self._dp]["type"] == "bit":
+            # Use bitfield utilities for Base64-encoded RAW data
+            value = get_zone_value_from_coordinator(self.coordinator, self._dp, self._zone)
+            self._cached_state = bool(value) if value is not None else None
+        else:
+            # Fallback to legacy zone handling
+            self._cached_state = self._get_zone_data_point_value(self._dp, self._zone)
+
     @property
     def is_on(self) -> bool | None:
         """Return true if the zone binary sensor is on."""
-        return self._get_zone_data_point_value(self._dp, self._zone)
+        return self._cached_state

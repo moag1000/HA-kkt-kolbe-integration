@@ -4,6 +4,102 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.1] - 2025-10-18
+
+### 🔧 CRITICAL: Home Assistant Best Practices Implementation
+
+#### Fixed "Unknown" Entity Status Issue
+- **Property Performance**: Entity properties no longer perform I/O operations
+- **State Caching**: All entities now cache state in memory for instant property access
+- **Coordinator Updates**: State updates only happen during coordinator refresh cycles
+- **Standards Compliance**: Full adherence to Home Assistant entity development guidelines
+
+#### Technical Architecture Improvements
+- **Memory-Based Properties**: All entity properties (is_on, native_value, etc.) now return cached values
+- **Smart State Updates**: `_update_cached_state()` method updates cached values from coordinator data
+- **Enhanced Debugging**: Improved logging for data key compatibility (string vs integer keys)
+- **Coordinator Integration**: Proper `_handle_coordinator_update()` implementation
+
+#### Affected Entity Types
+- **Switch Entities**: `is_on` property now returns cached boolean state
+- **Number Entities**: `native_value` property now returns cached numeric values
+- **Sensor Entities**: `native_value` property now returns cached sensor readings
+- **Binary Sensor Entities**: `is_on` property now returns cached boolean status
+- **Zone Entities**: All zone-specific entities use cached bitfield-decoded values
+
+#### User Impact
+- **Instant Response**: Entity states display immediately without delays
+- **No More "Unknown"**: Entities should no longer show "Unknown" status due to I/O blocking
+- **Better Performance**: Faster UI updates and reduced system load
+- **Reliable States**: Consistent entity state reporting across all platforms
+
+#### Compatibility
+- **Backward Compatible**: No breaking changes to existing functionality
+- **Enhanced Bitfield Support**: Zone entities still use full bitfield decoding
+- **Debug Improvements**: Better coordinator data logging for troubleshooting
+
+## [1.7.0] - 2025-10-18
+
+### 🚀 MAJOR: Complete RAW Bitfield Implementation for IND7705HC
+
+#### New Features
+- **Full Bitfield Decoding**: Complete implementation for Base64-encoded RAW data points
+- **All Zone Entities**: All 5 cooking zones now have full individual control
+- **Professional Implementation**: Proper encoding/decoding instead of simplified configuration
+
+#### Technical Implementation
+- **New Bitfield Utils**: `bitfield_utils.py` with full Base64 ↔ Zone value conversion
+- **Enhanced Entity Classes**: Zone-aware Number, Sensor, and BinarySensor entities
+- **Smart Data Point Handling**: Automatic detection of bitfield vs. simple data points
+- **Robust Error Handling**: Fallback to legacy methods for unknown configurations
+
+#### Bitfield Data Points (Now Working)
+- **DP 162**: Zone 1-5 Power Levels (0-25) ✅
+- **DP 167**: Zone 1-5 Timers (0-255 min) ✅
+- **DP 168**: Zone 1-5 Target Temperatures (0-300°C) ✅
+- **DP 169**: Zone 1-5 Current Temperatures (read-only) ✅
+- **DP 161**: Zone 1-5 Selection Status (bit-based) ✅
+- **DP 163**: Zone 1-5 Boost Status (bit-based) ✅
+- **DP 164**: Zone 1-5 Keep Warm Status (bit-based) ✅
+- **DP 165**: Flex Zone Left/Right (bit-based) ✅
+- **DP 166**: BBQ Mode Left/Right (bit-based) ✅
+- **DP 105**: Zone 1-5 Error Status (bit-based) ✅
+
+#### Entity Additions (Total: 42 new entities)
+**Number Entities (15):**
+- Zone 1-5: Power Level sliders (0-25)
+- Zone 1-5: Timer sliders (0-255 min)
+- Zone 1-5: Target Temperature sliders (0-300°C)
+
+**Sensor Entities (5):**
+- Zone 1-5: Current Temperature displays
+
+**Binary Sensor Entities (22):**
+- Zone 1-5: Error status indicators
+- Zone 1-5: Selection status indicators
+- Zone 1-5: Boost active indicators
+- Zone 1-5: Keep Warm active indicators
+- Flex Zone Left/Right status
+- BBQ Mode Left/Right status
+
+#### User Experience
+- **Complete Zone Control**: Individual control for all 5 cooking zones
+- **Professional UI**: Organized by zones with proper icons and device classes
+- **Real-time Status**: Live updates for all zone states and temperatures
+- **Error Monitoring**: Zone-specific error indicators
+- **Mode Detection**: Visual indicators for boost, keep warm, flex, and BBQ modes
+
+#### Compatibility
+- **Backward Compatible**: Existing simple entities (DP 101-104, 108, 134, 145, 148-155) unchanged
+- **Smart Detection**: Automatic detection between bitfield and simple data points
+- **Fallback Support**: Legacy integer bitfield handling preserved
+
+## [1.6.3] - 2025-10-18 [SUPERSEDED by 1.7.0]
+
+### 🔧 HOTFIX: IND7705HC Cooktop "Unknown" Status Fix [TEMPORARY]
+
+This release was superseded by v1.7.0 which implements proper bitfield decoding instead of removing entities.
+
 ## [1.6.2] - 2025-10-18
 
 ### 🔧 HOTFIX: ECCO HCM Fan Entity Configuration
