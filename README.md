@@ -35,16 +35,21 @@ Ich habe mich mit der local tuya Implementierung schwer getan, weil diverseste F
 
 ## Features
 
-### ✅ v1.5.0: Advanced Architecture & Production Readiness
+### ✅ v1.6.0: Enhanced Connectivity & User Experience
 
-**🎯 Moderne Home Assistant Architektur mit DataUpdateCoordinator!**
+**🎯 Optimierte Verbindungsstabilität und benutzerfreundliche Entity-Organisation!**
 
-#### ✅ Moderne HA-Patterns
-- **DataUpdateCoordinator**: Zentrale Datenverwaltung für optimale Performance
-- **CoordinatorEntity**: Alle Entitäten nutzen moderne HA-Patterns
-- **Binary Sensor Support**: Vollständige Unterstützung für Gerätestatus
-- **Enhanced Error Handling**: Async-Pattern ohne Fire-and-Forget
-- **Translation Support**: Vollständige Internationalisierung
+#### ✅ Connection Stability (v1.5.16)
+- **Enhanced Timeout Handling**: Verbindungszeit von 15 auf 30 Sekunden erhöht
+- **Retry Mechanism**: 3 automatische Wiederholungsversuche bei Verbindungsfehlern
+- **Improved Error Logging**: Detaillierte Debug-Informationen für bessere Fehlerdiagnose
+- **Connection Reliability**: Zuverlässigere Verbindungen zu Tuya-Geräten
+
+#### ✅ User Experience Optimizations
+- **Zone-Grouped Entities**: IND7705HC Entities nach Kochzonen organisiert (Zone 1: Power, Timer, etc.)
+- **Optimized Device Classes**: Korrekte Home Assistant Device Classes für bessere UI-Integration
+- **Intuitive Icons**: Material Design Icons für alle Entities (mdi:power, mdi:timer, etc.)
+- **Logical Entity Order**: Benutzerlogische Reihenfolge (Power → Fan → Light → Timer)
 
 #### 🚀 Smart Device Detection
 - **Automatic Device Recognition**: Device ID automatisch erkannt - 4 Gerätemodelle unterstützt
@@ -84,25 +89,29 @@ These devices have been verified using actual Tuya API "Query Things Data Model"
 - **Switches**: Power control, Filter cleaning reminder
 - **Sensors**: Filter status monitoring
 
-#### Induction Cooktop (IND7705HC)
-- **5 Cooking Zones**:
-  - Individual power control (0-25 levels)
-  - Zone timers (up to 255 minutes)
+#### Induction Cooktop (IND7705HC) - **Zone-Organized UI**
+- **🎯 Zone-Based Entity Organization**:
+  - **Zone 1**: Power Level, Timer, Target Temp, Quick Level, Status, Error
+  - **Zone 2-5**: Identische Struktur für jede Kochzone
+  - **Benutzerlogik**: Alles zu einer Zone gruppiert statt nach Entity-Typ
+- **⚡ Per-Zone Controls (x5)**:
+  - Individual power control (0-25 levels) mit Slider-UI
+  - Zone timers (0-255 minutes = 4+ hours) für Braten/Schmoren
   - Quick level presets (5 levels per zone)
-  - Boost mode per zone
-  - Keep warm mode per zone
-- **Advanced Features**:
+  - Boost mode & Keep warm mode
+  - Current & target temperature monitoring
+- **🔧 Advanced Features**:
   - Chef function with special levels
   - BBQ mode with dual zone control
-  - Flex zones for bridging
+  - Flex zones for bridging large cookware
   - Core temperature sensor support
   - Power limit modes (5 settings)
-- **Safety & Convenience**:
+- **🛡️ Safety & Convenience**:
   - Child lock protection
   - Pause/Resume function
   - Senior mode for simplified operation
   - General timer (0-99 minutes)
-  - Error monitoring per zone
+  - Error monitoring with problem detection
 
 **🤚 WICHTIG - Manuelle Bestätigung:**
 - 👤 **Remote-Steuerung** erfordert **physische Bestätigung** am Gerät
@@ -350,7 +359,7 @@ GitHub: [@moag1000](https://github.com/moag1000)
 [hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
 [license-shield]: https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge
 [license-url]: https://opensource.org/licenses/MIT
-[releases-shield]: https://img.shields.io/badge/version-v1.5.15-blue.svg?style=for-the-badge
+[releases-shield]: https://img.shields.io/badge/version-v1.6.0-blue.svg?style=for-the-badge
 [releases]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases
 [maintenance-shield]: https://img.shields.io/badge/maintainer-%40moag1000-blue.svg?style=for-the-badge
 [user_profile]: https://github.com/moag1000

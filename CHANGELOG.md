@@ -4,6 +4,46 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2025-10-18
+
+### 🎯 FEATURE: Zone-Organized Entities & Optimized User Experience
+
+#### Added
+- **Zone-Grouped Entity Names**: IND7705HC entities now organized by cooking zone for better usability
+  - Example: "Zone 1: Power Level", "Zone 1: Timer", "Zone 1: Current Temp"
+  - Logical grouping instead of type-based grouping (all Zone 1 controls together)
+- **Optimized Device Classes**: Correct Home Assistant device classes for better UI integration
+  - Number entities: `device_class: "duration"` for timers, `device_class: "temperature"` for temps
+  - Switch entities: Proper `device_class: "switch"` (not "outlet" for appliances)
+  - Sensor entities: `device_class: "temperature"` for temperature readings
+  - Binary sensor entities: `device_class: "problem"` for errors, `device_class: "running"` for status
+- **Material Design Icons**: Intuitive icons for all entities
+  - Power: `mdi:power`, Timer: `mdi:timer`, Temperature: `mdi:thermometer`
+  - Zone numbers: `mdi:numeric-1-circle`, Boost: `mdi:flash`, Keep Warm: `mdi:thermometer-low`
+- **Slider UI Mode**: Number entities use `mode: "slider"` for better touch control
+
+#### Improved
+- **User Experience**: Entities appear in logical cooking workflow order
+  - Per zone: Power Level → Timer → Target Temp → Quick Level → Status → Error
+  - Much more intuitive than scattered type-based grouping
+- **Entity Naming**: Consistent "Zone X: Function" pattern for easy identification
+- **UI Integration**: Better Home Assistant dashboard appearance with proper icons and device classes
+- **Timer Ranges**: Confirmed 255-minute maximum (4+ hours) for zone timers - perfect for slow cooking
+
+#### Technical Details
+- Updated `device_types.py` with zone-organized entity configurations
+- Added proper device classes for all entity types
+- Implemented Material Design icon assignments
+- Maintained backward compatibility with existing configurations
+
+#### User Benefits
+- **Logical Cooking Workflow**: All controls for Zone 1 grouped together, then Zone 2, etc.
+- **Better Visual Appearance**: Proper icons and device classes in Home Assistant UI
+- **Intuitive Controls**: Slider controls for power levels, timers, and temperatures
+- **Professional Look**: Entity cards appear with appropriate icons and styling
+
+---
+
 ## [1.5.16] - 2025-10-18
 
 ### 🔧 HOTFIX: Enhanced Connection Stability
