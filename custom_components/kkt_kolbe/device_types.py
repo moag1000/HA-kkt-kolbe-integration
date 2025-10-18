@@ -118,6 +118,44 @@ KNOWN_DEVICES = {
         }
     },
 
+    # KKT Kolbe FLAT Hood - Simplified version without RGB lighting
+    "flat_hood": {
+        "model_id": "luoxakxm2vm9azwu",
+        "category": CATEGORY_HOOD,
+        "name": "KKT Kolbe FLAT Hood",
+        "product_names": ["luoxakxm2vm9azwu", "KKT Kolbe FLAT"],
+        "device_ids": ["bff904d332b57484da1twc"],
+        "device_id_patterns": ["bff904d332b57484da"],
+        "platforms": ["fan", "light", "switch", "sensor", "number"],
+        "data_points": {
+            1: "switch",              # Main power
+            4: "light",               # Light on/off (no RGB)
+            6: "switch_lamp",         # Filter cleaning reminder
+            10: "fan_speed_enum",     # Fan speed
+            13: "countdown"           # Timer
+        },
+        "entities": {
+            "fan": {
+                "dp": 10,  # fan_speed_enum includes "off" state
+                "speeds": ["off", "low", "middle", "high", "strong"]
+            },
+            "light": {
+                "dp": 4  # light on/off only (no RGB support)
+            },
+            "switch": [
+                {"dp": 1, "name": "Power", "device_class": "outlet", "icon": "mdi:power"},
+                {"dp": 6, "name": "Filter Cleaning Reminder", "device_class": "switch"}
+            ],
+            "sensor": [
+                {"dp": 10, "name": "Fan Speed", "device_class": "enum", "options": ["off", "low", "middle", "high", "strong"]},
+                {"dp": 6, "name": "Filter Status", "device_class": "problem"}
+            ],
+            "number": [
+                {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES}
+            ]
+        }
+    },
+
     # KKT HERMES Hood (Schwestermodell ohne "& Style")
     "hermes_hood": {
         "model_id": "0fcj8kha86svfmve",

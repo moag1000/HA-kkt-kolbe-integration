@@ -51,11 +51,12 @@ Ich habe mich mit der local tuya Implementierung schwer getan, weil diverseste F
 - **Zero Configuration**: Keine manuelle Gerätetyp-Auswahl nötig
 - **Universal Setup**: Funktioniert mit Auto-Discovery und manueller Konfiguration
 
-### Supported Models (4 Geräte)
+### Supported Models (5 Geräte)
 
-#### 🌬️ Range Hoods (3 Modelle)
+#### 🌬️ Range Hoods (4 Modelle)
 - **KKT Kolbe HERMES & STYLE** - Range Hood (Model ID: e1k6i0zo)
 - **KKT Kolbe HERMES** - Range Hood (Model ID: 0fcj8kha86svfmve)
+- **KKT Kolbe FLAT** - Range Hood (Model ID: luoxakxm2vm9azwu)
 - **KKT Kolbe ECCO HCM** - Range Hood (Model ID: edjsx0)
 
 #### 🔥 Induction Cooktops (1 Modell)
@@ -307,7 +308,7 @@ GitHub: [@moag1000](https://github.com/moag1000)
 [hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
 [license-shield]: https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge
 [license-url]: https://opensource.org/licenses/MIT
-[releases-shield]: https://img.shields.io/badge/version-v1.5.12-blue.svg?style=for-the-badge
+[releases-shield]: https://img.shields.io/badge/version-v1.5.13-blue.svg?style=for-the-badge
 [releases]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases
 [maintenance-shield]: https://img.shields.io/badge/maintainer-%40moag1000-blue.svg?style=for-the-badge
 [user_profile]: https://github.com/moag1000

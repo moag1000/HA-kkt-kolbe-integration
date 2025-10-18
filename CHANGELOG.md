@@ -4,6 +4,39 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.13] - 2025-10-18
+
+### 🆕 NEW DEVICE: KKT Kolbe FLAT Hood Support
+
+#### Added
+- **New Device Support**: KKT Kolbe FLAT Hood (Model ID: luoxakxm2vm9azwu)
+- **Device Recognition**: Automatic detection for device pattern "bff904d332b57484da"
+- **Entity Configuration**: Full entity support with 5 data points (simplified vs HERMES & STYLE)
+
+#### Device Specifications
+- **Model**: KKT Kolbe FLAT Hood
+- **Category**: Range Hood (simplified version)
+- **Data Points**: 5 DPs (vs 6 for HERMES & STYLE)
+  - DP 1: Main Power Switch (bool)
+  - DP 4: Light Control (bool) - Standard lighting only
+  - DP 6: Filter Cleaning Reminder (bool)
+  - DP 10: Fan Speed (enum: off/low/middle/high/strong)
+  - DP 13: Timer (value: 0-60 minutes)
+
+#### Key Differences from HERMES & STYLE
+- **No RGB Lighting**: DP 101 (RGB Mode) not present
+- **Simplified Design**: 5 data points instead of 6
+- **Standard Light**: Only basic on/off lighting control
+- **Same Core Functions**: Power, fan, timer, filter reminder identical
+
+#### Technical Implementation
+- **Automatic Discovery**: Device ID pattern recognition
+- **Entity Platforms**: Fan, Light, Switch, Sensor, Number
+- **API Verified**: Configuration based on actual device API data
+- **Data Type Accuracy**: All entity types match device specifications
+
+---
+
 ## [1.5.12] - 2025-10-18
 
 ### 🎯 MAJOR FIX: Correct Device Data Points Based on API Analysis
@@ -575,6 +608,7 @@ The integration was creating entities for data points that don't exist in the ac
 - **Releases**: [All Releases](https://github.com/moag1000/HA-kkt-kolbe-integration/releases)
 - **HACS**: [Custom Repository](https://github.com/moag1000/HA-kkt-kolbe-integration)
 
+[1.5.13]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.13
 [1.5.12]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.12
 [1.5.11]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.11
 [1.5.10]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.10
