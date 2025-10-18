@@ -10,7 +10,7 @@
       },
       "discovery": {
         "title": "Geräteerkennung",
-        "description": "Erkennungsstatus: {discovery_status}\\n\\nGefundene Geräte: {found_devices}\\n\\n{fallback_info}",
+        "description": "Erkennungsstatus: {discovery_status}\n\nGefundene Geräte: {found_devices}\n\n{fallback_info}",
         "data": {
           "selected_device": "Gerät auswählen",
           "retry_discovery": "Erkennung wiederholen",
@@ -19,7 +19,7 @@
       },
       "manual": {
         "title": "Manuelle Konfiguration",
-        "description": "Geben Sie die Grunddaten Ihres KKT Kolbe Geräts ein.\\n\\nBeispiele:\\nIP-Adresse: {ip_example}\\nGeräte-ID: {device_id_example}\\n\\nHinweis: Der Local Key wird im nächsten Schritt abgefragt.",
+        "description": "Geben Sie die Grunddaten Ihres KKT Kolbe Geräts ein.\n\nBeispiele:\nIP-Adresse: {ip_example}\nGeräte-ID: {device_id_example}\n\nHinweis: Der Local Key wird im nächsten Schritt abgefragt.",
         "data": {
           "ip_address": "IP-Adresse",
           "device_id": "Tuya Geräte-ID",
@@ -29,7 +29,7 @@
       },
       "authentication": {
         "title": "Geräte-Authentifizierung",
-        "description": "Geben Sie den Local Key für Ihr Gerät ein:\\n\\nGerät: {device_name}\\nGeräte-ID: {device_id}\\nIP-Adresse: {ip_address}",
+        "description": "Geben Sie den Local Key für Ihr Gerät ein:\n\nGerät: {device_name}\nGeräte-ID: {device_id}\nIP-Adresse: {ip_address}",
         "data": {
           "local_key": "Local Key",
           "test_connection": "Verbindung testen",
@@ -38,7 +38,7 @@
       },
       "settings": {
         "title": "Erweiterte Einstellungen",
-        "description": "Konfigurieren Sie erweiterte Einstellungen für {device_name}.\\n\\nEmpfohlen: {recommended_interval}",
+        "description": "Konfigurieren Sie erweiterte Einstellungen für {device_name}.\n\nEmpfohlen: {recommended_interval}",
         "data": {
           "update_interval": "Aktualisierungsintervall",
           "enable_debug_logging": "Debug-Protokollierung aktivieren",
@@ -49,7 +49,7 @@
       },
       "confirmation": {
         "title": "Einrichtung bestätigen",
-        "description": "Bitte bestätigen Sie Ihre Konfiguration:\\n\\nGerät: {device_name}\\nIP: {ip_address}\\nGeräte-ID: {device_id}\\nProdukt: {product_name}\\n\\nEinstellungen:\\nAktualisierungsintervall: {update_interval} Sekunden\\nDebug-Protokollierung: {debug_logging}\\nErweiterte Entitäten: {advanced_entities}",
+        "description": "Bitte bestätigen Sie Ihre Konfiguration:\n\nGerät: {device_name}\nIP: {ip_address}\nGeräte-ID: {device_id}\nProdukt: {product_name}\n\nEinstellungen:\nAktualisierungsintervall: {update_interval} Sekunden\nDebug-Protokollierung: {debug_logging}\nErweiterte Entitäten: {advanced_entities}",
         "data": {
           "confirm": "Einrichtung bestätigen",
           "back_to_settings": "Zurück zu Einstellungen"
@@ -75,7 +75,7 @@
     "step": {
       "init": {
         "title": "KKT Kolbe Optionen",
-        "description": "Konfigurieren Sie Optionen für {device_name}.\\n\\nAktuelles Aktualisierungsintervall: {current_interval} Sekunden",
+        "description": "Konfigurieren Sie Optionen für {device_name}.\n\nAktuelles Aktualisierungsintervall: {current_interval} Sekunden",
         "data": {
           "scan_interval": "Aktualisierungsintervall",
           "enable_debug_logging": "Debug-Protokollierung aktivieren",

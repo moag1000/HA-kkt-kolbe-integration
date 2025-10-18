@@ -268,7 +268,7 @@ def get_zone_value_from_coordinator(coordinator, dp_id: int, zone: int) -> Union
         if raw_data is None:
             raw_data = coordinator.data.get(dp_id)
         if raw_data is None:
-            _LOGGER.debug(f"DP {dp_id} not found in coordinator data (tried both str and int keys)")
+            _LOGGER.debug(f"DP {dp_id} not in current update (tried both str and int keys). Zone entities will use cached values.")
             return 0 if BITFIELD_CONFIG.get(dp_id, {}).get("type") == "value" else False
 
         _LOGGER.debug(f"DP {dp_id} raw data: {raw_data} (type: {type(raw_data)})")
