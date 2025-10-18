@@ -4,6 +4,57 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.4] - 2025-10-18
+
+### 🔧 FIX: HERMES & STYLE Hood Fan Speed Control
+
+#### Fixed
+- **Hood Fan Speed Control**: Removed redundant sensor entity for DP 10 fan speed
+- **Proper Fan Entity**: HERMES & STYLE hood now only uses fan entity for DP 10
+- **Device Control**: Fan speed can now be properly controlled via fan interface
+- **Entity Cleanup**: Eliminated duplicate entities for same data point
+
+#### Technical Details
+- Removed conflicting sensor entity for DP 10 in HERMES & STYLE hood configuration
+- Fan entity (DP 10) now exclusively handles fan speed control
+- Maintains proper enum mapping: ["off", "low", "middle", "high", "strong"]
+- Follows Tuya device data model specifications
+
+#### User Impact
+- **Working Fan Speed Control**: HERMES & STYLE hood fan speeds can now be set via fan controls
+- **Clean Entity List**: No more duplicate fan speed entities in device
+- **Proper Device Behavior**: Matches Tuya device model specifications
+
+## [1.7.3] - 2025-10-18
+
+### 🔧 CRITICAL: Fan Entity & Error Handling Fixes
+
+#### Fixed Fan Entity Issues
+- **Fan Entity Support**: Added missing TURN_ON and TURN_OFF feature flags
+- **State Caching**: Implemented proper state caching for Fan entities
+- **Control Support**: Fan entities now properly support turn_on/turn_off actions
+
+#### Fixed Error Handling
+- **KKTDataPointError**: Extended exception class to support device_id and reason parameters
+- **Compatibility**: Resolved "unexpected keyword argument" errors in logs
+- **Better Diagnostics**: Enhanced error messages for troubleshooting
+
+#### Enhanced Entity Performance
+- **Fan State Caching**: Fan entities now cache state for instant response
+- **Select State Caching**: Select entities now use cached state
+- **Memory Optimization**: All entity types now follow Home Assistant best practices
+
+#### Technical Details
+- Added FanEntityFeature.TURN_ON and TURN_OFF to fan entity
+- Extended KKTDataPointError with device_id, reason, data_point parameters
+- Implemented _update_cached_state() for Fan and Select entities
+- Smart state management across all entity types
+
+#### User Impact
+- **Working Fan Controls**: Fan turn_on/turn_off buttons now work in UI
+- **No More Error Logs**: Resolved KKTDataPointError parameter issues
+- **Better Performance**: Instant entity state updates
+
 ## [1.7.2] - 2025-10-18
 
 ### 🔧 HOTFIX: Temperature Unit Configuration
