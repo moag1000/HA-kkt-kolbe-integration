@@ -4,6 +4,44 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.7] - 2025-10-18
+
+### 🐛 CRITICAL BUG FIX: "Falsy" Values Treated as None
+
+#### Fixed Critical Data Point Detection Bug
+- **False/0 Values**: Fixed bug where `False`, `0`, and empty string values were treated as `None`
+- **"or" Operator Bug**: Replaced problematic `or` operator with explicit `None` checking
+- **All Basic Entities**: Power switches, timers, and number entities now show proper values
+- **Data Point Logic**: Fixed fundamental data point value extraction logic
+
+#### Technical Details
+- **Bug**: `value = data.get(str(dp)) or data.get(dp)` treated falsy values as `None`
+- **Fix**: Explicit `None` checking: `if value is None: value = data.get(dp)`
+- **Impact**: All entities with `False`, `0`, or empty string values now work correctly
+- **Root Cause**: Python's `or` operator evaluates falsy values as `False`
+
+#### User Impact
+- **Working Power Switches**: All power switches now show `False` (off) instead of "unknown"
+- **Working Timers**: All timer entities now show `0` instead of "unknown"
+- **Working Numbers**: All number entities now show proper values instead of "unknown"
+- **Massive Fix**: Resolves the majority of remaining "unknown" entity issues
+
+#### Affected Entities Fixed
+**HERMES & STYLE Hood:**
+- Power Switch (DP 1): `unknown` → `False`
+- RGB Mode (DP 101): `unknown` → `0`
+- Timer (DP 13): `unknown` → `0`
+
+**IND7705HC Kochfeld:**
+- Power Switch (DP 101): `unknown` → `False`
+- Pause Switch (DP 102): `unknown` → `False`
+- Child Lock (DP 103): `unknown` → `False`
+- Max Power Level (DP 104): `unknown` → proper value
+- General Timer (DP 134): `unknown` → proper value
+- Senior Mode (DP 145): `unknown` → `False`
+
+**Note**: Zone Error entities (DP 105) may still show "unknown" when no errors are present - this is correct behavior.
+
 ## [1.7.6] - 2025-10-18
 
 ### 🔍 DEBUG: Enhanced Logging for Remaining "Unknown" Entities
