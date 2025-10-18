@@ -52,43 +52,54 @@ class KKTKolbeFan(KKTBaseEntity, FanEntity):
         }
         super().__init__(coordinator, entry, config, "fan")
 
-        self._attr_supported_features = FanEntityFeature.SET_SPEED
+        self._attr_supported_features = (
+            FanEntityFeature.SET_SPEED |
+            FanEntityFeature.TURN_ON |
+            FanEntityFeature.TURN_OFF
+        )
         self._attr_speed_count = len(self._speed_list) - 1  # Exclude 'off'
         self._attr_icon = "mdi:fan"
+        self._cached_state = None
+        self._cached_percentage = None
+
+        # Initialize state from coordinator data
+        self._update_cached_state()
+
+    def _update_cached_state(self) -> None:
+        """Update the cached state from coordinator data."""
+        speed_value = self._get_data_point_value()
+
+        # Update cached state
+        if isinstance(speed_value, str):
+            self._cached_state = speed_value != "off"
+        elif isinstance(speed_value, (int, float)):
+            self._cached_state = speed_value > 0
+        else:
+            self._cached_state = None
+
+        # Update cached percentage
+        if isinstance(speed_value, str):
+            if speed_value == "off" or speed_value not in self._speed_list:
+                self._cached_percentage = 0
+            else:
+                self._cached_percentage = ordered_list_item_to_percentage(self._speed_list, speed_value)
+        elif isinstance(speed_value, (int, float)):
+            if speed_value == 0 or speed_value >= len(self._speed_list):
+                self._cached_percentage = 0
+            else:
+                self._cached_percentage = ordered_list_item_to_percentage(self._speed_list, self._speed_list[int(speed_value)])
+        else:
+            self._cached_percentage = 0
 
     @property
     def is_on(self) -> bool | None:
         """Return true if the fan is on."""
-        speed_value = self._get_data_point_value()
-
-        # If value is a string (enum), check if it's not "off"
-        if isinstance(speed_value, str):
-            return speed_value != "off"
-
-        # If value is numeric, check if it's greater than 0
-        if isinstance(speed_value, (int, float)):
-            return speed_value > 0
-
-        return None
+        return self._cached_state
 
     @property
     def percentage(self) -> int | None:
         """Return the current speed percentage."""
-        speed_value = self._get_data_point_value()
-
-        # If value is a string (enum), convert directly
-        if isinstance(speed_value, str):
-            if speed_value == "off" or speed_value not in self._speed_list:
-                return 0
-            return ordered_list_item_to_percentage(self._speed_list, speed_value)
-
-        # If value is numeric, use as index
-        if isinstance(speed_value, (int, float)):
-            if speed_value == 0 or speed_value >= len(self._speed_list):
-                return 0
-            return ordered_list_item_to_percentage(self._speed_list, self._speed_list[int(speed_value)])
-
-        return 0
+        return self._cached_percentage
 
     async def async_set_percentage(self, percentage: int) -> None:
         """Set the speed percentage of the fan."""

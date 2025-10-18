@@ -112,7 +112,6 @@ KNOWN_DEVICES = {
                 {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"}
             ],
             "sensor": [
-                {"dp": 10, "name": "Fan Speed", "options": ["off", "low", "middle", "high", "strong"], "icon": "mdi:fan"},
                 {"dp": 6, "name": "Filter Status", "icon": "mdi:air-filter"}
             ]
         }

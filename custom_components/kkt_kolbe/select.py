@@ -43,6 +43,10 @@ class KKTKolbeSelect(KKTBaseEntity, SelectEntity):
         self._attr_options = config.get("options", [])
         self._options_map = config.get("options_map", {})
         self._attr_icon = self._get_icon()
+        self._cached_option = None
+
+        # Initialize state from coordinator data
+        self._update_cached_state()
 
     def _get_icon(self) -> str:
         """Get appropriate icon for the select entity."""
@@ -55,23 +59,29 @@ class KKTKolbeSelect(KKTBaseEntity, SelectEntity):
 
         return "mdi:form-select"
 
-    @property
-    def current_option(self) -> str | None:
-        """Return the current selected option."""
+    def _update_cached_state(self) -> None:
+        """Update the cached state from coordinator data."""
         value = self._get_data_point_value()
         if value is None:
-            return None
+            self._cached_option = None
+            return
 
         # Map device value to option string
         for option, device_value in self._options_map.items():
             if device_value == value:
-                return option
+                self._cached_option = option
+                return
 
         # If no mapping found, try to use value directly if it's in options
         if isinstance(value, str) and value in self._attr_options:
-            return value
+            self._cached_option = value
+        else:
+            self._cached_option = None
 
-        return None
+    @property
+    def current_option(self) -> str | None:
+        """Return the current selected option."""
+        return self._cached_option
 
     async def async_select_option(self, option: str) -> None:
         """Select an option."""
