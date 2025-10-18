@@ -4,6 +4,41 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.6] - 2025-10-18
+
+### 🔍 DEBUG: Enhanced Logging for Remaining "Unknown" Entities
+
+#### Enhanced Debug Logging
+- **Coordinator Update Logging**: Added detailed logging for coordinator data updates
+- **Data Point Detection**: Enhanced logging to identify missing data points
+- **Available DPs Logging**: Shows all available data points in coordinator data
+- **Warning Level**: Changed missing DP logs to WARNING level for visibility
+
+#### Technical Details
+- Enhanced `_handle_coordinator_update()` with detailed coordinator data logging
+- Changed `_get_data_point_value()` logging from DEBUG to WARNING for missing DPs
+- Added zone and data point information to coordinator update logs
+- Improved debugging capabilities for data point availability
+
+#### User Impact
+- **Better Diagnostics**: Home Assistant logs will now clearly show which data points are missing
+- **Debug Information**: Detailed logging helps identify why certain entities show "unknown"
+- **No Functional Changes**: This is purely a diagnostic enhancement
+
+#### Installation
+1. Download and install v1.7.6
+2. Enable debug logging in configuration.yaml:
+   ```yaml
+   logger:
+     default: warning
+     logs:
+       custom_components.kkt_kolbe: debug
+   ```
+3. Restart Home Assistant
+4. Check logs for detailed data point information
+
+**Note**: This debug release helps diagnose remaining "unknown" entity issues.
+
 ## [1.7.5] - 2025-10-18
 
 ### 🔧 CRITICAL FIXES: Hood Fan Entity & IND7705HC Zone Entities
