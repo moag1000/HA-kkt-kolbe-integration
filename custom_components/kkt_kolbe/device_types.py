@@ -227,10 +227,6 @@ KNOWN_DEVICES = {
                 {"dp": 104, "name": "LED Light", "device_class": "switch", "icon": "mdi:led-strip"},
                 {"dp": 106, "name": "Confirm", "device_class": "switch", "icon": "mdi:check"}
             ],
-            "fan": {
-                "dp": 102,  # fan_speed (0-9)
-                "speeds": ["off", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
-            },
             "light": {
                 "dp": 4,  # main light on/off
                 "brightness_dp": None,  # No dedicated brightness

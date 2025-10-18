@@ -4,6 +4,34 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.2] - 2025-10-18
+
+### 🔧 HOTFIX: ECCO HCM Fan Entity Configuration
+
+#### Fixed
+- **ECCO HCM Fan Entity Conflict**: Removed incorrect fan entity for ECCO HCM hood
+- **Duplicate DP Issue**: DP 102 was configured for both fan and number entities
+- **Correct Control Type**: ECCO HCM uses number slider (0-9) not fan entity with speeds
+
+#### Technical Details
+- **ECCO HCM Hood**: DP 102 is `fan_speed` VALUE (0-9), not ENUM
+- **Removed fan entity** for ECCO HCM to prevent conflicts
+- **Number entity remains** for proper slider-based speed control (0-9 levels)
+- **Other hoods unchanged**: HERMES & STYLE, FLAT, and HERMES still use fan entities
+
+#### User Impact
+- **ECCO HCM users**: Use "Fan Speed" number slider instead of fan entity
+- **Other hood users**: No change, fan entities work as expected
+- **Cleaner entity list**: No more duplicate/conflicting entities
+
+#### Hood Model Summary
+- **HERMES & STYLE** (ypaixllljc2dcpae): ✅ Fan entity (DP 10, 5 speeds)
+- **FLAT Hood** (luoxakxm2vm9azwu): ✅ Fan entity (DP 10, 5 speeds)
+- **HERMES Hood** (0fcj8kha86svfmve): ✅ Fan entity (DP 10, 5 speeds)
+- **ECCO HCM Hood** (gwdgkteknzvsattn): ✅ Number entity (DP 102, 0-9 slider)
+
+---
+
 ## [1.6.1] - 2025-10-18
 
 ### 🔧 HOTFIX: Fan Entity Not Loading for HERMES & STYLE
