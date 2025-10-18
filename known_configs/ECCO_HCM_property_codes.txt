@@ -1,0 +1,1 @@
+switch,light,switch_lamp,switch_wash,fan_speed,day,switch_led_1,countdown_1,switch_led,colour_data,work_mode,day_1
