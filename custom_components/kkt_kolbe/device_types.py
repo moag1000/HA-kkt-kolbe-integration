@@ -97,14 +97,11 @@ KNOWN_DEVICES = {
         "entities": {
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
+                {"dp": 4, "name": "Light", "device_class": "switch", "icon": "mdi:lightbulb"},
                 {"dp": 6, "name": "Filter Cleaning Reminder", "icon": "mdi:air-filter"}
             ],
-            "light": {
-                "dp": 4,  # light on/off
-                "rgb_dp": 101  # RGB mode (0-9)
-            },
             "number": [
-                {"dp": 101, "name": "RGB Mode", "min": 0, "max": 9, "step": 1},
+                {"dp": 101, "name": "RGB Mode", "min": 0, "max": 9, "step": 1, "icon": "mdi:palette"},
                 {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"}
             ],
             "sensor": [
@@ -261,7 +258,7 @@ KNOWN_DEVICES = {
                 {"dp": 102, "name": "Pause", "device_class": "switch", "icon": "mdi:pause"},
                 {"dp": 103, "name": "Child Lock", "device_class": "switch", "icon": "mdi:lock"},
                 {"dp": 145, "name": "Senior Mode", "device_class": "switch", "icon": "mdi:account-supervisor"},
-                {"dp": 108, "name": "Confirm Action", "device_class": "switch", "icon": "mdi:check"}
+                {"dp": 108, "name": "Confirm Action", "device_class": "switch", "entity_category": "config", "icon": "mdi:check"}
             ],
             "number": [
                 # Global controls
@@ -293,8 +290,8 @@ KNOWN_DEVICES = {
                 {"dp": 150, "name": "Zone 3: Quick Level", "options": QUICK_LEVELS, "icon": "mdi:numeric-3-circle-outline"},
                 {"dp": 151, "name": "Zone 4: Quick Level", "options": QUICK_LEVELS, "icon": "mdi:numeric-4-circle-outline"},
                 {"dp": 152, "name": "Zone 5: Quick Level", "options": QUICK_LEVELS, "icon": "mdi:numeric-5-circle-outline"},
-                {"dp": 153, "name": "Save Zone Level", "options": ["save_hob1", "save_hob2", "save_hob3", "save_hob4", "save_hob5"], "icon": "mdi:content-save"},
-                {"dp": 154, "name": "Set Zone Level", "options": ["set_hob1", "set_hob2", "set_hob3", "set_hob4", "set_hob5"], "icon": "mdi:cog"},
+                {"dp": 153, "name": "Save Zone Level", "options": ["save_hob1", "save_hob2", "save_hob3", "save_hob4", "save_hob5"], "entity_category": "config", "icon": "mdi:content-save"},
+                {"dp": 154, "name": "Set Zone Level", "options": ["set_hob1", "set_hob2", "set_hob3", "set_hob4", "set_hob5"], "entity_category": "config", "icon": "mdi:cog"},
                 {"dp": 155, "name": "Power Limit", "options": ["power_limit_1", "power_limit_2", "power_limit_3", "power_limit_4", "power_limit_5"], "icon": "mdi:flash-triangle"}
             ],
             "sensor": [
