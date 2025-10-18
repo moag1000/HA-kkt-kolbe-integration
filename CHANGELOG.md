@@ -4,6 +4,30 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.16] - 2025-10-18
+
+### 🔧 HOTFIX: Enhanced Connection Stability
+
+#### Fixed
+- **Connection Timeout**: Increased device connection timeout from 15 to 30 seconds
+- **Retry Mechanism**: Added 3-attempt retry logic with 5-second delays between attempts
+- **Error Logging**: Enhanced logging for better debugging of connection issues
+- **Device Unreachability**: Improved handling when devices are temporarily offline
+
+#### Technical Improvements
+- **Robust Connection**: Better handling of network instability and device response delays
+- **Timeout Management**: More appropriate timeout values for real-world device responses
+- **Error Recovery**: Automatic retry with exponential backoff for transient connection failures
+- **Debug Information**: More detailed logging for troubleshooting connection problems
+
+#### Addresses Issues
+- Resolves "Connection timeout after 15 seconds" errors in logs
+- Improves reliability for devices on slow or congested networks
+- Better handling of device startup/discovery phases
+- Reduces false connection failures due to temporary network issues
+
+---
+
 ## [1.5.14] - 2025-10-18
 
 ### 📋 DOCUMENTATION: Device Verification Status & Community Support

@@ -41,32 +41,50 @@ class KKTKolbeTuyaDevice:
         return task
 
     async def async_connect(self) -> None:
-        """Establish async connection to the device with timeout protection."""
+        """Establish async connection to the device with timeout protection and retry mechanism."""
         if self._connected:
             return
 
-        try:
-            # Apply timeout protection for connection operations
-            await asyncio.wait_for(self._perform_connection(), timeout=15.0)
+        max_retries = 3
+        retry_delay = 5.0  # seconds
 
-        except asyncio.TimeoutError:
-            self._connected = False
-            _LOGGER.error(f"Connection timeout after 15 seconds for device {self.ip_address}")
-            self._device = None
-            raise KKTTimeoutError(
-                operation="connect",
-                device_id=self.device_id[:8],
-                timeout=15.0
-            )
-        except Exception as e:
-            self._connected = False
-            _LOGGER.error(f"Failed to connect to device: {e}")
-            self._device = None
-            raise KKTConnectionError(
-                operation="connect",
-                device_id=self.device_id[:8],
-                reason=str(e)
-            )
+        for attempt in range(max_retries):
+            try:
+                _LOGGER.info(f"Attempting connection to device {self.device_id[:8]} at {self.ip_address} (attempt {attempt + 1}/{max_retries})")
+
+                # Apply timeout protection for connection operations
+                await asyncio.wait_for(self._perform_connection(), timeout=30.0)
+
+                _LOGGER.info(f"Successfully connected to device {self.device_id[:8]} at {self.ip_address}")
+                return
+
+            except asyncio.TimeoutError:
+                self._connected = False
+                self._device = None
+                if attempt == max_retries - 1:
+                    _LOGGER.error(f"Connection timeout after 30 seconds for device {self.ip_address} (final attempt)")
+                    raise KKTTimeoutError(
+                        operation="connect",
+                        device_id=self.device_id[:8],
+                        timeout=30.0
+                    )
+                else:
+                    _LOGGER.warning(f"Connection timeout for device {self.ip_address} (attempt {attempt + 1}/{max_retries}), retrying in {retry_delay}s")
+                    await asyncio.sleep(retry_delay)
+
+            except Exception as e:
+                self._connected = False
+                self._device = None
+                if attempt == max_retries - 1:
+                    _LOGGER.error(f"Failed to connect to device {self.ip_address} after {max_retries} attempts: {e}")
+                    raise KKTConnectionError(
+                        operation="connect",
+                        device_id=self.device_id[:8],
+                        reason=str(e)
+                    )
+                else:
+                    _LOGGER.warning(f"Connection failed for device {self.ip_address} (attempt {attempt + 1}/{max_retries}): {e}, retrying in {retry_delay}s")
+                    await asyncio.sleep(retry_delay)
 
     async def _perform_connection(self) -> None:
         """Perform the actual connection logic."""
@@ -77,6 +95,7 @@ class KKTKolbeTuyaDevice:
             _LOGGER.info(f"Auto-detecting Tuya protocol version for {self.ip_address}")
             # LocalTuya order: 3.3 default first, then 3.4, 3.1, 3.2 (proven compatibility)
             for test_version in [3.3, 3.4, 3.1, 3.2]:
+                _LOGGER.debug(f"Testing protocol version {test_version} for device {self.device_id[:8]}")
                 try:
                     test_device = await loop.run_in_executor(
                         None,
@@ -122,10 +141,10 @@ class KKTKolbeTuyaDevice:
                         return
 
                 except asyncio.TimeoutError:
-                    _LOGGER.debug(f"Version {test_version} timeout - trying next version")
+                    _LOGGER.warning(f"Protocol version {test_version} timeout for device {self.device_id[:8]} - trying next version")
                     continue
                 except Exception as e:
-                    _LOGGER.debug(f"Version {test_version} failed: {e} - trying next version")
+                    _LOGGER.warning(f"Protocol version {test_version} failed for device {self.device_id[:8]}: {e} - trying next version")
                     continue
 
             # If we reach here, auto-detection failed

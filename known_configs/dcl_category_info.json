@@ -1,0 +1,75 @@
+{
+  "result": {
+    "category": "dcl",
+    "status_list": [
+      {
+        "name": "工作模式 ",
+        "type": "Enum",
+        "values": "{ \"range\": [ \"chips\", \"drumsticks\", \"shrimp\", \"fish\", \"ribs\", \"meat\" ]}"
+      },
+      {
+        "name": "预约时间",
+        "type": "Integer",
+        "values": "{ \"unit\": \"min\", \"min\": 1, \"max\": 360, \"scale\": 0, \"step\": 1}"
+      },
+      {
+        "name": "烹饪温度",
+        "type": "Integer",
+        "values": "{ \"unit\": \"℃\", \"min\": 0, \"max\": 500, \"scale\": 0, \"step\": 1}"
+      },
+      {
+        "name": "当前温度",
+        "type": "Integer",
+        "values": "{ \"unit\": \"℃\", \"min\": 0, \"max\": 500, \"scale\": 0, \"step\": 1}"
+      },
+      {
+        "name": "烹饪功率",
+        "type": "Integer",
+        "values": "{ \"unit\": \"w\", \"min\": 0, \"max\": 5000, \"scale\": 0, \"step\": 1}"
+      },
+      {
+        "name": "开关",
+        "type": "Boolean",
+        "values": "{}"
+      },
+      {
+        "name": "暂停/继续",
+        "type": "Boolean",
+        "values": "{}"
+      },
+      {
+        "name": "云菜谱清单",
+        "type": "Integer",
+        "values": "{ \"min\": 0, \"max\": 999999, \"scale\": 0, \"step\": 1}"
+      },
+      {
+        "name": "工作状态",
+        "type": "Enum",
+        "values": "{ \"range\": [\"standby\", \"appointment\", \"cooking\", \"done\" ]}"
+      },
+      {
+        "name": "启动",
+        "type": "Boolean",
+        "values": "{}"
+      },
+      {
+        "name": "烹饪时间",
+        "type": "Integer",
+        "values": "{ \"unit\": \"min\", \"min\": 1, \"max\": 360, \"scale\": 0, \"step\": 1}"
+      },
+      {
+        "name": "剩余时间",
+        "type": "Integer",
+        "values": "{ \"unit\": \"min\", \"min\": 0, \"max\": 360, \"scale\": 0, \"step\": 1}"
+      },
+      {
+        "name": "烹饪历史",
+        "type": "Integer",
+        "values": "{ \"min\": 0, \"max\": 999999, \"scale\": 0, \"step\": 1}"
+      }
+    ]
+  },
+  "success": true,
+  "t": 1760789144781,
+  "tid": "c6729257ac1a11f08e5dda57e8f5d0ed"
+}

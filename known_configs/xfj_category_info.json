@@ -1,0 +1,334 @@
+{
+  "result": {
+    "category": "xfj",
+    "status_list": [
+      {
+        "code": "switch",
+        "name": "开关",
+        "type": "Boolean",
+        "values": "{}"
+      },
+      {
+        "code": "mode",
+        "name": "工作模式",
+        "type": "Enum",
+        "values": "{\"range\":[\"auto\",\"sleep\",\"manual\"]}"
+      },
+      {
+        "code": "air_volume",
+        "name": "风量",
+        "type": "Integer",
+        "values": "{\"unit\":\"m3/h\",\"min\":0,\"max\":1000,\"scale\":0,\"step\":1}"
+      },
+      {
+        "code": "loop_mode",
+        "name": "循环模式",
+        "type": "Enum",
+        "values": "{\"range\":[\"auto\",\"indoor_loop\",\"outdoor_loop\"]}"
+      },
+      {
+        "code": "supply_fan_speed",
+        "name": "送风风速",
+        "type": "Enum",
+        "values": "{\"range\":[\"off\",\"low\",\"mid\",\"high\"]}"
+      },
+      {
+        "code": "exhaust_fan_speed",
+        "name": "排风风速",
+        "type": "Enum",
+        "values": "{\"range\":[\"off\",\"low\",\"mid\",\"high\"]}"
+      },
+      {
+        "code": "fresh_air_valve",
+        "name": "新风阀",
+        "type": "Boolean",
+        "values": "{}"
+      },
+      {
+        "code": "air_exhaust_fan",
+        "name": "排风扇",
+        "type": "Boolean",
+        "values": "{}"
+      },
+      {
+        "code": "primary_filter_reset",
+        "name": "初效滤网复位",
+        "type": "Boolean",
+        "values": "{}"
+      },
+      {
+        "code": "medium_filter_reset",
+        "name": "中效滤网滤芯复位",
+        "type": "Boolean",
+        "values": "{}"
+      },
+      {
+        "code": "high_filter_reset",
+        "name": "高效滤网复位",
+        "type": "Boolean",
+        "values": "{}"
+      },
+      {
+        "code": "sterilize",
+        "name": "杀菌",
+        "type": "Boolean",
+        "values": "{}"
+      },
+      {
+        "code": "bypass_function",
+        "name": "旁通功能",
+        "type": "Boolean",
+        "values": "{}"
+      },
+      {
+        "code": "heat",
+        "name": "电辅热",
+        "type": "Boolean",
+        "values": "{}"
+      },
+      {
+        "code": "pm25_set",
+        "name": "PM2.5参数设定",
+        "type": "Integer",
+        "values": "{\"unit\":\"μg/m3\",\"min\":1,\"max\":999,\"scale\":0,\"step\":1}"
+      },
+      {
+        "code": "eco2_set",
+        "name": "eCO2参数设定",
+        "type": "Integer",
+        "values": "{\"unit\":\"ppm\",\"min\":1,\"max\":1000,\"scale\":0,\"step\":1}"
+      },
+      {
+        "code": "temp_set",
+        "name": "温度设置",
+        "type": "Integer",
+        "values": "{\"unit\":\"℃\",\"min\":-50,\"max\":50,\"scale\":0,\"step\":1}"
+      },
+      {
+        "code": "humidity_set",
+        "name": "湿度设置",
+        "type": "Integer",
+        "values": "{\"unit\":\"%\",\"min\":0,\"max\":100,\"scale\":0,\"step\":1}"
+      },
+      {
+        "code": "tvoc_set",
+        "name": "TVOC参数设定",
+        "type": "Integer",
+        "values": "{\"unit\":\"ppm\",\"min\":0,\"max\":1000,\"scale\":2,\"step\":1}"
+      },
+      {
+        "code": "air_conditioning",
+        "name": "空调",
+        "type": "Boolean",
+        "values": "{}"
+      },
+      {
+        "code": "backlight",
+        "name": "背光亮度",
+        "type": "Integer",
+        "values": "{\"unit\":\"%\",\"min\":0,\"max\":100,\"scale\":0,\"step\":1}"
+      },
+      {
+        "code": "purify_mode",
+        "name": "净化模式",
+        "type": "Enum",
+        "values": "{\"range\":[\"high\",\"low\"]}"
+      },
+      {
+        "code": "purification",
+        "name": "净化/除尘",
+        "type": "Boolean",
+        "values": "{}"
+      },
+      {
+        "code": "dehumidifier",
+        "name": "除湿",
+        "type": "Boolean",
+        "values": "{}"
+      },
+      {
+        "code": "defrost",
+        "name": "除霜",
+        "type": "Boolean",
+        "values": "{}"
+      },
+      {
+        "code": "countdown_set",
+        "name": "倒计时",
+        "type": "Enum",
+        "values": "{\"range\":[\"cancel\",\"0_5h\",\"1h\",\"1_5h\",\"2h\",\"2_5h\",\"3h\",\"3_5h\",\"4h\",\"4_5h\",\"5h\",\"5_5h\",\"6h\"]}"
+      },
+      {
+        "code": "factory_reset",
+        "name": "恢复出厂设置",
+        "type": "Boolean",
+        "values": "{}"
+      },
+      {
+        "code": "child_lock",
+        "name": "童锁开关",
+        "type": "Boolean",
+        "values": "{}"
+      },
+      {
+        "code": "filter_reset",
+        "name": "滤芯复位",
+        "type": "Boolean",
+        "values": "{}"
+      },
+      {
+        "code": "fan_speed_enum",
+        "name": "风速",
+        "type": "Enum",
+        "values": "{\"range\":[\"low\",\"mid\",\"high\",\"sleep\"]}"
+      },
+      {
+        "code": "anion",
+        "name": "负离子",
+        "type": "Boolean",
+        "values": "{}"
+      },
+      {
+        "code": "uv_light",
+        "name": "UV灯",
+        "type": "Boolean",
+        "values": "{}"
+      },
+      {
+        "code": "pm10_set",
+        "name": "PM10参数设定",
+        "type": "Integer",
+        "values": "{\"unit\":\"mg/m3\",\"min\":0,\"max\":999,\"scale\":0,\"step\":1}"
+      },
+      {
+        "code": "pm10",
+        "name": "PM10",
+        "type": "Integer",
+        "values": "{\"unit\":\"μg/m3\",\"min\":0,\"max\":999,\"scale\":0,\"step\":1}"
+      },
+      {
+        "code": "humidity_outdoor",
+        "name": "室外湿度",
+        "type": "Integer",
+        "values": "{\"unit\":\"%\",\"min\":0,\"max\":100,\"scale\":0,\"step\":1}"
+      },
+      {
+        "code": "temp_outdoor",
+        "name": "室外温度",
+        "type": "Integer",
+        "values": "{\"unit\":\"℃\",\"min\":-50,\"max\":50,\"scale\":0,\"step\":1}"
+      },
+      {
+        "code": "air_quality",
+        "name": "空气质量",
+        "type": "Enum",
+        "values": "{\"range\":[\"great\",\"good\",\"mild\",\"medium\",\"bad\"]}"
+      },
+      {
+        "code": "supply_temp",
+        "name": "送风温度",
+        "type": "Integer",
+        "values": "{\"unit\":\"℃\",\"min\":-50,\"max\":50,\"scale\":0,\"step\":1}"
+      },
+      {
+        "code": "exhaust_temp",
+        "name": "排风温度",
+        "type": "Integer",
+        "values": "{\"unit\":\"℃\",\"min\":-50,\"max\":50,\"scale\":0,\"step\":1}"
+      },
+      {
+        "code": "supply_air_vol",
+        "name": "送风风量",
+        "type": "Integer",
+        "values": "{\"min\":0,\"max\":1000,\"scale\":0,\"step\":1}"
+      },
+      {
+        "code": "exhaust_air_vol",
+        "name": "排风风量",
+        "type": "Integer",
+        "values": "{\"min\":0,\"max\":1000,\"scale\":0,\"step\":1}"
+      },
+      {
+        "code": "primary_filter_life",
+        "name": "初效滤网剩余/寿命",
+        "type": "Integer",
+        "values": "{\"unit\":\"%\",\"min\":0,\"max\":100,\"scale\":0,\"step\":1}"
+      },
+      {
+        "code": "medium_filter_life",
+        "name": "中效滤网剩余/寿命",
+        "type": "Integer",
+        "values": "{\"unit\":\"%\",\"min\":0,\"max\":100,\"scale\":0,\"step\":1}"
+      },
+      {
+        "code": "high_filter_life",
+        "name": "高效滤网剩余/寿命",
+        "type": "Integer",
+        "values": "{\"unit\":\"%\",\"min\":0,\"max\":100,\"scale\":0,\"step\":1}"
+      },
+      {
+        "code": "countdown_left",
+        "name": "倒计时剩余时间",
+        "type": "Integer",
+        "values": "{\"unit\":\"min\",\"min\":0,\"max\":360,\"scale\":0,\"step\":1}"
+      },
+      {
+        "code": "filter_life",
+        "name": "滤网寿命",
+        "type": "Integer",
+        "values": "{\"unit\":\"%\",\"min\":0,\"max\":100,\"scale\":0,\"step\":1}"
+      },
+      {
+        "code": "uv_life",
+        "name": "UV寿命",
+        "type": "Integer",
+        "values": "{\"unit\":\"%\",\"min\":0,\"max\":100,\"scale\":0,\"step\":1}"
+      },
+      {
+        "code": "temp_indoor",
+        "name": "室内温度",
+        "type": "Integer",
+        "values": "{\"unit\":\"℃\",\"min\":0,\"max\":50,\"scale\":0,\"step\":1}"
+      },
+      {
+        "code": "humidity_indoor",
+        "name": "室内湿度",
+        "type": "Integer",
+        "values": "{\"unit\":\"%\",\"min\":0,\"max\":100,\"scale\":0,\"step\":1}"
+      },
+      {
+        "code": "tvoc",
+        "name": "TVOC",
+        "type": "Integer",
+        "values": "{\"min\":0,\"max\":1000,\"scale\":0,\"step\":1}"
+      },
+      {
+        "code": "eco2",
+        "name": "eCO2",
+        "type": "Integer",
+        "values": "{\"min\":0,\"max\":1000,\"scale\":0,\"step\":1}"
+      },
+      {
+        "code": "pm25",
+        "name": "PM2.5",
+        "type": "Integer",
+        "values": "{\"min\":0,\"max\":999,\"scale\":0,\"step\":1}"
+      },
+      {
+        "code": "fault",
+        "name": "故障告警",
+        "type": "Bitmap",
+        "values": "{\"label\":[\"e1\"],\"type\":\"bitmap\",\"maxlen\":1}"
+      },
+      {
+        "code": "hcho_sensor_value",
+        "name": "HCHO参数",
+        "type": "Integer",
+        "values": "{\"unit\":\"mg/m3\",\"min\":0,\"max\":1000,\"scale\":3,\"step\":1}"
+      }
+    ]
+  },
+  "success": true,
+  "t": 1760789298632,
+  "tid": "222d14eaac1b11f0a25e9ed280a40f39"
+}
