@@ -147,8 +147,10 @@ KNOWN_DEVICES = {
                 {"dp": 6, "name": "Filter Cleaning Reminder", "device_class": "switch"}
             ],
             "sensor": [
-                {"dp": 10, "name": "Fan Speed", "device_class": "enum", "options": ["off", "low", "middle", "high", "strong"]},
                 {"dp": 6, "name": "Filter Status", "device_class": "problem"}
+            ],
+            "select": [
+                {"dp": 10, "name": "Fan Speed", "options": ["off", "low", "middle", "high", "strong"]}
             ],
             "number": [
                 {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES}
@@ -173,42 +175,23 @@ KNOWN_DEVICES = {
             },
             "light": {
                 "dp": 4,  # light on/off
-                "brightness_dp": 5,  # light brightness
+                "brightness_dp": None,  # No brightness control
                 "rgb_dp": 101,  # RGB mode
-                "rgb_brightness_dp": 102  # RGB brightness
+                "rgb_brightness_dp": None  # No RGB brightness
             },
             "switch": [
-                {"dp": 1, "name": "Power", "device_class": "switch"},
-                {"dp": 2, "name": "Delay Shutdown", "device_class": "switch"},
-                {"dp": 3, "name": "Auto Mode", "device_class": "switch"},
-                {"dp": 6, "name": "Filter Reminder", "device_class": "switch"},
-                {"dp": 12, "name": "Auto Clean", "device_class": "switch"},
-                {"dp": 15, "name": "Filter Reset", "device_class": "switch"},
-                {"dp": 17, "name": "Eco Mode", "device_class": "switch"}
+                {"dp": 1, "name": "Power", "device_class": "outlet", "icon": "mdi:power"},
+                {"dp": 6, "name": "Filter Cleaning Reminder", "device_class": "switch"}
             ],
             "sensor": [
-                {"dp": 6, "name": "Filter Status", "device_class": "problem"},
-                {"dp": 7, "name": "Temperature", "unit": UnitOfTemperature.CELSIUS, "device_class": "temperature"},
-                {"dp": 8, "name": "Humidity", "unit": PERCENTAGE, "device_class": "humidity"},
-                {"dp": 9, "name": "Air Quality", "device_class": "aqi"},
-                {"dp": 10, "name": "Fan Speed", "device_class": "enum", "options": ["off", "low", "middle", "high", "strong"]},
-                {"dp": 14, "name": "Filter Hours", "unit": UnitOfTime.HOURS, "device_class": "duration"},
-                {"dp": 16, "name": "Noise Level", "unit": UnitOfSoundPressure.DECIBEL},
-                {"dp": 5, "name": "Light Brightness", "unit": PERCENTAGE},
-                {"dp": 102, "name": "RGB Brightness", "unit": PERCENTAGE},
-                {"dp": 103, "name": "Color Temperature", "unit": "K"}
+                {"dp": 6, "name": "Filter Status", "device_class": "problem"}
             ],
             "select": [
-                {"dp": 101, "name": "RGB Mode", "options": list(range(10))},
-                {"dp": 11, "name": "Fan Speed Setting", "options": ["off", "low", "middle", "high", "strong"]},
-                {"dp": 16, "name": "Noise Level", "options": ["silent", "low", "normal", "high"]},
-                {"dp": 103, "name": "Color Temperature", "options": ["warm", "neutral", "cool"]}
+                {"dp": 10, "name": "Fan Speed", "options": ["off", "low", "middle", "high", "strong"]},
+                {"dp": 101, "name": "RGB Mode", "options": list(range(10))}
             ],
             "number": [
-                {"dp": 13, "name": "Countdown Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES},
-                {"dp": 5, "name": "Light Brightness Level", "min": 0, "max": 255, "unit": PERCENTAGE},
-                {"dp": 102, "name": "RGB Brightness Level", "min": 0, "max": 255, "unit": PERCENTAGE},
-                {"dp": 103, "name": "Color Temperature Level", "min": 2700, "max": 6500, "unit": "K"}
+                {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES}
             ]
         }
     },
@@ -255,18 +238,15 @@ KNOWN_DEVICES = {
                 {"dp": 106, "name": "Confirm", "device_class": "switch"}
             ],
             "sensor": [
-                {"dp": 102, "name": "Fan Speed", "device_class": "enum", "options": ["off", "1", "2", "3", "4", "5", "6", "7", "8", "9"]},
-                {"dp": 103, "name": "Carbon Filter Usage", "unit": "days", "device_class": "duration"},
-                {"dp": 109, "name": "Metal Filter Usage", "unit": "days", "device_class": "duration"}
             ],
             "select": [
-                {"dp": 108, "name": "RGB Mode", "options": ["white", "colour", "scene", "music"]},
-                {"dp": 102, "name": "Fan Speed Level", "options": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]}
+                {"dp": 108, "name": "RGB Mode", "options": ["white", "colour", "scene", "music"]}
             ],
             "number": [
+                {"dp": 102, "name": "Fan Speed", "min": 0, "max": 9, "step": 1, "icon": "mdi:fan"},
                 {"dp": 105, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES},
-                {"dp": 103, "name": "Carbon Filter Reset", "min": 0, "max": 250, "unit": "days"},
-                {"dp": 109, "name": "Metal Filter Reset", "min": 0, "max": 40, "unit": "days"}
+                {"dp": 103, "name": "Carbon Filter Remaining", "min": 0, "max": 250, "unit": "days", "icon": "mdi:air-filter"},
+                {"dp": 109, "name": "Metal Filter Remaining", "min": 0, "max": 40, "unit": "days", "icon": "mdi:air-filter"}
             ]
         }
     },
