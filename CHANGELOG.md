@@ -4,6 +4,29 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.1] - 2025-10-18
+
+### 🔧 HOTFIX: Fan Entity Not Loading for HERMES & STYLE
+
+#### Fixed
+- **Fan Entity Not Loading**: Fixed fan entity not appearing for HERMES & STYLE hood (product_name: ypaixllljc2dcpae)
+- **Wrong Data Point**: Corrected fan control from DP 2 to DP 10 (fan_speed_enum)
+- **Enum Value Handling**: Fixed sending string values ("off", "low", "middle", "high", "strong") instead of numeric
+- **Product Name Detection**: Removed hardcoded product name check, now uses device_types.py configuration
+
+#### Technical Details
+- Updated `fan.py` to use configuration from `device_types.py`
+- Fixed data point mapping from DP 2 to DP 10
+- Proper enum string value handling for fan_speed_enum
+- Dynamic configuration loading based on product_name
+
+#### User Impact
+- **Fan control now works** for HERMES & STYLE hood
+- **Speed control available** with 5 levels (off, low, middle, high, strong)
+- **Proper UI integration** with percentage-based speed control
+
+---
+
 ## [1.6.0] - 2025-10-18
 
 ### 🎯 FEATURE: Zone-Organized Entities & Optimized User Experience
