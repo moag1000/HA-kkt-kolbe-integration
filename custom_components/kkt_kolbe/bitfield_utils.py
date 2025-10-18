@@ -226,11 +226,10 @@ BITFIELD_CONFIG = {
         "description": "bit0->left bit1->right"
     },
 
-    # Special bitfields without values (may not work)
+    # Special bitfields for errors (boolean states)
     105: {  # oem_hob_error_num - Zone errors
-        "type": "value",
-        "bits_per_zone": 8,
-        "description": "bit0-7 -> hob1, bit8-15 -> hob2, bit16-23 -> hob3, bit24-31 -> hob4, bit32-39 -> hob5"
+        "type": "bit",
+        "description": "bit0->hob1 bit1->hob2 bit2->hob3 bit3->hob4 bit4->hob5"
     },
     106: {  # oem_device_chef_level - Chef function levels
         "type": "value",
@@ -264,8 +263,10 @@ def get_zone_value_from_coordinator(coordinator, dp_id: int, zone: int) -> Union
         else:
             _LOGGER.debug("Coordinator data is None")
 
-        # Try both string and integer keys
-        raw_data = coordinator.data.get(str(dp_id)) or coordinator.data.get(dp_id)
+        # Try both string and integer keys (fix falsy value bug)
+        raw_data = coordinator.data.get(str(dp_id))
+        if raw_data is None:
+            raw_data = coordinator.data.get(dp_id)
         if raw_data is None:
             _LOGGER.debug(f"DP {dp_id} not found in coordinator data (tried both str and int keys)")
             return 0 if BITFIELD_CONFIG.get(dp_id, {}).get("type") == "value" else False

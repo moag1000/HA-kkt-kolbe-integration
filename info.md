@@ -86,7 +86,7 @@ Diese Integration wurde von KI (Claude) erstellt. Bei Kochfeldern ist besondere 
 
 ---
 
-**Version**: 1.5.14 | **Lizenz**: MIT | **Autor**: [@moag1000](https://github.com/moag1000)
+**Version**: 1.7.8 | **Lizenz**: MIT | **Autor**: [@moag1000](https://github.com/moag1000)
 
 [commits-shield]: https://img.shields.io/github/commit-activity/y/moag1000/HA-kkt-kolbe-integration.svg?style=for-the-badge
 [commits]: https://github.com/moag1000/HA-kkt-kolbe-integration/commits/main
@@ -94,5 +94,5 @@ Diese Integration wurde von KI (Claude) erstellt. Bei Kochfeldern ist besondere 
 [hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
 [license-shield]: https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge
 [license-url]: https://opensource.org/licenses/MIT
-[releases-shield]: https://img.shields.io/badge/version-v1.7.7-blue.svg?style=for-the-badge
+[releases-shield]: https://img.shields.io/badge/version-v1.7.8-blue.svg?style=for-the-badge
 [releases]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases
