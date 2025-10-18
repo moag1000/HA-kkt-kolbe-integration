@@ -247,7 +247,7 @@ KNOWN_DEVICES = {
         }
     },
 
-    # IND7705HC Induction Cooktop
+    # IND7705HC Induction Cooktop - Complete configuration with bitfield decoding
     "ind7705hc_cooktop": {
         "model_id": "e1kc5q64",
         "category": CATEGORY_COOKTOP,
@@ -266,18 +266,23 @@ KNOWN_DEVICES = {
                 {"dp": 108, "name": "Confirm Action", "device_class": "switch", "icon": "mdi:check"}
             ],
             "number": [
+                # Global controls
                 {"dp": 104, "name": "Max Power Level", "min": 0, "max": 25, "mode": "slider", "icon": "mdi:flash"},
                 {"dp": 134, "name": "General Timer", "min": 0, "max": 99, "unit": UnitOfTime.MINUTES, "device_class": "duration", "mode": "slider", "icon": "mdi:timer"},
+
+                # Zone-specific controls (bitfield-decoded)
                 {"dp": 162, "name": "Zone 1: Power Level", "min": 0, "max": 25, "zone": 1, "mode": "slider", "icon": "mdi:numeric-1-circle"},
                 {"dp": 162, "name": "Zone 2: Power Level", "min": 0, "max": 25, "zone": 2, "mode": "slider", "icon": "mdi:numeric-2-circle"},
                 {"dp": 162, "name": "Zone 3: Power Level", "min": 0, "max": 25, "zone": 3, "mode": "slider", "icon": "mdi:numeric-3-circle"},
                 {"dp": 162, "name": "Zone 4: Power Level", "min": 0, "max": 25, "zone": 4, "mode": "slider", "icon": "mdi:numeric-4-circle"},
                 {"dp": 162, "name": "Zone 5: Power Level", "min": 0, "max": 25, "zone": 5, "mode": "slider", "icon": "mdi:numeric-5-circle"},
+
                 {"dp": 167, "name": "Zone 1: Timer", "min": 0, "max": 255, "unit": UnitOfTime.MINUTES, "device_class": "duration", "zone": 1, "mode": "slider", "icon": "mdi:timer-outline"},
                 {"dp": 167, "name": "Zone 2: Timer", "min": 0, "max": 255, "unit": UnitOfTime.MINUTES, "device_class": "duration", "zone": 2, "mode": "slider", "icon": "mdi:timer-outline"},
                 {"dp": 167, "name": "Zone 3: Timer", "min": 0, "max": 255, "unit": UnitOfTime.MINUTES, "device_class": "duration", "zone": 3, "mode": "slider", "icon": "mdi:timer-outline"},
                 {"dp": 167, "name": "Zone 4: Timer", "min": 0, "max": 255, "unit": UnitOfTime.MINUTES, "device_class": "duration", "zone": 4, "mode": "slider", "icon": "mdi:timer-outline"},
                 {"dp": 167, "name": "Zone 5: Timer", "min": 0, "max": 255, "unit": UnitOfTime.MINUTES, "device_class": "duration", "zone": 5, "mode": "slider", "icon": "mdi:timer-outline"},
+
                 {"dp": 168, "name": "Zone 1: Target Temp", "min": 0, "max": 300, "unit": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 1, "mode": "slider", "icon": "mdi:thermometer"},
                 {"dp": 168, "name": "Zone 2: Target Temp", "min": 0, "max": 300, "unit": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 2, "mode": "slider", "icon": "mdi:thermometer"},
                 {"dp": 168, "name": "Zone 3: Target Temp", "min": 0, "max": 300, "unit": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 3, "mode": "slider", "icon": "mdi:thermometer"},
@@ -295,6 +300,7 @@ KNOWN_DEVICES = {
                 {"dp": 155, "name": "Power Limit", "options": ["power_limit_1", "power_limit_2", "power_limit_3", "power_limit_4", "power_limit_5"], "icon": "mdi:flash-triangle"}
             ],
             "sensor": [
+                # Zone temperature sensors (bitfield-decoded)
                 {"dp": 169, "name": "Zone 1: Current Temp", "unit": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 1, "icon": "mdi:thermometer"},
                 {"dp": 169, "name": "Zone 2: Current Temp", "unit": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 2, "icon": "mdi:thermometer"},
                 {"dp": 169, "name": "Zone 3: Current Temp", "unit": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 3, "icon": "mdi:thermometer"},
@@ -302,28 +308,39 @@ KNOWN_DEVICES = {
                 {"dp": 169, "name": "Zone 5: Current Temp", "unit": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 5, "icon": "mdi:thermometer"}
             ],
             "binary_sensor": [
+                # Zone error status (bitfield-decoded)
                 {"dp": 105, "name": "Zone 1: Error", "device_class": "problem", "zone": 1, "icon": "mdi:alert-circle"},
                 {"dp": 105, "name": "Zone 2: Error", "device_class": "problem", "zone": 2, "icon": "mdi:alert-circle"},
                 {"dp": 105, "name": "Zone 3: Error", "device_class": "problem", "zone": 3, "icon": "mdi:alert-circle"},
                 {"dp": 105, "name": "Zone 4: Error", "device_class": "problem", "zone": 4, "icon": "mdi:alert-circle"},
                 {"dp": 105, "name": "Zone 5: Error", "device_class": "problem", "zone": 5, "icon": "mdi:alert-circle"},
+
+                # Zone selection status (bitfield-decoded)
                 {"dp": 161, "name": "Zone 1: Selected", "device_class": "running", "zone": 1, "icon": "mdi:radiobox-marked"},
                 {"dp": 161, "name": "Zone 2: Selected", "device_class": "running", "zone": 2, "icon": "mdi:radiobox-marked"},
                 {"dp": 161, "name": "Zone 3: Selected", "device_class": "running", "zone": 3, "icon": "mdi:radiobox-marked"},
                 {"dp": 161, "name": "Zone 4: Selected", "device_class": "running", "zone": 4, "icon": "mdi:radiobox-marked"},
                 {"dp": 161, "name": "Zone 5: Selected", "device_class": "running", "zone": 5, "icon": "mdi:radiobox-marked"},
+
+                # Zone boost status (bitfield-decoded)
                 {"dp": 163, "name": "Zone 1: Boost Active", "device_class": "running", "zone": 1, "icon": "mdi:flash"},
                 {"dp": 163, "name": "Zone 2: Boost Active", "device_class": "running", "zone": 2, "icon": "mdi:flash"},
                 {"dp": 163, "name": "Zone 3: Boost Active", "device_class": "running", "zone": 3, "icon": "mdi:flash"},
                 {"dp": 163, "name": "Zone 4: Boost Active", "device_class": "running", "zone": 4, "icon": "mdi:flash"},
                 {"dp": 163, "name": "Zone 5: Boost Active", "device_class": "running", "zone": 5, "icon": "mdi:flash"},
+
+                # Zone keep warm status (bitfield-decoded)
                 {"dp": 164, "name": "Zone 1: Keep Warm", "device_class": "running", "zone": 1, "icon": "mdi:thermometer-low"},
                 {"dp": 164, "name": "Zone 2: Keep Warm", "device_class": "running", "zone": 2, "icon": "mdi:thermometer-low"},
                 {"dp": 164, "name": "Zone 3: Keep Warm", "device_class": "running", "zone": 3, "icon": "mdi:thermometer-low"},
                 {"dp": 164, "name": "Zone 4: Keep Warm", "device_class": "running", "zone": 4, "icon": "mdi:thermometer-low"},
                 {"dp": 164, "name": "Zone 5: Keep Warm", "device_class": "running", "zone": 5, "icon": "mdi:thermometer-low"},
+
+                # Flex zone controls (special zones)
                 {"dp": 165, "name": "Flex Zone Left", "device_class": "running", "zone": 1, "icon": "mdi:arrow-expand-horizontal"},
                 {"dp": 165, "name": "Flex Zone Right", "device_class": "running", "zone": 2, "icon": "mdi:arrow-expand-horizontal"},
+
+                # BBQ mode controls (special zones)
                 {"dp": 166, "name": "BBQ Mode Left", "device_class": "running", "zone": 1, "icon": "mdi:grill"},
                 {"dp": 166, "name": "BBQ Mode Right", "device_class": "running", "zone": 2, "icon": "mdi:grill"}
             ]

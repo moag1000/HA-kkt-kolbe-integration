@@ -185,7 +185,14 @@ class KKTBaseEntity(CoordinatorEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
+        # Update cached state from coordinator data
+        self._update_cached_state()
         self.async_write_ha_state()
+
+    def _update_cached_state(self) -> None:
+        """Update the cached state from coordinator data."""
+        # This method should be overridden by specific entity types
+        pass
 
     def _get_data_point_value(self, dp: Optional[int] = None) -> Any:
         """Get value for a specific data point."""
@@ -194,13 +201,17 @@ class KKTBaseEntity(CoordinatorEntity):
             return None
 
         data_point = dp if dp is not None else self._dp
-        value = self.coordinator.data.get(data_point)
+
+        # Try both string and integer keys for compatibility
+        value = self.coordinator.data.get(str(data_point)) or self.coordinator.data.get(data_point)
 
         if value is None:
             _LOGGER.debug(
-                f"Entity {self._attr_unique_id}: DP {data_point} not found in data. "
+                f"Entity {self._attr_unique_id}: DP {data_point} not found in data (tried both str and int keys). "
                 f"Available DPs: {list(self.coordinator.data.keys())}"
             )
+        else:
+            _LOGGER.debug(f"Entity {self._attr_unique_id}: DP {data_point} = {value} (type: {type(value)})")
 
         return value
 

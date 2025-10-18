@@ -39,6 +39,10 @@ class KKTKolbeSwitch(KKTBaseEntity, SwitchEntity):
         """Initialize the switch."""
         super().__init__(coordinator, entry, config, "switch")
         self._attr_icon = self._get_icon()
+        self._cached_state = None
+
+        # Initialize state from coordinator data
+        self._update_cached_state()
 
     def _get_icon(self) -> str:
         """Get appropriate icon for the switch."""
@@ -59,22 +63,24 @@ class KKTKolbeSwitch(KKTBaseEntity, SwitchEntity):
 
         return "mdi:toggle-switch"
 
+    def _update_cached_state(self) -> None:
+        """Update the cached state from coordinator data."""
+        value = self._get_data_point_value()
+        if value is None:
+            self._cached_state = None
+        elif isinstance(value, bool):
+            self._cached_state = value
+        elif isinstance(value, int):
+            self._cached_state = bool(value)
+        elif isinstance(value, str):
+            self._cached_state = value.lower() in ("on", "true", "1")
+        else:
+            self._cached_state = False
+
     @property
     def is_on(self) -> bool | None:
         """Return true if the switch is on."""
-        value = self._get_data_point_value()
-        if value is None:
-            return None
-
-        # Handle different value types
-        if isinstance(value, bool):
-            return value
-        elif isinstance(value, int):
-            return bool(value)
-        elif isinstance(value, str):
-            return value.lower() in ("on", "true", "1")
-
-        return False
+        return self._cached_state
 
     async def async_turn_on(self, **kwargs) -> None:
         """Turn the switch on."""
