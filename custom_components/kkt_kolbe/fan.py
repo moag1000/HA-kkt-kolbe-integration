@@ -52,15 +52,18 @@ class KKTKolbeFan(KKTBaseEntity, FanEntity):
         }
         super().__init__(coordinator, entry, config, "fan")
 
-        self._attr_supported_features = (
-            FanEntityFeature.SET_SPEED |
-            FanEntityFeature.TURN_ON |
-            FanEntityFeature.TURN_OFF
-        )
+        self._attr_supported_features = FanEntityFeature.SET_SPEED
         self._attr_speed_count = len(self._speed_list) - 1  # Exclude 'off'
         self._attr_icon = "mdi:fan"
         self._cached_state = None
         self._cached_percentage = None
+
+        # Debug logging for supported features
+        _LOGGER.info(
+            "KKTKolbeFan [%s] initialized with supported_features: %s (SET_SPEED only, no separate turn_on/turn_off)",
+            self._name,
+            self._attr_supported_features
+        )
 
         # Initialize state from coordinator data
         self._update_cached_state()
@@ -113,20 +116,3 @@ class KKTKolbeFan(KKTBaseEntity, FanEntity):
         # For enum types, send the string value directly
         await self._async_set_data_point(self._dp_id, speed_name)
         self._log_entity_state("Set Speed", f"Speed: {speed_name} ({percentage}%)")
-
-    async def async_turn_on(
-        self, percentage: int | None = None, preset_mode: str | None = None, **kwargs
-    ) -> None:
-        """Turn on the fan."""
-        if percentage is not None:
-            await self.async_set_percentage(percentage)
-        else:
-            # Default to "low" speed
-            await self._async_set_data_point(self._dp_id, "low")
-            self._log_entity_state("Turn On", "Default speed: low")
-
-    async def async_turn_off(self, **kwargs) -> None:
-        """Turn off the fan."""
-        # For enum types, send "off" string
-        await self._async_set_data_point(self._dp_id, "off")
-        self._log_entity_state("Turn Off", "Speed: off")

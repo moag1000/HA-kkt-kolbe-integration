@@ -195,12 +195,17 @@ class KKTBaseEntity(CoordinatorEntity):
         pass
 
     def _get_data_point_value(self, dp: Optional[int] = None) -> Any:
-        """Get value for a specific data point."""
+        """Get value for a specific data point, with zone support."""
+        data_point = dp if dp is not None else self._dp
+
+        # If this entity has a zone, use zone-aware data point extraction
+        if self._zone is not None:
+            return self._get_zone_data_point_value(data_point, self._zone)
+
+        # Standard data point extraction for non-zone entities
         if not self.coordinator.data:
             _LOGGER.debug(f"Entity {self._attr_unique_id}: No coordinator data available")
             return None
-
-        data_point = dp if dp is not None else self._dp
 
         # Try both string and integer keys for compatibility
         value = self.coordinator.data.get(str(data_point)) or self.coordinator.data.get(data_point)
@@ -228,7 +233,19 @@ class KKTBaseEntity(CoordinatorEntity):
         if zone_number is None:
             return raw_value
 
-        # Extract zone-specific value from bitfield
+        # Use bitfield_utils for Base64 RAW data extraction
+        if isinstance(raw_value, str):
+            # This is likely a Base64-encoded RAW string
+            from .bitfield_utils import extract_zone_value_from_bitfield
+            try:
+                value = extract_zone_value_from_bitfield(raw_value, zone_number)
+                _LOGGER.debug(f"Zone {zone_number} DP {dp}: Extracted value {value} from Base64 data")
+                return value
+            except Exception as e:
+                _LOGGER.error(f"Failed to extract zone {zone_number} from DP {dp}: {e}")
+                return None
+
+        # Fall back to bit extraction for integer/byte bitfields
         if isinstance(raw_value, int):
             # For integer bitfields, extract zone bit
             zone_bit = 1 << (zone_number - 1)
@@ -240,7 +257,7 @@ class KKTBaseEntity(CoordinatorEntity):
             if byte_index < len(raw_value):
                 return bool(raw_value[byte_index] & (1 << bit_index))
 
-        return False
+        return None
 
     async def _async_set_data_point(self, dp: int, value: Any) -> None:
         """Set a data point value through the coordinator."""

@@ -85,7 +85,7 @@ KNOWN_DEVICES = {
         "product_names": ["ypaixllljc2dcpae"],
         "device_ids": ["bf735dfe2ad64fba7cpyhn"],
         "device_id_patterns": ["bf735dfe2ad64fba7c"],
-        "platforms": ["fan", "light", "switch", "sensor", "select", "number"],
+        "platforms": ["light", "switch", "sensor", "select", "number"],
         "data_points": {
             1: "switch",              # Main power
             4: "light",               # Light on/off
@@ -99,10 +99,6 @@ KNOWN_DEVICES = {
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
                 {"dp": 6, "name": "Filter Cleaning Reminder", "icon": "mdi:air-filter"}
             ],
-            "fan": {
-                "dp": 10,  # fan_speed_enum includes "off" state
-                "speeds": ["off", "low", "middle", "high", "strong"]
-            },
             "light": {
                 "dp": 4,  # light on/off
                 "rgb_dp": 101  # RGB mode (0-9)
@@ -113,6 +109,9 @@ KNOWN_DEVICES = {
             ],
             "sensor": [
                 {"dp": 6, "name": "Filter Status", "icon": "mdi:air-filter"}
+            ],
+            "select": [
+                {"dp": 10, "name": "Fan Speed", "options": ["off", "low", "middle", "high", "strong"], "icon": "mdi:fan"}
             ]
         }
     },

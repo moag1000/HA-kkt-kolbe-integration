@@ -4,6 +4,39 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.5] - 2025-10-18
+
+### 🔧 CRITICAL FIXES: Hood Fan Entity & IND7705HC Zone Entities
+
+#### Fixed HERMES & STYLE Hood
+- **Removed Fan Entity**: HERMES & STYLE hood no longer creates fan entity (which caused turn_on errors)
+- **Select Entity Only**: Fan speed is now controlled via select entity for DP 10
+- **Data Model Compliance**: Configuration now matches Tuya device data model exactly
+- **No Turn On/Off Switches**: Fan speed enum includes "off" state, no separate switches needed
+
+#### Fixed IND7705HC Zone Entities "Unknown" Status
+- **Zone Data Extraction**: Fixed zone-based entities to use proper bitfield_utils
+- **Base64 Decoding**: Zone entities now correctly decode RAW Base64 data
+- **Automatic Zone Detection**: _get_data_point_value() automatically uses zone extraction when zone is set
+- **All Zone Entities Working**: Power levels, timers, temperatures, and status indicators now show proper values
+
+#### Technical Details
+- **HERMES & STYLE**: Removed "fan" from platforms, added select entity for DP 10
+- **IND7705HC**: Enhanced _get_data_point_value() to automatically call _get_zone_data_point_value() for zone entities
+- **Bitfield Integration**: Zone extraction now uses extract_zone_value_from_bitfield() from bitfield_utils
+- **Error Handling**: Added proper exception handling for Base64 decoding failures
+
+#### User Impact
+- **No More turn_on Errors**: Fan entity turn_on errors are completely eliminated
+- **Proper Fan Control**: Use select dropdown to control fan speed including "off"
+- **Working Zone Controls**: All IND7705HC zone entities now display proper values instead of "Unknown"
+- **Device Compliance**: Both devices now match actual Tuya device capabilities
+
+#### Migration
+- **HERMES & STYLE**: Existing fan entities will be removed, new select entity created
+- **IND7705HC**: Zone entities will start showing proper values after restart
+- **No Data Loss**: Same data points controlled, improved interface and functionality
+
 ## [1.7.4] - 2025-10-18
 
 ### 🔧 FIX: HERMES & STYLE Hood Fan Speed Control
