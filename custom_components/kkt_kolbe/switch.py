@@ -45,7 +45,7 @@ class KKTKolbeSwitch(KKTBaseEntity, SwitchEntity):
         name_lower = self._name.lower()
 
         if "power" in name_lower:
-            return "mdi:power"
+            return "mdi:lightning-bolt"
         elif "child" in name_lower and "lock" in name_lower:
             return "mdi:account-child"
         elif "lock" in name_lower:

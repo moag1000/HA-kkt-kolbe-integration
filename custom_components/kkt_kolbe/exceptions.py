@@ -12,11 +12,17 @@ class KKTKolbeError(Exception):
 class KKTConnectionError(KKTKolbeError):
     """Connection to KKT Kolbe device failed."""
 
-    def __init__(self, device_id: str = None, message: str = None):
+    def __init__(self, operation: str = None, device_id: str = None, reason: str = None, message: str = None):
+        self.operation = operation
         self.device_id = device_id
+        self.reason = reason
         if message is None:
-            if device_id:
-                message = f"Failed to connect to KKT Kolbe device {device_id[:8]}..."
+            if operation and device_id and reason:
+                message = f"Failed to {operation} on device {device_id}: {reason}"
+            elif operation and device_id:
+                message = f"Failed to {operation} on device {device_id}"
+            elif device_id:
+                message = f"Failed to connect to KKT Kolbe device {device_id}"
             else:
                 message = "Failed to connect to KKT Kolbe device"
         super().__init__(message)
@@ -38,12 +44,18 @@ class KKTAuthenticationError(KKTKolbeError):
 class KKTTimeoutError(KKTKolbeError):
     """KKT Kolbe device operation timed out."""
 
-    def __init__(self, operation: str = None, timeout: float = None, message: str = None):
+    def __init__(self, operation: str = None, device_id: str = None, timeout: float = None, data_point: int = None, message: str = None):
         self.operation = operation
+        self.device_id = device_id
         self.timeout = timeout
+        self.data_point = data_point
         if message is None:
-            if operation and timeout:
+            if operation and device_id and timeout:
+                message = f"Operation '{operation}' timed out after {timeout}s on device {device_id}"
+            elif operation and timeout:
                 message = f"Operation '{operation}' timed out after {timeout}s"
+            elif operation and device_id:
+                message = f"Operation '{operation}' timed out on device {device_id}"
             elif operation:
                 message = f"Operation '{operation}' timed out"
             else:

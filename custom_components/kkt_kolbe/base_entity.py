@@ -168,7 +168,19 @@ class KKTBaseEntity(CoordinatorEntity):
     @property
     def available(self) -> bool:
         """Return if entity is available."""
-        return self.coordinator.last_update_success and self.coordinator.data is not None
+        # Check if coordinator has valid data
+        has_data = self.coordinator.data is not None and len(self.coordinator.data) > 0
+        is_available = self.coordinator.last_update_success and has_data
+
+        if not is_available:
+            _LOGGER.debug(
+                f"Entity {self._attr_unique_id} unavailable: "
+                f"last_update_success={self.coordinator.last_update_success}, "
+                f"has_data={has_data}, "
+                f"data_keys={list(self.coordinator.data.keys()) if self.coordinator.data else 'None'}"
+            )
+
+        return is_available
 
     @callback
     def _handle_coordinator_update(self) -> None:
@@ -178,10 +190,19 @@ class KKTBaseEntity(CoordinatorEntity):
     def _get_data_point_value(self, dp: Optional[int] = None) -> Any:
         """Get value for a specific data point."""
         if not self.coordinator.data:
+            _LOGGER.debug(f"Entity {self._attr_unique_id}: No coordinator data available")
             return None
 
         data_point = dp if dp is not None else self._dp
-        return self.coordinator.data.get(data_point)
+        value = self.coordinator.data.get(data_point)
+
+        if value is None:
+            _LOGGER.debug(
+                f"Entity {self._attr_unique_id}: DP {data_point} not found in data. "
+                f"Available DPs: {list(self.coordinator.data.keys())}"
+            )
+
+        return value
 
     def _get_zone_data_point_value(self, dp: int, zone: Optional[int] = None) -> Any:
         """Get value for a zone-specific data point with bitfield extraction."""

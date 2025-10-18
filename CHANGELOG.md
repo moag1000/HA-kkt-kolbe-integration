@@ -4,6 +4,35 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.11] - 2025-10-18
+
+### 🔧 HOTFIX: Exception Handling & Entity Status
+
+#### Fixed
+- **CRITICAL FIX**: Fixed `KKTTimeoutError` and `KKTConnectionError` constructor signatures
+- **Exception Handling**: Proper parameter mapping for timeout and connection exceptions
+- **Entity Availability**: Enhanced availability detection with detailed logging for debugging
+- **Status Visibility**: Improved coordinator timeout handling - maintains last known state instead of failing
+
+#### Improved
+- **Better Diagnostics**: Added detailed logging for "unknown" entity status troubleshooting
+- **Connection Resilience**: Timeout errors no longer cause complete entity unavailability
+- **Data Point Debugging**: Enhanced logging when data points are missing from device data
+- **UI Enhancement**: Power switch now uses lightning bolt icon (⚡) instead of power icon
+
+#### Technical Fixes
+- **exceptions.py**: Fixed constructor signatures to match usage in tuya_device.py
+- **coordinator.py**: Graceful timeout handling - keeps last state on connection errors
+- **base_entity.py**: Enhanced availability checks and data point value logging
+- **switch.py**: Updated power switch icon to `mdi:lightning-bolt`
+
+#### Root Cause
+- Exception constructors had mismatched parameter names vs actual usage
+- Coordinator was failing completely on timeouts instead of preserving state
+- Missing diagnostic logging made "unknown" status difficult to troubleshoot
+
+---
+
 ## [1.5.10] - 2025-10-18
 
 ### 🚨 EMERGENCY HOTFIX: Duplicate device_info Property
@@ -516,6 +545,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Releases**: [All Releases](https://github.com/moag1000/HA-kkt-kolbe-integration/releases)
 - **HACS**: [Custom Repository](https://github.com/moag1000/HA-kkt-kolbe-integration)
 
+[1.5.11]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.11
 [1.5.10]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.10
 [1.5.9]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.9
 [1.5.8]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.5.8
