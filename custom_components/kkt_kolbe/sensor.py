@@ -13,6 +13,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .base_entity import KKTBaseEntity, KKTZoneBaseEntity
 from .const import DOMAIN
 from .device_types import get_device_entities
+from .bitfield_utils import get_zone_value_from_coordinator, BITFIELD_CONFIG
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -47,6 +48,10 @@ class KKTKolbeSensor(KKTBaseEntity, SensorEntity):
     def __init__(self, coordinator, entry: ConfigEntry, config: dict):
         """Initialize the sensor."""
         super().__init__(coordinator, entry, config, "sensor")
+        self._cached_value = None
+
+        # Initialize state from coordinator data
+        self._update_cached_state()
 
         # Set sensor-specific attributes
         self._attr_state_class = config.get("state_class")
@@ -71,20 +76,27 @@ class KKTKolbeSensor(KKTBaseEntity, SensorEntity):
 
         return "mdi:gauge"
 
-    @property
-    def native_value(self):
-        """Return the state of the sensor."""
+    def _update_cached_state(self) -> None:
+        """Update the cached state from coordinator data."""
         value = self._get_data_point_value()
         if value is None:
-            return None
+            self._cached_value = None
+            return
 
         # Convert temperature values if needed
         if self._attr_device_class == SensorDeviceClass.TEMPERATURE:
             if isinstance(value, (int, float)):
                 # Assuming device reports in Celsius
-                return value
+                self._cached_value = value
+            else:
+                self._cached_value = None
+        else:
+            self._cached_value = value
 
-        return value
+    @property
+    def native_value(self):
+        """Return the state of the sensor."""
+        return self._cached_value
 
 
 class KKTKolbeZoneSensor(KKTZoneBaseEntity, SensorEntity):
@@ -98,6 +110,10 @@ class KKTKolbeZoneSensor(KKTZoneBaseEntity, SensorEntity):
         self._attr_state_class = config.get("state_class")
         self._attr_native_unit_of_measurement = config.get("unit_of_measurement")
         self._attr_icon = self._get_icon()
+        self._cached_value = None
+
+        # Initialize state from coordinator data
+        self._update_cached_state()
 
     def _get_icon(self) -> str:
         """Get appropriate icon for the zone sensor."""
@@ -114,12 +130,20 @@ class KKTKolbeZoneSensor(KKTZoneBaseEntity, SensorEntity):
 
         return "mdi:circle-slice-8"
 
-    @property
-    def native_value(self):
-        """Return the state of the zone sensor."""
+    def _update_cached_state(self) -> None:
+        """Update the cached state from coordinator data."""
+        # Check if this DP uses bitfield encoding
+        if self._dp in BITFIELD_CONFIG and BITFIELD_CONFIG[self._dp]["type"] == "value":
+            # Use bitfield utilities for Base64-encoded RAW data
+            value = get_zone_value_from_coordinator(self.coordinator, self._dp, self._zone)
+            self._cached_value = value
+            return
+
+        # Fallback to legacy integer bitfield handling
         raw_value = self._get_data_point_value()
         if raw_value is None:
-            return None
+            self._cached_value = None
+            return
 
         # For zone-specific values, extract from bitfield if needed
         if isinstance(raw_value, int) and raw_value > 255:
@@ -128,6 +152,11 @@ class KKTKolbeZoneSensor(KKTZoneBaseEntity, SensorEntity):
             zone_offset = (self._zone - 1) * 8  # Assuming 8 bits per zone
             zone_mask = 0xFF << zone_offset
             zone_value = (raw_value & zone_mask) >> zone_offset
-            return zone_value
+            self._cached_value = zone_value
+        else:
+            self._cached_value = raw_value
 
-        return raw_value
+    @property
+    def native_value(self):
+        """Return the state of the zone sensor."""
+        return self._cached_value

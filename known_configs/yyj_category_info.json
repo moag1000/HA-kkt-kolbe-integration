@@ -1,0 +1,124 @@
+{
+  "result": {
+    "category": "yyj",
+    "status_list": [
+      {
+        "code": "rag_lock",
+        "name": "防抹布功能",
+        "type": "Boolean",
+        "values": "{}"
+      },
+      {
+        "code": "countdown_left",
+        "name": "倒计时剩余时间",
+        "type": "Integer",
+        "values": "{\"unit\":\"min\",\"min\":0,\"max\":100,\"scale\":0,\"step\":1}"
+      },
+      {
+        "code": "time_calibration",
+        "name": "时间校准",
+        "type": "Boolean",
+        "values": "{}"
+      },
+      {
+        "code": "switch_lamp",
+        "name": "灯带开关",
+        "type": "Boolean",
+        "values": "{}"
+      },
+      {
+        "code": "disinfection",
+        "name": "消毒",
+        "type": "Boolean",
+        "values": "{}"
+      },
+      {
+        "code": "fan_speed_enum",
+        "name": "风速",
+        "type": "Enum",
+        "values": "{\"range\":[\"off\",\"low\",\"middle\",\"high\",\"strong\"]}"
+      },
+      {
+        "code": "switch_wash",
+        "name": "清洗开关",
+        "type": "Boolean",
+        "values": "{}"
+      },
+      {
+        "code": "quick_countdown",
+        "name": "快速延时关机",
+        "type": "Boolean",
+        "values": "{}"
+      },
+      {
+        "code": "total_runtime",
+        "name": "累计工作时间",
+        "type": "Integer",
+        "values": "{\"unit\":\"hour\",\"min\":0,\"max\":1000000,\"scale\":0,\"step\":1}"
+      },
+      {
+        "code": "countdown",
+        "name": "倒计时",
+        "type": "Integer",
+        "values": "{\"unit\":\"min\",\"min\":0,\"max\":100,\"scale\":0,\"step\":1}"
+      },
+      {
+        "code": "fault",
+        "name": "故障告警",
+        "type": "Bitmap",
+        "values": "{\"label\":[\"e1\",\"e2\",\"e3\"]}"
+      },
+      {
+        "code": "switch",
+        "name": "开关",
+        "type": "Boolean",
+        "values": "{}"
+      },
+      {
+        "code": "switch_security",
+        "name": "安防开关",
+        "type": "Boolean",
+        "values": "{}"
+      },
+      {
+        "code": "anion",
+        "name": "负离子",
+        "type": "Boolean",
+        "values": "{}"
+      },
+      {
+        "code": "warm",
+        "name": "保温",
+        "type": "Boolean",
+        "values": "{}"
+      },
+      {
+        "code": "drying",
+        "name": "烘干",
+        "type": "Boolean",
+        "values": "{}"
+      },
+      {
+        "code": "light",
+        "name": "灯光",
+        "type": "Boolean",
+        "values": "{}"
+      },
+      {
+        "code": "burning_time",
+        "name": "燃烧时长",
+        "type": "Integer",
+        "values": "{\"unit\":\"min\",\"min\":5,\"max\":100,\"scale\":0,\"step\":1}"
+      },
+      {
+        "code": "status",
+        "name": "设备状态",
+        "type": "Enum",
+        "values": "{\"range\":[\"standby\",\"working\",\"sleeping\"]}"
+      }
+    ]
+  },
+  "success": true,
+  "t": 1760789059053,
+  "tid": "935ffce5ac1a11f0a25e9ed280a40f39"
+}

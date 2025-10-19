@@ -37,6 +37,10 @@ class KKTBaseEntity(CoordinatorEntity):
         self._dp = config["dp"]
         self._name = config["name"]
 
+        # State caching to prevent "unknown" values when DPs are temporarily unavailable
+        self._cached_value = None
+        self._last_update_time = None
+
         # Set up entity attributes
         self._setup_entity_attributes()
 
@@ -168,15 +172,18 @@ class KKTBaseEntity(CoordinatorEntity):
     @property
     def available(self) -> bool:
         """Return if entity is available."""
-        # Check if coordinator has valid data
+        # Check if coordinator has valid data OR we have cached value
         has_data = self.coordinator.data is not None and len(self.coordinator.data) > 0
-        is_available = self.coordinator.last_update_success and has_data
+        has_cached_value = self._cached_value is not None
+
+        # Entity is available if coordinator is working AND (has current data OR cached value)
+        is_available = self.coordinator.last_update_success and (has_data or has_cached_value)
 
         if not is_available:
             _LOGGER.debug(
                 f"Entity {self._attr_unique_id} unavailable: "
                 f"last_update_success={self.coordinator.last_update_success}, "
-                f"has_data={has_data}, "
+                f"has_data={has_data}, has_cached_value={has_cached_value}, "
                 f"data_keys={list(self.coordinator.data.keys()) if self.coordinator.data else 'None'}"
             )
 
@@ -185,23 +192,118 @@ class KKTBaseEntity(CoordinatorEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        self.async_write_ha_state()
-
-    def _get_data_point_value(self, dp: Optional[int] = None) -> Any:
-        """Get value for a specific data point."""
-        if not self.coordinator.data:
-            _LOGGER.debug(f"Entity {self._attr_unique_id}: No coordinator data available")
-            return None
-
-        data_point = dp if dp is not None else self._dp
-        value = self.coordinator.data.get(data_point)
-
-        if value is None:
+        # Debug logging for coordinator updates
+        if _LOGGER.isEnabledFor(logging.DEBUG):
+            data_keys = list(self.coordinator.data.keys()) if self.coordinator.data else []
             _LOGGER.debug(
-                f"Entity {self._attr_unique_id}: DP {data_point} not found in data. "
-                f"Available DPs: {list(self.coordinator.data.keys())}"
+                f"Coordinator update for {self._attr_unique_id}: "
+                f"DP {self._dp}, Zone: {self._zone}, "
+                f"Available DPs: {data_keys}"
             )
 
+        # Update cached state from coordinator data
+        self._update_cached_state()
+        self.async_write_ha_state()
+
+    def _update_cached_state(self) -> None:
+        """Update the cached state from coordinator data."""
+        # This method should be overridden by specific entity types
+        pass
+
+    def _get_data_point_value(self, dp: Optional[int] = None) -> Any:
+        """Get value for a specific data point, with zone support and state caching."""
+        data_point = dp if dp is not None else self._dp
+
+        # If this entity has a zone, use zone-aware data point extraction
+        if self._zone is not None:
+            return self._get_zone_data_point_value_cached(data_point, self._zone)
+
+        # Standard data point extraction for non-zone entities with caching
+        if not self.coordinator.data:
+            _LOGGER.debug(f"Entity {self._attr_unique_id}: No coordinator data available, using cached value")
+            return self._cached_value
+
+        # Try both string and integer keys for compatibility
+        value = self.coordinator.data.get(str(data_point))
+        if value is None:
+            value = self.coordinator.data.get(data_point)
+
+        if value is None:
+            # DP not available in current update - use cached value instead of None
+            _LOGGER.debug(
+                f"Entity {self._attr_unique_id}: DP {data_point} not in current update. "
+                f"Available DPs: {list(self.coordinator.data.keys())}. Using cached value: {self._cached_value}"
+            )
+            return self._cached_value
+        else:
+            # DP is available - update cache and return new value
+            import datetime
+            self._cached_value = value
+            self._last_update_time = datetime.datetime.now()
+            _LOGGER.debug(f"Entity {self._attr_unique_id}: DP {data_point} = {value} (type: {type(value)}) - cached")
+
+        return value
+
+    def _get_zone_data_point_value_cached(self, dp: int, zone: Optional[int] = None) -> Any:
+        """Get value for a zone-specific data point with bitfield extraction and caching."""
+        zone_number = zone if zone is not None else self._zone
+        if zone_number is None:
+            return self._cached_value
+
+        if not self.coordinator.data:
+            _LOGGER.debug(f"Entity {self._attr_unique_id}: No coordinator data available, using cached value")
+            return self._cached_value
+
+        raw_value = self.coordinator.data.get(dp)
+        if raw_value is None:
+            raw_value = self.coordinator.data.get(str(dp))
+
+        if raw_value is None:
+            # DP not available in current update - use cached value
+            _LOGGER.debug(
+                f"Entity {self._attr_unique_id}: Zone DP {dp} not in current update. "
+                f"Available DPs: {list(self.coordinator.data.keys())}. Using cached value: {self._cached_value}"
+            )
+            return self._cached_value
+
+        # Use bitfield_utils for Base64 RAW data extraction
+        if isinstance(raw_value, str):
+            # This is likely a Base64-encoded RAW string
+            from .bitfield_utils import extract_zone_value_from_bitfield
+            try:
+                value = extract_zone_value_from_bitfield(raw_value, zone_number)
+                _LOGGER.debug(f"Zone {zone_number} DP {dp}: Extracted value {value} from Base64 data - cached")
+
+                # Update cache
+                import datetime
+                self._cached_value = value
+                self._last_update_time = datetime.datetime.now()
+                return value
+            except Exception as e:
+                _LOGGER.error(f"Failed to extract zone {zone_number} from DP {dp}: {e}")
+                return self._cached_value
+
+        # Fall back to bit extraction for integer/byte bitfields
+        if isinstance(raw_value, int):
+            # For integer bitfields, extract zone bit
+            zone_bit = 1 << (zone_number - 1)
+            value = bool(raw_value & zone_bit)
+        elif isinstance(raw_value, (bytes, bytearray)):
+            # For byte arrays, check individual bytes/bits
+            byte_index = (zone_number - 1) // 8
+            bit_index = (zone_number - 1) % 8
+            if byte_index < len(raw_value):
+                value = bool(raw_value[byte_index] & (1 << bit_index))
+            else:
+                return self._cached_value
+        else:
+            return self._cached_value
+
+        # Update cache and return new value
+        import datetime
+        self._cached_value = value
+        self._last_update_time = datetime.datetime.now()
+        _LOGGER.debug(f"Zone {zone_number} DP {dp}: Extracted value {value} - cached")
         return value
 
     def _get_zone_data_point_value(self, dp: int, zone: Optional[int] = None) -> Any:
@@ -217,7 +319,19 @@ class KKTBaseEntity(CoordinatorEntity):
         if zone_number is None:
             return raw_value
 
-        # Extract zone-specific value from bitfield
+        # Use bitfield_utils for Base64 RAW data extraction
+        if isinstance(raw_value, str):
+            # This is likely a Base64-encoded RAW string
+            from .bitfield_utils import extract_zone_value_from_bitfield
+            try:
+                value = extract_zone_value_from_bitfield(raw_value, zone_number)
+                _LOGGER.debug(f"Zone {zone_number} DP {dp}: Extracted value {value} from Base64 data")
+                return value
+            except Exception as e:
+                _LOGGER.error(f"Failed to extract zone {zone_number} from DP {dp}: {e}")
+                return None
+
+        # Fall back to bit extraction for integer/byte bitfields
         if isinstance(raw_value, int):
             # For integer bitfields, extract zone bit
             zone_bit = 1 << (zone_number - 1)
@@ -229,7 +343,7 @@ class KKTBaseEntity(CoordinatorEntity):
             if byte_index < len(raw_value):
                 return bool(raw_value[byte_index] & (1 << bit_index))
 
-        return False
+        return None
 
     async def _async_set_data_point(self, dp: int, value: Any) -> None:
         """Set a data point value through the coordinator."""
