@@ -10,7 +10,7 @@
       },
       "discovery": {
         "title": "Device Discovery",
-        "description": "Discovery Status: {discovery_status}\\n\\nFound Devices: {found_devices}\\n\\n{fallback_info}",
+        "description": "Discovery Status: {discovery_status}\n\nFound Devices: {found_devices}\n\n{fallback_info}",
         "data": {
           "selected_device": "Select Device",
           "retry_discovery": "Retry Discovery",
@@ -19,7 +19,7 @@
       },
       "manual": {
         "title": "Manual Configuration",
-        "description": "Enter basic information for your KKT Kolbe device.\\n\\nExamples:\\nIP Address: {ip_example}\\nDevice ID: {device_id_example}\\n\\nNote: Local Key will be requested in the next step.",
+        "description": "Enter basic information for your KKT Kolbe device.\n\nExamples:\nIP Address: {ip_example}\nDevice ID: {device_id_example}\n\nNote: Local Key will be requested in the next step.",
         "data": {
           "ip_address": "IP Address",
           "device_id": "Tuya Device ID",
@@ -29,7 +29,7 @@
       },
       "authentication": {
         "title": "Device Authentication",
-        "description": "Enter the Local Key for your device:\\n\\nDevice: {device_name}\\nDevice ID: {device_id}\\nIP Address: {ip_address}",
+        "description": "Enter the Local Key for your device:\n\nDevice: {device_name}\nDevice ID: {device_id}\nIP Address: {ip_address}",
         "data": {
           "local_key": "Local Key",
           "test_connection": "Test Connection",
@@ -38,7 +38,7 @@
       },
       "settings": {
         "title": "Advanced Settings",
-        "description": "Configure advanced settings for {device_name}.\\n\\nRecommended: {recommended_interval}",
+        "description": "Configure advanced settings for {device_name}.\n\nRecommended: {recommended_interval}",
         "data": {
           "update_interval": "Update Interval",
           "enable_debug_logging": "Enable Debug Logging",
@@ -49,7 +49,7 @@
       },
       "confirmation": {
         "title": "Setup Confirmation",
-        "description": "Please confirm your configuration:\\n\\nDevice: {device_name}\\nIP: {ip_address}\\nDevice ID: {device_id}\\nProduct: {product_name}\\n\\nSettings:\\nUpdate Interval: {update_interval} seconds\\nDebug Logging: {debug_logging}\\nAdvanced Entities: {advanced_entities}",
+        "description": "Please confirm your configuration:\n\nDevice: {device_name}\nIP: {ip_address}\nDevice ID: {device_id}\nProduct: {product_name}\n\nSettings:\nUpdate Interval: {update_interval} seconds\nDebug Logging: {debug_logging}\nAdvanced Entities: {advanced_entities}",
         "data": {
           "confirm": "Confirm Setup",
           "back_to_settings": "Back to Settings"
@@ -75,7 +75,7 @@
     "step": {
       "init": {
         "title": "KKT Kolbe Options",
-        "description": "Configure options for {device_name}.\\n\\nCurrent Update Interval: {current_interval} seconds",
+        "description": "Configure options for {device_name}.\n\nCurrent Update Interval: {current_interval} seconds",
         "data": {
           "scan_interval": "Update Interval",
           "enable_debug_logging": "Enable Debug Logging",

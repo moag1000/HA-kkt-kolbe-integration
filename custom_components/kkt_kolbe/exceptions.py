@@ -126,17 +126,30 @@ class KKTServiceError(KKTKolbeError):
 class KKTDataPointError(KKTKolbeError):
     """KKT Kolbe data point operation failed."""
 
-    def __init__(self, dp: int = None, operation: str = None, value=None, message: str = None):
-        self.dp = dp
+    def __init__(self, dp: int = None, operation: str = None, value=None, device_id: str = None, reason: str = None, data_point: int = None, message: str = None):
+        self.dp = dp or data_point  # Support both parameter names
         self.operation = operation
         self.value = value
+        self.device_id = device_id
+        self.reason = reason
+
         if message is None:
-            if dp and operation and value is not None:
-                message = f"Failed to {operation} data point {dp} with value {value}"
-            elif dp and operation:
-                message = f"Failed to {operation} data point {dp}"
-            elif dp:
-                message = f"Data point {dp} operation failed"
+            # Build message from available parameters
+            parts = []
+            if operation:
+                parts.append(f"Failed to {operation}")
+            if self.dp:
+                parts.append(f"data point {self.dp}")
+            if value is not None:
+                parts.append(f"with value {value}")
+            if device_id:
+                parts.append(f"on device {device_id}")
+            if reason:
+                parts.append(f": {reason}")
+
+            if parts:
+                message = " ".join(parts)
             else:
                 message = "Data point operation failed"
+
         super().__init__(message)

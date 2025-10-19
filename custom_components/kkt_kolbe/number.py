@@ -8,6 +8,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .base_entity import KKTBaseEntity, KKTZoneBaseEntity
 from .const import DOMAIN
 from .device_types import get_device_entities
+from .bitfield_utils import get_zone_value_from_coordinator, set_zone_value_in_coordinator, BITFIELD_CONFIG
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -48,6 +49,10 @@ class KKTKolbeNumber(KKTBaseEntity, NumberEntity):
         self._attr_native_step = config.get("step", 1)
         self._attr_native_unit_of_measurement = config.get("unit_of_measurement")
         self._attr_icon = self._get_icon()
+        self._cached_value = None
+
+        # Initialize state from coordinator data
+        self._update_cached_state()
 
     def _get_icon(self) -> str:
         """Get appropriate icon for the number entity."""
@@ -64,11 +69,15 @@ class KKTKolbeNumber(KKTBaseEntity, NumberEntity):
 
         return "mdi:numeric"
 
+    def _update_cached_state(self) -> None:
+        """Update the cached state from coordinator data."""
+        value = self._get_data_point_value()
+        self._cached_value = float(value) if value is not None else None
+
     @property
     def native_value(self) -> float | None:
         """Return the current value."""
-        value = self._get_data_point_value()
-        return float(value) if value is not None else None
+        return self._cached_value
 
     async def async_set_native_value(self, value: float) -> None:
         """Set the number value."""
@@ -90,6 +99,10 @@ class KKTKolbeZoneNumber(KKTZoneBaseEntity, NumberEntity):
         self._attr_native_step = config.get("step", 1)
         self._attr_native_unit_of_measurement = config.get("unit_of_measurement")
         self._attr_icon = self._get_icon()
+        self._cached_value = None
+
+        # Initialize state from coordinator data
+        self._update_cached_state()
 
     def _get_icon(self) -> str:
         """Get appropriate icon for the zone number entity."""
@@ -104,12 +117,20 @@ class KKTKolbeZoneNumber(KKTZoneBaseEntity, NumberEntity):
 
         return "mdi:numeric"
 
-    @property
-    def native_value(self) -> float | None:
-        """Return the current zone value."""
+    def _update_cached_state(self) -> None:
+        """Update the cached state from coordinator data."""
+        # Check if this DP uses bitfield encoding
+        if self._dp in BITFIELD_CONFIG and BITFIELD_CONFIG[self._dp]["type"] == "value":
+            # Use bitfield utilities for Base64-encoded RAW data
+            value = get_zone_value_from_coordinator(self.coordinator, self._dp, self._zone)
+            self._cached_value = float(value) if value is not None else None
+            return
+
+        # Fallback to legacy integer bitfield handling
         raw_value = self._get_data_point_value()
         if raw_value is None:
-            return None
+            self._cached_value = None
+            return
 
         # For zone-specific values, extract from bitfield if needed
         if isinstance(raw_value, int) and raw_value > 255:
@@ -117,15 +138,27 @@ class KKTKolbeZoneNumber(KKTZoneBaseEntity, NumberEntity):
             zone_offset = (self._zone - 1) * 8
             zone_mask = 0xFF << zone_offset
             zone_value = (raw_value & zone_mask) >> zone_offset
-            return float(zone_value)
+            self._cached_value = float(zone_value)
+        else:
+            self._cached_value = float(raw_value) if raw_value is not None else None
 
-        return float(raw_value) if raw_value is not None else None
+    @property
+    def native_value(self) -> float | None:
+        """Return the current zone value."""
+        return self._cached_value
 
     async def async_set_native_value(self, value: float) -> None:
         """Set the zone number value."""
         int_value = int(value)
 
-        # For zone entities, we need to update the bitfield
+        # Check if this DP uses bitfield encoding
+        if self._dp in BITFIELD_CONFIG and BITFIELD_CONFIG[self._dp]["type"] == "value":
+            # Use bitfield utilities for Base64-encoded RAW data
+            await set_zone_value_in_coordinator(self.coordinator, self._dp, self._zone, int_value)
+            self._log_entity_state("Set Zone Value (Bitfield)", f"Zone {self._zone}, DP {self._dp} set to {int_value}")
+            return
+
+        # Fallback to legacy integer bitfield handling
         current_data = self._get_data_point_value()
         if current_data is not None and isinstance(current_data, int) and current_data > 255:
             # Update the specific zone in the bitfield

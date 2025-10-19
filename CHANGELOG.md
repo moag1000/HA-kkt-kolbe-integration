@@ -4,6 +4,394 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.7] - 2025-10-18
+
+### 🐛 CRITICAL BUG FIX: "Falsy" Values Treated as None
+
+#### Fixed Critical Data Point Detection Bug
+- **False/0 Values**: Fixed bug where `False`, `0`, and empty string values were treated as `None`
+- **"or" Operator Bug**: Replaced problematic `or` operator with explicit `None` checking
+- **All Basic Entities**: Power switches, timers, and number entities now show proper values
+- **Data Point Logic**: Fixed fundamental data point value extraction logic
+
+#### Technical Details
+- **Bug**: `value = data.get(str(dp)) or data.get(dp)` treated falsy values as `None`
+- **Fix**: Explicit `None` checking: `if value is None: value = data.get(dp)`
+- **Impact**: All entities with `False`, `0`, or empty string values now work correctly
+- **Root Cause**: Python's `or` operator evaluates falsy values as `False`
+
+#### User Impact
+- **Working Power Switches**: All power switches now show `False` (off) instead of "unknown"
+- **Working Timers**: All timer entities now show `0` instead of "unknown"
+- **Working Numbers**: All number entities now show proper values instead of "unknown"
+- **Massive Fix**: Resolves the majority of remaining "unknown" entity issues
+
+#### Affected Entities Fixed
+**HERMES & STYLE Hood:**
+- Power Switch (DP 1): `unknown` → `False`
+- RGB Mode (DP 101): `unknown` → `0`
+- Timer (DP 13): `unknown` → `0`
+
+**IND7705HC Kochfeld:**
+- Power Switch (DP 101): `unknown` → `False`
+- Pause Switch (DP 102): `unknown` → `False`
+- Child Lock (DP 103): `unknown` → `False`
+- Max Power Level (DP 104): `unknown` → proper value
+- General Timer (DP 134): `unknown` → proper value
+- Senior Mode (DP 145): `unknown` → `False`
+
+**Note**: Zone Error entities (DP 105) may still show "unknown" when no errors are present - this is correct behavior.
+
+## [1.7.6] - 2025-10-18
+
+### 🔍 DEBUG: Enhanced Logging for Remaining "Unknown" Entities
+
+#### Enhanced Debug Logging
+- **Coordinator Update Logging**: Added detailed logging for coordinator data updates
+- **Data Point Detection**: Enhanced logging to identify missing data points
+- **Available DPs Logging**: Shows all available data points in coordinator data
+- **Warning Level**: Changed missing DP logs to WARNING level for visibility
+
+#### Technical Details
+- Enhanced `_handle_coordinator_update()` with detailed coordinator data logging
+- Changed `_get_data_point_value()` logging from DEBUG to WARNING for missing DPs
+- Added zone and data point information to coordinator update logs
+- Improved debugging capabilities for data point availability
+
+#### User Impact
+- **Better Diagnostics**: Home Assistant logs will now clearly show which data points are missing
+- **Debug Information**: Detailed logging helps identify why certain entities show "unknown"
+- **No Functional Changes**: This is purely a diagnostic enhancement
+
+#### Installation
+1. Download and install v1.7.6
+2. Enable debug logging in configuration.yaml:
+   ```yaml
+   logger:
+     default: warning
+     logs:
+       custom_components.kkt_kolbe: debug
+   ```
+3. Restart Home Assistant
+4. Check logs for detailed data point information
+
+**Note**: This debug release helps diagnose remaining "unknown" entity issues.
+
+## [1.7.5] - 2025-10-18
+
+### 🔧 CRITICAL FIXES: Hood Fan Entity & IND7705HC Zone Entities
+
+#### Fixed HERMES & STYLE Hood
+- **Removed Fan Entity**: HERMES & STYLE hood no longer creates fan entity (which caused turn_on errors)
+- **Select Entity Only**: Fan speed is now controlled via select entity for DP 10
+- **Data Model Compliance**: Configuration now matches Tuya device data model exactly
+- **No Turn On/Off Switches**: Fan speed enum includes "off" state, no separate switches needed
+
+#### Fixed IND7705HC Zone Entities "Unknown" Status
+- **Zone Data Extraction**: Fixed zone-based entities to use proper bitfield_utils
+- **Base64 Decoding**: Zone entities now correctly decode RAW Base64 data
+- **Automatic Zone Detection**: _get_data_point_value() automatically uses zone extraction when zone is set
+- **All Zone Entities Working**: Power levels, timers, temperatures, and status indicators now show proper values
+
+#### Technical Details
+- **HERMES & STYLE**: Removed "fan" from platforms, added select entity for DP 10
+- **IND7705HC**: Enhanced _get_data_point_value() to automatically call _get_zone_data_point_value() for zone entities
+- **Bitfield Integration**: Zone extraction now uses extract_zone_value_from_bitfield() from bitfield_utils
+- **Error Handling**: Added proper exception handling for Base64 decoding failures
+
+#### User Impact
+- **No More turn_on Errors**: Fan entity turn_on errors are completely eliminated
+- **Proper Fan Control**: Use select dropdown to control fan speed including "off"
+- **Working Zone Controls**: All IND7705HC zone entities now display proper values instead of "Unknown"
+- **Device Compliance**: Both devices now match actual Tuya device capabilities
+
+#### Migration
+- **HERMES & STYLE**: Existing fan entities will be removed, new select entity created
+- **IND7705HC**: Zone entities will start showing proper values after restart
+- **No Data Loss**: Same data points controlled, improved interface and functionality
+
+## [1.7.4] - 2025-10-18
+
+### 🔧 FIX: HERMES & STYLE Hood Fan Speed Control
+
+#### Fixed
+- **Hood Fan Speed Control**: Removed redundant sensor entity for DP 10 fan speed
+- **Proper Fan Entity**: HERMES & STYLE hood now only uses fan entity for DP 10
+- **Device Control**: Fan speed can now be properly controlled via fan interface
+- **Entity Cleanup**: Eliminated duplicate entities for same data point
+
+#### Technical Details
+- Removed conflicting sensor entity for DP 10 in HERMES & STYLE hood configuration
+- Fan entity (DP 10) now exclusively handles fan speed control
+- Maintains proper enum mapping: ["off", "low", "middle", "high", "strong"]
+- Follows Tuya device data model specifications
+
+#### User Impact
+- **Working Fan Speed Control**: HERMES & STYLE hood fan speeds can now be set via fan controls
+- **Clean Entity List**: No more duplicate fan speed entities in device
+- **Proper Device Behavior**: Matches Tuya device model specifications
+
+## [1.7.3] - 2025-10-18
+
+### 🔧 CRITICAL: Fan Entity & Error Handling Fixes
+
+#### Fixed Fan Entity Issues
+- **Fan Entity Support**: Added missing TURN_ON and TURN_OFF feature flags
+- **State Caching**: Implemented proper state caching for Fan entities
+- **Control Support**: Fan entities now properly support turn_on/turn_off actions
+
+#### Fixed Error Handling
+- **KKTDataPointError**: Extended exception class to support device_id and reason parameters
+- **Compatibility**: Resolved "unexpected keyword argument" errors in logs
+- **Better Diagnostics**: Enhanced error messages for troubleshooting
+
+#### Enhanced Entity Performance
+- **Fan State Caching**: Fan entities now cache state for instant response
+- **Select State Caching**: Select entities now use cached state
+- **Memory Optimization**: All entity types now follow Home Assistant best practices
+
+#### Technical Details
+- Added FanEntityFeature.TURN_ON and TURN_OFF to fan entity
+- Extended KKTDataPointError with device_id, reason, data_point parameters
+- Implemented _update_cached_state() for Fan and Select entities
+- Smart state management across all entity types
+
+#### User Impact
+- **Working Fan Controls**: Fan turn_on/turn_off buttons now work in UI
+- **No More Error Logs**: Resolved KKTDataPointError parameter issues
+- **Better Performance**: Instant entity state updates
+
+## [1.7.2] - 2025-10-18
+
+### 🔧 HOTFIX: Temperature Unit Configuration
+
+#### Fixed
+- **Temperature Sensor Units**: Fixed missing unit_of_measurement for Zone temperature sensors
+- **Timer Units**: Corrected unit_of_measurement configuration for all timer entities
+- **Home Assistant Compliance**: Resolved warnings about invalid temperature units
+
+#### Technical Details
+- Changed `unit` to `unit_of_measurement` in entity configurations
+- Added proper UnitOfTemperature.CELSIUS for all temperature sensors
+- Added proper UnitOfTime.MINUTES for all timer entities
+- Ensures compliance with Home Assistant entity standards
+
+#### Affected Entities
+- Zone 1-5: Current Temperature sensors now show proper °C units
+- Zone 1-5: Timer controls now show proper minute units
+- General Timer: Now shows proper minute units
+
+## [1.7.1] - 2025-10-18
+
+### 🔧 CRITICAL: Home Assistant Best Practices Implementation
+
+#### Fixed "Unknown" Entity Status Issue
+- **Property Performance**: Entity properties no longer perform I/O operations
+- **State Caching**: All entities now cache state in memory for instant property access
+- **Coordinator Updates**: State updates only happen during coordinator refresh cycles
+- **Standards Compliance**: Full adherence to Home Assistant entity development guidelines
+
+#### Technical Architecture Improvements
+- **Memory-Based Properties**: All entity properties (is_on, native_value, etc.) now return cached values
+- **Smart State Updates**: `_update_cached_state()` method updates cached values from coordinator data
+- **Enhanced Debugging**: Improved logging for data key compatibility (string vs integer keys)
+- **Coordinator Integration**: Proper `_handle_coordinator_update()` implementation
+
+#### Affected Entity Types
+- **Switch Entities**: `is_on` property now returns cached boolean state
+- **Number Entities**: `native_value` property now returns cached numeric values
+- **Sensor Entities**: `native_value` property now returns cached sensor readings
+- **Binary Sensor Entities**: `is_on` property now returns cached boolean status
+- **Zone Entities**: All zone-specific entities use cached bitfield-decoded values
+
+#### User Impact
+- **Instant Response**: Entity states display immediately without delays
+- **No More "Unknown"**: Entities should no longer show "Unknown" status due to I/O blocking
+- **Better Performance**: Faster UI updates and reduced system load
+- **Reliable States**: Consistent entity state reporting across all platforms
+
+#### Compatibility
+- **Backward Compatible**: No breaking changes to existing functionality
+- **Enhanced Bitfield Support**: Zone entities still use full bitfield decoding
+- **Debug Improvements**: Better coordinator data logging for troubleshooting
+
+## [1.7.0] - 2025-10-18
+
+### 🚀 MAJOR: Complete RAW Bitfield Implementation for IND7705HC
+
+#### New Features
+- **Full Bitfield Decoding**: Complete implementation for Base64-encoded RAW data points
+- **All Zone Entities**: All 5 cooking zones now have full individual control
+- **Professional Implementation**: Proper encoding/decoding instead of simplified configuration
+
+#### Technical Implementation
+- **New Bitfield Utils**: `bitfield_utils.py` with full Base64 ↔ Zone value conversion
+- **Enhanced Entity Classes**: Zone-aware Number, Sensor, and BinarySensor entities
+- **Smart Data Point Handling**: Automatic detection of bitfield vs. simple data points
+- **Robust Error Handling**: Fallback to legacy methods for unknown configurations
+
+#### Bitfield Data Points (Now Working)
+- **DP 162**: Zone 1-5 Power Levels (0-25) ✅
+- **DP 167**: Zone 1-5 Timers (0-255 min) ✅
+- **DP 168**: Zone 1-5 Target Temperatures (0-300°C) ✅
+- **DP 169**: Zone 1-5 Current Temperatures (read-only) ✅
+- **DP 161**: Zone 1-5 Selection Status (bit-based) ✅
+- **DP 163**: Zone 1-5 Boost Status (bit-based) ✅
+- **DP 164**: Zone 1-5 Keep Warm Status (bit-based) ✅
+- **DP 165**: Flex Zone Left/Right (bit-based) ✅
+- **DP 166**: BBQ Mode Left/Right (bit-based) ✅
+- **DP 105**: Zone 1-5 Error Status (bit-based) ✅
+
+#### Entity Additions (Total: 42 new entities)
+**Number Entities (15):**
+- Zone 1-5: Power Level sliders (0-25)
+- Zone 1-5: Timer sliders (0-255 min)
+- Zone 1-5: Target Temperature sliders (0-300°C)
+
+**Sensor Entities (5):**
+- Zone 1-5: Current Temperature displays
+
+**Binary Sensor Entities (22):**
+- Zone 1-5: Error status indicators
+- Zone 1-5: Selection status indicators
+- Zone 1-5: Boost active indicators
+- Zone 1-5: Keep Warm active indicators
+- Flex Zone Left/Right status
+- BBQ Mode Left/Right status
+
+#### User Experience
+- **Complete Zone Control**: Individual control for all 5 cooking zones
+- **Professional UI**: Organized by zones with proper icons and device classes
+- **Real-time Status**: Live updates for all zone states and temperatures
+- **Error Monitoring**: Zone-specific error indicators
+- **Mode Detection**: Visual indicators for boost, keep warm, flex, and BBQ modes
+
+#### Compatibility
+- **Backward Compatible**: Existing simple entities (DP 101-104, 108, 134, 145, 148-155) unchanged
+- **Smart Detection**: Automatic detection between bitfield and simple data points
+- **Fallback Support**: Legacy integer bitfield handling preserved
+
+## [1.6.3] - 2025-10-18 [SUPERSEDED by 1.7.0]
+
+### 🔧 HOTFIX: IND7705HC Cooktop "Unknown" Status Fix [TEMPORARY]
+
+This release was superseded by v1.7.0 which implements proper bitfield decoding instead of removing entities.
+
+## [1.6.2] - 2025-10-18
+
+### 🔧 HOTFIX: ECCO HCM Fan Entity Configuration
+
+#### Fixed
+- **ECCO HCM Fan Entity Conflict**: Removed incorrect fan entity for ECCO HCM hood
+- **Duplicate DP Issue**: DP 102 was configured for both fan and number entities
+- **Correct Control Type**: ECCO HCM uses number slider (0-9) not fan entity with speeds
+
+#### Technical Details
+- **ECCO HCM Hood**: DP 102 is `fan_speed` VALUE (0-9), not ENUM
+- **Removed fan entity** for ECCO HCM to prevent conflicts
+- **Number entity remains** for proper slider-based speed control (0-9 levels)
+- **Other hoods unchanged**: HERMES & STYLE, FLAT, and HERMES still use fan entities
+
+#### User Impact
+- **ECCO HCM users**: Use "Fan Speed" number slider instead of fan entity
+- **Other hood users**: No change, fan entities work as expected
+- **Cleaner entity list**: No more duplicate/conflicting entities
+
+#### Hood Model Summary
+- **HERMES & STYLE** (ypaixllljc2dcpae): ✅ Fan entity (DP 10, 5 speeds)
+- **FLAT Hood** (luoxakxm2vm9azwu): ✅ Fan entity (DP 10, 5 speeds)
+- **HERMES Hood** (0fcj8kha86svfmve): ✅ Fan entity (DP 10, 5 speeds)
+- **ECCO HCM Hood** (gwdgkteknzvsattn): ✅ Number entity (DP 102, 0-9 slider)
+
+---
+
+## [1.6.1] - 2025-10-18
+
+### 🔧 HOTFIX: Fan Entity Not Loading for HERMES & STYLE
+
+#### Fixed
+- **Fan Entity Not Loading**: Fixed fan entity not appearing for HERMES & STYLE hood (product_name: ypaixllljc2dcpae)
+- **Wrong Data Point**: Corrected fan control from DP 2 to DP 10 (fan_speed_enum)
+- **Enum Value Handling**: Fixed sending string values ("off", "low", "middle", "high", "strong") instead of numeric
+- **Product Name Detection**: Removed hardcoded product name check, now uses device_types.py configuration
+
+#### Technical Details
+- Updated `fan.py` to use configuration from `device_types.py`
+- Fixed data point mapping from DP 2 to DP 10
+- Proper enum string value handling for fan_speed_enum
+- Dynamic configuration loading based on product_name
+
+#### User Impact
+- **Fan control now works** for HERMES & STYLE hood
+- **Speed control available** with 5 levels (off, low, middle, high, strong)
+- **Proper UI integration** with percentage-based speed control
+
+---
+
+## [1.6.0] - 2025-10-18
+
+### 🎯 FEATURE: Zone-Organized Entities & Optimized User Experience
+
+#### Added
+- **Zone-Grouped Entity Names**: IND7705HC entities now organized by cooking zone for better usability
+  - Example: "Zone 1: Power Level", "Zone 1: Timer", "Zone 1: Current Temp"
+  - Logical grouping instead of type-based grouping (all Zone 1 controls together)
+- **Optimized Device Classes**: Correct Home Assistant device classes for better UI integration
+  - Number entities: `device_class: "duration"` for timers, `device_class: "temperature"` for temps
+  - Switch entities: Proper `device_class: "switch"` (not "outlet" for appliances)
+  - Sensor entities: `device_class: "temperature"` for temperature readings
+  - Binary sensor entities: `device_class: "problem"` for errors, `device_class: "running"` for status
+- **Material Design Icons**: Intuitive icons for all entities
+  - Power: `mdi:power`, Timer: `mdi:timer`, Temperature: `mdi:thermometer`
+  - Zone numbers: `mdi:numeric-1-circle`, Boost: `mdi:flash`, Keep Warm: `mdi:thermometer-low`
+- **Slider UI Mode**: Number entities use `mode: "slider"` for better touch control
+
+#### Improved
+- **User Experience**: Entities appear in logical cooking workflow order
+  - Per zone: Power Level → Timer → Target Temp → Quick Level → Status → Error
+  - Much more intuitive than scattered type-based grouping
+- **Entity Naming**: Consistent "Zone X: Function" pattern for easy identification
+- **UI Integration**: Better Home Assistant dashboard appearance with proper icons and device classes
+- **Timer Ranges**: Confirmed 255-minute maximum (4+ hours) for zone timers - perfect for slow cooking
+
+#### Technical Details
+- Updated `device_types.py` with zone-organized entity configurations
+- Added proper device classes for all entity types
+- Implemented Material Design icon assignments
+- Maintained backward compatibility with existing configurations
+
+#### User Benefits
+- **Logical Cooking Workflow**: All controls for Zone 1 grouped together, then Zone 2, etc.
+- **Better Visual Appearance**: Proper icons and device classes in Home Assistant UI
+- **Intuitive Controls**: Slider controls for power levels, timers, and temperatures
+- **Professional Look**: Entity cards appear with appropriate icons and styling
+
+---
+
+## [1.5.16] - 2025-10-18
+
+### 🔧 HOTFIX: Enhanced Connection Stability
+
+#### Fixed
+- **Connection Timeout**: Increased device connection timeout from 15 to 30 seconds
+- **Retry Mechanism**: Added 3-attempt retry logic with 5-second delays between attempts
+- **Error Logging**: Enhanced logging for better debugging of connection issues
+- **Device Unreachability**: Improved handling when devices are temporarily offline
+
+#### Technical Improvements
+- **Robust Connection**: Better handling of network instability and device response delays
+- **Timeout Management**: More appropriate timeout values for real-world device responses
+- **Error Recovery**: Automatic retry with exponential backoff for transient connection failures
+- **Debug Information**: More detailed logging for troubleshooting connection problems
+
+#### Addresses Issues
+- Resolves "Connection timeout after 15 seconds" errors in logs
+- Improves reliability for devices on slow or congested networks
+- Better handling of device startup/discovery phases
+- Reduces false connection failures due to temporary network issues
+
+---
+
 ## [1.5.14] - 2025-10-18
 
 ### 📋 DOCUMENTATION: Device Verification Status & Community Support
