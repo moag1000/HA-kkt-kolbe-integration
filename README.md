@@ -3,7 +3,7 @@
 <div align="center">
   <img src="./icon.png" alt="KKT Kolbe Logo" width="128" height="128">
 
-  ## 🎯 v2.0.0-beta.1 - TinyTuya API & Enhanced Stability
+  ## 🎯 v2.0.0-beta.8 - Global API Management & Enhanced Setup Experience
 </div>
 
 [![GitHub Release][releases-shield]][releases]
@@ -56,25 +56,30 @@ Unterstützt Dunstabzugshauben und Induktionskochfelder über Tuya Local Protoco
 
 ## ✨ Integration Features
 
-### 🚀 **v2.0.0-beta.1: TinyTuya API & Enhanced Stability**
+### 🚀 **v2.0.0-beta.8: Global API Management & Enhanced Setup Experience**
 
-#### **TinyTuya Cloud API Integration** 🆕
-- **Hybrid Communication**: Nahtloser Wechsel zwischen Local und Cloud
-- **API Discovery**: Automatische Geräteerkennung über Tuya Cloud
-- **Shadow Properties**: Echtzeit-Synchronisation mit Cloud-Status
-- **Dynamic Configuration**: Auto-Konfiguration basierend auf API-Metadaten
+#### **Global API Key Management** 🆕
+- API Keys werden global gespeichert und wiederverwendet
+- Folge-Setups erkennen gespeicherte Credentials
+- Option zwischen gespeicherten und neuen Credentials
+- Optimiert für Haushalte mit mehreren KKT Geräten
 
-#### **Erweiterte Wiederverbindung** 🆕
-- **Auto-Reconnect mit Backoff**: Intelligente Wiederverbindung (5s → 5min)
-- **Device State Tracking**: ONLINE, OFFLINE, RECONNECTING, UNREACHABLE
-- **Health Monitoring**: Periodische Gesundheitschecks alle 5 Minuten
-- **Manual Recovery**: Services für manuelle Wiederverbindung
+#### **3-Wege Setup-Architektur** 🆕
+- **🔍 Automatic Discovery**: Automatische Netzwerk-Erkennung
+- **🔧 Manual Local Setup**: Manuelle lokale Konfiguration
+- **☁️ API-Only Setup**: Reine Cloud-basierte Einrichtung
 
-#### **Verbesserte Authentifizierung** 🆕
-- **Reauth Flow**: Automatische Neuauthentifizierung bei Ablauf
-- **Local Key Update Service**: Einfache Key-Aktualisierung nach Reset
-- **API Credential Management**: Sichere Token-Speicherung und -Refresh
-- **Multiple Auth Methods**: Local-only, API-only, oder Hybrid-Modus
+#### **Verbesserte API-Only Einrichtung** 🆕
+- Funktioniert ohne lokale IP/Local Key Konfiguration
+- Automatische Geräteerkennung über TinyTuya API
+- Unterstützt verschiedene regionale API-Endpunkte
+- Filtert automatisch nach KKT Kolbe Geräten
+
+#### **Optimierte Benutzerführung** 🆕
+- Reduzierte Setup-Zeit für weitere Geräte
+- Vereinfachter Prozess durch globale API-Verwaltung
+- Einmalige API-Konfiguration für alle Geräte
+- Konsistente Erfahrung über mehrere Geräte hinweg
 
 ### 🏠 **Bewährte Integration Features**
 
@@ -114,16 +119,84 @@ Unterstützt Dunstabzugshauben und Induktionskochfelder über Tuya Local Protoco
 
 ## 🔧 Konfiguration
 
-### Option 1: Automatische Erkennung ✅ Empfohlen
+### 🚀 Neue 3-Wege Setup-Architektur (v2.0.0-beta.8+)
+
+Wähle bei der Installation eine der drei Setup-Methoden:
+
+#### **☁️ API-Only Setup** ✅ Empfohlen für mehrere Geräte
+**Gut geeignet für Haushalte mit mehreren KKT Geräten**
+
+**Erstes Gerät:**
+1. Setup Method: ☁️ API-Only wählen
+2. TinyTuya Credentials eingeben (Client ID, Secret, Region)
+3. Device aus API-Discovery wählen
+4. Credentials werden automatisch gespeichert
+
+**Weitere Geräte:**
+1. Setup Method: ☁️ API-Only wählen
+2. "Use Stored API Credentials" wählen
+3. Device aus Liste wählen
+4. Fertig
+
+**Vorteile:**
+- Keine Local Key Extraktion nötig
+- Funktioniert auch außerhalb des Heimnetzwerks
+- API Keys nur einmal eingeben
+- Schnellerer Setup für weitere Geräte
+
+#### **🔍 Automatic Discovery** ✅ Empfohlen für Single Device
 Die Integration findet KKT Geräte automatisch im lokalen Netzwerk über mDNS.
 
-### Option 2: Manuelle Konfiguration
-Benötigte Informationen:
+#### **🔧 Manual Local Setup**
+Für erfahrene Nutzer mit spezifischen Anforderungen:
 - **IP-Adresse**: Lokale IP des Geräts (z.B. 192.168.1.100)
 - **Device ID**: 20-22 Zeichen Tuya Device ID (z.B. bf735dfe2ad64fba7cpyhn)
 - **Local Key**: 16+ Zeichen Local Key aus Tuya/Smart Life App
 
-### Local Key Extraktion
+### TinyTuya API Setup (für API-Only Modus)
+
+#### Schritt 1: Tuya IoT Platform Account erstellen
+1. Gehe zu [iot.tuya.com](https://iot.tuya.com)
+2. **"Sign Up"** → Registrierung mit E-Mail
+3. E-Mail bestätigen und anmelden
+
+#### Schritt 2: Cloud Project erstellen
+1. **Cloud** → **Development** → **Create Cloud Project**
+2. **Project Name**: z.B. "Home Assistant KKT"
+3. **Description**: z.B. "KKT Kolbe Integration"
+4. **Industry**: "Smart Home" wählen
+5. **Development Method**: "Smart Home PaaS" wählen
+6. **Data Center**: Wichtig! Wähle deine Region:
+   - **Europe**: EU (empfohlen für Deutschland)
+   - **America**: US
+   - **China**: CN
+   - **India**: IN
+7. **Create** klicken
+
+#### Schritt 3: API Services aktivieren
+Nach Projekterstellung → **Service API** → folgende APIs aktivieren:
+- ✅ **Authorization Management**
+- ✅ **Device Status Notification**
+- ✅ **Smart Home Scene Linkage**
+- ✅ **Device Management**
+- ✅ **IoT Core** (falls verfügbar)
+
+#### Schritt 4: Credentials abrufen
+1. **Overview** → **Authorization Key**
+2. Notiere dir diese Werte für die Integration:
+   - **Access ID** (Client ID) - ca. 20 Zeichen
+   - **Access Secret** (Client Secret) - ca. 32 Zeichen
+   - **Data Center** (Region): EU/US/CN/IN
+
+#### Schritt 5: Gerät mit Tuya verknüpfen
+1. **Smart Life App** auf dem Handy installieren
+2. Dein KKT Gerät in Smart Life einrichten
+3. **Cloud** → **Link Tuya App Account**
+4. QR-Code scannen oder Account verknüpfen
+
+Jetzt kannst du die API-Only Einrichtung in der Integration verwenden!
+
+### Local Key Extraktion (nur für Manual Local Setup)
 Verwende Tools wie:
 - `tuya-cli` - [Anleitung](https://github.com/codetheweb/tuyapi/blob/master/docs/SETUP.md)
 - `tinytuya` - [Setup Guide](https://github.com/jasonacox/tinytuya#setup-wizard)
@@ -197,7 +270,15 @@ logger:
 
 ## 📝 Changelog
 
-### v2.0.0-beta.1 (Current Beta)
+### v2.0.0-beta.8 (Current Beta)
+- 🔑 **Global API Key Management**: API Keys werden wiederverwendet
+- 🎛️ **3-Wege Setup-Architektur**: Discovery/Manual Local/API-Only
+- ☁️ **API-Only Setup**: Cloud-Setup ohne lokale Konfiguration
+- 📱 **Optimierte Benutzerführung**: Schnellerer Setup für weitere Geräte
+- 🌍 **Vollständige Übersetzungen**: Alle Config Flow Steps übersetzt
+- 🛠️ **Verbesserte Config Flow**: Smart routing mit gespeicherten Daten
+
+### v2.0.0-beta.1-7 (Previous Betas)
 - 🌐 TinyTuya Cloud API Integration
 - 🔄 Enhanced Reconnection System
 - 🔑 Improved Authentication Flow
@@ -234,9 +315,9 @@ MIT License - siehe [LICENSE](./LICENSE) für Details.
 
 **Made with ❤️ and 🤖 by [@moag1000](https://github.com/moag1000) & Claude Code**
 
-[releases-shield]: https://img.shields.io/badge/release-v2.0.0--beta.1-blue.svg?style=for-the-badge
+[releases-shield]: https://img.shields.io/badge/release-v2.0.0--beta.8-blue.svg?style=for-the-badge
 [betabadge]: https://img.shields.io/badge/status-BETA-yellow.svg?style=for-the-badge
-[beta-release]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v2.0.0-beta.1
+[beta-release]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v2.0.0-beta.8
 [releases]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases
 [commits-shield]: https://img.shields.io/github/commit-activity/y/moag1000/HA-kkt-kolbe-integration.svg?style=for-the-badge
 [commits]: https://github.com/moag1000/HA-kkt-kolbe-integration/commits/main
