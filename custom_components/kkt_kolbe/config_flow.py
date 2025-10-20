@@ -173,9 +173,26 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             elif setup_method == "api_only":
                 return await self.async_step_api_only()
 
+        _LOGGER.debug("Showing user config form with 3 setup methods: %s", STEP_USER_DATA_SCHEMA)
+
+        # Debug: Create schema inline to ensure it's not a reference issue
+        debug_schema = vol.Schema({
+            vol.Required("setup_method", default="discovery"): selector.selector({
+                "select": {
+                    "options": [
+                        {"value": "discovery", "label": "🔍 Automatic Discovery (Local Network)"},
+                        {"value": "manual", "label": "🔧 Manual Local Setup (IP + Local Key)"},
+                        {"value": "api_only", "label": "☁️ API-Only Setup (TinyTuya Cloud)"}
+                    ],
+                    "mode": "dropdown",
+                    "translation_key": "setup_method"
+                }
+            })
+        })
+
         return self.async_show_form(
             step_id="user",
-            data_schema=STEP_USER_DATA_SCHEMA,
+            data_schema=debug_schema,
             errors=errors,
             description_placeholders={
                 "setup_mode": "Choose how you want to set up your KKT Kolbe device"
