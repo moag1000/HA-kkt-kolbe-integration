@@ -8,7 +8,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import TuyaCloudClient, TuyaAPIError, TuyaDeviceNotFoundError
-from .tuya_device import TuyaDevice
+from .tuya_device import KKTKolbeTuyaDevice
 from .exceptions import KKTConnectionError, KKTTimeoutError
 
 _LOGGER = logging.getLogger(__name__)
@@ -21,7 +21,7 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
         self,
         hass: HomeAssistant,
         device_id: str,
-        local_device: Optional[TuyaDevice] = None,
+        local_device: Optional[KKTKolbeTuyaDevice] = None,
         api_client: Optional[TuyaCloudClient] = None,
         update_interval: timedelta = timedelta(seconds=30),
         prefer_local: bool = True,
@@ -279,7 +279,7 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
         _LOGGER.error("All command sending methods failed")
         return False
 
-    def set_local_device(self, device: TuyaDevice) -> None:
+    def set_local_device(self, device: KKTKolbeTuyaDevice) -> None:
         """Set or update the local device."""
         self.local_device = device
         self.local_available = True
