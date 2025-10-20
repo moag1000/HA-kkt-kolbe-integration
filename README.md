@@ -3,7 +3,7 @@
 <div align="center">
   <img src="./icon.png" alt="KKT Kolbe Logo" width="128" height="128">
 
-  ## 🎯 v2.0.0-beta.8 - Global API Management & Enhanced Setup Experience
+  ## 🎯 v2.0.0-beta.8.1 - Global API Management & Enhanced Setup Experience
 </div>
 
 [![GitHub Release][releases-shield]][releases]
@@ -56,7 +56,7 @@ Unterstützt Dunstabzugshauben und Induktionskochfelder über Tuya Local Protoco
 
 ## ✨ Integration Features
 
-### 🚀 **v2.0.0-beta.8: Global API Management & Enhanced Setup Experience**
+### 🚀 **v2.0.0-beta.8.1: Global API Management & Enhanced Setup Experience**
 
 #### **Global API Key Management** 🆕
 - API Keys werden global gespeichert und wiederverwendet
@@ -119,7 +119,7 @@ Unterstützt Dunstabzugshauben und Induktionskochfelder über Tuya Local Protoco
 
 ## 🔧 Konfiguration
 
-### 🚀 Neue 3-Wege Setup-Architektur (v2.0.0-beta.8+)
+### 🚀 Neue 3-Wege Setup-Architektur (v2.0.0-beta.8.1+)
 
 Wähle bei der Installation eine der drei Setup-Methoden:
 
@@ -270,7 +270,9 @@ logger:
 
 ## 📝 Changelog
 
-### v2.0.0-beta.8 (Current Beta)
+### v2.0.0-beta.8.1 (Current Beta)
+- 🐛 **Config Flow Fix**: Behebt Display-Issue der 3-Wege Setup-Architektur
+- 🔧 **Debug Improvements**: Bessere Logging für Troubleshooting
 - 🔑 **Global API Key Management**: API Keys werden wiederverwendet
 - 🎛️ **3-Wege Setup-Architektur**: Discovery/Manual Local/API-Only
 - ☁️ **API-Only Setup**: Cloud-Setup ohne lokale Konfiguration
@@ -315,9 +317,9 @@ MIT License - siehe [LICENSE](./LICENSE) für Details.
 
 **Made with ❤️ and 🤖 by [@moag1000](https://github.com/moag1000) & Claude Code**
 
-[releases-shield]: https://img.shields.io/badge/release-v2.0.0--beta.8-blue.svg?style=for-the-badge
+[releases-shield]: https://img.shields.io/badge/release-v2.0.0--beta.8.1-blue.svg?style=for-the-badge
 [betabadge]: https://img.shields.io/badge/status-BETA-yellow.svg?style=for-the-badge
-[beta-release]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v2.0.0-beta.8
+[beta-release]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v2.0.0-beta.8.1
 [releases]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases
 [commits-shield]: https://img.shields.io/github/commit-activity/y/moag1000/HA-kkt-kolbe-integration.svg?style=for-the-badge
 [commits]: https://github.com/moag1000/HA-kkt-kolbe-integration/commits/main
