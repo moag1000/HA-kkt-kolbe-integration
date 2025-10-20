@@ -4,6 +4,9 @@ DOMAIN = "kkt_kolbe"
 
 MANUFACTURER = "KKT Kolbe"
 
+# Global API storage key
+GLOBAL_API_STORAGE_KEY = f"{DOMAIN}_global_api"
+
 # API Configuration
 CONF_API_CLIENT_ID = "api_client_id"
 CONF_API_CLIENT_SECRET = "api_client_secret"

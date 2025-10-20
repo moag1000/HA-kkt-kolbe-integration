@@ -16,19 +16,21 @@ import homeassistant.helpers.config_validation as cv
 from .const import DOMAIN
 from .discovery import async_start_discovery, async_stop_discovery, get_discovered_devices
 from .tuya_device import KKTKolbeTuyaDevice
+from .api_manager import GlobalAPIManager
 
 _LOGGER = logging.getLogger(__name__)
 
 # Configuration step schemas
 STEP_USER_DATA_SCHEMA = vol.Schema({
-    vol.Required("connection_method", default="discovery"): selector.selector({
+    vol.Required("setup_method", default="discovery"): selector.selector({
         "select": {
             "options": [
-                {"value": "discovery", "label": "Automatic Discovery"},
-                {"value": "manual", "label": "Manual Configuration"}
+                {"value": "discovery", "label": "🔍 Automatic Discovery (Local Network)"},
+                {"value": "manual_local", "label": "🔧 Manual Local Setup (IP + Local Key)"},
+                {"value": "api_only", "label": "☁️ API-Only Setup (TinyTuya Cloud)"}
             ],
             "mode": "dropdown",
-            "translation_key": "connection_method"
+            "translation_key": "setup_method"
         }
     })
 })
@@ -46,6 +48,26 @@ STEP_MANUAL_DATA_SCHEMA = vol.Schema({
             ],
             "mode": "dropdown",
             "translation_key": "device_type"
+        }
+    })
+})
+
+STEP_API_ONLY_DATA_SCHEMA = vol.Schema({
+    vol.Required("api_client_id"): selector.selector({
+        "text": {"placeholder": "Access ID from Tuya IoT Platform"}
+    }),
+    vol.Required("api_client_secret"): selector.selector({
+        "text": {"type": "password", "placeholder": "Access Secret from Tuya IoT Platform"}
+    }),
+    vol.Required("api_endpoint", default="https://openapi.tuyaeu.com"): selector.selector({
+        "select": {
+            "options": [
+                {"value": "https://openapi.tuyaeu.com", "label": "Europe (EU)"},
+                {"value": "https://openapi.tuyaus.com", "label": "United States (US)"},
+                {"value": "https://openapi.tuyacn.com", "label": "China (CN)"},
+                {"value": "https://openapi.tuyain.com", "label": "India (IN)"}
+            ],
+            "mode": "dropdown"
         }
     })
 })
@@ -138,16 +160,18 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_user(
         self, user_input: Optional[Dict[str, Any]] = None
     ) -> FlowResult:
-        """Handle the initial step - connection method selection."""
+        """Handle the initial step - setup method selection."""
         errors: Dict[str, str] = {}
 
         if user_input is not None:
-            self._connection_method = user_input["connection_method"]
+            setup_method = user_input["setup_method"]
 
-            if self._connection_method == "discovery":
+            if setup_method == "discovery":
                 return await self.async_step_discovery()
-            else:
+            elif setup_method == "manual_local":
                 return await self.async_step_manual()
+            elif setup_method == "api_only":
+                return await self.async_step_api_only()
 
         return self.async_show_form(
             step_id="user",
@@ -387,6 +411,277 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             }
         )
 
+    async def async_step_api_only(
+        self, user_input: Optional[Dict[str, Any]] = None
+    ) -> FlowResult:
+        """Handle API-only setup step."""
+        errors: Dict[str, str] = {}
+
+        # Check if we have stored global API credentials
+        api_manager = GlobalAPIManager(self.hass)
+
+        # If we have stored credentials and user didn't specify to use different ones
+        if api_manager.has_stored_credentials() and user_input is None:
+            return await self.async_step_api_choice()
+
+        if user_input is not None:
+            # Validate API credentials
+            validation_errors = await self._validate_api_credentials(user_input)
+            if not validation_errors:
+                # Test API connection and discover devices
+                client_id = user_input["api_client_id"]
+                client_secret = user_input["api_client_secret"]
+                endpoint = user_input["api_endpoint"]
+
+                try:
+                    from .api import TuyaCloudClient
+
+                    api_client = TuyaCloudClient(
+                        client_id=client_id,
+                        client_secret=client_secret,
+                        endpoint=endpoint
+                    )
+
+                    # Test connection and get device list
+                    async with api_client:
+                        if await api_client.test_connection():
+                            devices = await api_client.get_device_list()
+
+                            # Filter for KKT Kolbe devices
+                            kkt_devices = []
+                            for device in devices:
+                                product_name = device.get("product_name", "").lower()
+                                if any(keyword in product_name for keyword in ["kkt", "kolbe", "range", "hood", "induction"]):
+                                    kkt_devices.append(device)
+
+                            if kkt_devices:
+                                # Store API credentials globally for reuse
+                                api_manager.store_api_credentials(client_id, client_secret, endpoint)
+
+                                # Store API info and show device selection
+                                self._api_info = {
+                                    "client_id": client_id,
+                                    "client_secret": client_secret,
+                                    "endpoint": endpoint
+                                }
+                                self._discovered_devices = {
+                                    device["id"]: {
+                                        "device_id": device["id"],
+                                        "name": device.get("name", f"KKT Device {device['id']}"),
+                                        "product_name": device.get("product_name", "Unknown Device"),
+                                        "discovered_via": "API",
+                                        "device_type": "auto"
+                                    }
+                                    for device in kkt_devices
+                                }
+                                return await self.async_step_api_device_selection()
+                            else:
+                                errors["base"] = "no_kkt_devices_found"
+                        else:
+                            errors["api_client_secret"] = "api_test_failed"
+                except Exception as exc:
+                    _LOGGER.error(f"API connection failed: {exc}")
+                    errors["api_client_secret"] = "api_connection_failed"
+            else:
+                errors.update(validation_errors)
+
+        return self.async_show_form(
+            step_id="api_only",
+            data_schema=STEP_API_ONLY_DATA_SCHEMA,
+            errors=errors,
+            description_placeholders={
+                "setup_info": "Configure TinyTuya Cloud API for device discovery"
+            }
+        )
+
+    async def async_step_api_device_selection(
+        self, user_input: Optional[Dict[str, Any]] = None
+    ) -> FlowResult:
+        """Handle device selection from API discovery."""
+        errors: Dict[str, str] = {}
+
+        if user_input is not None:
+            if user_input.get("retry_discovery"):
+                return await self.async_step_api_only()
+
+            selected_device_id = user_input["selected_device"]
+            device_info = self._discovered_devices[selected_device_id]
+
+            # Create config entry with API-only mode
+            config_data = {
+                "integration_mode": "api_discovery",
+                "api_enabled": True,
+                "api_client_id": self._api_info["client_id"],
+                "api_client_secret": self._api_info["client_secret"],
+                "api_endpoint": self._api_info["endpoint"],
+                CONF_DEVICE_ID: device_info["device_id"],
+                "product_name": device_info["product_name"],
+                "device_type": device_info["device_type"]
+            }
+
+            return self.async_create_entry(
+                title=device_info["name"],
+                data=config_data
+            )
+
+        # Show device selection form
+        schema = _get_device_selection_schema(self._discovered_devices)
+        return self.async_show_form(
+            step_id="api_device_selection",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders={
+                "device_count": len(self._discovered_devices)
+            }
+        )
+
+    async def async_step_api_choice(
+        self, user_input: Optional[Dict[str, Any]] = None
+    ) -> FlowResult:
+        """Handle choice between using stored API credentials or entering new ones."""
+        api_manager = GlobalAPIManager(self.hass)
+
+        if user_input is not None:
+            if user_input.get("use_stored_api"):
+                # Use stored credentials for device discovery
+                try:
+                    kkt_devices = await api_manager.get_kkt_devices_from_api()
+
+                    if kkt_devices:
+                        # Get stored credentials for later use
+                        creds = api_manager.get_stored_api_credentials()
+                        self._api_info = creds
+
+                        self._discovered_devices = {
+                            device["id"]: {
+                                "device_id": device["id"],
+                                "name": device.get("name", f"KKT Device {device['id']}"),
+                                "product_name": device.get("product_name", "Unknown Device"),
+                                "discovered_via": "API",
+                                "device_type": "auto"
+                            }
+                            for device in kkt_devices
+                        }
+                        return await self.async_step_api_device_selection()
+                    else:
+                        return self.async_show_form(
+                            step_id="api_choice",
+                            data_schema=self._get_api_choice_schema(),
+                            errors={"base": "no_kkt_devices_found"},
+                            description_placeholders={
+                                "stored_api_info": api_manager.get_api_info_summary()
+                            }
+                        )
+
+                except Exception as exc:
+                    _LOGGER.error(f"Failed to use stored API credentials: {exc}")
+                    return self.async_show_form(
+                        step_id="api_choice",
+                        data_schema=self._get_api_choice_schema(),
+                        errors={"base": "api_test_failed"},
+                        description_placeholders={
+                            "stored_api_info": api_manager.get_api_info_summary()
+                        }
+                    )
+            else:
+                # User wants to enter new credentials
+                return await self.async_step_api_credentials()
+
+        # Show choice form
+        return self.async_show_form(
+            step_id="api_choice",
+            data_schema=self._get_api_choice_schema(),
+            description_placeholders={
+                "stored_api_info": api_manager.get_api_info_summary()
+            }
+        )
+
+    def _get_api_choice_schema(self) -> vol.Schema:
+        """Get schema for API choice step."""
+        return vol.Schema({
+            vol.Required("use_stored_api", default=True): bool,
+            vol.Optional("manage_api", default=False): bool,
+        })
+
+    async def async_step_api_credentials(
+        self, user_input: Optional[Dict[str, Any]] = None
+    ) -> FlowResult:
+        """Handle entering new API credentials."""
+        # This is essentially the same as the original api_only step
+        # but without the stored credentials check
+        errors: Dict[str, str] = {}
+
+        if user_input is not None:
+            # Validate API credentials
+            validation_errors = await self._validate_api_credentials(user_input)
+            if not validation_errors:
+                # Test API connection and discover devices
+                client_id = user_input["api_client_id"]
+                client_secret = user_input["api_client_secret"]
+                endpoint = user_input["api_endpoint"]
+
+                try:
+                    from .api import TuyaCloudClient
+
+                    api_client = TuyaCloudClient(
+                        client_id=client_id,
+                        client_secret=client_secret,
+                        endpoint=endpoint
+                    )
+
+                    # Test connection and get device list
+                    async with api_client:
+                        if await api_client.test_connection():
+                            devices = await api_client.get_device_list()
+
+                            # Filter for KKT Kolbe devices
+                            kkt_devices = []
+                            for device in devices:
+                                product_name = device.get("product_name", "").lower()
+                                if any(keyword in product_name for keyword in ["kkt", "kolbe", "range", "hood", "induction"]):
+                                    kkt_devices.append(device)
+
+                            if kkt_devices:
+                                # Store API credentials globally for reuse
+                                api_manager = GlobalAPIManager(self.hass)
+                                api_manager.store_api_credentials(client_id, client_secret, endpoint)
+
+                                # Store API info and show device selection
+                                self._api_info = {
+                                    "client_id": client_id,
+                                    "client_secret": client_secret,
+                                    "endpoint": endpoint
+                                }
+                                self._discovered_devices = {
+                                    device["id"]: {
+                                        "device_id": device["id"],
+                                        "name": device.get("name", f"KKT Device {device['id']}"),
+                                        "product_name": device.get("product_name", "Unknown Device"),
+                                        "discovered_via": "API",
+                                        "device_type": "auto"
+                                    }
+                                    for device in kkt_devices
+                                }
+                                return await self.async_step_api_device_selection()
+                            else:
+                                errors["base"] = "no_kkt_devices_found"
+                        else:
+                            errors["api_client_secret"] = "api_test_failed"
+                except Exception as exc:
+                    _LOGGER.error(f"API connection failed: {exc}")
+                    errors["api_client_secret"] = "api_connection_failed"
+            else:
+                errors.update(validation_errors)
+
+        return self.async_show_form(
+            step_id="api_credentials",
+            data_schema=STEP_API_ONLY_DATA_SCHEMA,
+            errors=errors,
+            description_placeholders={
+                "setup_info": "Enter new TinyTuya Cloud API credentials"
+            }
+        )
+
     async def async_step_authentication(
         self, user_input: Optional[Dict[str, Any]] = None
     ) -> FlowResult:
@@ -538,6 +833,25 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             errors["device_id"] = "invalid_device_id"
 
         # Note: local_key validation is now done in authentication step
+
+        return errors
+
+    async def _validate_api_credentials(self, user_input: Dict[str, Any]) -> Dict[str, str]:
+        """Validate API credentials format."""
+        errors = {}
+
+        client_id = user_input.get("api_client_id", "").strip()
+        client_secret = user_input.get("api_client_secret", "").strip()
+
+        if not client_id:
+            errors["api_client_id"] = "api_client_id_required"
+        elif len(client_id) < 10:
+            errors["api_client_id"] = "api_client_id_invalid"
+
+        if not client_secret:
+            errors["api_client_secret"] = "api_client_secret_required"
+        elif len(client_secret) < 20:
+            errors["api_client_secret"] = "api_client_secret_invalid"
 
         return errors
 
