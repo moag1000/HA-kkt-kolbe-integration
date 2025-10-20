@@ -911,20 +911,17 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
     @callback
     def async_get_options_flow(config_entry: ConfigEntry) -> "KKTKolbeOptionsFlow":
         """Get the options flow for this handler."""
-        return KKTKolbeOptionsFlow(config_entry)
+        return KKTKolbeOptionsFlow()
 
 
 class KKTKolbeOptionsFlow(OptionsFlow):
     """Handle KKT Kolbe options flow."""
 
-    def __init__(self, config_entry: ConfigEntry):
+    def __init__(self):
         """Initialize options flow."""
-        # Don't store config_entry as instance variable (deprecated)
-        # Access it through self.config_entry property instead
-        self._entry_id = config_entry.entry_id
-        self._entry_data = config_entry.data
-        self._entry_options = config_entry.options
-        self._entry_title = config_entry.title
+        # No longer store config_entry manually - use self.config_entry property
+        # This property is automatically provided by the OptionsFlow parent class
+        pass
 
     async def async_step_init(
         self, user_input: Optional[Dict[str, Any]] = None
@@ -940,18 +937,18 @@ class KKTKolbeOptionsFlow(OptionsFlow):
             else:
                 errors.update(validation_errors)
 
-        # Get current settings from stored options
-        current_interval = self._entry_options.get(CONF_SCAN_INTERVAL, 30)
-        current_debug = self._entry_options.get("enable_debug_logging", False)
-        current_advanced = self._entry_options.get("enable_advanced_entities", False)
-        current_naming = self._entry_options.get("zone_naming_scheme", "zone")
-        current_local_key = self._entry_data.get(CONF_ACCESS_TOKEN, self._entry_data.get("local_key", ""))
+        # Get current settings from config_entry
+        current_interval = self.config_entry.options.get(CONF_SCAN_INTERVAL, 30)
+        current_debug = self.config_entry.options.get("enable_debug_logging", False)
+        current_advanced = self.config_entry.options.get("enable_advanced_entities", False)
+        current_naming = self.config_entry.options.get("zone_naming_scheme", "zone")
+        current_local_key = self.config_entry.data.get(CONF_ACCESS_TOKEN, self.config_entry.data.get("local_key", ""))
 
         # Get current API settings
-        current_api_enabled = self._entry_data.get("api_enabled", False)
-        current_client_id = self._entry_data.get("api_client_id", "")
-        current_client_secret = self._entry_data.get("api_client_secret", "")
-        current_endpoint = self._entry_data.get("api_endpoint", "https://openapi.tuyaeu.com")
+        current_api_enabled = self.config_entry.data.get("api_enabled", False)
+        current_client_id = self.config_entry.data.get("api_client_id", "")
+        current_client_secret = self.config_entry.data.get("api_client_secret", "")
+        current_endpoint = self.config_entry.data.get("api_endpoint", "https://openapi.tuyaeu.com")
 
         options_schema = vol.Schema({
             vol.Optional(CONF_SCAN_INTERVAL, default=current_interval): selector.selector({
@@ -1006,7 +1003,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
             data_schema=options_schema,
             errors=errors,
             description_placeholders={
-                "device_name": self._entry_title,
+                "device_name": self.config_entry.title,
                 "current_interval": current_interval
             }
         )
@@ -1024,8 +1021,8 @@ class KKTKolbeOptionsFlow(OptionsFlow):
             else:
                 # Test the new local key
                 try:
-                    device_id = self._entry_data.get(CONF_DEVICE_ID) or self._entry_data.get("device_id")
-                    ip_address = self._entry_data.get(CONF_IP_ADDRESS) or self._entry_data.get("ip_address") or self._entry_data.get("host")
+                    device_id = self.config_entry.data.get(CONF_DEVICE_ID) or self.config_entry.data.get("device_id")
+                    ip_address = self.config_entry.data.get(CONF_IP_ADDRESS) or self.config_entry.data.get("ip_address") or self.config_entry.data.get("host")
 
                     if device_id and ip_address:
                         # Lazy import to avoid blocking
@@ -1040,16 +1037,14 @@ class KKTKolbeOptionsFlow(OptionsFlow):
 
                         if await test_device.async_test_connection():
                             # Update the config entry with new local key
-                            new_data = self._entry_data.copy()
+                            new_data = self.config_entry.data.copy()
                             new_data[CONF_ACCESS_TOKEN] = new_local_key
                             new_data["local_key"] = new_local_key
 
-                            # Get config entry by ID
-                            config_entry = self.hass.config_entries.async_get_entry(self._entry_id)
-                            if config_entry:
-                                self.hass.config_entries.async_update_entry(
-                                    config_entry, data=new_data
-                                )
+                            # Update config entry directly
+                            self.hass.config_entries.async_update_entry(
+                                self.config_entry, data=new_data
+                            )
 
                             # Trigger service to update coordinator
                             await self.hass.services.async_call(
@@ -1104,19 +1099,17 @@ class KKTKolbeOptionsFlow(OptionsFlow):
                         errors["api_client_secret"] = "api_test_failed"
                     else:
                         # Update config entry with API settings
-                        device_id = self._entry_data.get(CONF_DEVICE_ID) or self._entry_data.get("device_id")
-                        config_entry = self.hass.config_entries.async_get_entry(self._entry_id)
-                        if config_entry:
-                            new_data = self._entry_data.copy()
-                            new_data["api_enabled"] = True
-                            new_data["api_client_id"] = client_id
-                            new_data["api_client_secret"] = client_secret
-                            new_data["api_endpoint"] = options.get("api_endpoint", "https://openapi.tuyaeu.com")
+                        device_id = self.config_entry.data.get(CONF_DEVICE_ID) or self.config_entry.data.get("device_id")
+                        new_data = self.config_entry.data.copy()
+                        new_data["api_enabled"] = True
+                        new_data["api_client_id"] = client_id
+                        new_data["api_client_secret"] = client_secret
+                        new_data["api_endpoint"] = options.get("api_endpoint", "https://openapi.tuyaeu.com")
 
-                            self.hass.config_entries.async_update_entry(
-                                config_entry, data=new_data
-                            )
-                            _LOGGER.info(f"API credentials updated for device {device_id}")
+                        self.hass.config_entries.async_update_entry(
+                            self.config_entry, data=new_data
+                        )
+                        _LOGGER.info(f"API credentials updated for device {device_id}")
 
                 except Exception as exc:
                     errors["api_client_secret"] = "api_test_failed"
@@ -1125,7 +1118,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
         # Test connection if requested
         if options.get("test_connection", False):
             try:
-                coordinator = self.hass.data[DOMAIN][self._entry_id]["coordinator"]
+                coordinator = self.hass.data[DOMAIN][self.config_entry.entry_id]["coordinator"]
                 await coordinator.async_refresh()
 
                 if not coordinator.last_update_success:
