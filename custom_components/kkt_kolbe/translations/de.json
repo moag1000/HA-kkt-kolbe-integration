@@ -68,7 +68,21 @@
       "unknown": "Unerwarteter Fehler"
     },
     "abort": {
-      "already_configured": "Gerät ist bereits konfiguriert"
+      "already_configured": "Gerät ist bereits konfiguriert",
+      "reauth_successful": "Erneute Authentifizierung erfolgreich",
+      "reauth_failed": "Erneute Authentifizierung fehlgeschlagen"
+    },
+    "reauth": {
+      "reauth_confirm": {
+        "title": "KKT Kolbe erneut authentifizieren",
+        "description": "Die Authentifizierung für {device_name} ist fehlgeschlagen. Bitte aktualisieren Sie Ihre Zugangsdaten.\n\nGeräte-ID: {device_id}",
+        "data": {
+          "api_client_id": "Tuya API Client ID",
+          "api_client_secret": "Tuya API Client Secret",
+          "api_endpoint": "API Endpunkt",
+          "local_key": "Local Key"
+        }
+      }
     }
   },
   "options": {

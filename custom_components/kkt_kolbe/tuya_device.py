@@ -88,7 +88,7 @@ class KKTKolbeTuyaDevice:
 
     async def _perform_connection(self) -> None:
         """Perform the actual connection logic."""
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         # LocalTuya-inspired authentication with enhanced protocol detection
         if self.version == "auto":
@@ -226,7 +226,7 @@ class KKTKolbeTuyaDevice:
             )
 
         try:
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
 
             # Explicit status() call with timeout protection
             status = await asyncio.wait_for(
@@ -293,7 +293,7 @@ class KKTKolbeTuyaDevice:
             )
 
         try:
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
 
             # Explicit status() call with timeout protection
             status = await asyncio.wait_for(
@@ -343,7 +343,7 @@ class KKTKolbeTuyaDevice:
             )
 
         try:
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
 
             # Explicit set_value() call with timeout protection
             result = await asyncio.wait_for(

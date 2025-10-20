@@ -157,6 +157,112 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             }
         )
 
+    async def async_step_reauth(self, user_input: Optional[Dict[str, Any]] = None) -> FlowResult:
+        """Handle reauthentication for API credentials."""
+        self._reauth_entry = self.hass.config_entries.async_get_entry(
+            self.context["entry_id"]
+        )
+
+        if not self._reauth_entry:
+            return self.async_abort(reason="reauth_failed")
+
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: Optional[Dict[str, Any]] = None
+    ) -> FlowResult:
+        """Handle reauthentication confirmation."""
+        errors: Dict[str, str] = {}
+
+        if user_input is not None:
+            # Check if we're updating API credentials
+            if "api_client_id" in user_input and "api_client_secret" in user_input:
+                # Test API connection
+                from .api import TuyaCloudClient
+                from .api.api_exceptions import TuyaAuthenticationError
+
+                try:
+                    session = async_get_clientsession(self.hass)
+                    client = TuyaCloudClient(
+                        client_id=user_input["api_client_id"],
+                        client_secret=user_input["api_client_secret"],
+                        endpoint=user_input.get("api_endpoint", "https://openapi.tuyaeu.com"),
+                        session=session
+                    )
+
+                    async with client:
+                        if await client.test_connection():
+                            # Update config entry with new API credentials
+                            self.hass.config_entries.async_update_entry(
+                                self._reauth_entry,
+                                data={
+                                    **self._reauth_entry.data,
+                                    "api_client_id": user_input["api_client_id"],
+                                    "api_client_secret": user_input["api_client_secret"],
+                                    "api_endpoint": user_input.get("api_endpoint", "https://openapi.tuyaeu.com"),
+                                    "api_enabled": True,
+                                }
+                            )
+                            await self.hass.config_entries.async_reload(self._reauth_entry.entry_id)
+                            return self.async_abort(reason="reauth_successful")
+                        else:
+                            errors["base"] = "invalid_auth"
+
+                except TuyaAuthenticationError:
+                    errors["base"] = "invalid_auth"
+                except Exception as exc:
+                    _LOGGER.error("Unexpected error during reauthentication: %s", exc)
+                    errors["base"] = "unknown"
+
+            # Check if we're updating local key
+            elif "local_key" in user_input:
+                # Test local connection
+                if await self._test_device_connection(
+                    self._reauth_entry.data.get("ip_address"),
+                    self._reauth_entry.data.get("device_id"),
+                    user_input["local_key"]
+                ):
+                    # Update config entry with new local key
+                    self.hass.config_entries.async_update_entry(
+                        self._reauth_entry,
+                        data={
+                            **self._reauth_entry.data,
+                            "local_key": user_input["local_key"],
+                        }
+                    )
+                    await self.hass.config_entries.async_reload(self._reauth_entry.entry_id)
+                    return self.async_abort(reason="reauth_successful")
+                else:
+                    errors["base"] = "cannot_connect"
+
+        # Determine what needs reauthentication
+        is_api_mode = self._reauth_entry.data.get("api_enabled", False)
+
+        if is_api_mode:
+            # API credentials reauth
+            reauth_schema = vol.Schema({
+                vol.Required("api_client_id", default=self._reauth_entry.data.get("api_client_id", "")): str,
+                vol.Required("api_client_secret"): str,
+                vol.Optional("api_endpoint", default=self._reauth_entry.data.get("api_endpoint", "https://openapi.tuyaeu.com")): str,
+            })
+            description_key = "reauth_api"
+        else:
+            # Local key reauth
+            reauth_schema = vol.Schema({
+                vol.Required("local_key"): str,
+            })
+            description_key = "reauth_local"
+
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=reauth_schema,
+            errors=errors,
+            description_placeholders={
+                "device_name": self._reauth_entry.title,
+                "device_id": self._reauth_entry.data.get("device_id", "Unknown"),
+            }
+        )
+
     async def async_step_discovery(
         self, user_input: Optional[Dict[str, Any]] = None
     ) -> FlowResult:
@@ -481,7 +587,12 @@ class KKTKolbeOptionsFlow(OptionsFlow):
 
     def __init__(self, config_entry: ConfigEntry):
         """Initialize options flow."""
-        self.config_entry = config_entry
+        # Don't store config_entry as instance variable (deprecated)
+        # Access it through self.config_entry property instead
+        self._entry_id = config_entry.entry_id
+        self._entry_data = config_entry.data
+        self._entry_options = config_entry.options
+        self._entry_title = config_entry.title
 
     async def async_step_init(
         self, user_input: Optional[Dict[str, Any]] = None
@@ -497,11 +608,11 @@ class KKTKolbeOptionsFlow(OptionsFlow):
             else:
                 errors.update(validation_errors)
 
-        # Get current settings
-        current_interval = self.config_entry.options.get(CONF_SCAN_INTERVAL, 30)
-        current_debug = self.config_entry.options.get("enable_debug_logging", False)
-        current_advanced = self.config_entry.options.get("enable_advanced_entities", False)
-        current_naming = self.config_entry.options.get("zone_naming_scheme", "zone")
+        # Get current settings from stored options
+        current_interval = self._entry_options.get(CONF_SCAN_INTERVAL, 30)
+        current_debug = self._entry_options.get("enable_debug_logging", False)
+        current_advanced = self._entry_options.get("enable_advanced_entities", False)
+        current_naming = self._entry_options.get("zone_naming_scheme", "zone")
 
         options_schema = vol.Schema({
             vol.Optional(CONF_SCAN_INTERVAL, default=current_interval): selector.selector({
@@ -531,7 +642,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
             data_schema=options_schema,
             errors=errors,
             description_placeholders={
-                "device_name": self.config_entry.title,
+                "device_name": self._entry_title,
                 "current_interval": current_interval
             }
         )
@@ -543,14 +654,14 @@ class KKTKolbeOptionsFlow(OptionsFlow):
         # Test connection if requested
         if options.get("test_connection", False):
             try:
-                coordinator = self.hass.data[DOMAIN][self.config_entry.entry_id]["coordinator"]
+                coordinator = self.hass.data[DOMAIN][self._entry_id]["coordinator"]
                 await coordinator.async_refresh()
 
                 if not coordinator.last_update_success:
                     errors["base"] = "connection_test_failed"
 
             except Exception as exc:
-                _LOGGER.debug("Connection test failed: %s", exc)
                 errors["base"] = "connection_test_failed"
+                _LOGGER.debug("Connection test failed: %s", exc)
 
         return errors
