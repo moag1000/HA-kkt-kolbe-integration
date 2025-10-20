@@ -94,7 +94,7 @@ class TuyaUDPDiscovery(asyncio.DatagramProtocol):
                             formatted_device = {
                                 "device_id": device_id,
                                 "ip": device_info.get("ip"),  # Use consistent "ip" key
-                                "name": f"KKT Device {device_id[:8]}...",
+                                "name": f"KKT Device {device_id}",
                                 "discovered_via": "UDP",
                                 "product_name": product_name,
                                 "device_type": "auto"
@@ -295,7 +295,7 @@ class KKTKolbeDiscovery(ServiceListener):
                     "device_id": device_id,
                     "gwId": device_id,  # Keep gwId for zeroconf discovery
                     "ip": device_info.get("ip"),  # Use consistent "ip" key
-                    "name": f"KKT Device {device_id[:8]}...",
+                    "name": f"KKT Device {device_id}",
                     "discovered_via": "UDP",
                     "product_name": product_name,
                     "device_type": "auto"
