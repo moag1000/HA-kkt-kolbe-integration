@@ -2,19 +2,22 @@
 
 <div align="center">
   <img src="./icon.png" alt="KKT Kolbe Logo" width="128" height="128">
+
+  ## 🎯 v2.0.0-beta.1 - TinyTuya API & Enhanced Stability
 </div>
 
 [![GitHub Release][releases-shield]][releases]
 [![GitHub Activity][commits-shield]][commits]
 [![License][license-shield]][license-url]
 [![hacs][hacsbadge]][hacs]
+[![Beta][betabadge]][beta-release]
 
 [![Project Maintenance][maintenance-shield]][user_profile]
 [![BuyMeCoffee][buymecoffeebadge]][buymecoffee]
 
 **Vollständige Home Assistant Integration für KKT Kolbe Küchengeräte**
 
-Unterstützt Dunstabzugshauben und Induktionskochfelder über Tuya Local Protocol.
+Unterstützt Dunstabzugshauben und Induktionskochfelder über Tuya Local Protocol mit Cloud API Fallback.
 
 ## 🚀 Unterstützte Geräte
 
@@ -53,22 +56,25 @@ Unterstützt Dunstabzugshauben und Induktionskochfelder über Tuya Local Protoco
 
 ## ✨ Integration Features
 
-### 🔧 **v1.7.9: State Caching & Entity Consistency**
+### 🚀 **v2.0.0-beta.1: TinyTuya API & Enhanced Stability**
 
-#### **State Caching System** 🆕
-- **Intelligente Wertspeicherung**: Entities behalten letzte bekannte Werte
-- **Keine "unknown" States**: Stabile Anzeige auch bei temporären Verbindungsunterbrechungen
-- **Optimierte Performance**: Reduzierte Netzwerklast durch smartes Caching
+#### **TinyTuya Cloud API Integration** 🆕
+- **Hybrid Communication**: Nahtloser Wechsel zwischen Local und Cloud
+- **API Discovery**: Automatische Geräteerkennung über Tuya Cloud
+- **Shadow Properties**: Echtzeit-Synchronisation mit Cloud-Status
+- **Dynamic Configuration**: Auto-Konfiguration basierend auf API-Metadaten
 
-#### **Konsistente Entity-Konfiguration** 🆕
-- **Alle Geräte standardisiert**: Einheitliche Light Switch und Control Patterns
-- **Korrekte Data Point Mapping**: Basierend auf offiziellen Tuya Data Models
-- **Verbesserte UI**: Proper Device Classes und Icons für alle Entities
+#### **Erweiterte Wiederverbindung** 🆕
+- **Auto-Reconnect mit Backoff**: Intelligente Wiederverbindung (5s → 5min)
+- **Device State Tracking**: ONLINE, OFFLINE, RECONNECTING, UNREACHABLE
+- **Health Monitoring**: Periodische Gesundheitschecks alle 5 Minuten
+- **Manual Recovery**: Services für manuelle Wiederverbindung
 
-#### **Enhanced Config Flow** 🆕
-- **Vollständige Device IDs**: Für einfache Tuya Local Key Extraktion
-- **Gerätespezifische Optionen**: Erweiterte Entities nur für Induktionskochfeld
-- **Verbesserte Darstellung**: Korrekte Zeilenumbrüche in Beschreibungen
+#### **Verbesserte Authentifizierung** 🆕
+- **Reauth Flow**: Automatische Neuauthentifizierung bei Ablauf
+- **Local Key Update Service**: Einfache Key-Aktualisierung nach Reset
+- **API Credential Management**: Sichere Token-Speicherung und -Refresh
+- **Multiple Auth Methods**: Local-only, API-only, oder Hybrid-Modus
 
 ### 🏠 **Bewährte Integration Features**
 
@@ -191,7 +197,14 @@ logger:
 
 ## 📝 Changelog
 
-### v1.7.9 (Latest)
+### v2.0.0-beta.1 (Current Beta)
+- 🌐 TinyTuya Cloud API Integration
+- 🔄 Enhanced Reconnection System
+- 🔑 Improved Authentication Flow
+- 🛠️ New Device Management Services
+- ✅ Home Assistant 2025.12 Compatibility
+
+### v1.7.10 (Latest Stable)
 - ✅ **State Caching System**: Keine "unknown" States mehr
 - ✅ **Entity Consistency**: Alle Geräte standardisiert
 - ✅ **Config Flow Improvements**: Vollständige Device IDs, bessere UI
@@ -221,7 +234,9 @@ MIT License - siehe [LICENSE](./LICENSE) für Details.
 
 **Made with ❤️ and 🤖 by [@moag1000](https://github.com/moag1000) & Claude Code**
 
-[releases-shield]: https://img.shields.io/github/release/moag1000/HA-kkt-kolbe-integration.svg?style=for-the-badge
+[releases-shield]: https://img.shields.io/badge/release-v2.0.0--beta.1-blue.svg?style=for-the-badge
+[betabadge]: https://img.shields.io/badge/status-BETA-yellow.svg?style=for-the-badge
+[beta-release]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v2.0.0-beta.1
 [releases]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases
 [commits-shield]: https://img.shields.io/github/commit-activity/y/moag1000/HA-kkt-kolbe-integration.svg?style=for-the-badge
 [commits]: https://github.com/moag1000/HA-kkt-kolbe-integration/commits/main

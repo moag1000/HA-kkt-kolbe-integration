@@ -117,7 +117,7 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
 
             return {
                 "source": "local",
-                "timestamp": asyncio.get_event_loop().time(),
+                "timestamp": asyncio.get_running_loop().time(),
                 "dps": status,
                 "available": True,
             }
@@ -155,7 +155,7 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
 
             return {
                 "source": "api",
-                "timestamp": asyncio.get_event_loop().time(),
+                "timestamp": asyncio.get_running_loop().time(),
                 "dps": dps,
                 "available": True,
                 "raw_api_status": status_list,

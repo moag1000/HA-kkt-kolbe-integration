@@ -68,7 +68,21 @@
       "unknown": "Unexpected error"
     },
     "abort": {
-      "already_configured": "Device is already configured"
+      "already_configured": "Device is already configured",
+      "reauth_successful": "Re-authentication was successful",
+      "reauth_failed": "Re-authentication failed"
+    },
+    "reauth": {
+      "reauth_confirm": {
+        "title": "Re-authenticate KKT Kolbe",
+        "description": "The authentication for {device_name} failed. Please update your credentials.\n\nDevice ID: {device_id}",
+        "data": {
+          "api_client_id": "Tuya API Client ID",
+          "api_client_secret": "Tuya API Client Secret",
+          "api_endpoint": "API Endpoint",
+          "local_key": "Local Key"
+        }
+      }
     }
   },
   "options": {

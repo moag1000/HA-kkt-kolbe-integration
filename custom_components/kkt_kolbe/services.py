@@ -32,10 +32,232 @@ SERVICE_SET_HOOD_FAN_SPEED = "set_hood_fan_speed"
 SERVICE_SET_HOOD_LIGHTING = "set_hood_lighting"
 SERVICE_EMERGENCY_STOP = "emergency_stop"
 SERVICE_RESET_FILTER_TIMER = "reset_filter_timer"
+SERVICE_RECONNECT_DEVICE = "reconnect_device"
+SERVICE_UPDATE_LOCAL_KEY = "update_local_key"
+SERVICE_GET_CONNECTION_STATUS = "get_connection_status"
 
 
 async def async_setup_services(hass: HomeAssistant) -> None:
     """Set up services for KKT Kolbe integration."""
+
+    async def handle_reconnect_device(service: ServiceCall) -> None:
+        """Handle reconnect device service."""
+        device_id = service.data.get("device_id")
+        entry_id = service.data.get("entry_id")
+
+        # Find the coordinator(s) to reconnect
+        coordinators = _get_coordinators(hass, device_id, entry_id)
+
+        if not coordinators:
+            raise ServiceValidationError("No matching devices found")
+
+        results = {}
+        for coord_entry_id, coordinator in coordinators:
+            try:
+                # Use ReconnectCoordinator if available
+                if hasattr(coordinator, 'async_request_reconnect'):
+                    success = await coordinator.async_request_reconnect()
+                    results[coord_entry_id] = {
+                        "success": success,
+                        "state": coordinator.device_state.value if hasattr(coordinator, 'device_state') else "unknown"
+                    }
+                else:
+                    # Fallback for standard coordinator
+                    await coordinator.device.async_disconnect()
+                    await coordinator.device.async_connect()
+                    await coordinator.async_request_refresh()
+                    results[coord_entry_id] = {
+                        "success": coordinator.device.is_connected,
+                        "state": "online" if coordinator.device.is_connected else "offline"
+                    }
+
+                _LOGGER.info(f"Reconnected device {coordinator.device.device_id[:8]}: {results[coord_entry_id]}")
+
+            except Exception as err:
+                _LOGGER.error(f"Failed to reconnect device: {err}")
+                results[coord_entry_id] = {"error": str(err)}
+
+        # Fire event with results
+        hass.bus.async_fire(
+            f"{DOMAIN}_reconnect_complete",
+            {"results": results}
+        )
+
+    async def handle_update_local_key(service: ServiceCall) -> None:
+        """Handle update local key service with enhanced reconnection."""
+        local_key = service.data["local_key"]
+        device_id = service.data.get("device_id")
+        entry_id = service.data.get("entry_id")
+        force_reconnect = service.data.get("force_reconnect", True)
+
+        # Find the coordinator(s) to update
+        coordinators = _get_coordinators(hass, device_id, entry_id)
+
+        if not coordinators:
+            raise ServiceValidationError("No matching devices found")
+
+        results = {}
+        for coord_entry_id, coordinator in coordinators:
+            try:
+                entry = hass.config_entries.async_get_entry(coord_entry_id)
+                if not entry:
+                    raise ServiceValidationError(f"Config entry {coord_entry_id} not found")
+
+                device_id = entry.data.get("device_id")
+                ip_address = entry.data.get("ip_address")
+
+                # Log current connection state
+                _LOGGER.info(
+                    f"Updating local key for device {device_id[:8]} "
+                    f"(currently {'connected' if coordinator.device.is_connected else 'disconnected'})"
+                )
+
+                # First, disconnect the current device if connected
+                if coordinator.device.is_connected:
+                    _LOGGER.debug("Disconnecting current device connection")
+                    await coordinator.device.async_disconnect()
+                    await asyncio.sleep(1)  # Give it time to fully disconnect
+
+                # Test new local key with fresh device instance
+                from .tuya_device import KKTKolbeTuyaDevice
+                test_device = KKTKolbeTuyaDevice(device_id, ip_address, local_key)
+
+                _LOGGER.debug(f"Testing new local key for device {device_id[:8]}")
+                connection_test = await test_device.async_test_connection()
+
+                if connection_test:
+                    _LOGGER.info(f"New local key validated for device {device_id[:8]}")
+
+                    # Update config entry with new local key
+                    hass.config_entries.async_update_entry(
+                        entry,
+                        data={**entry.data, "local_key": local_key}
+                    )
+
+                    # Update the coordinator's device with new key
+                    coordinator.device.local_key = local_key
+
+                    if force_reconnect:
+                        # Force immediate reconnection with new key
+                        _LOGGER.info(f"Forcing reconnection for device {device_id[:8]}")
+
+                        # If coordinator has reconnect capability, use it
+                        if hasattr(coordinator, 'async_request_reconnect'):
+                            await coordinator.async_request_reconnect()
+                        else:
+                            # Manual reconnection
+                            try:
+                                await coordinator.device.async_connect()
+                                await coordinator.async_request_refresh()
+                            except Exception as reconnect_err:
+                                _LOGGER.warning(f"Reconnection attempt failed: {reconnect_err}")
+
+                    # Optionally reload the entire integration for clean state
+                    if service.data.get("reload_integration", False):
+                        _LOGGER.info(f"Reloading integration for device {device_id[:8]}")
+                        await hass.config_entries.async_reload(coord_entry_id)
+
+                    results[coord_entry_id] = {
+                        "success": True,
+                        "device_id": device_id,
+                        "message": "Local key updated and device reconnected successfully",
+                        "reconnected": coordinator.device.is_connected
+                    }
+
+                    _LOGGER.info(
+                        f"Successfully updated local key for device {device_id[:8]}. "
+                        f"Connection status: {coordinator.device.is_connected}"
+                    )
+                else:
+                    _LOGGER.error(f"Failed to validate new local key for device {device_id[:8]}")
+
+                    # Try to reconnect with old key if available
+                    old_key = entry.data.get("local_key")
+                    if old_key and old_key != local_key:
+                        _LOGGER.info("Attempting to restore connection with old key")
+                        coordinator.device.local_key = old_key
+                        try:
+                            await coordinator.device.async_connect()
+                        except Exception:
+                            pass
+
+                    results[coord_entry_id] = {
+                        "success": False,
+                        "device_id": device_id,
+                        "error": "Invalid local key - connection test failed. Device may need to be reset in Tuya app."
+                    }
+
+            except Exception as err:
+                _LOGGER.error(f"Failed to update local key: {err}")
+                results[coord_entry_id] = {
+                    "success": False,
+                    "error": str(err)
+                }
+
+        # Fire event with results
+        hass.bus.async_fire(
+            f"{DOMAIN}_local_key_updated",
+            {"results": results}
+        )
+
+    async def handle_get_connection_status(service: ServiceCall) -> None:
+        """Handle get connection status service."""
+        device_id = service.data.get("device_id")
+        entry_id = service.data.get("entry_id")
+
+        # Get all coordinators if no filter specified
+        coordinators = _get_coordinators(hass, device_id, entry_id)
+
+        statuses = {}
+        for coord_entry_id, coordinator in coordinators:
+            try:
+                # Get connection info based on coordinator type
+                if hasattr(coordinator, 'connection_info'):
+                    # ReconnectCoordinator
+                    statuses[coord_entry_id] = coordinator.connection_info
+                else:
+                    # Standard coordinator
+                    statuses[coord_entry_id] = {
+                        "state": "online" if coordinator.device.is_connected else "offline",
+                        "last_update": coordinator.last_update_success_time if hasattr(coordinator, 'last_update_success_time') else None,
+                        "is_connected": coordinator.device.is_connected,
+                        "device_id": coordinator.device.device_id,
+                        "ip_address": coordinator.device.ip_address,
+                    }
+
+            except Exception as err:
+                _LOGGER.error(f"Failed to get status: {err}")
+                statuses[coord_entry_id] = {"error": str(err)}
+
+        # Fire event with statuses
+        hass.bus.async_fire(
+            f"{DOMAIN}_connection_status",
+            {"statuses": statuses}
+        )
+
+        return statuses
+
+    def _get_coordinators(hass: HomeAssistant, device_id: str = None, entry_id: str = None):
+        """Get coordinators matching the criteria."""
+        coordinators = []
+
+        for coord_entry_id, entry_data in hass.data.get(DOMAIN, {}).items():
+            if "coordinator" not in entry_data:
+                continue
+
+            # Filter by entry_id if specified
+            if entry_id and coord_entry_id != entry_id:
+                continue
+
+            coordinator = entry_data["coordinator"]
+
+            # Filter by device_id if specified
+            if device_id and coordinator.device.device_id != device_id:
+                continue
+
+            coordinators.append((coord_entry_id, coordinator))
+
+        return coordinators
 
     @callback
     def validate_entity_id(entity_id: str, required_domain: str = None) -> None:
@@ -418,6 +640,15 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     hass.services.async_register(
         DOMAIN, SERVICE_RESET_FILTER_TIMER, async_reset_filter_timer
     )
+    hass.services.async_register(
+        DOMAIN, SERVICE_RECONNECT_DEVICE, handle_reconnect_device
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_UPDATE_LOCAL_KEY, handle_update_local_key
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_GET_CONNECTION_STATUS, handle_get_connection_status
+    )
 
     _LOGGER.info("KKT Kolbe services registered successfully")
 
@@ -433,6 +664,9 @@ async def async_unload_services(hass: HomeAssistant) -> None:
         SERVICE_SET_HOOD_LIGHTING,
         SERVICE_EMERGENCY_STOP,
         SERVICE_RESET_FILTER_TIMER,
+        SERVICE_RECONNECT_DEVICE,
+        SERVICE_UPDATE_LOCAL_KEY,
+        SERVICE_GET_CONNECTION_STATUS,
     ]
 
     for service in services_to_remove:

@@ -1,3 +1,83 @@
+# Reconnection and Maintenance Services
+reconnect_device:
+  name: Reconnect Device
+  description: Manually reconnect an offline KKT Kolbe device
+  fields:
+    device_id:
+      name: Device ID
+      description: The Tuya device ID (optional if entry_id provided)
+      example: "bf1234567890abcdef"
+      required: false
+      selector:
+        text:
+    entry_id:
+      name: Config Entry ID
+      description: The config entry ID (optional if device_id provided)
+      example: "1234567890abcdef"
+      required: false
+      selector:
+        text:
+
+update_local_key:
+  name: Update Local Key
+  description: Update the local key for a KKT Kolbe device when it has been reset or changed in Tuya app
+  fields:
+    local_key:
+      name: New Local Key
+      description: The new local key from Tuya/Smart Life app
+      example: "1234567890abcdef"
+      required: true
+      selector:
+        text:
+    device_id:
+      name: Device ID
+      description: The Tuya device ID (optional if entry_id provided)
+      example: "bf1234567890abcdef"
+      required: false
+      selector:
+        text:
+    entry_id:
+      name: Config Entry ID
+      description: The config entry ID (optional if device_id provided)
+      example: "1234567890abcdef"
+      required: false
+      selector:
+        text:
+    force_reconnect:
+      name: Force Reconnection
+      description: Force immediate reconnection after key update
+      default: true
+      required: false
+      selector:
+        boolean:
+    reload_integration:
+      name: Reload Integration
+      description: Reload the entire integration for a clean state (slower but more reliable)
+      default: false
+      required: false
+      selector:
+        boolean:
+
+get_connection_status:
+  name: Get Connection Status
+  description: Get the current connection status of KKT Kolbe devices
+  fields:
+    device_id:
+      name: Device ID
+      description: The Tuya device ID (optional, returns all if not specified)
+      example: "bf1234567890abcdef"
+      required: false
+      selector:
+        text:
+    entry_id:
+      name: Config Entry ID
+      description: The config entry ID (optional, returns all if not specified)
+      example: "1234567890abcdef"
+      required: false
+      selector:
+        text:
+
+# Device Control Services
 set_cooking_timer:
   name: Set Cooking Timer
   description: Set a cooking timer for a specific cooktop zone
