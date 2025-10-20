@@ -15,7 +15,6 @@ from .device_types import get_device_entities, get_device_entity_config
 
 _LOGGER = logging.getLogger(__name__)
 
-PARALLEL_UPDATES = 0
 
 # Default fan speed mapping for KKT Kolbe hoods
 DEFAULT_SPEED_LIST = ["off", "low", "middle", "high", "strong"]

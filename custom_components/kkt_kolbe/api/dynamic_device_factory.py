@@ -237,7 +237,7 @@ class DynamicDeviceFactory:
         _LOGGER.debug(f"Mapped {len(data_points)} data points for device")
         return data_points
 
-    def get_device_types_config(self, device_config: DeviceConfig) -> Dict:
+    async def get_device_types_config(self, device_config: DeviceConfig) -> Dict:
         """Generate device_types.py compatible configuration."""
         config = {
             f"{device_config.model_id}_{device_config.device_type}": {

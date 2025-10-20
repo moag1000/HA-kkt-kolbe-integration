@@ -11,7 +11,6 @@ from .device_types import get_device_entities
 
 _LOGGER = logging.getLogger(__name__)
 
-PARALLEL_UPDATES = 0
 
 async def async_setup_entry(
     hass: HomeAssistant,
