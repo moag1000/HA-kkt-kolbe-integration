@@ -26,7 +26,7 @@ STEP_USER_DATA_SCHEMA = vol.Schema({
         "select": {
             "options": [
                 {"value": "discovery", "label": "🔍 Automatic Discovery (Local Network)"},
-                {"value": "manual_local", "label": "🔧 Manual Local Setup (IP + Local Key)"},
+                {"value": "manual", "label": "🔧 Manual Local Setup (IP + Local Key)"},
                 {"value": "api_only", "label": "☁️ API-Only Setup (TinyTuya Cloud)"}
             ],
             "mode": "dropdown",
@@ -168,7 +168,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
 
             if setup_method == "discovery":
                 return await self.async_step_discovery()
-            elif setup_method == "manual_local":
+            elif setup_method == "manual":
                 return await self.async_step_manual()
             elif setup_method == "api_only":
                 return await self.async_step_api_only()
