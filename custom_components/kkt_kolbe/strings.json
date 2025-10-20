@@ -3,9 +3,9 @@
     "step": {
       "user": {
         "title": "KKT Kolbe Integration Setup",
-        "description": "Choose your integration mode for KKT Kolbe devices.",
+        "description": "Choose your setup method for KKT Kolbe devices.",
         "data": {
-          "integration_mode": "Integration Mode"
+          "setup_method": "Setup Method"
         },
         "data_description": {
           "integration_mode": "Select how you want to configure your KKT Kolbe device",
