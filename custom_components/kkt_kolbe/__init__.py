@@ -104,16 +104,52 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         raise ValueError("No valid communication method configured")
 
     # Test connection to validate credentials early
+    # For hybrid/API mode, allow setup even if local connection fails initially
+    connection_successful = False
+    local_connection_failed = False
+
     try:
         if device:
-            await device.async_connect()
-        if api_client:
-            await api_client.test_connection()
+            try:
+                await device.async_connect()
+                connection_successful = True
+                _LOGGER.info("Local device connection successful during setup")
+            except Exception as e:
+                local_connection_failed = True
+                _LOGGER.warning(f"Local device connection failed during setup: {e}")
 
-        # Perform initial data fetch
-        await coordinator.async_config_entry_first_refresh()
+                # Only raise if this is manual mode (requires local connection)
+                if integration_mode == "manual":
+                    _LOGGER.error("Manual mode requires working local connection")
+                    raise
+
+        if api_client:
+            try:
+                await api_client.test_connection()
+                connection_successful = True
+                _LOGGER.info("API connection successful during setup")
+            except Exception as e:
+                _LOGGER.warning(f"API connection failed during setup: {e}")
+
+                # Only raise if this is API-only mode and local also failed
+                if integration_mode == "api_discovery" and local_connection_failed:
+                    _LOGGER.error("API mode requires working API connection")
+                    raise
+
+        # Perform initial data fetch if at least one connection method works
+        if connection_successful or integration_mode in ["hybrid", "api_discovery"]:
+            try:
+                await coordinator.async_config_entry_first_refresh()
+                _LOGGER.info("Initial data fetch successful")
+            except Exception as e:
+                _LOGGER.warning(f"Initial data fetch failed, coordinator will retry: {e}")
+                # Don't raise here - let coordinator handle retries
+        else:
+            _LOGGER.error("No working connection methods available")
+            raise ValueError("No working connection methods configured")
+
     except Exception as e:
-        _LOGGER.error(f"Failed to connect to device during setup: {e}")
+        _LOGGER.error(f"Critical error during setup: {e}")
         raise
 
     # Determine device type and platforms based on product name

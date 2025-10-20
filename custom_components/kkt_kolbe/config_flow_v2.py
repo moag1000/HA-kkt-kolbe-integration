@@ -107,7 +107,7 @@ class KKTKolbeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 }
 
                 return self.async_create_entry(
-                    title=f"KKT Kolbe Device {device_id[:8]}",
+                    title=f"KKT Kolbe Device {device_id}",
                     data=config_data,
                 )
 

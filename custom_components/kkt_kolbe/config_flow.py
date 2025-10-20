@@ -60,7 +60,7 @@ def _get_device_selection_schema(discovered_devices: Dict[str, Dict[str, Any]]):
     device_options = []
     for device_id, device in discovered_devices.items():
         product_name = device.get("product_name", "Unknown Device")
-        device_name = device.get("name", device_id[:8])
+        device_name = device.get("name", device_id)
         # Try both possible IP keys from discovery
         ip_address = device.get("ip") or device.get("host") or "Unknown IP"
 
@@ -613,6 +613,13 @@ class KKTKolbeOptionsFlow(OptionsFlow):
         current_debug = self._entry_options.get("enable_debug_logging", False)
         current_advanced = self._entry_options.get("enable_advanced_entities", False)
         current_naming = self._entry_options.get("zone_naming_scheme", "zone")
+        current_local_key = self._entry_data.get(CONF_ACCESS_TOKEN, self._entry_data.get("local_key", ""))
+
+        # Get current API settings
+        current_api_enabled = self._entry_data.get("api_enabled", False)
+        current_client_id = self._entry_data.get("api_client_id", "")
+        current_client_secret = self._entry_data.get("api_client_secret", "")
+        current_endpoint = self._entry_data.get("api_endpoint", "https://openapi.tuyaeu.com")
 
         options_schema = vol.Schema({
             vol.Optional(CONF_SCAN_INTERVAL, default=current_interval): selector.selector({
@@ -620,6 +627,31 @@ class KKTKolbeOptionsFlow(OptionsFlow):
                     "min": 10, "max": 300, "step": 5,
                     "unit_of_measurement": "seconds",
                     "mode": "slider"
+                }
+            }),
+            vol.Optional("new_local_key", default=""): selector.selector({
+                "text": {
+                    "type": "password"
+                }
+            }),
+            vol.Optional("api_enabled", default=current_api_enabled): bool,
+            vol.Optional("api_client_id", default=current_client_id): selector.selector({
+                "text": {}
+            }),
+            vol.Optional("api_client_secret", default=""): selector.selector({
+                "text": {
+                    "type": "password"
+                }
+            }),
+            vol.Optional("api_endpoint", default=current_endpoint): selector.selector({
+                "select": {
+                    "options": [
+                        {"value": "https://openapi.tuyaeu.com", "label": "Europe (EU)"},
+                        {"value": "https://openapi.tuyaus.com", "label": "United States (US)"},
+                        {"value": "https://openapi.tuyacn.com", "label": "China (CN)"},
+                        {"value": "https://openapi.tuyain.com", "label": "India (IN)"}
+                    ],
+                    "mode": "dropdown"
                 }
             }),
             vol.Optional("enable_debug_logging", default=current_debug): bool,
@@ -650,6 +682,113 @@ class KKTKolbeOptionsFlow(OptionsFlow):
     async def _validate_options(self, options: Dict[str, Any]) -> Dict[str, str]:
         """Validate options."""
         errors = {}
+
+        # Handle new local key update
+        new_local_key = options.get("new_local_key", "").strip()
+        if new_local_key:
+            # Validate local key format (16 characters, alphanumeric + special chars)
+            if len(new_local_key) != 16:
+                errors["new_local_key"] = "invalid_local_key_length"
+            else:
+                # Test the new local key
+                try:
+                    device_id = self._entry_data.get(CONF_DEVICE_ID) or self._entry_data.get("device_id")
+                    ip_address = self._entry_data.get(CONF_IP_ADDRESS) or self._entry_data.get("ip_address") or self._entry_data.get("host")
+
+                    if device_id and ip_address:
+                        # Lazy import to avoid blocking
+                        from .tuya_device import KKTKolbeTuyaDevice
+
+                        # Test new local key with temporary device instance
+                        test_device = KKTKolbeTuyaDevice(
+                            device_id=device_id,
+                            ip_address=ip_address,
+                            local_key=new_local_key,
+                        )
+
+                        if await test_device.async_test_connection():
+                            # Update the config entry with new local key
+                            new_data = self._entry_data.copy()
+                            new_data[CONF_ACCESS_TOKEN] = new_local_key
+                            new_data["local_key"] = new_local_key
+
+                            # Get config entry by ID
+                            config_entry = self.hass.config_entries.async_get_entry(self._entry_id)
+                            if config_entry:
+                                self.hass.config_entries.async_update_entry(
+                                    config_entry, data=new_data
+                                )
+
+                            # Trigger service to update coordinator
+                            await self.hass.services.async_call(
+                                DOMAIN,
+                                "update_local_key",
+                                {
+                                    "device_id": device_id,
+                                    "local_key": new_local_key,
+                                    "force_reconnect": True
+                                }
+                            )
+
+                            _LOGGER.info(f"Local key successfully updated for device {device_id}")
+                        else:
+                            errors["new_local_key"] = "local_key_test_failed"
+                    else:
+                        errors["new_local_key"] = "missing_device_info"
+
+                except Exception as exc:
+                    errors["new_local_key"] = "local_key_test_failed"
+                    _LOGGER.error(f"Local key test failed: {exc}")
+
+        # Handle API settings update
+        api_enabled = options.get("api_enabled", False)
+        if api_enabled:
+            client_id = options.get("api_client_id", "").strip()
+            client_secret = options.get("api_client_secret", "").strip()
+
+            if not client_id:
+                errors["api_client_id"] = "api_client_id_required"
+            elif len(client_id) < 10:
+                errors["api_client_id"] = "api_client_id_invalid"
+
+            if not client_secret:
+                errors["api_client_secret"] = "api_client_secret_required"
+            elif len(client_secret) < 20:
+                errors["api_client_secret"] = "api_client_secret_invalid"
+
+            # If API credentials are provided, test them
+            if client_id and client_secret and not errors:
+                try:
+                    from .api import TuyaCloudClient
+
+                    api_client = TuyaCloudClient(
+                        client_id=client_id,
+                        client_secret=client_secret,
+                        endpoint=options.get("api_endpoint", "https://openapi.tuyaeu.com")
+                    )
+
+                    # Test API connection
+                    if not await api_client.test_connection():
+                        errors["api_client_secret"] = "api_test_failed"
+                    else:
+                        # Update config entry with API settings
+                        device_id = self._entry_data.get(CONF_DEVICE_ID) or self._entry_data.get("device_id")
+                        config_entry = self.hass.config_entries.async_get_entry(self._entry_id)
+                        if config_entry:
+                            new_data = self._entry_data.copy()
+                            new_data["api_enabled"] = True
+                            new_data["api_client_id"] = client_id
+                            new_data["api_client_secret"] = client_secret
+                            new_data["api_endpoint"] = options.get("api_endpoint", "https://openapi.tuyaeu.com")
+
+                            self.hass.config_entries.async_update_entry(
+                                config_entry, data=new_data
+                            )
+                            _LOGGER.info(f"API credentials updated for device {device_id}")
+
+                except Exception as exc:
+                    errors["api_client_secret"] = "api_test_failed"
+                    _LOGGER.error(f"API test failed: {exc}")
 
         # Test connection if requested
         if options.get("test_connection", False):
