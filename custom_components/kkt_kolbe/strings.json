@@ -8,7 +8,10 @@
           "integration_mode": "Integration Mode"
         },
         "data_description": {
-          "integration_mode": "Select how you want to configure your KKT Kolbe device"
+          "integration_mode": "Select how you want to configure your KKT Kolbe device",
+          "connection_method": "Choose connection method for device setup",
+          "device_type": "Select your KKT Kolbe device type",
+          "zone_naming": "Configure zone naming for multi-zone devices"
         }
       },
       "manual_config": {

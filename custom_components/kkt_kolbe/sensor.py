@@ -17,7 +17,6 @@ from .bitfield_utils import get_zone_value_from_coordinator, BITFIELD_CONFIG
 
 _LOGGER = logging.getLogger(__name__)
 
-PARALLEL_UPDATES = 0
 
 async def async_setup_entry(
     hass: HomeAssistant,
