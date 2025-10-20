@@ -11,12 +11,7 @@ from homeassistant.const import (
 )
 
 from .const import DOMAIN
-from .tuya_device import KKTKolbeTuyaDevice
-from .coordinator import KKTKolbeUpdateCoordinator
-from .hybrid_coordinator import KKTKolbeHybridCoordinator
-from .api import TuyaCloudClient
-from .services import async_setup_services, async_unload_services
-# Lazy import discovery to reduce startup time
+# Heavy imports moved to lazy loading to prevent blocking the event loop
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -50,6 +45,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Initialize API client if enabled
     if api_enabled:
+        from .api import TuyaCloudClient
+
         client_id = entry.data.get("api_client_id")
         client_secret = entry.data.get("api_client_secret")
         endpoint = entry.data.get("api_endpoint", "https://openapi.tuyaeu.com")
@@ -68,6 +65,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     local_key = entry.data.get(CONF_ACCESS_TOKEN) or entry.data.get("local_key")
 
     if ip_address and device_id and local_key:
+        from .tuya_device import KKTKolbeTuyaDevice
+
         device = KKTKolbeTuyaDevice(
             device_id=device_id,
             ip_address=ip_address,
@@ -85,6 +84,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Initialize appropriate coordinator based on mode
     if integration_mode in ["hybrid", "api_discovery"] and (device or api_client):
+        from .hybrid_coordinator import KKTKolbeHybridCoordinator
+
         coordinator = KKTKolbeHybridCoordinator(
             hass=hass,
             device_id=device_id,
@@ -95,6 +96,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.info(f"Hybrid coordinator initialized in {integration_mode} mode")
     elif device:
         # Legacy mode - local only
+        from .coordinator import KKTKolbeUpdateCoordinator
+
         coordinator = KKTKolbeUpdateCoordinator(hass, entry, device)
         _LOGGER.info("Legacy coordinator initialized for local communication")
     else:
@@ -154,6 +157,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Set up services when the first device is added
     if len(hass.data[DOMAIN]) == 1:
+        from .services import async_setup_services
         await async_setup_services(hass)
         _LOGGER.info("KKT Kolbe services initialized")
 
@@ -174,6 +178,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         # Unload services when the last device is removed
         if not hass.data[DOMAIN]:
+            from .services import async_unload_services
             await async_unload_services(hass)
             _LOGGER.info("KKT Kolbe services unloaded")
 
