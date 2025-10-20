@@ -220,11 +220,18 @@ class TuyaCloudClient:
     async def test_connection(self) -> bool:
         """Test API connection and authentication."""
         try:
-            await self.authenticate()
-            devices = await self.get_device_list()
-
-            _LOGGER.info(f"Connection test successful. Found {len(devices)} devices.")
-            return True
+            # Ensure session is initialized
+            if not self.session:
+                async with self:
+                    await self.authenticate()
+                    devices = await self.get_device_list()
+                    _LOGGER.info(f"Connection test successful. Found {len(devices)} devices.")
+                    return True
+            else:
+                await self.authenticate()
+                devices = await self.get_device_list()
+                _LOGGER.info(f"Connection test successful. Found {len(devices)} devices.")
+                return True
 
         except Exception as err:
             _LOGGER.error(f"Connection test failed: {err}")
