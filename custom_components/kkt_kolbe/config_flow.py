@@ -54,10 +54,10 @@ STEP_MANUAL_DATA_SCHEMA = vol.Schema({
 
 STEP_API_ONLY_DATA_SCHEMA = vol.Schema({
     vol.Required("api_client_id"): selector.selector({
-        "text": {"placeholder": "Access ID from Tuya IoT Platform"}
+        "text": {}
     }),
     vol.Required("api_client_secret"): selector.selector({
-        "text": {"type": "password", "placeholder": "Access Secret from Tuya IoT Platform"}
+        "text": {"type": "password"}
     }),
     vol.Required("api_endpoint", default="https://openapi.tuyaeu.com"): selector.selector({
         "select": {
