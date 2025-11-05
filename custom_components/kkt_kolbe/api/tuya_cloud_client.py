@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import json
 import time
+import uuid
 from typing import Dict, List, Optional
 import logging
 
@@ -53,50 +54,81 @@ class TuyaCloudClient:
         method: str,
         url: str,
         headers: Dict[str, str],
-        body: str = ""
+        body: str = "",
+        nonce: str = ""
     ) -> str:
-        """Generate HMAC-SHA256 signature for Tuya API request."""
+        """Generate HMAC-SHA256 signature for Tuya API request.
+
+        For Smart Home Industry projects, the signature format is:
+        sign = HMAC-SHA256(client_id + t + nonce + stringToSign, secret)
+
+        Where stringToSign = HTTPMethod + "\n" + Content-SHA256 + "\n" + Headers + "\n" + Url
+        """
         # Extract path from full URL
         path = url.replace(self.endpoint, "")
 
-        # Create string to sign
-        string_to_sign = method + "\n"
-        string_to_sign += hashlib.sha256(body.encode()).hexdigest() + "\n"
+        # Build stringToSign according to Tuya spec
+        content_sha256 = hashlib.sha256(body.encode('utf-8')).hexdigest()
 
-        # Add headers in specific order
-        for key in sorted(headers.keys()):
-            if key.startswith("Sign"):
-                continue
-            string_to_sign += f"{key}:{headers[key]}\n"
+        # Build headers section - empty string for all requests per Tuya docs
+        # (Headers are included in sign calculation separately)
+        headers_str = ""
 
-        string_to_sign += path
+        string_to_sign = f"{method}\n{content_sha256}\n{headers_str}\n{path}"
 
-        # Generate signature
+        # Generate signature: client_id + timestamp + nonce + stringToSign
+        # For requests WITH access_token, include it in the payload
+        timestamp = headers.get("t", "")
+        access_token = headers.get("access_token", "")
+
+        if access_token:
+            # Authenticated request: client_id + access_token + timestamp + nonce + stringToSign
+            sign_payload = self.client_id + access_token + timestamp + nonce + string_to_sign
+        else:
+            # Token request: client_id + timestamp + nonce + stringToSign
+            sign_payload = self.client_id + timestamp + nonce + string_to_sign
+
         signature = hmac.new(
-            self.client_secret.encode(),
-            string_to_sign.encode(),
+            self.client_secret.encode('utf-8'),
+            sign_payload.encode('utf-8'),
             hashlib.sha256
         ).hexdigest().upper()
 
         return signature
 
     def _build_headers(self, method: str, url: str, body: str = "") -> Dict[str, str]:
-        """Build headers with authentication and signature."""
+        """Build headers with authentication and signature.
+
+        For Smart Home Industry projects:
+        - Token requests (no access_token): Include nonce in signature
+        - API requests (with access_token): No nonce needed
+        """
         timestamp = str(int(time.time() * 1000))
 
         headers = {
             "client_id": self.client_id,
             "t": timestamp,
             "sign_method": "HMAC-SHA256",
-            "Content-Type": "application/json",
         }
 
-        # Add access token if available
-        if self._access_token:
+        # Only add Content-Type for POST/PUT requests with body
+        if method in ["POST", "PUT"] and body:
+            headers["Content-Type"] = "application/json"
+
+        # Determine if this is a token request (no access_token yet)
+        is_token_request = not self._access_token
+        nonce = ""
+
+        if is_token_request:
+            # Token requests require nonce for Smart Home Industry projects
+            nonce = str(uuid.uuid4())
+            headers["nonce"] = nonce
+        else:
+            # API requests with access_token don't use nonce
             headers["access_token"] = self._access_token
 
         # Generate and add signature
-        signature = self._generate_signature(method, url, headers, body)
+        signature = self._generate_signature(method, url, headers, body, nonce)
         headers["sign"] = signature
 
         return headers

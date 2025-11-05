@@ -5,6 +5,27 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.4] - 2025-01-05 🔧
+
+### Hotfix Release - Smart Home Industry Project Support
+
+**Focus**: Authentication fix for Tuya Smart Home Industry projects.
+
+### Fixed
+- **Token Authentication for Smart Home Projects**: Added nonce (UUID) support for Industry project authentication
+  - Token requests now include nonce in HMAC signature calculation
+  - API requests use standard signature without nonce
+  - Compatible with both IoT Core and Smart Home Industry project types
+- **Removed unnecessary Content-Type header** from GET requests for better API compatibility
+
+### Technical Details
+- Signature format for token: `HMAC-SHA256(client_id + t + nonce + stringToSign, secret)`
+- Signature format for API calls: `HMAC-SHA256(client_id + access_token + t + stringToSign, secret)`
+- Dynamic nonce generation only for token acquisition
+- Fixes Error 1004 "sign invalid" for Smart Home Industry accounts
+
+---
+
 ## [2.2.3] - 2025-01-05 🔧
 
 ### Hotfix Release - Full v2.0 API Migration
