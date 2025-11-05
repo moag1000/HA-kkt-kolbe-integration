@@ -185,17 +185,33 @@ class TuyaCloudClient:
             await self.authenticate()
 
     async def get_device_list(self) -> List[Dict]:
-        """Get list of all devices from Tuya API."""
+        """Get list of all devices from Tuya API.
+
+        Uses v2.0 API endpoint for better compatibility with Free tier accounts.
+        Falls back to v1.0 if v2.0 fails.
+        """
         await self._ensure_authenticated()
 
         _LOGGER.debug("Fetching device list from Tuya Cloud API")
 
-        response = await self._make_request("GET", "/v1.0/devices")
+        # Try v2.0 API first (Free tier compatible)
+        try:
+            response = await self._make_request("GET", "/v2.0/cloud/thing/device?page_size=100")
+            devices = response.get("result", [])
+            _LOGGER.info(f"Retrieved {len(devices)} devices from API v2.0")
+            return devices
+        except TuyaAPIError as e:
+            _LOGGER.debug(f"v2.0 API failed, trying v1.0 fallback: {e}")
 
-        devices = response.get("result", [])
-        _LOGGER.info(f"Retrieved {len(devices)} devices from API")
-
-        return devices
+            # Fallback to v1.0 API (older accounts)
+            try:
+                response = await self._make_request("GET", "/v1.0/devices")
+                devices = response.get("result", [])
+                _LOGGER.info(f"Retrieved {len(devices)} devices from API v1.0")
+                return devices
+            except TuyaAPIError as fallback_error:
+                _LOGGER.error(f"Both v2.0 and v1.0 device list APIs failed")
+                raise
 
     async def get_device_properties(self, device_id: str) -> Dict:
         """Get device properties using 'Query Things Data Model'."""
