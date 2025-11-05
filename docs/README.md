@@ -1,33 +1,33 @@
-# Documentation
+# Dokumentation
 
-This directory contains comprehensive documentation for the KKT Kolbe Home Assistant Integration.
+Dieses Verzeichnis enthält die umfassende Dokumentation für die KKT Kolbe Home Assistant Integration.
 
-## 📋 User Documentation
+## 📋 Benutzer-Dokumentation
 
-### Setup & Configuration
-- See main [README.md](../README.md) for installation and setup instructions
-- [Tuya API Setup Guide](../README.md#-tuya-api-setup---vollstaendige-anleitung) - Complete guide for API credentials
+### Einrichtung & Konfiguration
+- Siehe Haupt-[README.md](../README.md) für Installation und Setup-Anleitungen
+- [Tuya API Setup Anleitung](../README.md#-tuya-api-setup---vollstaendige-anleitung) - Komplette Anleitung für API-Credentials
 
-### Usage & Automation
-- **[Automation Examples](AUTOMATION_EXAMPLES.md)** - 15+ ready-to-use automation examples for hoods and cooktops
-- **[Use Cases](USE_CASES.md)** - Practical implementation scenarios and real-world examples
-- **[Cooktop Safety](COOKTOP_SAFETY.md)** - Important safety information for induction cooktop control
+### Verwendung & Automatisierung
+- **[Automationsbeispiele](AUTOMATION_EXAMPLES.md)** - 15+ sofort einsatzbereite Automationsbeispiele für Dunstabzugshauben und Kochfelder
+- **[Anwendungsfälle](USE_CASES.md)** - Praktische Implementierungsszenarien und Beispiele aus der Praxis
+- **[Kochfeld-Sicherheit](COOKTOP_SAFETY.md)** - Wichtige Sicherheitsinformationen für die Induktionskochfeld-Steuerung
 
-## 🛠️ Developer Documentation
+## 🛠️ Entwickler-Dokumentation
 
-- **[Developer Guide](DEVELOPER_GUIDE.md)** - Technical documentation for developers
-- **[Contributing](CONTRIBUTING.md)** - Guidelines for contributing to the project
-- **[Gold Tier Checklist](GOLD_TIER_CHECKLIST.md)** - Home Assistant quality scale compliance
+- **[Entwickler-Leitfaden](DEVELOPER_GUIDE.md)** - Technische Dokumentation für Entwickler
+- **[Beiträge](CONTRIBUTING.md)** - Richtlinien für Beiträge zum Projekt
+- **[Gold Tier Checkliste](GOLD_TIER_CHECKLIST.md)** - Home Assistant Quality Scale Compliance
 
-## 🔒 Security
+## 🔒 Sicherheit
 
-- **[Security Policy](SECURITY.md)** - Vulnerability reporting and security guidelines
+- **[Sicherheitsrichtlinie](SECURITY.md)** - Meldung von Sicherheitslücken und Sicherheitsrichtlinien
 
-## 📝 Release Information
+## 📝 Release-Informationen
 
-- **[Changelog](../CHANGELOG.md)** - Full version history and changes
-- **[GitHub Releases](https://github.com/moag1000/HA-kkt-kolbe-integration/releases)** - Download releases
+- **[Changelog](../CHANGELOG.md)** - Vollständige Versionshistorie und Änderungen
+- **[GitHub Releases](https://github.com/moag1000/HA-kkt-kolbe-integration/releases)** - Releases herunterladen
 
 ---
 
-**Need help?** Check the [main README](../README.md) or [open an issue](https://github.com/moag1000/HA-kkt-kolbe-integration/issues).
+**Brauchst du Hilfe?** Schau dir die [Haupt-README](../README.md) an oder [öffne ein Issue](https://github.com/moag1000/HA-kkt-kolbe-integration/issues).
