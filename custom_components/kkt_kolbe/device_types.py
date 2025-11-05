@@ -85,30 +85,53 @@ KNOWN_DEVICES = {
         "product_names": ["ypaixllljc2dcpae"],
         "device_ids": ["bf735dfe2ad64fba7cpyhn"],
         "device_id_patterns": ["bf735dfe2ad64fba7c"],
-        "platforms": ["light", "switch", "sensor", "select", "number"],
+        "platforms": ["light", "switch", "sensor", "select", "number", "button"],
         "data_points": {
+            # Active DPs (verified working)
             1: "switch",              # Main power
             4: "light",               # Light on/off
             6: "switch_lamp",         # Filter cleaning reminder
             10: "fan_speed_enum",     # Fan speed
             13: "countdown",          # Timer
-            101: "RGB"                # RGB lighting modes
+            101: "RGB",               # RGB lighting modes
+            # Experimental DPs (from API v2.0 Things Data Model, disabled by default)
+            2: "delay_switch",        # Delayed shutdown (afterrun)
+            5: "light_brightness",    # Light brightness (0-255)
+            14: "filter_hours",       # Filter usage hours
+            15: "filter_reset",       # Reset filter counter
+            17: "eco_mode",           # Eco mode
+            102: "rgb_brightness",    # RGB brightness (0-255)
+            103: "color_temp"         # Color temperature
         },
         "entities": {
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
                 {"dp": 4, "name": "Light", "device_class": "switch", "icon": "mdi:lightbulb"},
-                {"dp": 6, "name": "Filter Cleaning Reminder", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"}
+                {"dp": 6, "name": "Filter Cleaning Reminder", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"},
+                # Experimental switches
+                {"dp": 2, "name": "Delayed Shutdown", "icon": "mdi:timer-off", "advanced": True, "entity_category": "config"},
+                {"dp": 17, "name": "Eco Mode", "icon": "mdi:leaf", "advanced": True, "entity_category": "config"}
             ],
             "number": [
                 {"dp": 101, "name": "RGB Mode", "min": 0, "max": 9, "step": 1, "icon": "mdi:palette", "advanced": True},
-                {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"}
+                {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"},
+                # Experimental numbers
+                {"dp": 5, "name": "Light Brightness", "min": 0, "max": 255, "step": 1, "icon": "mdi:brightness-6", "advanced": True},
+                {"dp": 102, "name": "RGB Brightness", "min": 0, "max": 255, "step": 1, "icon": "mdi:brightness-5", "advanced": True}
             ],
             "sensor": [
-                {"dp": 6, "name": "Filter Status", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"}
+                {"dp": 6, "name": "Filter Status", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"},
+                # Experimental sensors
+                {"dp": 14, "name": "Filter Hours", "unit": "h", "device_class": "duration", "icon": "mdi:clock-outline", "advanced": True, "entity_category": "diagnostic"}
             ],
             "select": [
-                {"dp": 10, "name": "Fan Speed", "options": ["off", "low", "middle", "high", "strong"], "icon": "mdi:fan"}
+                {"dp": 10, "name": "Fan Speed", "options": ["off", "low", "middle", "high", "strong"], "icon": "mdi:fan"},
+                # Experimental select
+                {"dp": 103, "name": "Color Temperature", "options": ["warm", "neutral", "cold"], "icon": "mdi:thermometer", "advanced": True}
+            ],
+            "button": [
+                # Experimental button
+                {"dp": 15, "name": "Reset Filter Counter", "icon": "mdi:restart", "advanced": True, "entity_category": "config"}
             ]
         }
     },
