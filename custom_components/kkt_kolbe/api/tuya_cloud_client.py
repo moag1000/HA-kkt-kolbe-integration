@@ -252,23 +252,90 @@ class TuyaCloudClient:
                 raise
 
     async def get_device_properties(self, device_id: str) -> Dict:
-        """Get device properties using 'Query Things Data Model'."""
+        """Get device properties using Things Data Model.
+
+        Uses v2.0 Things Data Model API for Free tier compatibility.
+        Falls back to v1.0 if v2.0 fails.
+
+        Returns device functions/properties with metadata (type, range, min/max).
+        """
         await self._ensure_authenticated()
 
         _LOGGER.debug(f"Fetching properties for device {device_id}")
 
+        # Try v2.0 Things Data Model API first (Free tier compatible)
         try:
             response = await self._make_request(
                 "GET",
-                f"/v1.0/devices/{device_id}/functions"
+                f"/v2.0/cloud/thing/{device_id}/model"
             )
 
-            return response.get("result", {})
+            result = response.get("result", {})
+            model_str = result.get("model", "{}")
 
-        except TuyaAPIError as err:
-            if "device not found" in str(err).lower():
-                raise TuyaDeviceNotFoundError(device_id)
-            raise
+            # Parse JSON string in model field
+            try:
+                model_data = json.loads(model_str)
+
+                # Extract properties from services
+                properties = []
+                services = model_data.get("services", [])
+                for service in services:
+                    service_props = service.get("properties", [])
+                    properties.extend(service_props)
+
+                _LOGGER.debug(f"Retrieved {len(properties)} properties from v2.0 Things Data Model")
+
+                # Convert to v1.0 functions format for compatibility
+                functions = {
+                    "category": result.get("category", ""),
+                    "functions": [
+                        {
+                            "code": prop.get("code"),
+                            "type": prop.get("typeSpec", {}).get("type"),
+                            "values": json.dumps(prop.get("typeSpec", {})),
+                            "dp_id": prop.get("abilityId"),
+                        }
+                        for prop in properties
+                    ]
+                }
+
+                return functions
+
+            except (json.JSONDecodeError, KeyError) as parse_err:
+                _LOGGER.warning(f"Failed to parse v2.0 model data: {parse_err}")
+                raise TuyaAPIError("Failed to parse Things Data Model")
+
+        except TuyaAPIError as v2_error:
+            _LOGGER.debug(f"v2.0 Things Data Model failed, trying v1.0 fallback: {v2_error}")
+
+            # Fallback to v1.0 iot-03 device functions
+            try:
+                response = await self._make_request(
+                    "GET",
+                    f"/v1.0/iot-03/devices/{device_id}/functions"
+                )
+
+                result = response.get("result", {})
+                _LOGGER.debug(f"Retrieved properties from v1.0 iot-03 API")
+                return result
+
+            except TuyaAPIError as iot03_error:
+                _LOGGER.debug(f"v1.0 iot-03 failed, trying legacy v1.0: {iot03_error}")
+
+                # Final fallback to legacy v1.0 API
+                try:
+                    response = await self._make_request(
+                        "GET",
+                        f"/v1.0/devices/{device_id}/functions"
+                    )
+
+                    return response.get("result", {})
+
+                except TuyaAPIError as err:
+                    if "device not found" in str(err).lower():
+                        raise TuyaDeviceNotFoundError(device_id)
+                    raise
 
     async def get_device_status(self, device_id: str) -> Dict:
         """Get current device status.
