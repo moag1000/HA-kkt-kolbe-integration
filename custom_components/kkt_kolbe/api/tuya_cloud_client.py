@@ -271,23 +271,47 @@ class TuyaCloudClient:
             raise
 
     async def get_device_status(self, device_id: str) -> Dict:
-        """Get current device status."""
+        """Get current device status.
+
+        Uses v2.0 Shadow Properties API for Free tier compatibility.
+        Falls back to v1.0 if v2.0 fails.
+        """
         await self._ensure_authenticated()
 
         _LOGGER.debug(f"Fetching status for device {device_id}")
 
+        # Try v2.0 Shadow Properties API first (Free tier compatible)
         try:
             response = await self._make_request(
                 "GET",
-                f"/v1.0/devices/{device_id}/status"
+                f"/v2.0/cloud/thing/{device_id}/shadow/properties"
             )
 
-            return response.get("result", [])
+            # v2.0 nests properties: result.properties[]
+            result = response.get("result", {})
+            properties = result.get("properties", [])
 
-        except TuyaAPIError as err:
-            if "device not found" in str(err).lower():
-                raise TuyaDeviceNotFoundError(device_id)
-            raise
+            _LOGGER.debug(f"Retrieved {len(properties)} properties from v2.0 API")
+            return properties
+
+        except TuyaAPIError as v2_error:
+            _LOGGER.debug(f"v2.0 shadow properties failed, trying v1.0 fallback: {v2_error}")
+
+            # Fallback to v1.0 Device Status API
+            try:
+                response = await self._make_request(
+                    "GET",
+                    f"/v1.0/devices/{device_id}/status"
+                )
+
+                status = response.get("result", [])
+                _LOGGER.debug(f"Retrieved {len(status)} status values from v1.0 API")
+                return status
+
+            except TuyaAPIError as err:
+                if "device not found" in str(err).lower():
+                    raise TuyaDeviceNotFoundError(device_id)
+                raise
 
     async def test_connection(self) -> bool:
         """Test API connection and authentication."""
