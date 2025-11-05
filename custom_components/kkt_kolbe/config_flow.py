@@ -513,7 +513,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=STEP_API_ONLY_DATA_SCHEMA,
             errors=errors,
             description_placeholders={
-                "setup_info": "Configure TinyTuya Cloud API for device discovery"
+                "setup_info": "Configure TinyTuya Cloud API for device discovery\n\n📚 Setup Guide: https://github.com/moag1000/HA-kkt-kolbe-integration#-tuya-api-setup---vollstaendige-anleitung\n🔗 Tuya IoT Platform: https://iot.tuya.com"
             }
         )
 
@@ -701,7 +701,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=STEP_API_ONLY_DATA_SCHEMA,
             errors=errors,
             description_placeholders={
-                "setup_info": "Enter new TinyTuya Cloud API credentials"
+                "setup_info": "Enter new TinyTuya Cloud API credentials\n\n📚 Setup Guide: https://github.com/moag1000/HA-kkt-kolbe-integration#-tuya-api-setup---vollstaendige-anleitung\n🔗 Tuya IoT Platform: https://iot.tuya.com"
             }
         )
 
