@@ -328,7 +328,7 @@ logger:
 
 **Verwendung auf eigene Verantwortung:**
 - ✅ Der Code ist **ausgiebig getestet** und erfüllt Home Assistant Gold Tier Standard
-- ✅ Über **2.000 erfolgreiche Installationen** via HACS
+- ✅ Open Source und **Community-geprüft**
 - ⚠️ **Kochfeld-Steuerung**: Besondere Vorsicht geboten - niemals unbeaufsichtigt lassen
 - 📖 Lies die **[Cooktop Safety Guide](docs/COOKTOP_SAFETY.md)** vor der ersten Verwendung
 - 🔒 Security Issues melden via **[Security Policy](docs/SECURITY.md)**
