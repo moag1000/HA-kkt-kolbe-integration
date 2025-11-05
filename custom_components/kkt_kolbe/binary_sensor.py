@@ -7,6 +7,7 @@ from homeassistant.components.binary_sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity import EntityCategory
 
 from .base_entity import KKTBaseEntity, KKTZoneBaseEntity
 from .const import DOMAIN
@@ -15,7 +16,12 @@ from .bitfield_utils import get_zone_value_from_coordinator, BITFIELD_CONFIG
 
 _LOGGER = logging.getLogger(__name__)
 
-PARALLEL_UPDATES = 0
+# Data points that should be marked as diagnostic
+DIAGNOSTIC_DPS = {
+    103,  # Child lock
+    145,  # Senior mode
+}
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -49,6 +55,11 @@ class KKTKolbeBinarySensor(KKTBaseEntity, BinarySensorEntity):
         super().__init__(coordinator, entry, config, "binary_sensor")
         self._attr_icon = self._get_icon()
         self._cached_state = None
+
+        # Set entity category for diagnostic sensors
+        dp = config.get("dp")
+        if dp in DIAGNOSTIC_DPS:
+            self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
         # Initialize state from coordinator data
         self._update_cached_state()

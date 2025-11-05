@@ -4,6 +4,24 @@ DOMAIN = "kkt_kolbe"
 
 MANUFACTURER = "KKT Kolbe"
 
+# Global API storage key
+GLOBAL_API_STORAGE_KEY = f"{DOMAIN}_global_api"
+
+# API Configuration
+CONF_API_CLIENT_ID = "api_client_id"
+CONF_API_CLIENT_SECRET = "api_client_secret"
+CONF_API_ENDPOINT = "api_endpoint"
+CONF_API_ENABLED = "api_enabled"
+CONF_INTEGRATION_MODE = "integration_mode"
+
+# Default API endpoint
+DEFAULT_API_ENDPOINT = "https://openapi.tuyaeu.com"
+
+# Integration modes
+MODE_MANUAL = "manual"
+MODE_API_DISCOVERY = "api_discovery"
+MODE_HYBRID = "hybrid"
+
 # Device categories
 CATEGORY_HOOD = "yyj"  # Dunstabzugshaube
 CATEGORY_COOKTOP = "dcl"  # Induktionskochfeld

@@ -80,6 +80,10 @@ class KKTBaseEntity(CoordinatorEntity):
             if hasattr(EntityCategory, entity_category.upper()):
                 self._attr_entity_category = getattr(EntityCategory, entity_category.upper())
 
+        # Disable advanced/diagnostic entities by default (Gold Tier requirement)
+        if self._config.get("advanced", False) or entity_category == "diagnostic":
+            self._attr_entity_registry_enabled_default = False
+
     def _build_device_info(self) -> DeviceInfo:
         """Build standardized device info."""
         # Get device data from hass.data (now available via property access)

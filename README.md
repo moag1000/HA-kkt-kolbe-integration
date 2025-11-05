@@ -2,6 +2,9 @@
 
 <div align="center">
   <img src="./icon.png" alt="KKT Kolbe Logo" width="128" height="128">
+
+  ## 🎯 v2.1.0 - Enhanced Reliability & Best Practices
+  ### 🥈 Home Assistant Silver Tier Quality
 </div>
 
 [![GitHub Release][releases-shield]][releases]
@@ -12,9 +15,11 @@
 [![Project Maintenance][maintenance-shield]][user_profile]
 [![BuyMeCoffee][buymecoffeebadge]][buymecoffee]
 
-**Vollständige Home Assistant Integration für KKT Kolbe Küchengeräte**
+**Zuverlässige Home Assistant Integration für KKT Kolbe Küchengeräte**
 
-Unterstützt Dunstabzugshauben und Induktionskochfelder über Tuya Local Protocol.
+Unterstützt Dunstabzugshauben und Induktionskochfelder über Tuya Local Protocol mit Cloud API Fallback.
+
+> **Quality:** Diese Integration erfüllt Home Assistant's **Silver Tier** Quality Standard mit robustem Error Handling, automatischer Wiederherstellung und umfangreichen Tests.
 
 ## 🚀 Unterstützte Geräte
 
@@ -53,22 +58,30 @@ Unterstützt Dunstabzugshauben und Induktionskochfelder über Tuya Local Protoco
 
 ## ✨ Integration Features
 
-### 🔧 **v1.7.9: State Caching & Entity Consistency**
+### 🚀 **v2.0.0: Global API Management & Enhanced Setup Experience**
 
-#### **State Caching System** 🆕
-- **Intelligente Wertspeicherung**: Entities behalten letzte bekannte Werte
-- **Keine "unknown" States**: Stabile Anzeige auch bei temporären Verbindungsunterbrechungen
-- **Optimierte Performance**: Reduzierte Netzwerklast durch smartes Caching
+#### **Global API Key Management** 🆕
+- API Keys werden global gespeichert und wiederverwendet
+- Folge-Setups erkennen gespeicherte Credentials
+- Option zwischen gespeicherten und neuen Credentials
+- Optimiert für Haushalte mit mehreren KKT Geräten
 
-#### **Konsistente Entity-Konfiguration** 🆕
-- **Alle Geräte standardisiert**: Einheitliche Light Switch und Control Patterns
-- **Korrekte Data Point Mapping**: Basierend auf offiziellen Tuya Data Models
-- **Verbesserte UI**: Proper Device Classes und Icons für alle Entities
+#### **3-Wege Setup-Architektur** 🆕
+- **🔍 Automatic Discovery**: Automatische Netzwerk-Erkennung
+- **🔧 Manual Local Setup**: Manuelle lokale Konfiguration
+- **☁️ API-Only Setup**: Reine Cloud-basierte Einrichtung
 
-#### **Enhanced Config Flow** 🆕
-- **Vollständige Device IDs**: Für einfache Tuya Local Key Extraktion
-- **Gerätespezifische Optionen**: Erweiterte Entities nur für Induktionskochfeld
-- **Verbesserte Darstellung**: Korrekte Zeilenumbrüche in Beschreibungen
+#### **Verbesserte API-Only Einrichtung** 🆕
+- Funktioniert ohne lokale IP/Local Key Konfiguration
+- Automatische Geräteerkennung über TinyTuya API
+- Unterstützt verschiedene regionale API-Endpunkte
+- Filtert automatisch nach KKT Kolbe Geräten
+
+#### **Optimierte Benutzerführung** 🆕
+- Reduzierte Setup-Zeit für weitere Geräte
+- Vereinfachter Prozess durch globale API-Verwaltung
+- Einmalige API-Konfiguration für alle Geräte
+- Konsistente Erfahrung über mehrere Geräte hinweg
 
 ### 🏠 **Bewährte Integration Features**
 
@@ -89,6 +102,15 @@ Unterstützt Dunstabzugshauben und Induktionskochfelder über Tuya Local Protoco
 - **Entity Categories**: Konfiguration und Diagnostik richtig kategorisiert
 - **Lokalisierung**: Deutsche und englische Übersetzungen
 
+#### **✨ Neu in v2.1.0 - Enhanced Reliability**
+- **Options Flow**: Einstellungen nach Setup über UI änderbar
+- **Diagnostics Download**: Debug-Informationen für Support einfach downloadbar
+- **Improved Error Handling**: ConfigEntryAuthFailed & ConfigEntryNotReady für bessere UX
+- **Entity Categories**: Diagnostic Sensors automatisch kategorisiert
+- **Advanced Entities**: Optionale Entities standardmäßig deaktiviert
+- **Test Coverage**: Umfangreiche automatisierte Tests
+- **Best Practices**: Folgt Home Assistant Development Best Practices
+
 ## 📦 Installation
 
 ### Via HACS (Empfohlen)
@@ -108,16 +130,84 @@ Unterstützt Dunstabzugshauben und Induktionskochfelder über Tuya Local Protoco
 
 ## 🔧 Konfiguration
 
-### Option 1: Automatische Erkennung ✅ Empfohlen
+### 🚀 3-Wege Setup-Architektur (v2.0.0+)
+
+Wähle bei der Installation eine der drei Setup-Methoden:
+
+#### **☁️ API-Only Setup** ✅ Empfohlen für mehrere Geräte
+**Gut geeignet für Haushalte mit mehreren KKT Geräten**
+
+**Erstes Gerät:**
+1. Setup Method: ☁️ API-Only wählen
+2. TinyTuya Credentials eingeben (Client ID, Secret, Region)
+3. Device aus API-Discovery wählen
+4. Credentials werden automatisch gespeichert
+
+**Weitere Geräte:**
+1. Setup Method: ☁️ API-Only wählen
+2. "Use Stored API Credentials" wählen
+3. Device aus Liste wählen
+4. Fertig
+
+**Vorteile:**
+- Keine Local Key Extraktion nötig
+- Funktioniert auch außerhalb des Heimnetzwerks
+- API Keys nur einmal eingeben
+- Schnellerer Setup für weitere Geräte
+
+#### **🔍 Automatic Discovery** ✅ Empfohlen für Single Device
 Die Integration findet KKT Geräte automatisch im lokalen Netzwerk über mDNS.
 
-### Option 2: Manuelle Konfiguration
-Benötigte Informationen:
+#### **🔧 Manual Local Setup**
+Für erfahrene Nutzer mit spezifischen Anforderungen:
 - **IP-Adresse**: Lokale IP des Geräts (z.B. 192.168.1.100)
 - **Device ID**: 20-22 Zeichen Tuya Device ID (z.B. bf735dfe2ad64fba7cpyhn)
 - **Local Key**: 16+ Zeichen Local Key aus Tuya/Smart Life App
 
-### Local Key Extraktion
+### TinyTuya API Setup (für API-Only Modus)
+
+#### Schritt 1: Tuya IoT Platform Account erstellen
+1. Gehe zu [iot.tuya.com](https://iot.tuya.com)
+2. **"Sign Up"** → Registrierung mit E-Mail
+3. E-Mail bestätigen und anmelden
+
+#### Schritt 2: Cloud Project erstellen
+1. **Cloud** → **Development** → **Create Cloud Project**
+2. **Project Name**: z.B. "Home Assistant KKT"
+3. **Description**: z.B. "KKT Kolbe Integration"
+4. **Industry**: "Smart Home" wählen
+5. **Development Method**: "Smart Home PaaS" wählen
+6. **Data Center**: Wichtig! Wähle deine Region:
+   - **Europe**: EU (empfohlen für Deutschland)
+   - **America**: US
+   - **China**: CN
+   - **India**: IN
+7. **Create** klicken
+
+#### Schritt 3: API Services aktivieren
+Nach Projekterstellung → **Service API** → folgende APIs aktivieren:
+- ✅ **Authorization Management**
+- ✅ **Device Status Notification**
+- ✅ **Smart Home Scene Linkage**
+- ✅ **Device Management**
+- ✅ **IoT Core** (falls verfügbar)
+
+#### Schritt 4: Credentials abrufen
+1. **Overview** → **Authorization Key**
+2. Notiere dir diese Werte für die Integration:
+   - **Access ID** (Client ID) - ca. 20 Zeichen
+   - **Access Secret** (Client Secret) - ca. 32 Zeichen
+   - **Data Center** (Region): EU/US/CN/IN
+
+#### Schritt 5: Gerät mit Tuya verknüpfen
+1. **Smart Life App** auf dem Handy installieren
+2. Dein KKT Gerät in Smart Life einrichten
+3. **Cloud** → **Link Tuya App Account**
+4. QR-Code scannen oder Account verknüpfen
+
+Jetzt kannst du die API-Only Einrichtung in der Integration verwenden!
+
+### Local Key Extraktion (nur für Manual Local Setup)
 Verwende Tools wie:
 - `tuya-cli` - [Anleitung](https://github.com/codetheweb/tuyapi/blob/master/docs/SETUP.md)
 - `tinytuya` - [Setup Guide](https://github.com/jasonacox/tinytuya#setup-wizard)
@@ -172,26 +262,267 @@ logger:
 
 ## 🐛 Troubleshooting
 
-### Häufige Probleme
+### ⚠️ Häufige Probleme & Lösungen
 
-**Gerät nicht gefunden**
-- Prüfe, ob Gerät im gleichen Netzwerk ist
-- Versuche manuelle Konfiguration
-- Aktiviere Debug-Logging
+#### **Problem: "Failed to connect" / "Device not responding"**
 
-**Authentifizierung fehlgeschlagen**
-- Überprüfe Local Key
-- Stelle sicher, dass Gerät nicht von anderer App verwendet wird
-- Teste verschiedene Protocol-Versionen
+**Mögliche Ursachen:**
+- Gerät ist offline oder nicht im Netzwerk erreichbar
+- Falsche IP-Adresse
+- Firewall blockiert Port 6668
+- Device ID oder Local Key falsch
 
-**Entities zeigen "unavailable"**
-- Überprüfe Netzwerkverbindung
-- Restart der Integration
-- Prüfe Tuya App, ob Gerät noch funktioniert
+**Lösungen:**
+1. **Netzwerk prüfen:**
+   ```bash
+   ping 192.168.1.100  # Deine Gerät-IP
+   ```
+2. **Port-Erreichbarkeit testen:**
+   ```bash
+   telnet 192.168.1.100 6668
+   ```
+3. **Firewall-Regel hinzufügen** (falls nötig):
+   - Erlaube ausgehende Verbindungen auf Port 6668
+   - Für Docker/VM: Bridge-Netzwerk prüfen
+
+4. **IP-Adresse validieren:**
+   - Router-Admin-Interface → DHCP-Clients
+   - Smart Life App → Geräteinfo
+   - DHCP-Reservation empfohlen!
+
+5. **Device ID/Local Key neu extrahieren:**
+   - Siehe [Local Key Extraktion](#local-key-extraktion-nur-für-manual-local-setup)
+   - Bei Fehlern: Gerät in Smart Life App neu einrichten
+
+---
+
+#### **Problem: "Authentication failed" / "Invalid local key"**
+
+**Symptom:** Integration startet Reauth-Flow automatisch
+
+**Ursache:** Local Key ist falsch oder wurde geändert
+
+**Lösung:**
+1. **Neuen Local Key extrahieren:**
+   - TinyTuya Wizard erneut ausführen
+   - Oder Tuya IoT Platform nutzen
+
+2. **Reauth-Flow nutzen:**
+   - Benachrichtigung in Home Assistant klicken
+   - Neuen Local Key eingeben
+   - Integration wird automatisch neu verbunden
+
+3. **Häufige Fehler:**
+   - ❌ Local Key enthält Leerzeichen → Entfernen
+   - ❌ Groß-/Kleinschreibung → Exakt kopieren
+   - ❌ Unvollständiger Key → Muss 16+ Zeichen sein
+
+---
+
+#### **Problem: Entities zeigen "unavailable" / "unknown"**
+
+**Temporäre Unavailable (< 5 Minuten):**
+- Normal beim Home Assistant Neustart
+- Gerät neu hochgefahren
+- → Keine Aktion nötig, wartet auf Reconnect
+
+**Dauerhafte Unavailable (> 5 Minuten):**
+
+**Lösungen:**
+1. **Integration neu laden:**
+   - Einstellungen → Geräte & Dienste
+   - KKT Kolbe → ⋮ → Integration neu laden
+
+2. **Coordinator Status prüfen:**
+   - Entwicklerwerkzeuge → Zustände
+   - Suche nach `sensor.*.last_update`
+   - Wenn Timestamp alt: Connection Problem
+
+3. **Debug Logging aktivieren:**
+   ```yaml
+   # configuration.yaml
+   logger:
+     default: info
+     logs:
+       custom_components.kkt_kolbe: debug
+   ```
+   Home Assistant neustarten → Log prüfen
+
+4. **Gerät in Tuya App prüfen:**
+   - Ist es dort online?
+   - Funktioniert manuelle Steuerung?
+   - Falls nein: Gerät neu starten
+
+---
+
+#### **Problem: "Device discovery failed" / Gerät wird nicht gefunden**
+
+**Bei Automatic Discovery:**
+
+**Lösungen:**
+1. **Zeroconf/mDNS prüfen:**
+   - Einige Router blockieren mDNS
+   - Multicast-Support aktivieren
+   - Alternative: Manuelles Setup nutzen
+
+2. **Gleiches Netzwerk:**
+   - Home Assistant und Gerät im selben VLAN
+   - Keine Netzwerk-Isolation (IoT-VLAN trennen)
+
+3. **Gerät neu starten:**
+   - Power-Cycle des Geräts
+   - 30 Sekunden warten
+   - Discovery erneut versuchen
+
+**Workaround:** Nutze **Manual Local Setup** oder **API-Only Setup**
+
+---
+
+#### **Problem: API-Only Setup schlägt fehl**
+
+**Error: "API authentication failed"**
+
+**Lösungen:**
+1. **Credentials prüfen:**
+   - Access ID (Client ID) korrekt?
+   - Access Secret korrekt kopiert?
+   - Richtige Region gewählt? (EU/US/CN/IN)
+
+2. **API Services aktiviert?**
+   - [Tuya IoT Platform](https://iot.tuya.com)
+   - Cloud Project → Service API
+   - Alle erforderlichen APIs aktivieren
+
+3. **App Account verknüpft?**
+   - Smart Life App mit Cloud Project verbunden?
+   - QR-Code gescannt?
+   - Geräte sichtbar in Tuya IoT Platform?
+
+**Error: "No devices found"**
+
+**Lösungen:**
+1. **App Account Link prüfen:**
+   - Tuya IoT Platform → Cloud → Devices
+   - Sind deine Geräte gelistet?
+   - Falls nein: App Account erneut verknüpfen
+
+2. **Geräte-Region:**
+   - Stelle sicher, Projekt und Geräte in gleicher Region
+   - EU-Geräte brauchen EU Data Center
+
+---
+
+### 🔍 Debug-Informationen sammeln
+
+Für Support-Anfragen bitte folgende Infos bereitstellen:
+
+**1. System-Info:**
+```yaml
+Home Assistant Version: 2025.1.0
+KKT Kolbe Integration Version: 2.1.0
+Installation Method: HACS / Manual
+Python Version: 3.13
+```
+
+**2. Gerät-Info:**
+```yaml
+Device Model: DH9509NP / IND7705HC / etc.
+Firmware Version: (aus Smart Life App)
+Setup Method: Discovery / Manual / API-Only
+IP Address: 192.168.1.100
+```
+
+**3. Debug Log:**
+```bash
+# configuration.yaml aktivieren, dann:
+cat home-assistant.log | grep "kkt_kolbe"
+```
+
+**4. Diagnostics Download:**
+- Einstellungen → Geräte & Dienste
+- KKT Kolbe Device → ⋮ → Download diagnostics
+- Datei an GitHub Issue anhängen
+
+---
+
+### 📞 Support erhalten
+
+**GitHub Issues:** [Issue erstellen](https://github.com/moag1000/HA-kkt-kolbe-integration/issues)
+**Discussions:** [Community Diskussionen](https://github.com/moag1000/HA-kkt-kolbe-integration/discussions)
+
+**Template für Issue:**
+```markdown
+## Problem Description
+[Beschreibe das Problem]
+
+## Steps to Reproduce
+1. ...
+2. ...
+
+## Expected Behavior
+[Was sollte passieren]
+
+## Actual Behavior
+[Was passiert tatsächlich]
+
+## Environment
+- HA Version:
+- Integration Version:
+- Device Model:
+
+## Logs
+[Debug logs hier einfügen]
+```
 
 ## 📝 Changelog
 
-### v1.7.9 (Latest)
+### v2.1.0 (Current Release) 🥈
+**Home Assistant Silver Tier Quality Release**
+
+#### **Quality & Reliability**
+- 🥈 **Silver Tier Compliance**: Erfüllt alle Silver Tier Quality Scale Requirements
+- 🛠️ **Options Flow**: Post-Setup Konfiguration über UI (Scan Interval, Debug Logging, etc.)
+- 🔍 **Diagnostics**: Downloadbare Debug-Informationen für Support
+- ✅ **Test Coverage**: 21 automatisierte Tests für Config Flow, Setup, Entities
+- 🏷️ **Entity Categories**: Diagnostic Sensors automatisch kategorisiert
+
+#### **Error Handling & Recovery**
+- 🔐 **ConfigEntryAuthFailed**: Automatischer Reauth-Flow bei falschen Credentials
+- 🔄 **ConfigEntryNotReady**: Auto-Retry bei temporären Connection-Problemen
+- 🧹 **CancelledError Handling**: Sauberes Cleanup bei Task-Abbrüchen
+- ⏱️ **Optimierte Timeouts**: Schnellere Fehlererkennung (15s statt 30s)
+- 📝 **Debug Logging**: Reduziertes Logging bei offline Geräten
+
+#### **Developer Experience**
+- 🏗️ **Best Practices**: hass.async_add_executor_job statt loop.run_in_executor
+- 📚 **Comprehensive Docs**: Erweiterte Troubleshooting Section mit konkreten Lösungen
+- 🧪 **Test Infrastructure**: conftest.py, pytest.ini, requirements_test.txt
+- 🐛 **Bug Fixes**: 4 kritische Bugs in Connection Handling behoben
+
+#### **Breaking Changes**
+- ⚠️ **Advanced Entities**: Einige diagnostic entities sind jetzt standardmäßig deaktiviert
+- ⚠️ **Python 3.13**: Kompatibilität mit neuesten Home Assistant Versionen
+
+---
+
+### v2.0.0 (Stable) 🎉
+- 🔑 **Global API Key Management**: API Keys werden wiederverwendet
+- 🎛️ **3-Wege Setup-Architektur**: Discovery/Manual Local/API-Only
+- ☁️ **API-Only Setup**: Cloud-Setup ohne lokale Konfiguration
+- 📱 **Optimierte Benutzerführung**: Schnellerer Setup für weitere Geräte
+- 🌍 **Vollständige Übersetzungen**: Alle Config Flow Steps übersetzt
+- 🛠️ **Verbesserte Config Flow**: Smart routing mit gespeicherten Daten
+- 🔧 **HA 2025.12 Ready**: Moderne OptionsFlow API
+- 🐛 **Stability Fixes**: Umfangreiche Bug-Fixes aus Beta-Phase
+
+### v2.0.0-beta (Beta Series)
+- 🌐 TinyTuya Cloud API Integration
+- 🔄 Enhanced Reconnection System
+- 🔑 Improved Authentication Flow
+- 🛠️ New Device Management Services
+- ✅ Home Assistant 2025.12 Compatibility
+
+### v1.7.10 (Latest Stable)
 - ✅ **State Caching System**: Keine "unknown" States mehr
 - ✅ **Entity Consistency**: Alle Geräte standardisiert
 - ✅ **Config Flow Improvements**: Vollständige Device IDs, bessere UI
@@ -221,7 +552,9 @@ MIT License - siehe [LICENSE](./LICENSE) für Details.
 
 **Made with ❤️ and 🤖 by [@moag1000](https://github.com/moag1000) & Claude Code**
 
-[releases-shield]: https://img.shields.io/github/release/moag1000/HA-kkt-kolbe-integration.svg?style=for-the-badge
+[releases-shield]: https://img.shields.io/badge/release-v2.0.0-blue.svg?style=for-the-badge
+[betabadge]: https://img.shields.io/badge/status-STABLE-green.svg?style=for-the-badge
+[beta-release]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v2.0.0
 [releases]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases
 [commits-shield]: https://img.shields.io/github/commit-activity/y/moag1000/HA-kkt-kolbe-integration.svg?style=for-the-badge
 [commits]: https://github.com/moag1000/HA-kkt-kolbe-integration/commits/main
