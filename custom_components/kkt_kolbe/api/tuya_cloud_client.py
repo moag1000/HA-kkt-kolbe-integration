@@ -184,11 +184,41 @@ class TuyaCloudClient:
         ):
             await self.authenticate()
 
+    def _normalize_device_response(self, device: Dict, api_version: str) -> Dict:
+        """Normalize device response to consistent format.
+
+        v2.0 API uses camelCase, v1.0 uses snake_case.
+        This ensures consistent field names across API versions.
+        """
+        if api_version == "v2.0":
+            # Convert v2.0 camelCase to v1.0 snake_case format
+            normalized = {
+                "id": device.get("id"),
+                "name": device.get("name"),
+                "local_key": device.get("localKey"),  # camelCase → snake_case
+                "product_id": device.get("productId"),  # camelCase → snake_case
+                "product_name": device.get("productName"),  # camelCase → snake_case
+                "category": device.get("category"),
+                "online": device.get("isOnline", False),  # isOnline → online
+                "ip": device.get("ip"),
+                "lat": device.get("lat"),
+                "lon": device.get("lon"),
+                "model": device.get("model"),
+                "uuid": device.get("uuid"),
+                "time_zone": device.get("timeZone"),  # camelCase → snake_case
+            }
+        else:
+            # v1.0 already uses snake_case
+            normalized = device
+
+        return normalized
+
     async def get_device_list(self) -> List[Dict]:
         """Get list of all devices from Tuya API.
 
         Uses v2.0 API endpoint for better compatibility with Free tier accounts.
         Falls back to v1.0 if v2.0 fails.
+        Returns normalized device data with consistent field names.
         """
         await self._ensure_authenticated()
 
@@ -198,8 +228,16 @@ class TuyaCloudClient:
         try:
             response = await self._make_request("GET", "/v2.0/cloud/thing/device?page_size=100")
             devices = response.get("result", [])
-            _LOGGER.info(f"Retrieved {len(devices)} devices from API v2.0")
-            return devices
+
+            # Normalize v2.0 response to v1.0 format (camelCase → snake_case)
+            normalized_devices = [
+                self._normalize_device_response(device, "v2.0")
+                for device in devices
+            ]
+
+            _LOGGER.info(f"Retrieved {len(normalized_devices)} devices from API v2.0")
+            return normalized_devices
+
         except TuyaAPIError as e:
             _LOGGER.debug(f"v2.0 API failed, trying v1.0 fallback: {e}")
 
@@ -208,7 +246,7 @@ class TuyaCloudClient:
                 response = await self._make_request("GET", "/v1.0/devices")
                 devices = response.get("result", [])
                 _LOGGER.info(f"Retrieved {len(devices)} devices from API v1.0")
-                return devices
+                return devices  # v1.0 already in correct format
             except TuyaAPIError as fallback_error:
                 _LOGGER.error(f"Both v2.0 and v1.0 device list APIs failed")
                 raise
