@@ -257,8 +257,9 @@ class TuyaCloudClient:
         _LOGGER.debug("Fetching device list from Tuya Cloud API")
 
         # Try v2.0 API first (Free tier compatible)
+        # Note: Free tier has lower page_size limit, use conservative value
         try:
-            response = await self._make_request("GET", "/v2.0/cloud/thing/device?page_size=100")
+            response = await self._make_request("GET", "/v2.0/cloud/thing/device?page_size=20")
             devices = response.get("result", [])
 
             # Normalize v2.0 response to v1.0 format (camelCase → snake_case)
