@@ -58,6 +58,33 @@ Unterstützt Dunstabzugshauben und Induktionskochfelder über Tuya Local Protoco
 - **Sicherheit**: Kindersicherung, Pause/Resume
 - **Chef-Funktionen**: BBQ-Modus, Quick Levels
 
+---
+
+### 🔍 Weitere Modelle - Hilfe benötigt!
+
+Die Integration könnte weitere KKT Kolbe Modelle unterstützen, aber dafür werden **Gerätedaten** benötigt:
+
+#### **Gesucht: VIVA Hood** 🔎
+- Vermutlich ähnlich zu HERMES (basierend auf Firmware)
+- Kategorie: `yyj` (Dunstabzugshaube)
+- **Status**: Konfiguration fehlt
+
+#### **Gesucht: SANDRA Hood** 🔎
+- Vermutlich ähnlich zu HERMES/VIVA
+- Kategorie: `yyj` (Dunstabzugshaube)
+- **Status**: Konfiguration fehlt
+
+**Hast du ein VIVA oder SANDRA Modell?**
+→ Bitte [öffne ein Issue](https://github.com/moag1000/HA-kkt-kolbe-integration/issues/new) mit:
+- Gerätemodell
+- Device ID aus der Smart Life App
+- Screenshot der verfügbaren Funktionen
+- Optional: Debug-Logs mit aktivierten Entities
+
+Mit deiner Hilfe können wir diese Modelle zur Integration hinzufügen! 🙏
+
+---
+
 ## ✨ Integration Features
 
 ### 🆕 **Neu in v2.2.4: Smart Home Industry Support**
