@@ -5,6 +5,29 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.2] - 2025-01-05 🔧
+
+### Hotfix Release - Complete v2.0 API Support
+
+**Focus**: Full v2.0 API compatibility for Free tier accounts.
+
+### Fixed
+- **Device Status v2.0 Support**: Added Shadow Properties API support (`/v2.0/cloud/thing/{id}/shadow/properties`)
+  - Handles nested response structure (`result.properties[]`)
+  - Automatic fallback to v1.0 for older accounts
+  - Fixes status polling for Free tier users
+- **Field Normalization**: Converts v2.0 camelCase to v1.0 snake_case
+  - `localKey` → `local_key`
+  - `productId` → `product_id`
+  - `isOnline` → `online`
+
+### Technical Details
+- `get_device_status()`: v2.0 Shadow Properties with v1.0 fallback
+- `_normalize_device_response()`: Automatic field name conversion
+- Full compatibility with both Free and Paid Tuya accounts
+
+---
+
 ## [2.2.1] - 2025-01-05 🔧
 
 ### Hotfix Release - Free Tier API Support
