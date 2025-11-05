@@ -114,10 +114,8 @@ class KKTKolbeZoneSensor(KKTZoneBaseEntity, SensorEntity):
         self._attr_icon = self._get_icon()
         self._cached_value = None
 
-        # Set entity category for diagnostic sensors (zone errors, etc.)
-        dp = config.get("dp")
-        if dp in DIAGNOSTIC_DPS:
-            self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        # Note: entity_category is now handled in base_entity.py from device_types.py config
+        # No need to check DIAGNOSTIC_DPS here
 
         # Initialize state from coordinator data
         self._update_cached_state()
