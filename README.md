@@ -170,48 +170,101 @@ Für erfahrene Nutzer mit spezifischen Anforderungen:
 - **Device ID**: 20-22 Zeichen Tuya Device ID (z.B. bf735dfe2ad64fba7cpyhn)
 - **Local Key**: 16+ Zeichen Local Key aus Tuya/Smart Life App
 
-### TinyTuya API Setup (für API-Only Modus)
+### 🔑 Tuya API Setup - Vollstaendige Anleitung
 
-#### Schritt 1: Tuya IoT Platform Account erstellen
-1. Gehe zu [iot.tuya.com](https://iot.tuya.com)
-2. **"Sign Up"** → Registrierung mit E-Mail
-3. E-Mail bestätigen und anmelden
+Die Integration unterstützt sowohl **Tuya IoT Core** als auch **Smart Home Industry** Projekte. Smart Home Industry ist für die meisten Nutzer die richtige Wahl.
 
-#### Schritt 2: Cloud Project erstellen
-1. **Cloud** → **Development** → **Create Cloud Project**
-2. **Project Name**: z.B. "Home Assistant KKT"
-3. **Description**: z.B. "KKT Kolbe Integration"
-4. **Industry**: "Smart Home" wählen
-5. **Development Method**: "Smart Home PaaS" wählen
-6. **Data Center**: Wichtig! Wähle deine Region:
-   - **Europe**: EU (empfohlen für Deutschland)
-   - **America**: US
-   - **China**: CN
-   - **India**: IN
-7. **Create** klicken
+#### 📋 Schritt 1: Tuya IoT Platform Account erstellen
 
-#### Schritt 3: API Services aktivieren
-Nach Projekterstellung → **Service API** → folgende APIs aktivieren:
-- ✅ **Authorization Management**
-- ✅ **Device Status Notification**
-- ✅ **Smart Home Scene Linkage**
-- ✅ **Device Management**
-- ✅ **IoT Core** (falls verfügbar)
+1. Gehe zu **[Tuya IoT Platform](https://iot.tuya.com)**
+2. Klicke auf **"Sign Up"** (oben rechts)
+3. Registriere dich mit E-Mail-Adresse
+4. Bestätige deine E-Mail und melde dich an
 
-#### Schritt 4: Credentials abrufen
-1. **Overview** → **Authorization Key**
-2. Notiere dir diese Werte für die Integration:
-   - **Access ID** (Client ID) - ca. 20 Zeichen
-   - **Access Secret** (Client Secret) - ca. 32 Zeichen
-   - **Data Center** (Region): EU/US/CN/IN
+#### 🏗️ Schritt 2: Smart Home Project erstellen
 
-#### Schritt 5: Gerät mit Tuya verknüpfen
-1. **Smart Life App** auf dem Handy installieren
-2. Dein KKT Gerät in Smart Life einrichten
-3. **Cloud** → **Link Tuya App Account**
-4. QR-Code scannen oder Account verknüpfen
+1. Nach dem Login auf **Tuya IoT Platform**:
+   - Klicke auf **"Cloud"** → **"Development"**
+   - Wähle **"Create Cloud Project"**
 
-Jetzt kannst du die API-Only Einrichtung in der Integration verwenden!
+2. **Projekt-Details konfigurieren**:
+   - **Project Name**: `Home Assistant` (oder beliebiger Name)
+   - **Description**: `KKT Kolbe Integration for Home Assistant`
+   - **Industry**: **`Smart Home`** ⚠️ WICHTIG!
+   - **Development Method**: Wird automatisch gesetzt
+   - **Data Center**: ⚠️ **WICHTIG** - Wähle deine Region:
+     - 🇪🇺 **Central Europe** (Deutschland, Österreich, Schweiz)
+     - 🇪🇺 **Western Europe** (Frankreich, Spanien, UK)
+     - 🇺🇸 **Eastern America** (USA Ost)
+     - 🇺🇸 **Western America** (USA West)
+     - 🇨🇳 **China**
+     - 🇮🇳 **India**
+
+3. Klicke auf **"Create"**
+
+> **💡 Hinweis**: Das Data Center **muss** mit der Region übereinstimmen, in der deine Smart Life App registriert ist!
+
+#### 🔗 Schritt 3: Smart Life Account verknüpfen
+
+Damit das API-Projekt deine Geräte sehen kann:
+
+1. In deinem neuen Projekt → **"Devices"** Tab
+2. Klicke auf **"Link Tuya App Account"** oder **"Add Device"**
+3. Es öffnet sich ein QR-Code
+4. **Smart Life App öffnen** auf deinem Handy:
+   - Gehe zu **"Me"** (Profil) → **"Settings"** (⚙️)
+   - Tippe auf **"Account and Security"**
+   - Wähle **"Link"** oder **"Scan QR Code"**
+5. Scanne den QR-Code vom Computer-Bildschirm
+6. Bestätige die Verknüpfung
+
+Nach erfolgreicher Verknüpfung sollten deine KKT-Geräte unter **"Devices"** erscheinen.
+
+#### 🔐 Schritt 4: API Credentials abrufen
+
+1. Gehe zu deinem Projekt → **"Overview"** Tab
+2. Unter **"Authorization Key"** findest du:
+   - **Access ID/Client ID**: `3wehyyv43tjqqm54qwst` (Beispiel, ~20 Zeichen)
+   - **Access Secret/Client Secret**: `82f2cc1ec50f4a34abd8e1ff5df42508` (Beispiel, 32 Zeichen)
+   - **Data Center**: `Central Europe Data Center` (oder deine gewählte Region)
+
+3. **💾 Kopiere diese Werte** - du brauchst sie für die Integration!
+
+#### 📝 Schritt 5: API Credentials in Home Assistant eingeben
+
+1. **Home Assistant** öffnen
+2. **Einstellungen** → **Geräte & Dienste** → **Integration hinzufügen**
+3. Suche nach **"KKT Kolbe"**
+4. Wähle **Setup Method**: `☁️ API-Only`
+5. Gib deine API Credentials ein:
+   - **Client ID**: Access ID aus Schritt 4
+   - **Client Secret**: Access Secret aus Schritt 4
+   - **Region**: Dein Data Center (z.B. `Central Europe`)
+6. Wähle dein KKT-Gerät aus der Liste
+7. **Fertig!** ✅
+
+#### 💾 Credentials werden gespeichert
+
+Nach der ersten Einrichtung:
+- ✅ API Credentials werden **global gespeichert**
+- ✅ Bei weiteren KKT-Geräten: Wähle **"Use Stored API Credentials"**
+- ✅ Keine erneute Eingabe nötig
+
+---
+
+### 🆓 Free Tier vs Paid Tier
+
+Die Integration funktioniert mit **Tuya Free Tier** Accounts:
+
+| Feature | Free Tier | Paid Tier |
+|---------|-----------|-----------|
+| **API Calls/Monat** | Begrenzt (~1.000) | Unbegrenzt |
+| **Device List** | ✅ Max. 20 Geräte | ✅ Unbegrenzt |
+| **Authentication** | ✅ Unterstützt | ✅ Unterstützt |
+| **Device Control** | ✅ Lokal (Offline) | ✅ Lokal & Cloud |
+| **Status Updates** | ✅ Lokal Push | ✅ Cloud + Push |
+
+> **💡 Empfehlung**: Die Integration nutzt hauptsächlich **lokale Kommunikation**, daher ist Free Tier für die meisten Nutzer ausreichend!
 
 ### Local Key Extraktion (nur für Manual Local Setup)
 Verwende Tools wie:
