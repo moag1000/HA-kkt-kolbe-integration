@@ -149,6 +149,12 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
     VERSION = 2
     CONNECTION_CLASS = "local_push"
 
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
+        """Get the options flow for this handler."""
+        return KKTKolbeOptionsFlow()
+
     def __init__(self):
         """Initialize the config flow."""
         self._discovery_data: Dict[str, Dict[str, Any]] = {}
@@ -907,12 +913,6 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             _LOGGER.debug("Connection test failed: %s", exc)
             return False
 
-    @staticmethod
-    @callback
-    def async_get_options_flow(config_entry: ConfigEntry) -> "KKTKolbeOptionsFlow":
-        """Get the options flow for this handler."""
-        return KKTKolbeOptionsFlow()
-
 
 class KKTKolbeOptionsFlow(OptionsFlow):
     """Handle KKT Kolbe options flow."""
@@ -1033,6 +1033,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
                             device_id=device_id,
                             ip_address=ip_address,
                             local_key=new_local_key,
+                            hass=self.hass,  # Pass hass for proper executor job scheduling
                         )
 
                         if await test_device.async_test_connection():

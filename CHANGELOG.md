@@ -5,6 +5,51 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2025-01-XX 🥈
+
+### Home Assistant Silver Tier Quality Release
+
+**Focus**: Reliability, error handling, and Home Assistant best practices compliance.
+
+### Added
+- **Options Flow**: Post-setup UI configuration (scan interval, local key update, debug logging)
+- **Diagnostics Download**: Debug information export with sensitive data redaction
+- **Entity Categories**: Diagnostic entities properly categorized
+- **Advanced Entities**: Less-used entities disabled by default
+- **Test Coverage**: 21 automated tests (config flow, setup, entities, diagnostics)
+
+### Changed
+- **Error Handling** (Silver Tier):
+  - `ConfigEntryAuthFailed` for authentication → automatic reauth flow
+  - `ConfigEntryNotReady` for temporary failures → automatic retry
+  - `CancelledError` properly handled with cleanup
+- **Connection Timeouts**: Optimized (30s→15s overall, 5s→3s socket)
+- **Logging**: Reduced excessive logging for offline devices (DEBUG level)
+- **Executor Jobs**: Using `hass.async_add_executor_job()` (HA best practice)
+
+### Fixed
+- `CancelledError` during protocol auto-detection
+- Duplicate `async_get_options_flow()` registration
+- Test fixtures (real ConfigEntry instead of Mock)
+- Empty device_id in diagnostics
+- Authentication error detection (decrypt/encrypt/hmac keywords)
+
+### Documentation
+- Comprehensive troubleshooting section (5 common problems with solutions)
+- Debug information collection guide
+- Support request template
+- Silver Tier compliance status
+
+---
+
+## [2.0.0] - 2024-12-XX 🎉
+
+### Major Release: Global API Management
+
+Siehe v2.0.0-beta.1 für Details der API Integration.
+
+---
+
 ## [2.0.0-beta.1] - 2024-10-20
 
 ### 🎯 Major Beta Release: TinyTuya API & Enhanced Stability

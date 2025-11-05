@@ -1,6 +1,6 @@
 """KKT Kolbe Dunstabzugshaube Integration for Home Assistant."""
 import logging
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigEntry, ConfigEntryNotReady
 from homeassistant.core import HomeAssistant
 from homeassistant.const import (
     Platform,
@@ -9,6 +9,7 @@ from homeassistant.const import (
     CONF_DEVICE_ID,
     CONF_ACCESS_TOKEN,
 )
+from homeassistant.exceptions import ConfigEntryAuthFailed
 
 from .const import DOMAIN
 # Heavy imports moved to lazy loading to prevent blocking the event loop
@@ -71,6 +72,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             device_id=device_id,
             ip_address=ip_address,
             local_key=local_key,
+            hass=hass,  # Pass hass for proper executor job scheduling
         )
         _LOGGER.info("Local device initialized")
     elif integration_mode == "manual":
@@ -105,8 +107,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Test connection to validate credentials early
     # For hybrid/API mode, allow setup even if local connection fails initially
+    from .exceptions import KKTConnectionError, KKTTimeoutError, KKTAuthenticationError
+
     connection_successful = False
     local_connection_failed = False
+    local_error_msg = None
 
     try:
         if device:
@@ -114,14 +119,44 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 await device.async_connect()
                 connection_successful = True
                 _LOGGER.info("Local device connection successful during setup")
-            except Exception as e:
+            except KKTAuthenticationError as e:
+                # Authentication errors should trigger reauth flow
+                _LOGGER.error(
+                    f"Authentication failed for device at {ip_address}. "
+                    f"Local key may be incorrect or expired."
+                )
+                raise ConfigEntryAuthFailed(
+                    f"Authentication failed: {e}. Please check your local key."
+                ) from e
+            except (KKTConnectionError, KKTTimeoutError) as e:
                 local_connection_failed = True
-                _LOGGER.warning(f"Local device connection failed during setup: {e}")
+                local_error_msg = str(e)
+
+                # Log at debug level to avoid filling logs (HA Best Practice)
+                _LOGGER.debug(
+                    f"Device connection failed during setup: {e}. "
+                    f"Common causes: offline device, network unreachable, firewall."
+                )
 
                 # Only raise if this is manual mode (requires local connection)
                 if integration_mode == "manual":
-                    _LOGGER.error("Manual mode requires working local connection")
-                    raise
+                    # For temporary connection issues, use ConfigEntryNotReady
+                    # This tells HA to retry setup automatically
+                    _LOGGER.warning(
+                        f"Device at {ip_address} is not reachable. "
+                        f"Home Assistant will retry setup automatically."
+                    )
+                    raise ConfigEntryNotReady(
+                        f"Device not reachable at {ip_address}: {e}"
+                    ) from e
+            except Exception as e:
+                local_connection_failed = True
+                local_error_msg = str(e)
+                _LOGGER.debug(f"Unexpected error during local connection: {e}")
+
+                if integration_mode == "manual":
+                    _LOGGER.warning("Device connection failed, will retry automatically")
+                    raise ConfigEntryNotReady(f"Setup failed: {e}") from e
 
         if api_client:
             try:
@@ -129,12 +164,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 connection_successful = True
                 _LOGGER.info("API connection successful during setup")
             except Exception as e:
-                _LOGGER.warning(f"API connection failed during setup: {e}")
+                _LOGGER.debug(f"API connection failed during setup: {e}")
 
                 # Only raise if this is API-only mode and local also failed
                 if integration_mode == "api_discovery" and local_connection_failed:
-                    _LOGGER.error("API mode requires working API connection")
-                    raise
+                    # Check if it's an auth issue
+                    if "auth" in str(e).lower() or "401" in str(e) or "403" in str(e):
+                        raise ConfigEntryAuthFailed(
+                            f"API authentication failed: {e}. Please check credentials."
+                        ) from e
+                    else:
+                        _LOGGER.warning("API connection failed, will retry automatically")
+                        raise ConfigEntryNotReady(f"API not reachable: {e}") from e
 
         # Perform initial data fetch if at least one connection method works
         if connection_successful or integration_mode in ["hybrid", "api_discovery"]:
@@ -142,14 +183,30 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 await coordinator.async_config_entry_first_refresh()
                 _LOGGER.info("Initial data fetch successful")
             except Exception as e:
-                _LOGGER.warning(f"Initial data fetch failed, coordinator will retry: {e}")
+                # Log at debug to avoid excessive logging (HA Best Practice)
+                _LOGGER.debug(f"Initial data fetch failed, coordinator will retry: {e}")
                 # Don't raise here - let coordinator handle retries
+                # This allows the integration to load even if the first fetch fails
         else:
-            _LOGGER.error("No working connection methods available")
-            raise ValueError("No working connection methods configured")
+            error_details = []
+            if local_connection_failed and local_error_msg:
+                error_details.append(f"Local: {local_error_msg}")
+            if not api_client and not device:
+                error_details.append("No connection methods configured")
 
+            full_error = " | ".join(error_details) if error_details else "No connection methods available"
+            _LOGGER.warning(f"Setup incomplete: {full_error}")
+            raise ConfigEntryNotReady(f"Setup incomplete: {full_error}")
+
+    except (ConfigEntryAuthFailed, ConfigEntryNotReady):
+        # Re-raise these Home Assistant exceptions as-is
+        raise
+    except (KKTConnectionError, KKTTimeoutError) as e:
+        # Convert connection errors to ConfigEntryNotReady for auto-retry
+        _LOGGER.debug(f"Connection error during setup: {e}")
+        raise ConfigEntryNotReady(f"Device connection failed: {e}") from e
     except Exception as e:
-        _LOGGER.error(f"Critical error during setup: {e}")
+        _LOGGER.error(f"Unexpected error during setup: {e}", exc_info=True)
         raise
 
     # Determine device type and platforms based on product name

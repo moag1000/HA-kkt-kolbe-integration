@@ -120,7 +120,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
                 # Test new local key with fresh device instance
                 from .tuya_device import KKTKolbeTuyaDevice
-                test_device = KKTKolbeTuyaDevice(device_id, ip_address, local_key)
+                test_device = KKTKolbeTuyaDevice(device_id, ip_address, local_key, hass=hass)
 
                 _LOGGER.debug(f"Testing new local key for device {device_id[:8]}")
                 connection_test = await test_device.async_test_connection()
