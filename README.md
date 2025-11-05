@@ -3,7 +3,7 @@
 <div align="center">
   <img src="./icon.png" alt="KKT Kolbe Logo" width="128" height="128">
 
-  ## 🎯 v2.2.4 - Gold Tier Quality + Smart Home Industry Support
+  ## 🎯 v2.2.5 - Experimentelle DPs + Gold Tier Quality
   ### 🏆 Home Assistant Gold Tier Quality
 </div>
 
