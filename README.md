@@ -425,7 +425,7 @@ Für Support-Anfragen bitte folgende Infos bereitstellen:
 **1. System-Info:**
 ```yaml
 Home Assistant Version: 2025.1.0
-KKT Kolbe Integration Version: 2.1.0
+KKT Kolbe Integration Version: 2.2.0
 Installation Method: HACS / Manual
 Python Version: 3.13
 ```
@@ -482,7 +482,18 @@ cat home-assistant.log | grep "kkt_kolbe"
 
 ## 📝 Changelog
 
-### v2.1.0 (Current Release) 🥈
+### v2.2.0 (Current Release) 🏆
+
+**Home Assistant Gold Tier Quality**
+- **ALL 21/21 Gold Tier requirements met (100%)**
+- 46 entities disabled by default for cleaner UI
+- Automatic IP address updates via discovery
+- Stale device cleanup (30+ days)
+- **3 automated repair flows** for common issues
+- 15+ automation examples and use case guides
+- Enhanced Tuya API error handling
+
+### v2.1.0 (Stable) 🥈
 **Home Assistant Silver Tier Quality Release**
 
 #### **Quality & Reliability**
@@ -558,7 +569,7 @@ MIT License - siehe [LICENSE](./LICENSE) für Details.
 
 **Made with ❤️ and 🤖 by [@moag1000](https://github.com/moag1000) & Claude Code**
 
-[releases-shield]: https://img.shields.io/badge/release-v2.0.0-blue.svg?style=for-the-badge
+[releases-shield]: https://img.shields.io/badge/release-v2.2.0-gold.svg?style=for-the-badge
 [betabadge]: https://img.shields.io/badge/status-STABLE-green.svg?style=for-the-badge
 [beta-release]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v2.0.0
 [releases]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases
