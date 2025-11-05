@@ -18,13 +18,6 @@ from .bitfield_utils import get_zone_value_from_coordinator, BITFIELD_CONFIG
 
 _LOGGER = logging.getLogger(__name__)
 
-# Data points that should be marked as diagnostic
-DIAGNOSTIC_DPS = {
-    14,   # Filter hours
-    105,  # Zone errors
-    169,  # Core temp display
-}
-
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -65,10 +58,7 @@ class KKTKolbeSensor(KKTBaseEntity, SensorEntity):
         self._attr_native_unit_of_measurement = config.get("unit_of_measurement")
         self._attr_icon = self._get_icon()
 
-        # Set entity category for diagnostic sensors
-        dp = config.get("dp")
-        if dp in DIAGNOSTIC_DPS:
-            self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        # Note: entity_category is now handled in base_entity.py from device_types.py config
 
     def _get_icon(self) -> str:
         """Get appropriate icon for the sensor."""

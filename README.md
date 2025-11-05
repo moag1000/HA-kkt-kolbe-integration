@@ -3,8 +3,8 @@
 <div align="center">
   <img src="./icon.png" alt="KKT Kolbe Logo" width="128" height="128">
 
-  ## 🎯 v2.1.0 - Enhanced Reliability & Best Practices
-  ### 🥈 Home Assistant Silver Tier Quality
+  ## 🎯 v2.2.0 - Gold Tier Quality Achieved
+  ### 🏆 Home Assistant Gold Tier Quality
 </div>
 
 [![GitHub Release][releases-shield]][releases]
@@ -82,6 +82,12 @@ Unterstützt Dunstabzugshauben und Induktionskochfelder über Tuya Local Protoco
 - Vereinfachter Prozess durch globale API-Verwaltung
 - Einmalige API-Konfiguration für alle Geräte
 - Konsistente Erfahrung über mehrere Geräte hinweg
+
+## 📚 Documentation & Examples
+
+- **[Automation Examples](AUTOMATION_EXAMPLES.md)** - 15+ ready-to-use automation examples
+- **[Use Cases](USE_CASES.md)** - Practical scenarios and implementation guides
+- **[Gold Tier Checklist](GOLD_TIER_CHECKLIST.md)** - Quality compliance status
 
 ### 🏠 **Bewährte Integration Features**
 

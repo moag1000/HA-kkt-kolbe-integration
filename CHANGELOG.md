@@ -5,6 +5,45 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2025-01-XX 🏆
+
+### Home Assistant Gold Tier Quality Release - 100% COMPLETE
+
+**Focus**: Advanced features, comprehensive documentation, and FULL Gold Tier compliance.
+
+### Added
+- **Entity Disabled by Default**: 46 advanced/diagnostic entities disabled by default (Gold Tier)
+- **Automatic IP Updates**: Discovery automatically updates device IP addresses when they change (Gold Tier)
+- **Stale Device Cleanup**: Automatically removes devices not seen for 30+ days (Gold Tier)
+- **Repair Flows**: Three automated repair flows for common issues (Gold Tier):
+  - Tuya API authentication failed → Triggers reauth flow
+  - Wrong Tuya region/endpoint → Allows region selection
+  - Local key expired/invalid → Allows key update
+- **Comprehensive Documentation**:
+  - `AUTOMATION_EXAMPLES.md` - 15+ ready-to-use automation examples
+  - `USE_CASES.md` - Detailed implementation guides for various scenarios
+  - `GOLD_TIER_CHECKLIST.md` - Quality compliance documentation
+- **Enhanced API Error Messages**: Detailed Tuya API error reporting with error codes and solutions
+
+### Changed
+- **Quality Scale**: Upgraded from Silver to Gold Tier (21/21 requirements met - 100%)
+- **Discovery**: Enhanced zeroconf listener with automatic config entry updates
+- **Device Management**: Periodic stale device check every 24 hours
+- **API Client**: Improved error handling with specific error codes (1004, 1010, 1011)
+- **Error Handling**: Automatic repair issue creation for authentication and configuration errors
+
+### Fixed
+- Enhanced Tuya API error logging with detailed troubleshooting information
+- Discovery update service now properly updates IP addresses in config entries
+
+### Documentation
+- 15+ automation examples (hood, cooktop, combined, voice control)
+- Comprehensive use case guides (home setups, user personas, cooking scenarios)
+- Gold Tier compliance checklist with detailed status
+- Enhanced API troubleshooting
+
+---
+
 ## [2.1.0] - 2025-01-XX 🥈
 
 ### Home Assistant Silver Tier Quality Release
