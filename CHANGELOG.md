@@ -5,6 +5,34 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.3] - 2025-01-05 🔧
+
+### Hotfix Release - Full v2.0 API Migration
+
+**Focus**: Complete migration to v2.0 API endpoints for all operations.
+
+### Added
+- **v2.0 Things Data Model API**: Device properties via `/v2.0/cloud/thing/{id}/model`
+  - Includes ALL device properties (including RGB on HERMES & STYLE)
+  - Parses nested JSON model structure
+  - Extracts properties from services
+  - Triple fallback: v2.0 → v1.0 iot-03 → v1.0 legacy
+
+### Fixed
+- **Missing RGB Property**: Now detected via v2.0 Things Data Model (abilityId 101)
+- **Complete Free Tier Support**: All three core endpoints now use v2.0 first
+  - Device List: ✅ v2.2.1
+  - Device Status: ✅ v2.2.2
+  - Device Properties: ✅ v2.2.3
+
+### Technical Details
+- Parse JSON string in `result.model` field
+- Extract properties from `services[].properties[]`
+- Convert v2.0 format to v1.0-compatible structure
+- Three-level fallback for maximum compatibility
+
+---
+
 ## [2.2.2] - 2025-01-05 🔧
 
 ### Hotfix Release - Complete v2.0 API Support
