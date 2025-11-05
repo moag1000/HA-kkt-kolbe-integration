@@ -12,6 +12,7 @@ from Crypto.Cipher import AES
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.network import get_url
 from homeassistant.components import zeroconf
+from homeassistant.const import CONF_HOST, CONF_DEVICE_ID, CONF_IP_ADDRESS
 
 from .const import DOMAIN, MODELS
 
@@ -601,16 +602,84 @@ class KKTKolbeDiscovery(ServiceListener):
         pass
 
     def update_service(self, zc, type_: str, name: str) -> None:
-        """Called when a service is updated."""
-        # Re-process the service in case of updates
+        """Called when a service is updated - Gold Tier: Update IP address if changed."""
         try:
             # Use call_soon_threadsafe since this is called from zeroconf thread
             loop = self.hass.loop
             loop.call_soon_threadsafe(
-                lambda: self.hass.async_create_task(self._async_add_service(zc, type_, name))
+                lambda: self.hass.async_create_task(self._async_update_service(zc, type_, name))
             )
         except Exception as e:
             _LOGGER.error(f"Failed to schedule async service update: {e}")
+
+    async def _async_update_service(self, zc, type_: str, name: str) -> None:
+        """Handle service update - Update IP address in config entry if changed."""
+        try:
+            # Get updated service info
+            async_service_info = AsyncServiceInfo(type_, name)
+            await async_service_info.async_request(zc, timeout=3000)
+            info = async_service_info
+
+            if not info or not info.parsed_addresses():
+                return
+
+            # Extract device info
+            device_id = None
+            if hasattr(info, 'properties') and info.properties:
+                for key, value in info.properties.items():
+                    try:
+                        if key is None or value is None:
+                            continue
+                        key_str = key.decode('utf-8').lower()
+                        value_str = value.decode('utf-8')
+                        if key_str in ['id', 'devid', 'device_id']:
+                            device_id = value_str
+                            break
+                    except (UnicodeDecodeError, AttributeError):
+                        continue
+
+            if not device_id:
+                return
+
+            # Get new IP address
+            new_ip = str(info.parsed_addresses()[0])
+
+            # Find config entry for this device
+            config_entries = self.hass.config_entries.async_entries(DOMAIN)
+            for entry in config_entries:
+                entry_device_id = entry.data.get("device_id") or entry.data.get(CONF_DEVICE_ID)
+                if entry_device_id == device_id:
+                    old_ip = entry.data.get("ip_address") or entry.data.get(CONF_IP_ADDRESS) or entry.data.get("host")
+
+                    if old_ip and old_ip != new_ip:
+                        _LOGGER.info(f"Device {device_id} IP changed: {old_ip} → {new_ip}")
+
+                        # Update config entry data
+                        new_data = dict(entry.data)
+                        new_data["ip_address"] = new_ip
+                        if "host" in new_data:
+                            new_data["host"] = new_ip
+                        if CONF_IP_ADDRESS in new_data:
+                            new_data[CONF_IP_ADDRESS] = new_ip
+                        if CONF_HOST in new_data:
+                            new_data[CONF_HOST] = new_ip
+
+                        self.hass.config_entries.async_update_entry(entry, data=new_data)
+
+                        # Reload the integration to use new IP
+                        await self.hass.config_entries.async_reload(entry.entry_id)
+
+                        _LOGGER.info(f"Updated and reloaded config entry for device {device_id}")
+                    elif not old_ip:
+                        _LOGGER.debug(f"Device {device_id} discovered with IP {new_ip}, but no existing IP to compare")
+                    break
+
+            # Also update discovered devices cache
+            if device_id in self.discovered_devices:
+                self.discovered_devices[device_id]["ip"] = new_ip
+
+        except Exception as e:
+            _LOGGER.error(f"Error updating service {name}: {e}", exc_info=True)
 
 
 # Global discovery instance

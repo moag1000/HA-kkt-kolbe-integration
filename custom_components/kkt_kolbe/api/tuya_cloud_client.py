@@ -128,12 +128,30 @@ class TuyaCloudClient:
                     error_code = response_data.get("code")
                     error_msg = response_data.get("msg", "Unknown API error")
 
+                    # Enhanced error logging for debugging
+                    _LOGGER.error(
+                        f"Tuya API Error - Code: {error_code}, Message: {error_msg}, "
+                        f"Endpoint: {self.endpoint}, Path: {path}"
+                    )
+
+                    # Common error codes
                     if error_code == 1010:
-                        raise TuyaAuthenticationError(error_msg, error_code)
+                        raise TuyaAuthenticationError(
+                            f"{error_msg} (Check client_id and client_secret)",
+                            error_code
+                        )
                     elif error_code == 1011:
                         raise TuyaRateLimitError(error_msg)
+                    elif error_code == 1004:
+                        raise TuyaAuthenticationError(
+                            f"Sign validation failed. Possible causes:\n"
+                            f"1. Client Secret is incorrect\n"
+                            f"2. System time is not synchronized\n"
+                            f"3. Endpoint {self.endpoint} is wrong for your region",
+                            error_code
+                        )
                     else:
-                        raise TuyaAPIError(error_msg, error_code)
+                        raise TuyaAPIError(f"{error_msg} (Code: {error_code})", error_code)
 
                 return response_data
 
@@ -233,6 +251,17 @@ class TuyaCloudClient:
                 _LOGGER.info(f"Connection test successful. Found {len(devices)} devices.")
                 return True
 
+        except TuyaAuthenticationError as err:
+            _LOGGER.error(
+                f"Connection test failed - Authentication Error: {err}\n"
+                f"Endpoint: {self.endpoint}\n"
+                f"Client ID: {self.client_id[:8]}...\n"
+                f"Please verify your credentials in Tuya IoT Platform"
+            )
+            return False
         except Exception as err:
-            _LOGGER.error(f"Connection test failed: {err}")
+            _LOGGER.error(
+                f"Connection test failed: {err}\n"
+                f"Endpoint: {self.endpoint}"
+            )
             return False

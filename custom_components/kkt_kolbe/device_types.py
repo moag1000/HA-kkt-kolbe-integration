@@ -98,14 +98,14 @@ KNOWN_DEVICES = {
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
                 {"dp": 4, "name": "Light", "device_class": "switch", "icon": "mdi:lightbulb"},
-                {"dp": 6, "name": "Filter Cleaning Reminder", "icon": "mdi:air-filter"}
+                {"dp": 6, "name": "Filter Cleaning Reminder", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"}
             ],
             "number": [
-                {"dp": 101, "name": "RGB Mode", "min": 0, "max": 9, "step": 1, "icon": "mdi:palette"},
+                {"dp": 101, "name": "RGB Mode", "min": 0, "max": 9, "step": 1, "icon": "mdi:palette", "advanced": True},
                 {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"}
             ],
             "sensor": [
-                {"dp": 6, "name": "Filter Status", "icon": "mdi:air-filter"}
+                {"dp": 6, "name": "Filter Status", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"}
             ],
             "select": [
                 {"dp": 10, "name": "Fan Speed", "options": ["off", "low", "middle", "high", "strong"], "icon": "mdi:fan"}
@@ -132,7 +132,7 @@ KNOWN_DEVICES = {
         "entities": {
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
-                {"dp": 6, "name": "Filter Cleaning Reminder", "icon": "mdi:air-filter"}
+                {"dp": 6, "name": "Filter Cleaning Reminder", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"}
             ],
             "fan": {
                 "dp": 10,  # fan_speed_enum includes "off" state
@@ -148,7 +148,7 @@ KNOWN_DEVICES = {
                 {"dp": 10, "name": "Fan Speed", "options": ["off", "low", "middle", "high", "strong"]}
             ],
             "sensor": [
-                {"dp": 6, "name": "Filter Status", "icon": "mdi:air-filter"}
+                {"dp": 6, "name": "Filter Status", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"}
             ]
         }
     },
@@ -167,7 +167,7 @@ KNOWN_DEVICES = {
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
                 {"dp": 4, "name": "Light", "device_class": "switch", "icon": "mdi:lightbulb"},
-                {"dp": 6, "name": "Filter Cleaning Reminder", "icon": "mdi:air-filter"}
+                {"dp": 6, "name": "Filter Cleaning Reminder", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"}
             ],
             "fan": {
                 "dp": 10,  # fan_speed_enum
@@ -177,11 +177,11 @@ KNOWN_DEVICES = {
                 {"dp": 10, "name": "Fan Speed", "options": ["off", "low", "middle", "high", "strong"]}
             ],
             "number": [
-                {"dp": 101, "name": "RGB Mode", "min": 0, "max": 9, "step": 1, "icon": "mdi:palette"},
+                {"dp": 101, "name": "RGB Mode", "min": 0, "max": 9, "step": 1, "icon": "mdi:palette", "advanced": True},
                 {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"}
             ],
             "sensor": [
-                {"dp": 6, "name": "Filter Status", "icon": "mdi:air-filter"}
+                {"dp": 6, "name": "Filter Status", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"}
             ]
         }
     },
@@ -213,19 +213,19 @@ KNOWN_DEVICES = {
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
                 {"dp": 4, "name": "Light", "device_class": "switch", "icon": "mdi:lightbulb"},
-                {"dp": 6, "name": "RGB Light", "device_class": "switch", "icon": "mdi:palette"},
-                {"dp": 7, "name": "Wash Mode", "device_class": "switch", "icon": "mdi:spray-bottle"},
-                {"dp": 104, "name": "LED Light", "device_class": "switch", "icon": "mdi:led-strip"},
-                {"dp": 106, "name": "Confirm", "device_class": "switch", "icon": "mdi:check"}
+                {"dp": 6, "name": "RGB Light", "device_class": "switch", "icon": "mdi:palette", "advanced": True},
+                {"dp": 7, "name": "Wash Mode", "device_class": "switch", "icon": "mdi:spray-bottle", "advanced": True},
+                {"dp": 104, "name": "LED Light", "device_class": "switch", "icon": "mdi:led-strip", "advanced": True},
+                {"dp": 106, "name": "Confirm", "device_class": "switch", "icon": "mdi:check", "entity_category": "config"}
             ],
             "select": [
-                {"dp": 108, "name": "RGB Mode", "options": ["white", "colour", "scene", "music"]}
+                {"dp": 108, "name": "RGB Mode", "options": ["white", "colour", "scene", "music"], "advanced": True}
             ],
             "number": [
                 {"dp": 102, "name": "Fan Speed", "min": 0, "max": 9, "step": 1, "icon": "mdi:fan"},
                 {"dp": 105, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"},
-                {"dp": 103, "name": "Carbon Filter Remaining", "min": 0, "max": 250, "unit": "days", "icon": "mdi:air-filter"},
-                {"dp": 109, "name": "Metal Filter Remaining", "min": 0, "max": 40, "unit": "days", "icon": "mdi:air-filter"}
+                {"dp": 103, "name": "Carbon Filter Remaining", "min": 0, "max": 250, "unit": "days", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"},
+                {"dp": 109, "name": "Metal Filter Remaining", "min": 0, "max": 40, "unit": "days", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"}
             ],
             "sensor": [
             ]
@@ -246,8 +246,8 @@ KNOWN_DEVICES = {
             "switch": [
                 {"dp": 101, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
                 {"dp": 102, "name": "Pause", "device_class": "switch", "icon": "mdi:pause"},
-                {"dp": 103, "name": "Child Lock", "device_class": "switch", "icon": "mdi:lock"},
-                {"dp": 145, "name": "Senior Mode", "device_class": "switch", "icon": "mdi:account-supervisor"},
+                {"dp": 103, "name": "Child Lock", "device_class": "switch", "icon": "mdi:lock", "entity_category": "diagnostic"},
+                {"dp": 145, "name": "Senior Mode", "device_class": "switch", "icon": "mdi:account-supervisor", "entity_category": "diagnostic"},
                 {"dp": 108, "name": "Confirm Action", "device_class": "switch", "entity_category": "config", "icon": "mdi:check"}
             ],
             "number": [
@@ -262,24 +262,24 @@ KNOWN_DEVICES = {
                 {"dp": 162, "name": "Zone 4: Power Level", "min": 0, "max": 25, "zone": 4, "mode": "slider", "icon": "mdi:numeric-4-circle"},
                 {"dp": 162, "name": "Zone 5: Power Level", "min": 0, "max": 25, "zone": 5, "mode": "slider", "icon": "mdi:numeric-5-circle"},
 
-                {"dp": 167, "name": "Zone 1: Timer", "min": 0, "max": 255, "unit_of_measurement": UnitOfTime.MINUTES, "device_class": "duration", "zone": 1, "mode": "slider", "icon": "mdi:timer-outline"},
-                {"dp": 167, "name": "Zone 2: Timer", "min": 0, "max": 255, "unit_of_measurement": UnitOfTime.MINUTES, "device_class": "duration", "zone": 2, "mode": "slider", "icon": "mdi:timer-outline"},
-                {"dp": 167, "name": "Zone 3: Timer", "min": 0, "max": 255, "unit_of_measurement": UnitOfTime.MINUTES, "device_class": "duration", "zone": 3, "mode": "slider", "icon": "mdi:timer-outline"},
-                {"dp": 167, "name": "Zone 4: Timer", "min": 0, "max": 255, "unit_of_measurement": UnitOfTime.MINUTES, "device_class": "duration", "zone": 4, "mode": "slider", "icon": "mdi:timer-outline"},
-                {"dp": 167, "name": "Zone 5: Timer", "min": 0, "max": 255, "unit_of_measurement": UnitOfTime.MINUTES, "device_class": "duration", "zone": 5, "mode": "slider", "icon": "mdi:timer-outline"},
+                {"dp": 167, "name": "Zone 1: Timer", "min": 0, "max": 255, "unit_of_measurement": UnitOfTime.MINUTES, "device_class": "duration", "zone": 1, "mode": "slider", "icon": "mdi:timer-outline", "advanced": True},
+                {"dp": 167, "name": "Zone 2: Timer", "min": 0, "max": 255, "unit_of_measurement": UnitOfTime.MINUTES, "device_class": "duration", "zone": 2, "mode": "slider", "icon": "mdi:timer-outline", "advanced": True},
+                {"dp": 167, "name": "Zone 3: Timer", "min": 0, "max": 255, "unit_of_measurement": UnitOfTime.MINUTES, "device_class": "duration", "zone": 3, "mode": "slider", "icon": "mdi:timer-outline", "advanced": True},
+                {"dp": 167, "name": "Zone 4: Timer", "min": 0, "max": 255, "unit_of_measurement": UnitOfTime.MINUTES, "device_class": "duration", "zone": 4, "mode": "slider", "icon": "mdi:timer-outline", "advanced": True},
+                {"dp": 167, "name": "Zone 5: Timer", "min": 0, "max": 255, "unit_of_measurement": UnitOfTime.MINUTES, "device_class": "duration", "zone": 5, "mode": "slider", "icon": "mdi:timer-outline", "advanced": True},
 
-                {"dp": 168, "name": "Zone 1: Target Temp", "min": 0, "max": 300, "unit_of_measurement": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 1, "mode": "slider", "icon": "mdi:thermometer"},
-                {"dp": 168, "name": "Zone 2: Target Temp", "min": 0, "max": 300, "unit_of_measurement": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 2, "mode": "slider", "icon": "mdi:thermometer"},
-                {"dp": 168, "name": "Zone 3: Target Temp", "min": 0, "max": 300, "unit_of_measurement": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 3, "mode": "slider", "icon": "mdi:thermometer"},
-                {"dp": 168, "name": "Zone 4: Target Temp", "min": 0, "max": 300, "unit_of_measurement": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 4, "mode": "slider", "icon": "mdi:thermometer"},
-                {"dp": 168, "name": "Zone 5: Target Temp", "min": 0, "max": 300, "unit_of_measurement": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 5, "mode": "slider", "icon": "mdi:thermometer"}
+                {"dp": 168, "name": "Zone 1: Target Temp", "min": 0, "max": 300, "unit_of_measurement": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 1, "mode": "slider", "icon": "mdi:thermometer", "advanced": True},
+                {"dp": 168, "name": "Zone 2: Target Temp", "min": 0, "max": 300, "unit_of_measurement": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 2, "mode": "slider", "icon": "mdi:thermometer", "advanced": True},
+                {"dp": 168, "name": "Zone 3: Target Temp", "min": 0, "max": 300, "unit_of_measurement": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 3, "mode": "slider", "icon": "mdi:thermometer", "advanced": True},
+                {"dp": 168, "name": "Zone 4: Target Temp", "min": 0, "max": 300, "unit_of_measurement": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 4, "mode": "slider", "icon": "mdi:thermometer", "advanced": True},
+                {"dp": 168, "name": "Zone 5: Target Temp", "min": 0, "max": 300, "unit_of_measurement": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 5, "mode": "slider", "icon": "mdi:thermometer", "advanced": True}
             ],
             "select": [
-                {"dp": 148, "name": "Zone 1: Quick Level", "options": QUICK_LEVELS, "icon": "mdi:numeric-1-circle-outline"},
-                {"dp": 149, "name": "Zone 2: Quick Level", "options": QUICK_LEVELS, "icon": "mdi:numeric-2-circle-outline"},
-                {"dp": 150, "name": "Zone 3: Quick Level", "options": QUICK_LEVELS, "icon": "mdi:numeric-3-circle-outline"},
-                {"dp": 151, "name": "Zone 4: Quick Level", "options": QUICK_LEVELS, "icon": "mdi:numeric-4-circle-outline"},
-                {"dp": 152, "name": "Zone 5: Quick Level", "options": QUICK_LEVELS, "icon": "mdi:numeric-5-circle-outline"},
+                {"dp": 148, "name": "Zone 1: Quick Level", "options": QUICK_LEVELS, "icon": "mdi:numeric-1-circle-outline", "advanced": True},
+                {"dp": 149, "name": "Zone 2: Quick Level", "options": QUICK_LEVELS, "icon": "mdi:numeric-2-circle-outline", "advanced": True},
+                {"dp": 150, "name": "Zone 3: Quick Level", "options": QUICK_LEVELS, "icon": "mdi:numeric-3-circle-outline", "advanced": True},
+                {"dp": 151, "name": "Zone 4: Quick Level", "options": QUICK_LEVELS, "icon": "mdi:numeric-4-circle-outline", "advanced": True},
+                {"dp": 152, "name": "Zone 5: Quick Level", "options": QUICK_LEVELS, "icon": "mdi:numeric-5-circle-outline", "advanced": True},
                 {"dp": 153, "name": "Save Zone Level", "options": ["save_hob1", "save_hob2", "save_hob3", "save_hob4", "save_hob5"], "entity_category": "config", "icon": "mdi:content-save"},
                 {"dp": 154, "name": "Set Zone Level", "options": ["set_hob1", "set_hob2", "set_hob3", "set_hob4", "set_hob5"], "entity_category": "config", "icon": "mdi:cog"},
                 {"dp": 155, "name": "Power Limit", "options": ["power_limit_1", "power_limit_2", "power_limit_3", "power_limit_4", "power_limit_5"], "icon": "mdi:flash-triangle"}
@@ -293,19 +293,19 @@ KNOWN_DEVICES = {
                 {"dp": 169, "name": "Zone 5: Current Temp", "unit_of_measurement": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 5, "icon": "mdi:thermometer"}
             ],
             "binary_sensor": [
-                # Zone error status (bitfield-decoded)
-                {"dp": 105, "name": "Zone 1: Error", "device_class": "problem", "zone": 1, "icon": "mdi:alert-circle"},
-                {"dp": 105, "name": "Zone 2: Error", "device_class": "problem", "zone": 2, "icon": "mdi:alert-circle"},
-                {"dp": 105, "name": "Zone 3: Error", "device_class": "problem", "zone": 3, "icon": "mdi:alert-circle"},
-                {"dp": 105, "name": "Zone 4: Error", "device_class": "problem", "zone": 4, "icon": "mdi:alert-circle"},
-                {"dp": 105, "name": "Zone 5: Error", "device_class": "problem", "zone": 5, "icon": "mdi:alert-circle"},
+                # Zone error status (bitfield-decoded) - Diagnostic
+                {"dp": 105, "name": "Zone 1: Error", "device_class": "problem", "zone": 1, "icon": "mdi:alert-circle", "entity_category": "diagnostic"},
+                {"dp": 105, "name": "Zone 2: Error", "device_class": "problem", "zone": 2, "icon": "mdi:alert-circle", "entity_category": "diagnostic"},
+                {"dp": 105, "name": "Zone 3: Error", "device_class": "problem", "zone": 3, "icon": "mdi:alert-circle", "entity_category": "diagnostic"},
+                {"dp": 105, "name": "Zone 4: Error", "device_class": "problem", "zone": 4, "icon": "mdi:alert-circle", "entity_category": "diagnostic"},
+                {"dp": 105, "name": "Zone 5: Error", "device_class": "problem", "zone": 5, "icon": "mdi:alert-circle", "entity_category": "diagnostic"},
 
-                # Zone selection status (bitfield-decoded)
-                {"dp": 161, "name": "Zone 1: Selected", "device_class": "running", "zone": 1, "icon": "mdi:radiobox-marked"},
-                {"dp": 161, "name": "Zone 2: Selected", "device_class": "running", "zone": 2, "icon": "mdi:radiobox-marked"},
-                {"dp": 161, "name": "Zone 3: Selected", "device_class": "running", "zone": 3, "icon": "mdi:radiobox-marked"},
-                {"dp": 161, "name": "Zone 4: Selected", "device_class": "running", "zone": 4, "icon": "mdi:radiobox-marked"},
-                {"dp": 161, "name": "Zone 5: Selected", "device_class": "running", "zone": 5, "icon": "mdi:radiobox-marked"},
+                # Zone selection status (bitfield-decoded) - Diagnostic
+                {"dp": 161, "name": "Zone 1: Selected", "device_class": "running", "zone": 1, "icon": "mdi:radiobox-marked", "entity_category": "diagnostic"},
+                {"dp": 161, "name": "Zone 2: Selected", "device_class": "running", "zone": 2, "icon": "mdi:radiobox-marked", "entity_category": "diagnostic"},
+                {"dp": 161, "name": "Zone 3: Selected", "device_class": "running", "zone": 3, "icon": "mdi:radiobox-marked", "entity_category": "diagnostic"},
+                {"dp": 161, "name": "Zone 4: Selected", "device_class": "running", "zone": 4, "icon": "mdi:radiobox-marked", "entity_category": "diagnostic"},
+                {"dp": 161, "name": "Zone 5: Selected", "device_class": "running", "zone": 5, "icon": "mdi:radiobox-marked", "entity_category": "diagnostic"},
 
                 # Zone boost status (bitfield-decoded)
                 {"dp": 163, "name": "Zone 1: Boost Active", "device_class": "running", "zone": 1, "icon": "mdi:flash"},
@@ -321,13 +321,13 @@ KNOWN_DEVICES = {
                 {"dp": 164, "name": "Zone 4: Keep Warm", "device_class": "running", "zone": 4, "icon": "mdi:thermometer-low"},
                 {"dp": 164, "name": "Zone 5: Keep Warm", "device_class": "running", "zone": 5, "icon": "mdi:thermometer-low"},
 
-                # Flex zone controls (special zones)
-                {"dp": 165, "name": "Flex Zone Left", "device_class": "running", "zone": 1, "icon": "mdi:arrow-expand-horizontal"},
-                {"dp": 165, "name": "Flex Zone Right", "device_class": "running", "zone": 2, "icon": "mdi:arrow-expand-horizontal"},
+                # Flex zone controls (special zones) - Advanced
+                {"dp": 165, "name": "Flex Zone Left", "device_class": "running", "zone": 1, "icon": "mdi:arrow-expand-horizontal", "advanced": True},
+                {"dp": 165, "name": "Flex Zone Right", "device_class": "running", "zone": 2, "icon": "mdi:arrow-expand-horizontal", "advanced": True},
 
-                # BBQ mode controls (special zones)
-                {"dp": 166, "name": "BBQ Mode Left", "device_class": "running", "zone": 1, "icon": "mdi:grill"},
-                {"dp": 166, "name": "BBQ Mode Right", "device_class": "running", "zone": 2, "icon": "mdi:grill"}
+                # BBQ mode controls (special zones) - Advanced
+                {"dp": 166, "name": "BBQ Mode Left", "device_class": "running", "zone": 1, "icon": "mdi:grill", "advanced": True},
+                {"dp": 166, "name": "BBQ Mode Right", "device_class": "running", "zone": 2, "icon": "mdi:grill", "advanced": True}
             ]
         }
     }

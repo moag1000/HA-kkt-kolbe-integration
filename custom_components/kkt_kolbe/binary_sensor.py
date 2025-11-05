@@ -16,12 +16,6 @@ from .bitfield_utils import get_zone_value_from_coordinator, BITFIELD_CONFIG
 
 _LOGGER = logging.getLogger(__name__)
 
-# Data points that should be marked as diagnostic
-DIAGNOSTIC_DPS = {
-    103,  # Child lock
-    145,  # Senior mode
-}
-
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -56,10 +50,7 @@ class KKTKolbeBinarySensor(KKTBaseEntity, BinarySensorEntity):
         self._attr_icon = self._get_icon()
         self._cached_state = None
 
-        # Set entity category for diagnostic sensors
-        dp = config.get("dp")
-        if dp in DIAGNOSTIC_DPS:
-            self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        # Note: entity_category is now handled in base_entity.py from device_types.py config
 
         # Initialize state from coordinator data
         self._update_cached_state()

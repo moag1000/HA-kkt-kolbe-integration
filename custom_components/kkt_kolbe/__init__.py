@@ -10,8 +10,9 @@ from homeassistant.const import (
     CONF_ACCESS_TOKEN,
 )
 from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.helpers import issue_registry as ir
 
-from .const import DOMAIN
+from .const import DOMAIN, CONF_API_ENDPOINT
 # Heavy imports moved to lazy loading to prevent blocking the event loop
 
 _LOGGER = logging.getLogger(__name__)
@@ -27,6 +28,10 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     # Lazy import to reduce blocking time
     from .discovery import async_start_discovery
     await async_start_discovery(hass)
+
+    # Start stale device tracker (Gold Tier requirement)
+    from .device_tracker import async_start_tracker
+    await async_start_tracker(hass)
 
     return True
 
@@ -125,6 +130,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     f"Authentication failed for device at {ip_address}. "
                     f"Local key may be incorrect or expired."
                 )
+
+                # Create repair issue for expired local key
+                ir.async_create_issue(
+                    hass,
+                    DOMAIN,
+                    f"local_key_expired_{entry.entry_id}",
+                    is_fixable=True,
+                    severity=ir.IssueSeverity.ERROR,
+                    translation_key="local_key_expired",
+                    translation_placeholders={
+                        "entry_title": entry.title,
+                        "device_id": entry.data.get(CONF_DEVICE_ID, "Unknown"),
+                    },
+                    data={
+                        "entry_id": entry.entry_id,
+                        "entry_title": entry.title,
+                        "device_id": entry.data.get(CONF_DEVICE_ID, "Unknown"),
+                    },
+                )
+
                 raise ConfigEntryAuthFailed(
                     f"Authentication failed: {e}. Please check your local key."
                 ) from e
@@ -170,8 +195,49 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 if integration_mode == "api_discovery" and local_connection_failed:
                     # Check if it's an auth issue
                     if "auth" in str(e).lower() or "401" in str(e) or "403" in str(e):
+                        # Create repair issue for API authentication
+                        ir.async_create_issue(
+                            hass,
+                            DOMAIN,
+                            f"tuya_api_auth_failed_{entry.entry_id}",
+                            is_fixable=True,
+                            severity=ir.IssueSeverity.ERROR,
+                            translation_key="tuya_api_auth_failed",
+                            translation_placeholders={
+                                "entry_title": entry.title,
+                            },
+                            data={
+                                "entry_id": entry.entry_id,
+                                "entry_title": entry.title,
+                            },
+                        )
+
                         raise ConfigEntryAuthFailed(
                             f"API authentication failed: {e}. Please check credentials."
+                        ) from e
+                    # Check if it's a wrong region/endpoint issue (error code 1004)
+                    elif "1004" in str(e) or "sign" in str(e).lower():
+                        # Create repair issue for wrong region
+                        ir.async_create_issue(
+                            hass,
+                            DOMAIN,
+                            f"tuya_api_wrong_region_{entry.entry_id}",
+                            is_fixable=True,
+                            severity=ir.IssueSeverity.WARNING,
+                            translation_key="tuya_api_wrong_region",
+                            translation_placeholders={
+                                "entry_title": entry.title,
+                                "current_endpoint": entry.data.get(CONF_API_ENDPOINT, "Unknown"),
+                            },
+                            data={
+                                "entry_id": entry.entry_id,
+                                "entry_title": entry.title,
+                                "current_endpoint": entry.data.get(CONF_API_ENDPOINT, "Unknown"),
+                            },
+                        )
+
+                        raise ConfigEntryAuthFailed(
+                            f"API signature validation failed: {e}. Wrong region/endpoint?"
                         ) from e
                     else:
                         _LOGGER.warning("API connection failed, will retry automatically")
