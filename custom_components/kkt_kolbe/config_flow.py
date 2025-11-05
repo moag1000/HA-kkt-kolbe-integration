@@ -301,14 +301,20 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             })
             description_key = "reauth_local"
 
+        placeholders = {
+            "device_name": self._reauth_entry.title,
+            "device_id": self._reauth_entry.data.get("device_id", "Unknown"),
+        }
+
+        # Add setup guide link for API reauth
+        if is_api_mode:
+            placeholders["setup_info"] = "📚 Setup Guide: https://github.com/moag1000/HA-kkt-kolbe-integration#-tuya-api-setup---vollstaendige-anleitung\n🔗 Tuya IoT Platform: https://iot.tuya.com"
+
         return self.async_show_form(
             step_id="reauth_confirm",
             data_schema=reauth_schema,
             errors=errors,
-            description_placeholders={
-                "device_name": self._reauth_entry.title,
-                "device_id": self._reauth_entry.data.get("device_id", "Unknown"),
-            }
+            description_placeholders=placeholders
         )
 
     async def async_step_discovery(
