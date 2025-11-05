@@ -622,7 +622,7 @@ MIT License - siehe [LICENSE](./LICENSE) für Details.
 
 **Made with ❤️ and 🤖 by [@moag1000](https://github.com/moag1000) & Claude Code**
 
-[releases-shield]: https://img.shields.io/badge/release-v2.2.0-gold.svg?style=for-the-badge
+[releases-shield]: https://img.shields.io/badge/release-v2.2.4-gold.svg?style=for-the-badge
 [betabadge]: https://img.shields.io/badge/status-STABLE-green.svg?style=for-the-badge
 [beta-release]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v2.0.0
 [releases]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases
