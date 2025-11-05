@@ -7,6 +7,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.helpers.update_coordinator import UpdateFailed
 
 from .tuya_cloud_client import TuyaCloudClient
 from .api_exceptions import TuyaAPIError, TuyaAuthenticationError
@@ -73,31 +74,55 @@ class TuyaAPIManager:
                 # Trigger reauthentication flow
                 if self._reauth_callback:
                     await self._reauth_callback()
+                else:
+                    # Initiate reauth flow through Home Assistant
+                    self.hass.async_create_task(
+                        self.hass.config_entries.flow.async_init(
+                            "kkt_kolbe",
+                            context={"source": "reauth", "entry_id": self.config_entry.entry_id},
+                            data=self.config_entry.data,
+                        )
+                    )
                 raise ConfigEntryAuthFailed("API authentication failed") from err
 
     async def async_get_device_list(self) -> List[Dict]:
         """Get device list with error handling."""
+        import async_timeout
         try:
-            client = await self.async_get_client()
-            return await client.get_device_list()
+            async with async_timeout.timeout(10):
+                client = await self.async_get_client()
+                return await client.get_device_list()
+        except asyncio.TimeoutError:
+            _LOGGER.error("Timeout getting device list")
+            raise UpdateFailed("API request timed out")
         except TuyaAPIError as err:
             _LOGGER.error("Failed to get device list: %s", err)
             raise
 
     async def async_get_device_properties(self, device_id: str) -> Dict:
         """Get device properties with error handling."""
+        import async_timeout
         try:
-            client = await self.async_get_client()
-            return await client.get_device_properties(device_id)
+            async with async_timeout.timeout(10):
+                client = await self.async_get_client()
+                return await client.get_device_properties(device_id)
+        except asyncio.TimeoutError:
+            _LOGGER.error("Timeout getting device properties for %s", device_id)
+            raise UpdateFailed("API request timed out")
         except TuyaAPIError as err:
             _LOGGER.error("Failed to get device properties for %s: %s", device_id, err)
             raise
 
     async def async_get_device_status(self, device_id: str) -> Dict:
         """Get device status with error handling."""
+        import async_timeout
         try:
-            client = await self.async_get_client()
-            return await client.get_device_status(device_id)
+            async with async_timeout.timeout(10):
+                client = await self.async_get_client()
+                return await client.get_device_status(device_id)
+        except asyncio.TimeoutError:
+            _LOGGER.error("Timeout getting device status for %s", device_id)
+            raise UpdateFailed("API request timed out")
         except TuyaAPIError as err:
             _LOGGER.error("Failed to get device status for %s: %s", device_id, err)
             raise

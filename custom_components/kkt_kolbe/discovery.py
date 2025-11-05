@@ -94,7 +94,7 @@ class TuyaUDPDiscovery(asyncio.DatagramProtocol):
                             formatted_device = {
                                 "device_id": device_id,
                                 "ip": device_info.get("ip"),  # Use consistent "ip" key
-                                "name": f"KKT Device {device_id[:8]}...",
+                                "name": f"KKT Device {device_id}",
                                 "discovered_via": "UDP",
                                 "product_name": product_name,
                                 "device_type": "auto"
@@ -251,7 +251,7 @@ class KKTKolbeDiscovery(ServiceListener):
 
             for port in UDP_PORTS:
                 try:
-                    loop = asyncio.get_event_loop()
+                    loop = asyncio.get_running_loop()
                     transport, protocol = await loop.create_datagram_endpoint(
                         lambda: TuyaUDPDiscovery(self._on_udp_device_found),
                         local_addr=('0.0.0.0', port),
@@ -295,7 +295,7 @@ class KKTKolbeDiscovery(ServiceListener):
                     "device_id": device_id,
                     "gwId": device_id,  # Keep gwId for zeroconf discovery
                     "ip": device_info.get("ip"),  # Use consistent "ip" key
-                    "name": f"KKT Device {device_id[:8]}...",
+                    "name": f"KKT Device {device_id}",
                     "discovered_via": "UDP",
                     "product_name": product_name,
                     "device_type": "auto"
@@ -654,7 +654,7 @@ async def simple_tuya_discover(timeout: int = 6) -> Dict[str, Dict]:
             discovered[device_id] = device_info
 
     # Create UDP listeners
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     listeners = []
 
     try:
@@ -755,7 +755,7 @@ async def debug_scan_network() -> Dict[str, List[str]]:
             udp_devices = []
 
             # Quick UDP discovery test
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
 
             async def test_udp_listener():
                 discovered = []

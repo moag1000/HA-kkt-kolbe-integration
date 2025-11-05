@@ -8,7 +8,8 @@ import tinytuya
 from .exceptions import (
     KKTConnectionError,
     KKTTimeoutError,
-    KKTDataPointError
+    KKTDataPointError,
+    KKTAuthenticationError
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -16,8 +17,16 @@ _LOGGER = logging.getLogger(__name__)
 class KKTKolbeTuyaDevice:
     """Handle communication with KKT Kolbe device via Tuya protocol."""
 
-    def __init__(self, device_id: str, ip_address: str, local_key: str, version: str = "auto"):
-        """Initialize the Tuya device connection."""
+    def __init__(self, device_id: str, ip_address: str, local_key: str, version: str = "auto", hass=None):
+        """Initialize the Tuya device connection.
+
+        Args:
+            device_id: Tuya device ID
+            ip_address: IP address of the device
+            local_key: Local encryption key
+            version: Protocol version ("auto" or specific version like "3.3")
+            hass: Home Assistant instance (optional, for executor job scheduling)
+        """
         self.device_id = device_id
         self.ip_address = ip_address
         self.local_key = local_key
@@ -25,6 +34,7 @@ class KKTKolbeTuyaDevice:
         self._device = None
         self._status = {}
         self._connected = False
+        self._hass = hass
         # Don't connect in __init__ - will be done async
 
     def _handle_task_result(self, task):
@@ -45,60 +55,122 @@ class KKTKolbeTuyaDevice:
         if self._connected:
             return
 
-        max_retries = 3
-        retry_delay = 5.0  # seconds
+        max_retries = 2  # Reduced from 3 to speed up failure detection
+        retry_delay = 3.0  # Reduced from 5s for faster retry
+
+        last_exception = None
 
         for attempt in range(max_retries):
             try:
-                _LOGGER.info(f"Attempting connection to device {self.device_id[:8]} at {self.ip_address} (attempt {attempt + 1}/{max_retries})")
+                _LOGGER.info(
+                    f"Attempting connection to device {self.device_id[:8]}... "
+                    f"at {self.ip_address} (attempt {attempt + 1}/{max_retries})"
+                )
 
                 # Apply timeout protection for connection operations
-                await asyncio.wait_for(self._perform_connection(), timeout=30.0)
+                # Total timeout is 15s (4 versions × 3s + overhead)
+                await asyncio.wait_for(self._perform_connection(), timeout=15.0)
 
-                _LOGGER.info(f"Successfully connected to device {self.device_id[:8]} at {self.ip_address}")
+                _LOGGER.info(f"Successfully connected to device {self.device_id[:8]}... at {self.ip_address}")
                 return
 
-            except asyncio.TimeoutError:
+            except asyncio.CancelledError:
+                # Handle cancellation gracefully
+                self._connected = False
+                self._device = None
+                _LOGGER.warning(f"Connection attempt cancelled for device at {self.ip_address}")
+                raise  # Always re-raise CancelledError
+
+            except asyncio.TimeoutError as e:
+                last_exception = e
                 self._connected = False
                 self._device = None
                 if attempt == max_retries - 1:
-                    _LOGGER.error(f"Connection timeout after 30 seconds for device {self.ip_address} (final attempt)")
+                    _LOGGER.error(
+                        f"Connection timeout after 15 seconds for device at {self.ip_address}. "
+                        f"Device may be offline or network unreachable."
+                    )
                     raise KKTTimeoutError(
                         operation="connect",
                         device_id=self.device_id[:8],
-                        timeout=30.0
+                        timeout=15.0
                     )
                 else:
-                    _LOGGER.warning(f"Connection timeout for device {self.ip_address} (attempt {attempt + 1}/{max_retries}), retrying in {retry_delay}s")
+                    _LOGGER.info(f"Timeout, retrying in {retry_delay}s...")
                     await asyncio.sleep(retry_delay)
 
+            except KKTAuthenticationError as e:
+                # Authentication errors should not be retried - re-raise immediately
+                self._connected = False
+                self._device = None
+                _LOGGER.error(f"Authentication failed for device at {self.ip_address}: {e}")
+                raise
+
+            except (KKTConnectionError, KKTTimeoutError) as e:
+                # Re-raise our custom exceptions immediately without retry
+                last_exception = e
+                self._connected = False
+                self._device = None
+                _LOGGER.error(
+                    f"Connection failed for device at {self.ip_address}: {e}\n"
+                    f"This error typically indicates:\n"
+                    f"  - Device not found on network\n"
+                    f"  - Incorrect local key\n"
+                    f"  - Incompatible Tuya protocol version\n"
+                    f"Skipping retries for this error type."
+                )
+                raise
+
             except Exception as e:
+                last_exception = e
                 self._connected = False
                 self._device = None
                 if attempt == max_retries - 1:
-                    _LOGGER.error(f"Failed to connect to device {self.ip_address} after {max_retries} attempts: {e}")
+                    _LOGGER.error(
+                        f"Failed to connect to device at {self.ip_address} after {max_retries} attempts.\n"
+                        f"Last error: {e}\n"
+                        f"Please verify device is online and configuration is correct."
+                    )
                     raise KKTConnectionError(
                         operation="connect",
                         device_id=self.device_id[:8],
                         reason=str(e)
                     )
                 else:
-                    _LOGGER.warning(f"Connection failed for device {self.ip_address} (attempt {attempt + 1}/{max_retries}): {e}, retrying in {retry_delay}s")
+                    _LOGGER.info(f"Connection attempt {attempt + 1} failed: {e}, retrying in {retry_delay}s...")
                     await asyncio.sleep(retry_delay)
+
+    def _run_executor_job(self, func, *args):
+        """Run a function in executor - use hass if available, otherwise fallback to loop.
+
+        This follows Home Assistant best practices for running blocking I/O.
+        """
+        if self._hass:
+            return self._hass.async_add_executor_job(func, *args)
+        else:
+            # Fallback for cases where hass is not available (e.g., tests)
+            loop = asyncio.get_running_loop()
+            if args:
+                return loop.run_in_executor(None, func, *args)
+            else:
+                return loop.run_in_executor(None, func)
 
     async def _perform_connection(self) -> None:
         """Perform the actual connection logic."""
-        loop = asyncio.get_event_loop()
-
         # LocalTuya-inspired authentication with enhanced protocol detection
         if self.version == "auto":
             _LOGGER.info(f"Auto-detecting Tuya protocol version for {self.ip_address}")
             # LocalTuya order: 3.3 default first, then 3.4, 3.1, 3.2 (proven compatibility)
+            tested_versions = []
+
             for test_version in [3.3, 3.4, 3.1, 3.2]:
                 _LOGGER.debug(f"Testing protocol version {test_version} for device {self.device_id[:8]}")
+                tested_versions.append(test_version)
+                test_device = None
+
                 try:
-                    test_device = await loop.run_in_executor(
-                        None,
+                    # Create device with shorter timeout
+                    test_device = await self._run_executor_job(
                         lambda v=test_version: tinytuya.Device(
                             dev_id=self.device_id,
                             address=self.ip_address,
@@ -110,25 +182,18 @@ class KKTKolbeTuyaDevice:
                     # Configure device with LocalTuya-style settings
                     test_device.set_socketPersistent(True)
                     test_device.set_socketNODELAY(True)
-                    test_device.set_socketTimeout(5)
-                    test_device.set_socketRetryLimit(3)
+                    test_device.set_socketTimeout(3)  # Reduced from 5 to 3
+                    test_device.set_socketRetryLimit(1)  # Reduced from 3 to 1
 
-                    # Enhanced validation with explicit status() call and DPS detection
+                    # Enhanced validation with explicit status() call
+                    # Use shorter timeout (3s instead of 5s)
                     test_status = await asyncio.wait_for(
-                        loop.run_in_executor(None, test_device.status),
-                        timeout=5.0
+                        self._run_executor_job(test_device.status),
+                        timeout=3.0
                     )
 
-                    # Try to detect available DPS for enhanced validation
-                    try:
-                        available_dps = await asyncio.wait_for(
-                            loop.run_in_executor(None, test_device.detect_available_dps),
-                            timeout=3.0
-                        )
-                        _LOGGER.debug(f"Detected DPS for version {test_version}: {available_dps}")
-                    except Exception:
-                        # DPS detection is optional - continue if it fails
-                        pass
+                    # Skip DPS detection to save time
+                    # It's optional and adds 3s per attempt
 
                     # LocalTuya-style validation: Check for datapoints like LocalTuya does
                     if (test_status and isinstance(test_status, dict) and
@@ -139,26 +204,75 @@ class KKTKolbeTuyaDevice:
                         self._device = test_device
                         self._connected = True
                         return
+                    else:
+                        # Invalid response, cleanup and try next
+                        if test_device:
+                            try:
+                                test_device.close()
+                            except:
+                                pass
+
+                except asyncio.CancelledError:
+                    # Cleanup on cancellation
+                    if test_device:
+                        try:
+                            test_device.close()
+                        except:
+                            pass
+                    _LOGGER.warning(f"Protocol detection cancelled for version {test_version}")
+                    raise  # Re-raise to propagate cancellation
 
                 except asyncio.TimeoutError:
-                    _LOGGER.warning(f"Protocol version {test_version} timeout for device {self.device_id[:8]} - trying next version")
+                    # Cleanup on timeout
+                    if test_device:
+                        try:
+                            test_device.close()
+                        except:
+                            pass
+                    _LOGGER.debug(f"Version {test_version} timeout - trying next")
                     continue
+
                 except Exception as e:
-                    _LOGGER.warning(f"Protocol version {test_version} failed for device {self.device_id[:8]}: {e} - trying next version")
+                    # Cleanup on error
+                    if test_device:
+                        try:
+                            test_device.close()
+                        except:
+                            pass
+
+                    # Check if this is an authentication error
+                    error_msg = str(e).lower()
+                    if any(keyword in error_msg for keyword in ["decrypt", "encrypt", "hmac", "key", "auth"]):
+                        # This looks like an authentication error
+                        _LOGGER.error(f"Authentication error detected: {e}")
+                        raise KKTAuthenticationError(
+                            device_id=self.device_id,
+                            message=f"Authentication failed - invalid local key: {e}"
+                        )
+
+                    _LOGGER.debug(f"Version {test_version} failed: {type(e).__name__} - trying next")
                     continue
 
             # If we reach here, auto-detection failed
-            _LOGGER.error(f"Auto-detection failed for all versions (3.3, 3.4, 3.1, 3.2)")
+            _LOGGER.error(
+                f"Protocol auto-detection failed for device at {self.ip_address}\n"
+                f"Tested versions: 3.3, 3.4, 3.1, 3.2\n"
+                f"Common causes:\n"
+                f"  1. Device is offline or unreachable\n"
+                f"  2. Incorrect local key (check Tuya IoT Platform)\n"
+                f"  3. Device uses unsupported protocol version\n"
+                f"  4. Firewall blocking connection on port 6668\n"
+                f"Recommendation: Verify device is online and local key is correct"
+            )
             raise KKTConnectionError(
                 operation="auto_detect",
                 device_id=self.device_id[:8],
-                reason="No compatible version found - device not responding to any Tuya protocol"
+                reason="Device not responding to any Tuya protocol version (3.1-3.4). Check device connectivity and local key."
             )
         else:
             # Use specified version with LocalTuya-style configuration
             version_float = float(self.version) if self.version != "auto" else 3.3
-            self._device = await loop.run_in_executor(
-                None,
+            self._device = await self._run_executor_job(
                 lambda: tinytuya.Device(
                     dev_id=self.device_id,
                     address=self.ip_address,
@@ -166,13 +280,71 @@ class KKTKolbeTuyaDevice:
                     version=version_float
                 )
             )
-            # Apply LocalTuya-style socket configuration
+            # Apply LocalTuya-style socket configuration (consistent with auto-detection)
             self._device.set_socketPersistent(True)
             self._device.set_socketNODELAY(True)
-            self._device.set_socketTimeout(5)
-            self._device.set_socketRetryLimit(3)
-            self._connected = True
-            _LOGGER.info(f"Connected to KKT Kolbe device at {self.ip_address} (version {self.version})")
+            self._device.set_socketTimeout(3)  # Match auto-detection timeout
+            self._device.set_socketRetryLimit(1)  # Match auto-detection retry limit
+
+            # Validate connection by testing status
+            try:
+                test_status = await asyncio.wait_for(
+                    self._run_executor_job(self._device.status),
+                    timeout=3.0
+                )
+
+                if not (test_status and isinstance(test_status, dict) and
+                        "dps" in test_status and test_status["dps"]):
+                    # Invalid response
+                    try:
+                        self._device.close()
+                    except:
+                        pass
+                    raise KKTConnectionError(
+                        operation="validate_connection",
+                        device_id=self.device_id[:8],
+                        reason=f"Device did not return valid status for version {version_float}"
+                    )
+
+                self._connected = True
+                _LOGGER.info(f"Connected to device at {self.ip_address} using version {self.version}")
+
+            except asyncio.TimeoutError:
+                if self._device:
+                    try:
+                        self._device.close()
+                    except:
+                        pass
+                self._device = None
+                raise KKTConnectionError(
+                    operation="validate_connection",
+                    device_id=self.device_id[:8],
+                    reason=f"Timeout validating connection with version {version_float}"
+                )
+            except Exception as e:
+                # Cleanup on error
+                if self._device:
+                    try:
+                        self._device.close()
+                    except:
+                        pass
+                self._device = None
+
+                # Check if this is an authentication error
+                error_msg = str(e).lower()
+                if any(keyword in error_msg for keyword in ["decrypt", "encrypt", "hmac", "key", "auth"]):
+                    _LOGGER.error(f"Authentication error detected: {e}")
+                    raise KKTAuthenticationError(
+                        device_id=self.device_id,
+                        message=f"Authentication failed - invalid local key: {e}"
+                    )
+
+                # Otherwise raise as connection error
+                raise KKTConnectionError(
+                    operation="validate_connection",
+                    device_id=self.device_id[:8],
+                    reason=f"Failed to validate connection: {e}"
+                )
 
     async def async_ensure_connected(self):
         """Ensure device is connected (async) with proper error handling."""
@@ -226,11 +398,9 @@ class KKTKolbeTuyaDevice:
             )
 
         try:
-            loop = asyncio.get_event_loop()
-
             # Explicit status() call with timeout protection
             status = await asyncio.wait_for(
-                loop.run_in_executor(None, self._device.status),
+                self._run_executor_job(self._device.status),
                 timeout=10.0
             )
 
@@ -259,6 +429,13 @@ class KKTKolbeTuyaDevice:
             self._status = status
             _LOGGER.debug(f"Retrieved status with {len(status.get('dps', {}))} data points")
             return self._status.get("dps", {})
+
+        except asyncio.CancelledError:
+            # Handle cancellation - cleanup but re-raise
+            self._connected = False
+            self._device = None
+            _LOGGER.debug(f"get_status cancelled for device at {self.ip_address}")
+            raise
 
         except asyncio.TimeoutError:
             self._connected = False
@@ -293,11 +470,9 @@ class KKTKolbeTuyaDevice:
             )
 
         try:
-            loop = asyncio.get_event_loop()
-
             # Explicit status() call with timeout protection
             status = await asyncio.wait_for(
-                loop.run_in_executor(None, self._device.status),
+                self._run_executor_job(self._device.status),
                 timeout=10.0
             )
 
@@ -306,6 +481,13 @@ class KKTKolbeTuyaDevice:
                 _LOGGER.debug(f"Status updated with {len(status.get('dps', {}))} data points")
             else:
                 _LOGGER.warning("Received invalid status during update")
+
+        except asyncio.CancelledError:
+            # Handle cancellation - cleanup but re-raise
+            self._connected = False
+            self._device = None
+            _LOGGER.debug(f"update_status cancelled for device at {self.ip_address}")
+            raise
 
         except asyncio.TimeoutError:
             self._connected = False
@@ -343,16 +525,9 @@ class KKTKolbeTuyaDevice:
             )
 
         try:
-            loop = asyncio.get_event_loop()
-
             # Explicit set_value() call with timeout protection
             result = await asyncio.wait_for(
-                loop.run_in_executor(
-                    None,
-                    self._device.set_value,
-                    dp,
-                    value
-                ),
+                self._run_executor_job(self._device.set_value, dp, value),
                 timeout=8.0
             )
 
@@ -362,6 +537,13 @@ class KKTKolbeTuyaDevice:
 
             _LOGGER.debug(f"Successfully set DP {dp} to {value}")
             return True
+
+        except asyncio.CancelledError:
+            # Handle cancellation - cleanup but re-raise
+            self._connected = False
+            self._device = None
+            _LOGGER.debug(f"set_dp cancelled for DP {dp} on device at {self.ip_address}")
+            raise
 
         except asyncio.TimeoutError:
             self._connected = False

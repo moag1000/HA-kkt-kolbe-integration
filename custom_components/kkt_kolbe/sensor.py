@@ -9,6 +9,7 @@ from homeassistant.const import UnitOfTemperature
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity import EntityCategory
 
 from .base_entity import KKTBaseEntity, KKTZoneBaseEntity
 from .const import DOMAIN
@@ -17,7 +18,13 @@ from .bitfield_utils import get_zone_value_from_coordinator, BITFIELD_CONFIG
 
 _LOGGER = logging.getLogger(__name__)
 
-PARALLEL_UPDATES = 0
+# Data points that should be marked as diagnostic
+DIAGNOSTIC_DPS = {
+    14,   # Filter hours
+    105,  # Zone errors
+    169,  # Core temp display
+}
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -57,6 +64,11 @@ class KKTKolbeSensor(KKTBaseEntity, SensorEntity):
         self._attr_state_class = config.get("state_class")
         self._attr_native_unit_of_measurement = config.get("unit_of_measurement")
         self._attr_icon = self._get_icon()
+
+        # Set entity category for diagnostic sensors
+        dp = config.get("dp")
+        if dp in DIAGNOSTIC_DPS:
+            self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def _get_icon(self) -> str:
         """Get appropriate icon for the sensor."""
@@ -111,6 +123,11 @@ class KKTKolbeZoneSensor(KKTZoneBaseEntity, SensorEntity):
         self._attr_native_unit_of_measurement = config.get("unit_of_measurement")
         self._attr_icon = self._get_icon()
         self._cached_value = None
+
+        # Set entity category for diagnostic sensors (zone errors, etc.)
+        dp = config.get("dp")
+        if dp in DIAGNOSTIC_DPS:
+            self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
         # Initialize state from coordinator data
         self._update_cached_state()
