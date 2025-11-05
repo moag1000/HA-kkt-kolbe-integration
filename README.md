@@ -327,8 +327,9 @@ logger:
 > **WICHTIG:** Diese Integration wurde vollständig mit Anthropic's Claude Code entwickelt und ist Open Source.
 
 **Verwendung auf eigene Verantwortung:**
-- ✅ Der Code ist **ausgiebig getestet** und erfüllt Home Assistant Gold Tier Standard
-- ✅ Open Source und **Community-geprüft**
+- ✅ Der Code wurde **ausgiebig getestet** und erfüllt Home Assistant Gold Tier Standard (21/21 Anforderungen)
+- ✅ **Open Source** - vollständiger Quellcode einsehbar
+- ✅ **Aktiv entwickelt** - regelmäßige Updates und Bug-Fixes
 - ⚠️ **Kochfeld-Steuerung**: Besondere Vorsicht geboten - niemals unbeaufsichtigt lassen
 - 📖 Lies die **[Cooktop Safety Guide](docs/COOKTOP_SAFETY.md)** vor der ersten Verwendung
 - 🔒 Security Issues melden via **[Security Policy](docs/SECURITY.md)**
