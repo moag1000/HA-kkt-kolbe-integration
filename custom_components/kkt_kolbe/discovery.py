@@ -1,12 +1,15 @@
 """Discovery for KKT Kolbe devices using mDNS and UDP broadcasts."""
+from __future__ import annotations
+
 import asyncio
 import json
 import logging
 import socket
 from hashlib import md5
-from typing import Dict, List, Optional
-from zeroconf import ServiceBrowser, ServiceListener, ServiceInfo
-from zeroconf.asyncio import AsyncServiceInfo
+from typing import Any, Callable
+
+from zeroconf import ServiceBrowser, ServiceListener, ServiceInfo, Zeroconf
+from zeroconf.asyncio import AsyncServiceInfo, AsyncZeroconf
 from Crypto.Cipher import AES
 
 from homeassistant.core import HomeAssistant, callback
@@ -48,18 +51,22 @@ KKT_PATTERNS = [
 class TuyaUDPDiscovery(asyncio.DatagramProtocol):
     """UDP Discovery Protocol for Tuya devices (based on Local Tuya)."""
 
-    def __init__(self, devices_found_callback, hass=None):
+    def __init__(
+        self,
+        devices_found_callback: Callable[[dict[str, Any]], None],
+        hass: HomeAssistant | None = None,
+    ) -> None:
         """Initialize UDP discovery protocol."""
         self.devices_found_callback = devices_found_callback
-        self.transport = None
+        self.transport: asyncio.DatagramTransport | None = None
         self.hass = hass
 
-    def connection_made(self, transport):
+    def connection_made(self, transport: asyncio.DatagramTransport) -> None:
         """Called when UDP connection is established."""
         self.transport = transport
         _LOGGER.debug(f"UDP Discovery listening on {transport.get_extra_info('sockname')}")
 
-    def datagram_received(self, data, addr):
+    def datagram_received(self, data: bytes, addr: tuple[str, int]) -> None:
         """Process received UDP datagram from Tuya device."""
         try:
             _LOGGER.debug(f"RAW UDP received from {addr[0]}: length={len(data)}, data={data.hex()[:100]}...")
@@ -118,7 +125,7 @@ class TuyaUDPDiscovery(asyncio.DatagramProtocol):
         except Exception as e:
             _LOGGER.error(f"Failed to process UDP message from {addr}: {e}", exc_info=True)
 
-    def _decrypt_udp_message(self, data):
+    def _decrypt_udp_message(self, data: bytes) -> bytes | None:
         """Decrypt Tuya UDP broadcast message like LocalTuya."""
         try:
             # LocalTuya approach: Strip first 20 and last 8 bytes, then decrypt
@@ -151,7 +158,7 @@ class TuyaUDPDiscovery(asyncio.DatagramProtocol):
 
         return None
 
-    def _is_potential_kkt_device(self, device_info):
+    def _is_potential_kkt_device(self, device_info: dict[str, Any]) -> bool:
         """Check if UDP discovered device could be KKT Kolbe."""
         gw_id = device_info.get("gwId", "")
 
@@ -190,16 +197,16 @@ class TuyaUDPDiscovery(asyncio.DatagramProtocol):
 class KKTKolbeDiscovery(ServiceListener):
     """Discover KKT Kolbe devices via mDNS and UDP broadcasts."""
 
-    def __init__(self, hass: HomeAssistant):
+    def __init__(self, hass: HomeAssistant) -> None:
         """Initialize the discovery service."""
         self.hass = hass
-        self.discovered_devices: Dict[str, Dict] = {}
-        self._zeroconf = None
-        self._browsers: List[ServiceBrowser] = []
-        self._udp_listeners: List = []
+        self.discovered_devices: dict[str, dict[str, Any]] = {}
+        self._zeroconf: AsyncZeroconf | None = None
+        self._browsers: list[ServiceBrowser] = []
+        self._udp_listeners: list[tuple[asyncio.DatagramTransport, TuyaUDPDiscovery]] = []
         self._discovery_callback = self._schedule_discovery_trigger
 
-    async def async_discover_devices(self, timeout: int = 6) -> Dict[str, Dict]:
+    async def async_discover_devices(self, timeout: int = 6) -> dict[str, dict[str, Any]]:
         """Discover devices and return discovered devices dict."""
         # Start discovery if not already running
         if not self._browsers and not self._udp_listeners:
@@ -278,7 +285,7 @@ class KKTKolbeDiscovery(ServiceListener):
         except Exception as e:
             _LOGGER.error(f"Failed to start UDP discovery: {e}", exc_info=True)
 
-    def _on_udp_device_found(self, device_info: Dict) -> None:
+    def _on_udp_device_found(self, device_info: dict[str, Any]) -> None:
         """Handle device found via UDP broadcast."""
         try:
             # Convert UDP device info to our format
@@ -316,7 +323,7 @@ class KKTKolbeDiscovery(ServiceListener):
         except Exception as e:
             _LOGGER.error(f"Failed to process UDP device: {e}")
 
-    def _schedule_discovery_trigger(self, device_info: Dict) -> None:
+    def _schedule_discovery_trigger(self, device_info: dict[str, Any]) -> None:
         """Schedule discovery trigger in the main event loop."""
         try:
             # Use call_soon_threadsafe since UDP callbacks run in different thread
@@ -511,7 +518,7 @@ class KKTKolbeDiscovery(ServiceListener):
         _LOGGER.info(f"Unidentified Tuya device: {info.name} - Model: {model}, DeviceID: {device_id}")
         return False
 
-    def _extract_device_info(self, info) -> Optional[Dict]:
+    def _extract_device_info(self, info: AsyncServiceInfo) -> dict[str, Any] | None:
         """Extract device information from mDNS record."""
         if not info:
             return None
@@ -554,7 +561,7 @@ class KKTKolbeDiscovery(ServiceListener):
 
         return device_info if device_info.get("ip") else None
 
-    async def _async_trigger_discovery(self, device_info: Dict) -> None:
+    async def _async_trigger_discovery(self, device_info: dict[str, Any]) -> None:
         """Trigger Home Assistant discovery flow."""
         try:
             # Extract device_id from UDP discovery data (gwId) or use existing device_id
@@ -683,7 +690,7 @@ class KKTKolbeDiscovery(ServiceListener):
 
 
 # Global discovery instance
-_discovery_instance: Optional[KKTKolbeDiscovery] = None
+_discovery_instance: KKTKolbeDiscovery | None = None
 
 
 async def async_start_discovery(hass: HomeAssistant) -> None:
@@ -704,7 +711,7 @@ async def async_stop_discovery() -> None:
         _discovery_instance = None
 
 
-def get_discovered_devices() -> Dict[str, Dict]:
+def get_discovered_devices() -> dict[str, dict[str, Any]]:
     """Get currently discovered devices."""
     global _discovery_instance
 
@@ -713,11 +720,11 @@ def get_discovered_devices() -> Dict[str, Dict]:
     return {}
 
 
-async def simple_tuya_discover(timeout: int = 6) -> Dict[str, Dict]:
+async def simple_tuya_discover(timeout: int = 6) -> dict[str, dict[str, Any]]:
     """Simple Tuya device discovery like LocalTuya."""
     discovered = {}
 
-    def device_found(device_info):
+    def device_found(device_info: dict[str, Any]) -> None:
         device_id = device_info.get("gwId", "")
         if device_id:
             discovered[device_id] = device_info
@@ -752,7 +759,7 @@ async def simple_tuya_discover(timeout: int = 6) -> Dict[str, Dict]:
         return {}
 
 
-def add_test_device(host: str = None, device_id: str = None) -> None:
+def add_test_device(host: str | None = None, device_id: str | None = None) -> None:
     """Add a test device for debugging (development only).
 
     Args:
@@ -776,7 +783,7 @@ def add_test_device(host: str = None, device_id: str = None) -> None:
         _LOGGER.warning(f"Added test device for debugging: {test_device['ip']} / {test_device['device_id'][:10]}...")
 
 
-async def debug_scan_network() -> Dict[str, List[str]]:
+async def debug_scan_network() -> dict[str, Any]:
     """Scan network for mDNS services and test UDP discovery (debugging only)."""
     global _discovery_instance
 
@@ -826,10 +833,10 @@ async def debug_scan_network() -> Dict[str, List[str]]:
             # Quick UDP discovery test
             loop = asyncio.get_running_loop()
 
-            async def test_udp_listener():
-                discovered = []
+            async def test_udp_listener() -> list[dict[str, Any]]:
+                discovered: list[dict[str, Any]] = []
 
-                def device_callback(device_info):
+                def device_callback(device_info: dict[str, Any]) -> None:
                     discovered.append(device_info)
 
                 listeners = []

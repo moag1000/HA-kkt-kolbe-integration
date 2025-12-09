@@ -1,4 +1,5 @@
 """Constants for KKT Kolbe integration."""
+from __future__ import annotations
 
 DOMAIN = "kkt_kolbe"
 

@@ -1,8 +1,10 @@
 """Hybrid coordinator supporting both local and API communication."""
+from __future__ import annotations
+
 import asyncio
 import logging
-from typing import Dict, Optional, Any
 from datetime import timedelta
+from typing import Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -21,8 +23,8 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
         self,
         hass: HomeAssistant,
         device_id: str,
-        local_device: Optional[KKTKolbeTuyaDevice] = None,
-        api_client: Optional[TuyaCloudClient] = None,
+        local_device: KKTKolbeTuyaDevice | None = None,
+        api_client: TuyaCloudClient | None = None,
         update_interval: timedelta = timedelta(seconds=30),
         prefer_local: bool = True,
     ):
@@ -49,7 +51,7 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
             update_interval=update_interval,
         )
 
-    async def _async_update_data(self) -> Dict[str, Any]:
+    async def _async_update_data(self) -> dict[str, Any]:
         """Update data using hybrid approach."""
         _LOGGER.debug(f"Updating data for device {self.device_id[:8]} in {self.current_mode} mode")
 
@@ -101,7 +103,7 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
 
         raise UpdateFailed("All communication methods failed and no cached data available")
 
-    async def async_update_local(self) -> Dict[str, Any]:
+    async def async_update_local(self) -> dict[str, Any]:
         """Update data via local communication."""
         if not self.local_device:
             raise KKTConnectionError("Local device not configured")
@@ -125,7 +127,7 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
         except Exception as err:
             raise KKTConnectionError(f"Local communication failed: {err}")
 
-    async def async_update_via_api(self) -> Dict[str, Any]:
+    async def async_update_via_api(self) -> dict[str, Any]:
         """Update data via API communication."""
         if not self.api_client:
             raise TuyaAPIError("API client not configured")
@@ -166,7 +168,7 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
         except Exception as err:
             raise TuyaAPIError(f"API communication failed: {err}")
 
-    async def async_update_hybrid(self) -> Dict[str, Any]:
+    async def async_update_hybrid(self) -> dict[str, Any]:
         """Update data using hybrid approach - combine local and API data."""
         _LOGGER.debug(f"Updating data using hybrid approach for {self.device_id[:8]}")
 
@@ -228,7 +230,7 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
 
         return merged_data
 
-    async def _get_dp_mapping(self) -> Dict[int, str]:
+    async def _get_dp_mapping(self) -> dict[int, str]:
         """Get DP to property code mapping for the device."""
         # This should be enhanced to use actual device configuration
         # For now, return a basic mapping for common KKT Kolbe devices

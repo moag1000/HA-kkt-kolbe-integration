@@ -1,6 +1,9 @@
 """Global API management for KKT Kolbe integration."""
+from __future__ import annotations
+
 import logging
-from typing import Dict, Optional, Any
+from typing import Any
+
 from homeassistant.core import HomeAssistant
 
 from .const import GLOBAL_API_STORAGE_KEY, DEFAULT_API_ENDPOINT
@@ -15,7 +18,7 @@ class GlobalAPIManager:
         """Initialize the global API manager."""
         self.hass = hass
 
-    def get_stored_api_credentials(self) -> Optional[Dict[str, str]]:
+    def get_stored_api_credentials(self) -> dict[str, str] | None:
         """Get stored global API credentials."""
         global_api_data = self.hass.data.get(GLOBAL_API_STORAGE_KEY)
         if global_api_data:
@@ -26,7 +29,7 @@ class GlobalAPIManager:
             }
         return None
 
-    def store_api_credentials(self, client_id: str, client_secret: str, endpoint: str = None) -> None:
+    def store_api_credentials(self, client_id: str, client_secret: str, endpoint: str | None = None) -> None:
         """Store global API credentials."""
         if endpoint is None:
             endpoint = DEFAULT_API_ENDPOINT

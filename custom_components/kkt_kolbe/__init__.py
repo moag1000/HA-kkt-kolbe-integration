@@ -1,4 +1,6 @@
 """KKT Kolbe Dunstabzugshaube Integration for Home Assistant."""
+from __future__ import annotations
+
 import logging
 from homeassistant.config_entries import ConfigEntry, ConfigEntryNotReady
 from homeassistant.core import HomeAssistant

@@ -1,7 +1,10 @@
 """TinyTuya API Manager following Home Assistant authentication patterns."""
+from __future__ import annotations
+
 import asyncio
 import logging
-from typing import Dict, List, Optional, Callable, Awaitable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
@@ -28,13 +31,13 @@ class TuyaAPIManager:
         self,
         hass: HomeAssistant,
         config_entry: ConfigEntry,
-        reauth_callback: Optional[Callable[[], Awaitable[None]]] = None,
-    ):
+        reauth_callback: Callable[[], Awaitable[None]] | None = None,
+    ) -> None:
         """Initialize the API manager."""
         self.hass = hass
         self.config_entry = config_entry
         self._reauth_callback = reauth_callback
-        self._client: Optional[TuyaCloudClient] = None
+        self._client: TuyaCloudClient | None = None
         self._lock = asyncio.Lock()
 
     @property
@@ -85,7 +88,7 @@ class TuyaAPIManager:
                     )
                 raise ConfigEntryAuthFailed("API authentication failed") from err
 
-    async def async_get_device_list(self) -> List[Dict]:
+    async def async_get_device_list(self) -> list[dict[str, Any]]:
         """Get device list with error handling."""
         import async_timeout
         try:
@@ -99,7 +102,7 @@ class TuyaAPIManager:
             _LOGGER.error("Failed to get device list: %s", err)
             raise
 
-    async def async_get_device_properties(self, device_id: str) -> Dict:
+    async def async_get_device_properties(self, device_id: str) -> dict[str, Any]:
         """Get device properties with error handling."""
         import async_timeout
         try:
@@ -113,7 +116,7 @@ class TuyaAPIManager:
             _LOGGER.error("Failed to get device properties for %s: %s", device_id, err)
             raise
 
-    async def async_get_device_status(self, device_id: str) -> Dict:
+    async def async_get_device_status(self, device_id: str) -> dict[str, Any] | list[dict[str, Any]]:
         """Get device status with error handling."""
         import async_timeout
         try:
@@ -127,7 +130,7 @@ class TuyaAPIManager:
             _LOGGER.error("Failed to get device status for %s: %s", device_id, err)
             raise
 
-    async def async_get_device_shadow_properties(self, device_id: str, codes: Optional[List[str]] = None) -> Dict:
+    async def async_get_device_shadow_properties(self, device_id: str, codes: list[str] | None = None) -> dict[str, Any]:
         """Get device shadow properties (live data) with error handling."""
         try:
             client = await self.async_get_client()
@@ -136,7 +139,7 @@ class TuyaAPIManager:
             _LOGGER.error("Failed to get shadow properties for %s: %s", device_id, err)
             raise
 
-    async def async_set_device_shadow_properties(self, device_id: str, properties: Dict[str, any]) -> Dict:
+    async def async_set_device_shadow_properties(self, device_id: str, properties: dict[str, Any]) -> dict[str, Any]:
         """Set device shadow properties (send commands) with error handling."""
         try:
             client = await self.async_get_client()
@@ -145,7 +148,7 @@ class TuyaAPIManager:
             _LOGGER.error("Failed to set shadow properties for %s: %s", device_id, err)
             raise
 
-    async def async_get_device_real_time_data(self, device_id: str, codes: List[str]) -> Dict:
+    async def async_get_device_real_time_data(self, device_id: str, codes: list[str]) -> dict[str, Any]:
         """Get real-time device data for specific codes with error handling."""
         try:
             client = await self.async_get_client()

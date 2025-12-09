@@ -1,14 +1,17 @@
 """TinyTuya Cloud API Client for KKT Kolbe integration."""
+from __future__ import annotations
+
 import asyncio
 import hashlib
 import hmac
 import json
+import logging
 import time
 import uuid
-from typing import Dict, List, Optional
-import logging
+from typing import Any
 
 import aiohttp
+from aiohttp import ClientSession
 
 from .api_exceptions import (
     TuyaAPIError,
@@ -28,15 +31,15 @@ class TuyaCloudClient:
         client_id: str,
         client_secret: str,
         endpoint: str = "https://openapi.tuyaeu.com",
-        session: Optional[aiohttp.ClientSession] = None,
-    ):
+        session: ClientSession | None = None,
+    ) -> None:
         self.client_id = client_id
         self.client_secret = client_secret
         self.endpoint = endpoint.rstrip("/")
         self.session = session
         self._own_session = session is None
-        self._access_token: Optional[str] = None
-        self._token_expires_at: Optional[float] = None
+        self._access_token: str | None = None
+        self._token_expires_at: float | None = None
 
     async def __aenter__(self):
         """Async context manager entry."""
@@ -53,7 +56,7 @@ class TuyaCloudClient:
         self,
         method: str,
         url: str,
-        headers: Dict[str, str],
+        headers: dict[str, str],
         body: str = "",
         nonce: str = ""
     ) -> str:
@@ -96,7 +99,7 @@ class TuyaCloudClient:
 
         return signature
 
-    def _build_headers(self, method: str, url: str, body: str = "") -> Dict[str, str]:
+    def _build_headers(self, method: str, url: str, body: str = "") -> dict[str, str]:
         """Build headers with authentication and signature.
 
         For Smart Home Industry projects:
@@ -137,8 +140,8 @@ class TuyaCloudClient:
         self,
         method: str,
         path: str,
-        data: Optional[Dict] = None
-    ) -> Dict:
+        data: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Make authenticated request to Tuya API."""
         if not self.session:
             raise TuyaAPIError("Session not initialized. Use async context manager.")
@@ -216,7 +219,7 @@ class TuyaCloudClient:
         ):
             await self.authenticate()
 
-    def _normalize_device_response(self, device: Dict, api_version: str) -> Dict:
+    def _normalize_device_response(self, device: dict[str, Any], api_version: str) -> dict[str, Any]:
         """Normalize device response to consistent format.
 
         v2.0 API uses camelCase, v1.0 uses snake_case.
@@ -245,7 +248,7 @@ class TuyaCloudClient:
 
         return normalized
 
-    async def get_device_list(self) -> List[Dict]:
+    async def get_device_list(self) -> list[dict[str, Any]]:
         """Get list of all devices from Tuya API.
 
         Uses v2.0 API endpoint for better compatibility with Free tier accounts.
@@ -284,7 +287,7 @@ class TuyaCloudClient:
                 _LOGGER.error(f"Both v2.0 and v1.0 device list APIs failed")
                 raise
 
-    async def get_device_properties(self, device_id: str) -> Dict:
+    async def get_device_properties(self, device_id: str) -> dict[str, Any]:
         """Get device properties using Things Data Model.
 
         Uses v2.0 Things Data Model API for Free tier compatibility.
@@ -370,7 +373,7 @@ class TuyaCloudClient:
                         raise TuyaDeviceNotFoundError(device_id)
                     raise
 
-    async def get_device_status(self, device_id: str) -> Dict:
+    async def get_device_status(self, device_id: str) -> dict[str, Any] | list[dict[str, Any]]:
         """Get current device status.
 
         Uses v2.0 Shadow Properties API for Free tier compatibility.

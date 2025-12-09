@@ -1,30 +1,32 @@
 """Base entity for KKT Kolbe devices."""
+from __future__ import annotations
+
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import callback
 from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.helpers.update_coordinator import CoordinatorEntity, DataUpdateCoordinator
 
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class KKTBaseEntity(CoordinatorEntity):
+class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
     """Base entity for all KKT Kolbe entities."""
 
     _attr_has_entity_name = True
 
     def __init__(
         self,
-        coordinator,
+        coordinator: DataUpdateCoordinator[dict[str, Any]],
         entry: ConfigEntry,
-        config: Dict[str, Any],
+        config: dict[str, Any],
         platform: str,
-        zone: Optional[int] = None,
-    ):
+        zone: int | None = None,
+    ) -> None:
         """Initialize the base entity."""
         super().__init__(coordinator)
 
@@ -53,7 +55,7 @@ class KKTBaseEntity(CoordinatorEntity):
             self._device_info_cached = self._build_device_info()
         return self._device_info_cached
 
-    def _setup_entity_attributes(self):
+    def _setup_entity_attributes(self) -> None:
         """Set up common entity attributes."""
         # Generate unique ID
         if self._zone is not None:
@@ -214,7 +216,7 @@ class KKTBaseEntity(CoordinatorEntity):
         # This method should be overridden by specific entity types
         pass
 
-    def _get_data_point_value(self, dp: Optional[int] = None) -> Any:
+    def _get_data_point_value(self, dp: int | None = None) -> Any:
         """Get value for a specific data point, with zone support and state caching."""
         data_point = dp if dp is not None else self._dp
 
@@ -248,7 +250,7 @@ class KKTBaseEntity(CoordinatorEntity):
 
         return value
 
-    def _get_zone_data_point_value_cached(self, dp: int, zone: Optional[int] = None) -> Any:
+    def _get_zone_data_point_value_cached(self, dp: int, zone: int | None = None) -> Any:
         """Get value for a zone-specific data point with bitfield extraction and caching."""
         zone_number = zone if zone is not None else self._zone
         if zone_number is None:
@@ -310,7 +312,7 @@ class KKTBaseEntity(CoordinatorEntity):
         _LOGGER.debug(f"Zone {zone_number} DP {dp}: Extracted value {value} - cached")
         return value
 
-    def _get_zone_data_point_value(self, dp: int, zone: Optional[int] = None) -> Any:
+    def _get_zone_data_point_value(self, dp: int, zone: int | None = None) -> Any:
         """Get value for a zone-specific data point with bitfield extraction."""
         if not self.coordinator.data:
             return None
@@ -385,7 +387,7 @@ class KKTZoneBaseEntity(KKTBaseEntity):
         self,
         coordinator,
         entry: ConfigEntry,
-        config: Dict[str, Any],
+        config: dict[str, Any],
         platform: str,
     ):
         """Initialize the zone base entity."""
@@ -401,7 +403,7 @@ class KKTZoneBaseEntity(KKTBaseEntity):
             self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
     @property
-    def extra_state_attributes(self) -> Dict[str, Any]:
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes."""
         return {
             "zone": self._zone,

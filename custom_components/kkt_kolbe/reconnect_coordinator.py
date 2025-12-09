@@ -1,9 +1,11 @@
 """Enhanced coordinator with automatic reconnection and availability tracking."""
+from __future__ import annotations
+
 import asyncio
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, Optional
 from enum import Enum
+from typing import Any
 
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -42,7 +44,7 @@ class ReconnectCoordinator(DataUpdateCoordinator):
 
         # Connection state tracking
         self._device_state = DeviceState.OFFLINE
-        self._last_successful_update: Optional[datetime] = None
+        self._last_successful_update: datetime | None = None
         self._consecutive_failures = 0
         self._reconnect_attempts = 0
         self._max_reconnect_attempts = 10
@@ -53,7 +55,7 @@ class ReconnectCoordinator(DataUpdateCoordinator):
         self._current_backoff_time = self._base_backoff_time
 
         # Reconnection task
-        self._reconnect_task: Optional[asyncio.Task] = None
+        self._reconnect_task: asyncio.Task | None = None
         self._reconnect_lock = asyncio.Lock()
 
         # Health check interval (separate from data updates)
@@ -101,12 +103,12 @@ class ReconnectCoordinator(DataUpdateCoordinator):
         return self._device_state == DeviceState.ONLINE
 
     @property
-    def last_successful_update(self) -> Optional[datetime]:
+    def last_successful_update(self) -> datetime | None:
         """Get timestamp of last successful update."""
         return self._last_successful_update
 
     @property
-    def connection_info(self) -> Dict[str, Any]:
+    def connection_info(self) -> dict[str, Any]:
         """Get connection status information."""
         return {
             "state": self._device_state.value,
@@ -116,7 +118,7 @@ class ReconnectCoordinator(DataUpdateCoordinator):
             "is_connected": self.device.is_connected,
         }
 
-    async def _async_update_data(self) -> Dict[str, Any]:
+    async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from device with reconnection logic."""
         try:
             # Check if we need to reconnect
@@ -175,7 +177,7 @@ class ReconnectCoordinator(DataUpdateCoordinator):
 
             raise UpdateFailed(f"Device communication error: {err}") from err
 
-    async def _async_fetch_with_timeout(self, timeout: int = 10) -> Dict[str, Any]:
+    async def _async_fetch_with_timeout(self, timeout: int = 10) -> dict[str, Any]:
         """Fetch device status with timeout."""
         try:
             async with asyncio.timeout(timeout):

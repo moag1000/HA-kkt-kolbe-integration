@@ -1,0 +1,164 @@
+# Quality Scale for KKT Kolbe Integration
+# See: https://developers.home-assistant.io/docs/core/integration-quality-scale/
+
+rules:
+  # Bronze tier (Internal)
+  action-setup:
+    status: exempt
+    comment: Integration does not register custom actions
+  appropriate-polling:
+    status: done
+    comment: Uses configurable polling interval (default 30s) with local push updates
+  brands:
+    status: done
+    comment: Brand information properly configured in manifest
+  common-modules:
+    status: done
+    comment: Uses common Home Assistant modules and helpers
+  config-flow-test-coverage:
+    status: done
+    comment: Tests in tests/test_config_flow.py
+  config-flow:
+    status: done
+    comment: Full config flow with discovery, manual setup, and API modes
+  dependency-transparency:
+    status: done
+    comment: All dependencies listed in manifest.json (tinytuya, pycryptodome, aiohttp)
+  docs-actions:
+    status: exempt
+    comment: No custom actions to document
+  docs-high-level-description:
+    status: done
+    comment: README provides comprehensive overview
+  docs-installation-instructions:
+    status: done
+    comment: HACS and manual installation documented
+  docs-removal-instructions:
+    status: done
+    comment: Standard Home Assistant removal process
+  entity-event-setup:
+    status: exempt
+    comment: Uses coordinator pattern, not event subscriptions
+  entity-unique-id:
+    status: done
+    comment: All entities have unique IDs based on device_id and entity type
+  has-entity-name:
+    status: done
+    comment: All entities use has_entity_name = True pattern
+  runtime-data:
+    status: done
+    comment: Uses hass.data[DOMAIN] for runtime storage
+  test-before-configure:
+    status: done
+    comment: Connection test available during setup
+  test-before-setup:
+    status: done
+    comment: Device connection validated before entity setup
+  unique-config-entry:
+    status: done
+    comment: Uses device_id as unique identifier
+
+  # Silver tier
+  action-exceptions:
+    status: exempt
+    comment: No custom actions
+  config-entry-unloading:
+    status: done
+    comment: Proper unload implemented in __init__.py
+  docs-configuration-parameters:
+    status: done
+    comment: All config options documented
+  docs-troubleshooting:
+    status: done
+    comment: Troubleshooting section in README
+  dynamic-devices:
+    status: exempt
+    comment: Single device per config entry
+  entity-category:
+    status: done
+    comment: Diagnostic entities properly categorized
+  entity-disabled-by-default:
+    status: done
+    comment: Advanced entities disabled by default
+  entity-translations:
+    status: done
+    comment: Full translations in en.json and de.json
+  exception-translations:
+    status: done
+    comment: Error messages translated
+  icon-translations:
+    status: exempt
+    comment: Uses standard MDI icons
+  log-when-unavailable:
+    status: done
+    comment: Logs connection issues with appropriate levels
+  parallel-updates:
+    status: done
+    comment: Uses DataUpdateCoordinator for efficient updates
+  reauthentication-flow:
+    status: done
+    comment: Reauth flow implemented for expired credentials
+  reconfiguration-flow:
+    status: done
+    comment: Options flow allows reconfiguration
+
+  # Gold tier
+  devices:
+    status: done
+    comment: Proper device registry integration
+  diagnostics:
+    status: done
+    comment: Full diagnostics in diagnostics.py
+  discovery-update-info:
+    status: done
+    comment: Device info updated on discovery
+  discovery:
+    status: done
+    comment: Zeroconf and API-based discovery supported
+  docs-data-update:
+    status: done
+    comment: Update mechanism documented
+  docs-examples:
+    status: done
+    comment: Usage examples in README
+  docs-known-limitations:
+    status: done
+    comment: Limitations documented
+  docs-supported-devices:
+    status: done
+    comment: Supported devices listed
+  docs-supported-functions:
+    status: done
+    comment: Features documented per device type
+  docs-use-cases:
+    status: done
+    comment: Use cases described
+  entity-device-class:
+    status: done
+    comment: Appropriate device classes used
+  entity-translations:
+    status: done
+    comment: Full entity name translations
+  integration-owner:
+    status: done
+    comment: "@moag1000 listed as codeowner"
+  repair-issues:
+    status: done
+    comment: Repair flows in repairs.py for common issues
+  stale-devices:
+    status: exempt
+    comment: Single device per entry, manual removal
+  test-coverage:
+    status: done
+    comment: Tests for config_flow, diagnostics, init, fan, sensor
+
+  # Platinum tier
+  async-dependency:
+    status: done
+    comment: Uses async tinytuya operations
+  inject-websession:
+    status: done
+    comment: Uses async_get_clientsession for HTTP requests
+  strict-typing:
+    status: done
+    comment: Full type annotations with from __future__ import annotations in all modules

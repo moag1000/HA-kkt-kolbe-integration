@@ -1,4 +1,5 @@
 """API-specific exceptions for KKT Kolbe integration."""
+from __future__ import annotations
 
 
 class TuyaAPIError(Exception):

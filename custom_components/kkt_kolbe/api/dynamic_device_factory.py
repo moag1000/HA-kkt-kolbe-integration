@@ -1,7 +1,9 @@
 """Dynamic device factory for creating configurations from API data."""
+from __future__ import annotations
+
 import logging
-from typing import Dict, List, Optional, NamedTuple
 from dataclasses import dataclass
+from typing import Any
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -15,9 +17,9 @@ class EntityConfig:
     name: str
     data_type: str  # bool, value, enum, string
     description: str = ""
-    range_data: Optional[Dict] = None  # For value/enum types
-    unit: Optional[str] = None
-    icon: Optional[str] = None
+    range_data: Dict | None = None  # For value/enum types
+    unit: str | None = None
+    icon: str | None = None
 
 
 @dataclass
@@ -28,7 +30,7 @@ class DeviceConfig:
     device_type: str  # hood, cooktop, unknown
     name: str
     manufacturer: str = "KKT Kolbe"
-    entities: List[EntityConfig] = None
+    entities: list[EntityConfig] = None
 
     def __post_init__(self):
         if self.entities is None:
@@ -157,7 +159,7 @@ class DynamicDeviceFactory:
         _LOGGER.debug(f"Could not detect device type for model '{model_id}', using 'unknown'")
         return "unknown"
 
-    async def create_entity_configurations(self, model_data: Dict) -> List[EntityConfig]:
+    async def create_entity_configurations(self, model_data: Dict) -> list[EntityConfig]:
         """Create entity configurations from model data."""
         entities = []
 
@@ -177,7 +179,7 @@ class DynamicDeviceFactory:
         _LOGGER.debug(f"Created {len(entities)} entity configurations")
         return entities
 
-    async def _create_entity_from_property(self, property_data: Dict) -> Optional[EntityConfig]:
+    async def _create_entity_from_property(self, property_data: Dict) -> EntityConfig | None:
         """Create entity configuration from a single property."""
         code = property_data.get("code")
         ability_id = property_data.get("abilityId")

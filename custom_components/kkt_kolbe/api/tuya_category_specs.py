@@ -1,8 +1,10 @@
 """Tuya category specifications for automatic device configuration."""
+from __future__ import annotations
+
 import json
 import logging
-from typing import Dict, List, Optional, Any
 from pathlib import Path
+from typing import Any
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -12,7 +14,7 @@ class TuyaCategorySpecs:
 
     def __init__(self):
         """Initialize with known category specifications."""
-        self._specs: Dict[str, Dict] = {}
+        self._specs: dict[str, Dict] = {}
         self._load_known_specs()
 
     def _load_known_specs(self) -> None:
@@ -319,7 +321,7 @@ class TuyaCategorySpecs:
         }
         _LOGGER.info("Loaded embedded XFJ category specification")
 
-    def get_category_spec(self, category: str) -> Optional[Dict]:
+    def get_category_spec(self, category: str) -> Dict | None:
         """Get specification for a category."""
         return self._specs.get(category)
 
@@ -327,11 +329,11 @@ class TuyaCategorySpecs:
         """Check if category specification is available."""
         return category in self._specs
 
-    def get_supported_categories(self) -> List[str]:
+    def get_supported_categories(self) -> list[str]:
         """Get list of supported categories."""
         return list(self._specs.keys())
 
-    def map_status_to_entity_config(self, status_item: Dict[str, Any], dp_id: Optional[int] = None) -> Optional[Dict]:
+    def map_status_to_entity_config(self, status_item: dict[str, Any], dp_id: int | None = None) -> Dict | None:
         """Map a Tuya status item to entity configuration."""
         try:
             code = status_item.get("code")
@@ -568,7 +570,7 @@ class TuyaCategorySpecs:
         category: str,
         device_name: str = None,
         model_id: str = None
-    ) -> Optional[List[Dict]]:
+    ) -> list[Dict | None]:
         """Generate complete device configuration from category specification."""
         spec = self.get_category_spec(category)
         if not spec:

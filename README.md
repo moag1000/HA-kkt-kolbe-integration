@@ -3,8 +3,8 @@
 <div align="center">
   <img src="./icon.png" alt="KKT Kolbe Logo" width="128" height="128">
 
-  ## 🎯 v2.2.5 - Experimentelle DPs + Gold Tier Quality
-  ### 🏆 Home Assistant Gold Tier Quality
+  ## v2.3.0 - Platinum Tier Quality
+  ### Home Assistant Platinum Tier Quality
 </div>
 
 [![GitHub Release][releases-shield]][releases]
@@ -21,7 +21,7 @@ Unterstützt Dunstabzugshauben und Induktionskochfelder über Tuya Local Protoco
 
 > **🤖 KI-Generiert:** Diese Integration wurde mit Anthropic's Claude entwickelt. Der Code ist Open Source und wurde ausgiebig getestet, aber **Verwendung erfolgt auf eigene Verantwortung** - besonders bei der Kochfeld-Steuerung!
 
-> **✨ Quality:** Diese Integration erfüllt Home Assistant's **Gold Tier** Quality Standard (21/21 Anforderungen) mit robustem Error Handling, automatischer Wiederherstellung, Repair Flows und umfangreichen Tests.
+> **✨ Quality:** Diese Integration erfüllt Home Assistant's **Platinum Tier** Quality Standard - die höchste Qualitätsstufe - mit vollständiger Typ-Annotation, async-only I/O, robustem Error Handling, automatischer Wiederherstellung, Repair Flows und umfangreichen Tests.
 
 ## 🚀 Unterstützte Geräte
 

@@ -1,7 +1,9 @@
 """Services for KKT Kolbe integration."""
+from __future__ import annotations
+
 import asyncio
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import ServiceValidationError
@@ -237,9 +239,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
         return statuses
 
-    def _get_coordinators(hass: HomeAssistant, device_id: str = None, entry_id: str = None):
+    def _get_coordinators(
+        hass: HomeAssistant,
+        device_id: str | None = None,
+        entry_id: str | None = None,
+    ) -> list[tuple[str, Any]]:
         """Get coordinators matching the criteria."""
-        coordinators = []
+        coordinators: list[tuple[str, Any]] = []
 
         for coord_entry_id, entry_data in hass.data.get(DOMAIN, {}).items():
             if "coordinator" not in entry_data:
@@ -260,7 +266,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         return coordinators
 
     @callback
-    def validate_entity_id(entity_id: str, required_domain: str = None) -> None:
+    def validate_entity_id(entity_id: str, required_domain: str | None = None) -> None:
         """Validate entity ID and check if it belongs to KKT Kolbe integration."""
         entity_registry = er.async_get(hass)
         entity_entry = entity_registry.async_get(entity_id)

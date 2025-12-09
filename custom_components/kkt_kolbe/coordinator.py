@@ -1,8 +1,10 @@
 """DataUpdateCoordinator for KKT Kolbe integration."""
+from __future__ import annotations
+
 import asyncio
 import logging
 from datetime import timedelta
-from typing import Any, Dict
+from typing import Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -34,7 +36,7 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
             update_interval=timedelta(seconds=30),
         )
 
-    async def _async_update_data(self) -> Dict[str, Any]:
+    async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from the device."""
         from .exceptions import KKTTimeoutError, KKTConnectionError
 
@@ -79,7 +81,7 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
             raise UpdateFailed(f"Failed to set DP {dp}: {err}") from err
 
     @property
-    def device_info(self) -> Dict[str, Any]:
+    def device_info(self) -> dict[str, Any]:
         """Return device information for device registry."""
         from .device_types import get_device_info_by_product_name
 
