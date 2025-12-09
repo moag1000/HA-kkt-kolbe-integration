@@ -1,9 +1,14 @@
 """Select platform for KKT Kolbe devices."""
+from __future__ import annotations
+
 import logging
+from typing import Any
+
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .base_entity import KKTBaseEntity
 from .const import DOMAIN
@@ -34,7 +39,12 @@ async def async_setup_entry(
 class KKTKolbeSelect(KKTBaseEntity, SelectEntity):
     """Representation of a KKT Kolbe select entity."""
 
-    def __init__(self, coordinator, entry: ConfigEntry, config: dict):
+    def __init__(
+        self,
+        coordinator: DataUpdateCoordinator[dict[str, Any]],
+        entry: ConfigEntry,
+        config: dict[str, Any],
+    ) -> None:
         """Initialize the select entity."""
         super().__init__(coordinator, entry, config, "select")
 

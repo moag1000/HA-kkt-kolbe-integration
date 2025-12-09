@@ -1,6 +1,8 @@
 """Real device data point mappings based on actual API responses."""
+from __future__ import annotations
+
 import logging
-from typing import Dict, List, Optional
+from typing import Any
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -8,17 +10,75 @@ _LOGGER = logging.getLogger(__name__)
 class RealDeviceMappings:
     """Manages real device data point mappings from actual API calls."""
 
+    # Constant for default hood identifier
+    DEFAULT_HOOD_ID = "default_hood"
+
     def __init__(self):
         """Initialize with real device mappings."""
         self._device_mappings = self._load_real_mappings()
 
-    def _load_real_mappings(self) -> Dict[str, Dict]:
+    def _load_real_mappings(self) -> dict[str, Dict]:
         """Load real device mappings from actual API responses."""
         return {
+            # DEFAULT HOOD - Standard YYJ category DPs that work with most range hoods
+            # Use this when the specific device model is unknown or not fully supported
+            "default_hood": {
+                "device_type": "hood",
+                "category": "yyj",
+                "display_name": "Default Hood - Generic Range Hood",
+                "description": "Standard range hood controls (use if your specific model is not listed)",
+                "codes": [
+                    "switch",           # Main power (DP 1)
+                    "fan_speed_enum",   # Fan speed (DP 3)
+                    "light",            # Main light (DP 101)
+                    "countdown",        # Timer (DP 6)
+                    "countdown_left",   # Timer remaining (DP 7)
+                ],
+                "entities": {
+                    "switch": {
+                        "type": "switch",
+                        "name": "Power",
+                        "icon": "mdi:power",
+                        "read_write": True
+                    },
+                    "fan_speed_enum": {
+                        "type": "select",
+                        "name": "Fan Speed",
+                        "icon": "mdi:fan",
+                        "options": ["off", "low", "middle", "high"],
+                        "read_write": True
+                    },
+                    "light": {
+                        "type": "switch",
+                        "name": "Light",
+                        "icon": "mdi:lightbulb",
+                        "read_write": True
+                    },
+                    "countdown": {
+                        "type": "number",
+                        "name": "Timer",
+                        "icon": "mdi:timer",
+                        "unit": "min",
+                        "min": 0,
+                        "max": 100,
+                        "read_write": True
+                    },
+                    "countdown_left": {
+                        "type": "sensor",
+                        "name": "Timer Remaining",
+                        "icon": "mdi:timer-sand",
+                        "unit": "min",
+                        "read_write": False
+                    }
+                }
+            },
+
             # HERMES & STYLE Hood - Real API data points
             "hermes_style": {
                 "device_type": "hood",
                 "category": "yyj",
+                "display_name": "HERMES & STYLE (Range Hood)",
+                "description": "KKT Kolbe HERMES & STYLE with RGB lighting",
                 "codes": [
                     "switch",           # Main power
                     "light",            # Main light
@@ -76,6 +136,8 @@ class RealDeviceMappings:
             "ind7705hc": {
                 "device_type": "cooktop",
                 "category": "dcl",
+                "display_name": "IND7705HC (Induction Cooktop)",
+                "description": "KKT Kolbe 5-zone induction cooktop",
                 "codes": [
                     # Core controls
                     "user_device_power_switch",     # Main power
@@ -251,17 +313,17 @@ class RealDeviceMappings:
             }
         }
 
-    def get_device_codes(self, device_type: str) -> Optional[List[str]]:
+    def get_device_codes(self, device_type: str) -> list[str | None]:
         """Get device codes for real-time API calls."""
         mapping = self._device_mappings.get(device_type)
         return mapping.get("codes") if mapping else None
 
-    def get_device_entities(self, device_type: str) -> Optional[Dict]:
+    def get_device_entities(self, device_type: str) -> Dict | None:
         """Get device entity mappings."""
         mapping = self._device_mappings.get(device_type)
         return mapping.get("entities") if mapping else None
 
-    def get_device_category(self, device_type: str) -> Optional[str]:
+    def get_device_category(self, device_type: str) -> str | None:
         """Get device category."""
         mapping = self._device_mappings.get(device_type)
         return mapping.get("category") if mapping else None
@@ -270,11 +332,11 @@ class RealDeviceMappings:
         """Check if device type is supported with real mappings."""
         return device_type in self._device_mappings
 
-    def get_supported_devices(self) -> List[str]:
+    def get_supported_devices(self) -> list[str]:
         """Get list of supported device types."""
         return list(self._device_mappings.keys())
 
-    def get_optimized_codes_for_polling(self, device_type: str) -> Optional[List[str]]:
+    def get_optimized_codes_for_polling(self, device_type: str) -> list[str | None]:
         """Get optimized codes for real-time polling (exclude write-only)."""
         entities = self.get_device_entities(device_type)
         if not entities:
@@ -289,7 +351,7 @@ class RealDeviceMappings:
 
         return readable_codes
 
-    def get_writable_codes(self, device_type: str) -> Optional[List[str]]:
+    def get_writable_codes(self, device_type: str) -> list[str | None]:
         """Get codes that can be written to (for commands)."""
         entities = self.get_device_entities(device_type)
         if not entities:
@@ -301,3 +363,81 @@ class RealDeviceMappings:
                 writable_codes.append(code)
 
         return writable_codes
+
+    def get_device_display_info(self, device_type: str) -> Dict | None:
+        """Get display info for a device type (for UI selection)."""
+        mapping = self._device_mappings.get(device_type)
+        if not mapping:
+            return None
+
+        return {
+            "id": device_type,
+            "display_name": mapping.get("display_name", device_type.replace("_", " ").title()),
+            "description": mapping.get("description", ""),
+            "device_type": mapping.get("device_type", "unknown"),
+            "category": mapping.get("category", "unknown"),
+        }
+
+    def get_hood_devices_for_selection(self) -> list[Dict]:
+        """Get all hood device types formatted for UI selection.
+
+        Returns devices in order: specific models first, then default hood last.
+        """
+        hoods = []
+        default_hood = None
+
+        for device_id, mapping in self._device_mappings.items():
+            if mapping.get("device_type") == "hood":
+                info = self.get_device_display_info(device_id)
+                if info:
+                    if device_id == self.DEFAULT_HOOD_ID:
+                        default_hood = info
+                    else:
+                        hoods.append(info)
+
+        # Sort specific hoods alphabetically, then add default at the end
+        hoods.sort(key=lambda x: x["display_name"])
+        if default_hood:
+            hoods.append(default_hood)
+
+        return hoods
+
+    def get_all_devices_for_selection(self) -> list[Dict]:
+        """Get all device types formatted for UI selection.
+
+        Returns devices grouped by type: specific hoods first, then cooktops,
+        then default/generic options at the very end.
+        """
+        hoods = []
+        cooktops = []
+        others = []
+        defaults = []
+
+        for device_id, mapping in self._device_mappings.items():
+            info = self.get_device_display_info(device_id)
+            if not info:
+                continue
+
+            device_type = mapping.get("device_type")
+            # Check if this is a default/generic device
+            if self.is_default_device(device_id):
+                defaults.append(info)
+            elif device_type == "hood":
+                hoods.append(info)
+            elif device_type == "cooktop":
+                cooktops.append(info)
+            else:
+                others.append(info)
+
+        # Sort each group alphabetically
+        hoods.sort(key=lambda x: x["display_name"])
+        cooktops.sort(key=lambda x: x["display_name"])
+        others.sort(key=lambda x: x["display_name"])
+        defaults.sort(key=lambda x: x["display_name"])
+
+        # Return: specific hoods, cooktops, others, then defaults at the very end
+        return hoods + cooktops + others + defaults
+
+    def is_default_device(self, device_type: str) -> bool:
+        """Check if this is a default/generic device type."""
+        return device_type == self.DEFAULT_HOOD_ID

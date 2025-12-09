@@ -1,7 +1,8 @@
 """Device tracker for monitoring stale devices - Gold Tier requirement."""
+from __future__ import annotations
+
 import logging
 from datetime import datetime, timedelta
-from typing import Set
 
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr, entity_registry as er
@@ -40,7 +41,7 @@ class StaleDeviceTracker:
         # Run initial cleanup after 1 hour
         self.hass.loop.call_later(3600, self._schedule_initial_cleanup)
 
-    def _schedule_initial_cleanup(self):
+    def _schedule_initial_cleanup(self) -> None:
         """Schedule the initial cleanup."""
         self.hass.async_create_task(self._async_cleanup_stale_devices(None))
 

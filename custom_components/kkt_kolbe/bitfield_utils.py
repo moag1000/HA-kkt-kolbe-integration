@@ -1,7 +1,9 @@
 """Bitfield utilities for KKT Kolbe RAW data point handling."""
+from __future__ import annotations
+
 import base64
 import logging
-from typing import Union, List
+from typing import Any, Union
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -243,7 +245,7 @@ BITFIELD_CONFIG = {
     }
 }
 
-def get_zone_value_from_coordinator(coordinator, dp_id: int, zone: int) -> Union[int, bool]:
+def get_zone_value_from_coordinator(coordinator: Any, dp_id: int, zone: int) -> int | bool:
     """
     Get zone-specific value from coordinator data.
 
@@ -291,7 +293,7 @@ def get_zone_value_from_coordinator(coordinator, dp_id: int, zone: int) -> Union
         _LOGGER.error(f"Failed to get zone {zone} value for DP {dp_id}: {e}")
         return 0 if BITFIELD_CONFIG.get(dp_id, {}).get("type") == "value" else False
 
-async def set_zone_value_in_coordinator(coordinator, dp_id: int, zone: int, value: Union[int, bool]):
+async def set_zone_value_in_coordinator(coordinator: Any, dp_id: int, zone: int, value: int | bool) -> None:
     """
     Set zone-specific value in coordinator data.
 

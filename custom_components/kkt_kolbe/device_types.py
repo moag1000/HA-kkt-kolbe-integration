@@ -1,4 +1,5 @@
 """Device type specific configurations for KKT Kolbe devices."""
+from __future__ import annotations
 
 from homeassistant.const import (
     PERCENTAGE,
@@ -255,6 +256,45 @@ KNOWN_DEVICES = {
         }
     },
 
+    # DEFAULT HOOD - Generic range hood with standard YYJ category DPs
+    # Use this when the specific device model is unknown or not fully supported
+    "default_hood": {
+        "model_id": "default_hood",
+        "category": CATEGORY_HOOD,
+        "name": "Default Hood (Generic)",
+        "product_names": ["default_hood"],
+        "device_ids": [],  # Matches any device when selected manually
+        "device_id_patterns": [],
+        "platforms": ["fan", "switch", "sensor", "select", "number"],
+        "data_points": {
+            1: "switch",              # Main power
+            3: "fan_speed_enum",      # Fan speed (standard YYJ DP)
+            101: "light",             # Main light (common alternate DP)
+            4: "light",               # Main light (standard YYJ DP)
+            6: "countdown",           # Timer
+            7: "countdown_left",      # Timer remaining
+        },
+        "entities": {
+            "switch": [
+                {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
+                {"dp": 4, "name": "Light", "device_class": "switch", "icon": "mdi:lightbulb"},
+            ],
+            "fan": {
+                "dp": 3,  # fan_speed_enum - standard YYJ DP for fan speed
+                "speeds": ["off", "low", "middle", "high"]
+            },
+            "select": [
+                {"dp": 3, "name": "Fan Speed", "options": ["off", "low", "middle", "high"], "icon": "mdi:fan"}
+            ],
+            "number": [
+                {"dp": 6, "name": "Timer", "min": 0, "max": 100, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"}
+            ],
+            "sensor": [
+                {"dp": 7, "name": "Timer Remaining", "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer-sand", "entity_category": "diagnostic"}
+            ]
+        }
+    },
+
     # IND7705HC Induction Cooktop - Complete configuration with bitfield decoding
     "ind7705hc_cooktop": {
         "model_id": "e1kc5q64",
@@ -454,6 +494,13 @@ def get_device_info_by_product_name(product_name: str) -> dict:
             "model_id": "manual_cooktop",
             "category": CATEGORY_COOKTOP,
             "name": "KKT Cooktop (Manual Setup)"
+        }
+    elif product_name == "default_hood":
+        # Default Hood - Generic range hood with standard DPs
+        return {
+            "model_id": "default_hood",
+            "category": CATEGORY_HOOD,
+            "name": "Default Hood (Generic)"
         }
 
     # Fallback: Try to detect by known patterns

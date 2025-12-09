@@ -2,10 +2,17 @@
   "config": {
     "step": {
       "user": {
-        "title": "KKT Kolbe Setup",
-        "description": "{setup_mode}",
+        "title": "KKT Kolbe Integration Setup",
+        "description": "Choose your setup method for KKT Kolbe devices.",
         "data": {
-          "connection_method": "Setup Method"
+          "setup_method": "Setup Method"
+        },
+        "data_description": {
+          "integration_mode": "Select how you want to configure your KKT Kolbe device",
+          "setup_method": "Choose your preferred setup method",
+          "connection_method": "Choose connection method for device setup",
+          "device_type": "Select your KKT Kolbe device type",
+          "zone_naming": "Configure zone naming for multi-zone devices"
         }
       },
       "discovery": {
@@ -15,16 +22,41 @@
           "selected_device": "Select Device",
           "retry_discovery": "Retry Discovery",
           "use_manual_config": "Use Manual Configuration"
+        },
+        "data_description": {
+          "selected_device": "Select your KKT Kolbe device from discovered devices",
+          "retry_discovery": "Search again for devices on the network",
+          "use_manual_config": "Configure device manually with IP and device ID"
         }
       },
       "manual": {
         "title": "Manual Configuration",
-        "description": "Enter basic information for your KKT Kolbe device.\n\nExamples:\nIP Address: {ip_example}\nDevice ID: {device_id_example}\n\nNote: Local Key will be requested in the next step.",
+        "description": "Enter your KKT Kolbe device details manually.\n\n**Tip:** If your specific model is not listed, select 'Default Hood - Generic Range Hood' for basic range hood controls.",
         "data": {
-          "ip_address": "IP Address",
-          "device_id": "Tuya Device ID",
+          "host": "IP Address",
+          "device_id": "Device ID",
           "device_type": "Device Type",
           "back_to_discovery": "Back to Discovery"
+        },
+        "data_description": {
+          "host": "IP address of your KKT Kolbe device (e.g., 192.168.1.100)",
+          "device_id": "20-character device ID from Smart Life app",
+          "device_type": "Select your specific model, or use 'Default Hood' if unknown",
+          "back_to_discovery": "Return to automatic device discovery"
+        }
+      },
+      "manual_config": {
+        "title": "Manual Configuration",
+        "description": "Enter device details manually.",
+        "data": {
+          "device_id": "Device ID",
+          "host": "IP Address",
+          "local_key": "Local Key"
+        },
+        "data_description": {
+          "device_id": "20-character device ID from Tuya/Smart Life app",
+          "host": "IP address of the device on your network",
+          "local_key": "Local encryption key (16 characters)"
         }
       },
       "authentication": {
@@ -34,10 +66,15 @@
           "local_key": "Local Key",
           "test_connection": "Test Connection",
           "back_to_previous": "Back to Previous Step"
+        },
+        "data_description": {
+          "local_key": "16-character local encryption key from Smart Life app",
+          "test_connection": "Test connection with the provided local key",
+          "back_to_previous": "Return to device selection or manual configuration"
         }
       },
       "settings": {
-        "title": "Advanced Settings",
+        "title": "Device Settings",
         "description": "Configure advanced settings for {device_name}.\n\nRecommended: {recommended_interval}",
         "data": {
           "update_interval": "Update Interval",
@@ -45,14 +82,153 @@
           "enable_advanced_entities": "Enable Advanced Entities",
           "zone_naming_scheme": "Zone Naming Scheme",
           "back_to_authentication": "Back to Authentication"
+        },
+        "data_description": {
+          "update_interval": "How often to update device status (seconds)",
+          "enable_debug_logging": "Enable detailed logging for troubleshooting",
+          "enable_advanced_entities": "Show additional diagnostic entities",
+          "zone_naming_scheme": "Naming convention for multi-zone devices"
         }
       },
       "confirmation": {
-        "title": "Setup Confirmation",
+        "title": "Setup Complete",
         "description": "Please confirm your configuration:\n\nDevice: {device_name}\nIP: {ip_address}\nDevice ID: {device_id}\nProduct: {product_name}\n\nSettings:\nUpdate Interval: {update_interval} seconds\nDebug Logging: {debug_logging}\nAdvanced Entities: {advanced_entities}",
         "data": {
           "confirm": "Confirm Setup",
+          "finish_setup": "Finish Setup",
           "back_to_settings": "Back to Settings"
+        },
+        "data_description": {
+          "finish_setup": "Complete the integration setup process"
+        }
+      },
+      "api_config": {
+        "title": "API Configuration",
+        "description": "Configure TinyTuya Cloud API credentials.",
+        "data": {
+          "api_client_id": "Client ID",
+          "api_client_secret": "Client Secret",
+          "api_endpoint": "API Endpoint"
+        },
+        "data_description": {
+          "api_client_id": "Access ID from Tuya IoT Platform project",
+          "api_client_secret": "Access Secret from Tuya IoT Platform project",
+          "api_endpoint": "API endpoint (EU: openapi.tuyaeu.com, US: openapi.tuyaus.com)"
+        }
+      },
+      "api_only": {
+        "title": "API-Only Setup",
+        "description": "Configure your device using TinyTuya Cloud API only.",
+        "data": {
+          "api_client_id": "API Client ID",
+          "api_client_secret": "API Client Secret",
+          "api_endpoint": "API Endpoint Region"
+        },
+        "data_description": {
+          "api_client_id": "Access ID from your Tuya IoT Platform project",
+          "api_client_secret": "Access Secret from your Tuya IoT Platform project",
+          "api_endpoint": "Select your regional API endpoint"
+        }
+      },
+      "api_discovery": {
+        "title": "Device Discovery",
+        "description": "Select your KKT Kolbe device from discovered devices.",
+        "data": {
+          "selected_device": "Device"
+        }
+      },
+      "api_device_selection": {
+        "title": "Select Your Device",
+        "description": "Choose your KKT Kolbe device from the API discovery.",
+        "data": {
+          "selected_device": "Device",
+          "retry_discovery": "Retry Discovery"
+        },
+        "data_description": {
+          "selected_device": "Select your KKT Kolbe device from the discovered devices",
+          "retry_discovery": "Retry device discovery with different API settings"
+        }
+      },
+      "api_choice": {
+        "title": "API Credentials",
+        "description": "Use stored API credentials or enter new ones.",
+        "data": {
+          "use_stored_api": "Use Stored API Credentials",
+          "manage_api": "Manage API Settings"
+        },
+        "data_description": {
+          "use_stored_api": "Use previously saved TinyTuya API credentials: {stored_api_info}",
+          "manage_api": "Advanced: Clear or modify stored API credentials"
+        }
+      },
+      "api_credentials": {
+        "title": "New API Credentials",
+        "description": "Enter new TinyTuya Cloud API credentials.",
+        "data": {
+          "api_client_id": "API Client ID",
+          "api_client_secret": "API Client Secret",
+          "api_endpoint": "API Endpoint Region"
+        },
+        "data_description": {
+          "api_client_id": "Access ID from your Tuya IoT Platform project",
+          "api_client_secret": "Access Secret from your Tuya IoT Platform project",
+          "api_endpoint": "Select your regional API endpoint"
+        }
+      },
+      "hybrid_manual_details": {
+        "title": "Local Connection Details",
+        "description": "Enter local connection details for hybrid mode.",
+        "data": {
+          "host": "IP Address",
+          "local_key": "Local Key"
+        },
+        "data_description": {
+          "host": "IP address for local communication",
+          "local_key": "Local encryption key for direct communication"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Update Credentials",
+        "description": "Update authentication credentials for {device_name}.",
+        "data": {
+          "local_key": "New Local Key",
+          "api_client_id": "API Client ID",
+          "api_client_secret": "API Client Secret",
+          "api_endpoint": "API Endpoint"
+        },
+        "data_description": {
+          "local_key": "Enter new 16-character local key if device was reset",
+          "api_client_id": "Updated Access ID from Tuya IoT Platform",
+          "api_client_secret": "Updated Access Secret from Tuya IoT Platform",
+          "api_endpoint": "Regional API endpoint for your account"
+        }
+      },
+      "init": {
+        "title": "KKT Kolbe Options",
+        "description": "Configure options for your KKT Kolbe device.",
+        "data": {
+          "scan_interval": "Update Interval",
+          "new_local_key": "New Local Key",
+          "api_enabled": "Enable TinyTuya Cloud API",
+          "api_client_id": "API Client ID",
+          "api_client_secret": "API Client Secret",
+          "api_endpoint": "API Endpoint Region",
+          "enable_debug_logging": "Enable Debug Logging",
+          "enable_advanced_entities": "Enable Advanced Entities",
+          "zone_naming_scheme": "Zone Naming Scheme",
+          "test_connection": "Test Connection"
+        },
+        "data_description": {
+          "scan_interval": "How often to update device status (10-300 seconds)",
+          "new_local_key": "Enter new local key if device was reset (16 characters)",
+          "api_enabled": "Enable TinyTuya Cloud API for hybrid mode and device discovery",
+          "api_client_id": "Access ID from Tuya IoT Platform project",
+          "api_client_secret": "Access Secret from Tuya IoT Platform project",
+          "api_endpoint": "Select your regional API endpoint",
+          "enable_debug_logging": "Enable detailed logging for troubleshooting",
+          "enable_advanced_entities": "Show additional diagnostic entities",
+          "zone_naming_scheme": "How to name multi-zone entities",
+          "test_connection": "Test device connection after changes"
         }
       }
     },
@@ -65,24 +241,20 @@
       "invalid_device_id": "Invalid device ID format (must be 20+ characters)",
       "invalid_local_key": "Invalid local key format (must be 16+ characters)",
       "connection_test_failed": "Connection test failed",
-      "unknown": "Unexpected error"
+      "unknown": "Unexpected error",
+      "missing_required_fields": "Please fill in all required fields",
+      "api_connection_failed": "Could not connect to Tuya Cloud API",
+      "api_auth_failed": "API authentication failed. Check your credentials",
+      "api_error": "API error occurred",
+      "unknown_api_error": "Unknown API error occurred",
+      "analysis_failed": "Device analysis failed",
+      "no_kkt_devices_found": "No KKT Kolbe devices found",
+      "missing_local_details": "Please provide local connection details"
     },
     "abort": {
       "already_configured": "Device is already configured",
       "reauth_successful": "Re-authentication was successful",
       "reauth_failed": "Re-authentication failed"
-    },
-    "reauth": {
-      "reauth_confirm": {
-        "title": "Re-authenticate KKT Kolbe",
-        "description": "The authentication for {device_name} failed. Please update your credentials.\n\nDevice ID: {device_id}",
-        "data": {
-          "api_client_id": "Tuya API Client ID",
-          "api_client_secret": "Tuya API Client Secret",
-          "api_endpoint": "API Endpoint",
-          "local_key": "Local Key"
-        }
-      }
     }
   },
   "options": {
@@ -92,15 +264,41 @@
         "description": "Configure options for {device_name}.\n\nCurrent Update Interval: {current_interval} seconds",
         "data": {
           "scan_interval": "Update Interval",
+          "new_local_key": "New Local Key",
+          "api_enabled": "Enable TinyTuya Cloud API",
+          "api_client_id": "API Client ID",
+          "api_client_secret": "API Client Secret",
+          "api_endpoint": "API Endpoint Region",
           "enable_debug_logging": "Enable Debug Logging",
           "enable_advanced_entities": "Enable Advanced Entities",
           "zone_naming_scheme": "Zone Naming Scheme",
           "test_connection": "Test Connection"
+        },
+        "data_description": {
+          "new_local_key": "Enter new local key if device was reset (16 characters, any format)",
+          "api_enabled": "Enable TinyTuya Cloud API for hybrid mode and device discovery",
+          "api_client_id": "Access ID from Tuya IoT Platform project",
+          "api_client_secret": "Access Secret from Tuya IoT Platform project",
+          "api_endpoint": "Select your regional API endpoint",
+          "enable_debug_logging": "Enable detailed logging for troubleshooting",
+          "enable_advanced_entities": "Show additional diagnostic entities",
+          "zone_naming_scheme": "How to name multi-zone entities",
+          "test_connection": "Test device connection after changes"
         }
       }
     },
     "error": {
-      "connection_test_failed": "Connection test failed - check device availability"
+      "connection_test_failed": "Connection test failed - check device availability",
+      "invalid_local_key_length": "Local key must be exactly 16 characters",
+      "local_key_test_failed": "Failed to connect with new local key. Please verify the key is correct",
+      "missing_device_info": "Device information missing from configuration",
+      "api_client_id_required": "API Client ID is required when API is enabled",
+      "api_client_id_invalid": "API Client ID must be at least 10 characters",
+      "api_client_secret_required": "API Client Secret is required when API is enabled",
+      "api_client_secret_invalid": "API Client Secret must be at least 20 characters",
+      "api_test_failed": "Failed to connect to TinyTuya Cloud API. Please verify your credentials",
+      "invalid_region": "Invalid region selected",
+      "invalid_local_key": "Local key must be exactly 16 characters"
     }
   },
   "selector": {
@@ -119,10 +317,56 @@
     },
     "device_type": {
       "options": {
-        "hermes_style": "KKT Kolbe HERMES & STYLE (Range Hood)",
-        "hermes": "KKT Kolbe HERMES (Range Hood)",
-        "ecco_hcm": "KKT Kolbe ECCO HCM (Range Hood)",
-        "ind7705hc": "KKT IND7705HC (Induction Cooktop)"
+        "hermes_style_hood": "KKT Kolbe HERMES & STYLE (Range Hood)",
+        "hermes_hood": "KKT Kolbe HERMES (Range Hood)",
+        "ecco_hcm_hood": "KKT Kolbe ECCO HCM (Range Hood)",
+        "flat_hood": "KKT Kolbe FLAT (Range Hood)",
+        "ind7705hc_cooktop": "KKT IND7705HC (Induction Cooktop)",
+        "default_hood": "Default Hood - Generic Range Hood"
+      }
+    }
+  },
+  "issues": {
+    "tuya_api_auth_failed": {
+      "title": "Tuya API Authentication Failed",
+      "description": "The Tuya Cloud API authentication failed for **{entry_title}**.\n\nThis usually means your API credentials (Client ID or Client Secret) are incorrect or expired.\n\n**To fix this:**\n1. Click \"Submit\" below to open the re-authentication dialog\n2. Verify your credentials in the [Tuya IoT Platform](https://iot.tuya.com/)\n3. Enter the correct Client ID and Client Secret\n\n**Common causes:**\n- Incorrect Client ID or Client Secret\n- Expired API credentials\n- Account suspended",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Fix Tuya API Authentication",
+            "description": "Click Submit to open the re-authentication dialog for **{entry_title}**."
+          }
+        }
+      }
+    },
+    "tuya_api_wrong_region": {
+      "title": "Tuya API Wrong Region/Endpoint",
+      "description": "The Tuya Cloud API signature validation failed for **{entry_title}**.\n\nCurrent endpoint: `{current_endpoint}`\n\nThis usually means you selected the wrong data center region for your Tuya account.\n\n**To fix this:**\n1. Click \"Submit\" below\n2. Select the correct region where your Tuya devices are registered\n3. The integration will automatically update and reconnect\n\n**Common causes:**\n- Wrong data center selected during setup\n- Devices registered in different region\n- System time not synchronized",
+      "fix_flow": {
+        "step": {
+          "confirm_region": {
+            "title": "Select Correct Region",
+            "description": "Select the correct Tuya data center region for **{entry_title}**.\n\nCurrent endpoint: `{current_endpoint}`",
+            "data": {
+              "region": "Data Center Region"
+            }
+          }
+        }
+      }
+    },
+    "local_key_expired": {
+      "title": "Local Key Expired or Invalid",
+      "description": "The local key authentication failed for device **{entry_title}** (ID: `{device_id}`).\n\nThis usually happens after:\n- Device factory reset\n- Device removed and re-added in Smart Life/Tuya app\n- Local key manually changed\n\n**To fix this:**\n1. Click \"Submit\" below\n2. Enter the new local key from your device\n3. You can find the local key using the Tuya IoT Platform or tinytuya wizard\n\n**How to get the local key:**\n- Use [tinytuya wizard](https://github.com/jasonacox/tinytuya)\n- Check Tuya IoT Platform → Cloud → API Explorer → Get Device Details",
+      "fix_flow": {
+        "step": {
+          "update_local_key": {
+            "title": "Update Local Key",
+            "description": "Enter the new local key for device **{entry_title}** (ID: `{device_id}`).",
+            "data": {
+              "local_key": "Local Key (16 characters)"
+            }
+          }
+        }
       }
     }
   }

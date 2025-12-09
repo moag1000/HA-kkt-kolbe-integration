@@ -1,9 +1,14 @@
 """Switch platform for KKT Kolbe devices."""
+from __future__ import annotations
+
 import logging
+from typing import Any
+
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .base_entity import KKTBaseEntity
 from .const import DOMAIN
@@ -34,7 +39,12 @@ async def async_setup_entry(
 class KKTKolbeSwitch(KKTBaseEntity, SwitchEntity):
     """Representation of a KKT Kolbe switch."""
 
-    def __init__(self, coordinator, entry: ConfigEntry, config: dict):
+    def __init__(
+        self,
+        coordinator: DataUpdateCoordinator[dict[str, Any]],
+        entry: ConfigEntry,
+        config: dict[str, Any],
+    ) -> None:
         """Initialize the switch."""
         super().__init__(coordinator, entry, config, "switch")
         self._attr_icon = self._get_icon()
@@ -81,12 +91,12 @@ class KKTKolbeSwitch(KKTBaseEntity, SwitchEntity):
         """Return true if the switch is on."""
         return self._cached_state
 
-    async def async_turn_on(self, **kwargs) -> None:
+    async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the switch on."""
         await self._async_set_data_point(self._dp, True)
         self._log_entity_state("Turn On", f"DP {self._dp} set to True")
 
-    async def async_turn_off(self, **kwargs) -> None:
+    async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the switch off."""
         await self._async_set_data_point(self._dp, False)
         self._log_entity_state("Turn Off", f"DP {self._dp} set to False")

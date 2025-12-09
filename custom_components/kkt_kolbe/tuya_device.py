@@ -1,9 +1,12 @@
 """KKT Kolbe Tuya Device Handler with enhanced config flow and device selection."""
+from __future__ import annotations
+
 import asyncio
 import logging
-from typing import Any, Dict
+from typing import Any, Callable, Coroutine, Optional
 
 import tinytuya
+from homeassistant.core import HomeAssistant
 
 from .exceptions import (
     KKTConnectionError,
@@ -17,7 +20,7 @@ _LOGGER = logging.getLogger(__name__)
 class KKTKolbeTuyaDevice:
     """Handle communication with KKT Kolbe device via Tuya protocol."""
 
-    def __init__(self, device_id: str, ip_address: str, local_key: str, version: str = "auto", hass=None):
+    def __init__(self, device_id: str, ip_address: str, local_key: str, version: str = "auto", hass: HomeAssistant | None = None) -> None:
         """Initialize the Tuya device connection.
 
         Args:
@@ -37,14 +40,14 @@ class KKTKolbeTuyaDevice:
         self._hass = hass
         # Don't connect in __init__ - will be done async
 
-    def _handle_task_result(self, task):
+    def _handle_task_result(self, task: asyncio.Task[Any]) -> None:
         """Handle completed async task results and log errors."""
         try:
             task.result()  # This will raise the exception if the task failed
         except Exception as e:
             _LOGGER.error(f"Async task failed: {e}")
 
-    def _create_safe_task(self, coro):
+    def _create_safe_task(self, coro: Coroutine[Any, Any, Any]) -> asyncio.Task[Any]:
         """Create async task with error handling."""
         task = asyncio.create_task(coro)
         task.add_done_callback(self._handle_task_result)
@@ -140,7 +143,7 @@ class KKTKolbeTuyaDevice:
                     _LOGGER.info(f"Connection attempt {attempt + 1} failed: {e}, retrying in {retry_delay}s...")
                     await asyncio.sleep(retry_delay)
 
-    def _run_executor_job(self, func, *args):
+    def _run_executor_job(self, func: Callable[..., Any], *args: Any) -> Coroutine[Any, Any, Any]:
         """Run a function in executor - use hass if available, otherwise fallback to loop.
 
         This follows Home Assistant best practices for running blocking I/O.
@@ -346,7 +349,7 @@ class KKTKolbeTuyaDevice:
                     reason=f"Failed to validate connection: {e}"
                 )
 
-    async def async_ensure_connected(self):
+    async def async_ensure_connected(self) -> None:
         """Ensure device is connected (async) with proper error handling."""
         if not self._connected:
             try:
@@ -382,11 +385,11 @@ class KKTKolbeTuyaDevice:
         """Return True if device is on (DP 1)."""
         return self.get_dp_value(1, False)
 
-    def get_dp_value(self, dp: int, default=None):
+    def get_dp_value(self, dp: int, default: Any = None) -> Any:
         """Get data point value from cached status."""
         return self._status.get("dps", {}).get(str(dp), default)
 
-    async def async_get_status(self) -> Dict:
+    async def async_get_status(self) -> dict[str, Any]:
         """Get current device status asynchronously with explicit status retrieval logic."""
         await self.async_ensure_connected()
 
@@ -571,17 +574,17 @@ class KKTKolbeTuyaDevice:
                 reason=str(e)
             )
 
-    def turn_on(self):
+    def turn_on(self) -> None:
         """Turn device on (DP 1 = True). DEPRECATED: Use coordinator.async_set_data_point() instead."""
         _LOGGER.warning("turn_on() is deprecated. Use coordinator.async_set_data_point() instead.")
         self._create_safe_task(self.async_set_dp(1, True))
 
-    def turn_off(self):
+    def turn_off(self) -> None:
         """Turn device off (DP 1 = False). DEPRECATED: Use coordinator.async_set_data_point() instead."""
         _LOGGER.warning("turn_off() is deprecated. Use coordinator.async_set_data_point() instead.")
         self._create_safe_task(self.async_set_dp(1, False))
 
-    def set_fan_speed(self, speed: str):
+    def set_fan_speed(self, speed: str) -> None:
         """Set fan speed (DP 10). DEPRECATED: Use coordinator.async_set_data_point() instead."""
         _LOGGER.warning("set_fan_speed() is deprecated. Use coordinator.async_set_data_point() instead.")
         speed_map = {
@@ -607,7 +610,7 @@ class KKTKolbeTuyaDevice:
         }
         return speed_map.get(str(speed_value), "off")
 
-    def set_light(self, state: bool):
+    def set_light(self, state: bool) -> None:
         """Set light state (DP 4)."""
         self._create_safe_task(self.async_set_dp(4, state))
 
@@ -616,7 +619,7 @@ class KKTKolbeTuyaDevice:
         """Return True if light is on."""
         return self.get_dp_value(4, False)
 
-    def set_rgb_mode(self, mode: int):
+    def set_rgb_mode(self, mode: int) -> None:
         """Set RGB mode (DP 101)."""
         if 0 <= mode <= 9:
             self._create_safe_task(self.async_set_dp(101, mode))
@@ -626,7 +629,7 @@ class KKTKolbeTuyaDevice:
         """Get current RGB mode."""
         return self.get_dp_value(101, 0)
 
-    def set_countdown(self, minutes: int):
+    def set_countdown(self, minutes: int) -> None:
         """Set countdown timer (DP 13)."""
         if 0 <= minutes <= 60:
             self._create_safe_task(self.async_set_dp(13, minutes))
@@ -641,7 +644,7 @@ class KKTKolbeTuyaDevice:
         """Get current light brightness (DP 5)."""
         return self.get_dp_value(5, 255)
 
-    def set_light_brightness(self, brightness: int):
+    def set_light_brightness(self, brightness: int) -> None:
         """Set light brightness (DP 5)."""
         self._create_safe_task(self.async_set_dp(5, max(0, min(255, brightness))))
 
@@ -650,7 +653,7 @@ class KKTKolbeTuyaDevice:
         """Get current RGB brightness (DP 102)."""
         return self.get_dp_value(102, 255)
 
-    def set_rgb_brightness(self, brightness: int):
+    def set_rgb_brightness(self, brightness: int) -> None:
         """Set RGB brightness (DP 102)."""
         self._create_safe_task(self.async_set_dp(102, max(0, min(255, brightness))))
 
@@ -659,11 +662,11 @@ class KKTKolbeTuyaDevice:
         """Get filter usage hours (DP 14)."""
         return self.get_dp_value(14, 0)
 
-    def reset_filter(self):
+    def reset_filter(self) -> None:
         """Reset filter (DP 15)."""
         self._create_safe_task(self.async_set_dp(15, True))
 
-    def set_fan_speed_direct(self, speed: str):
+    def set_fan_speed_direct(self, speed: str) -> None:
         """Set fan speed directly (DP 11)."""
         speed_map = {
             "off": 0,
@@ -699,7 +702,7 @@ class KKTKolbeTuyaDevice:
             return raw_value[zone - 1]
         return 0
 
-    def set_zone_power_level(self, zone: int, level: int):
+    def set_zone_power_level(self, zone: int, level: int) -> None:
         """Set power level for specific zone (1-5) in DP 162 bitfield."""
         if not (1 <= zone <= 5 and 0 <= level <= 25):
             return
@@ -721,7 +724,7 @@ class KKTKolbeTuyaDevice:
             return raw_value[zone - 1]
         return 0
 
-    def set_zone_timer(self, zone: int, minutes: int):
+    def set_zone_timer(self, zone: int, minutes: int) -> None:
         """Set timer for specific zone (1-5) in DP 167 bitfield."""
         if not (1 <= zone <= 5 and 0 <= minutes <= 255):
             return
@@ -743,7 +746,7 @@ class KKTKolbeTuyaDevice:
             return raw_value[zone - 1]
         return 0
 
-    def set_zone_core_temp(self, zone: int, temp: int):
+    def set_zone_core_temp(self, zone: int, temp: int) -> None:
         """Set core temperature for specific zone (1-5) in DP 168 bitfield."""
         if not (1 <= zone <= 5 and 0 <= temp <= 300):
             return
@@ -783,7 +786,7 @@ class KKTKolbeTuyaDevice:
             return bool(raw_value[0] & (1 << (zone - 1)))
         return False
 
-    def set_zone_selected(self, zone: int, selected: bool):
+    def set_zone_selected(self, zone: int, selected: bool) -> None:
         """Set zone selection for specific zone (1-5) in DP 161 bitfield."""
         if not 1 <= zone <= 5:
             return
@@ -807,7 +810,7 @@ class KKTKolbeTuyaDevice:
             return bool(raw_value[0] & (1 << (zone - 1)))
         return False
 
-    def set_zone_boost(self, zone: int, boost: bool):
+    def set_zone_boost(self, zone: int, boost: bool) -> None:
         """Set boost mode for specific zone (1-5) in DP 163 bitfield."""
         if not 1 <= zone <= 5:
             return
@@ -831,7 +834,7 @@ class KKTKolbeTuyaDevice:
             return bool(raw_value[0] & (1 << (zone - 1)))
         return False
 
-    def set_zone_keep_warm(self, zone: int, keep_warm: bool):
+    def set_zone_keep_warm(self, zone: int, keep_warm: bool) -> None:
         """Set keep warm mode for specific zone (1-5) in DP 164 bitfield."""
         if not 1 <= zone <= 5:
             return
@@ -856,7 +859,7 @@ class KKTKolbeTuyaDevice:
             return bool(raw_value[0] & (1 << bit))
         return False
 
-    def set_flex_zone(self, side: str, active: bool):
+    def set_flex_zone(self, side: str, active: bool) -> None:
         """Set flex zone active state (left/right) in DP 165 bitfield."""
         if side not in ["left", "right"]:
             return
@@ -882,7 +885,7 @@ class KKTKolbeTuyaDevice:
             return bool(raw_value[0] & (1 << bit))
         return False
 
-    def set_bbq_mode(self, side: str, active: bool):
+    def set_bbq_mode(self, side: str, active: bool) -> None:
         """Set BBQ mode active state (left/right) in DP 166 bitfield."""
         if side not in ["left", "right"]:
             return
@@ -929,32 +932,32 @@ class KKTKolbeTuyaDevice:
         """Get cooktop senior mode state (DP 145)."""
         return self.get_dp_value(145, False)
 
-    def set_cooktop_power(self, state: bool):
+    def set_cooktop_power(self, state: bool) -> None:
         """Set cooktop main power (DP 101)."""
         self._create_safe_task(self.async_set_dp(101, state))
 
-    def set_cooktop_pause(self, state: bool):
+    def set_cooktop_pause(self, state: bool) -> None:
         """Set cooktop pause state (DP 102)."""
         self._create_safe_task(self.async_set_dp(102, state))
 
-    def set_cooktop_child_lock(self, state: bool):
+    def set_cooktop_child_lock(self, state: bool) -> None:
         """Set cooktop child lock (DP 103)."""
         self._create_safe_task(self.async_set_dp(103, state))
 
-    def set_cooktop_max_level(self, level: int):
+    def set_cooktop_max_level(self, level: int) -> None:
         """Set cooktop max power level (DP 104)."""
         if 0 <= level <= 25:
             self._create_safe_task(self.async_set_dp(104, level))
 
-    def set_cooktop_timer(self, minutes: int):
+    def set_cooktop_timer(self, minutes: int) -> None:
         """Set cooktop general timer (DP 134)."""
         if 0 <= minutes <= 99:
             self._create_safe_task(self.async_set_dp(134, minutes))
 
-    def set_cooktop_senior_mode(self, state: bool):
+    def set_cooktop_senior_mode(self, state: bool) -> None:
         """Set cooktop senior mode (DP 145)."""
         self._create_safe_task(self.async_set_dp(145, state))
 
-    def set_cooktop_confirm(self, state: bool):
+    def set_cooktop_confirm(self, state: bool) -> None:
         """Set cooktop confirm action (DP 108)."""
         self._create_safe_task(self.async_set_dp(108, state))

@@ -2,10 +2,17 @@
   "config": {
     "step": {
       "user": {
-        "title": "KKT Kolbe Einrichtung",
-        "description": "{setup_mode}",
+        "title": "KKT Kolbe Integration Einrichtung",
+        "description": "Wählen Sie die Einrichtungsmethode für KKT Kolbe Geräte.",
         "data": {
-          "connection_method": "Einrichtungsmethode"
+          "setup_method": "Einrichtungsmethode"
+        },
+        "data_description": {
+          "integration_mode": "Wählen Sie, wie Sie Ihr KKT Kolbe Gerät konfigurieren möchten",
+          "setup_method": "Wählen Sie Ihre bevorzugte Einrichtungsmethode",
+          "connection_method": "Wählen Sie die Verbindungsmethode für die Geräteeinrichtung",
+          "device_type": "Wählen Sie Ihren KKT Kolbe Gerätetyp",
+          "zone_naming": "Konfigurieren Sie die Zonenbenennung für Multi-Zonen-Geräte"
         }
       },
       "discovery": {
@@ -15,16 +22,41 @@
           "selected_device": "Gerät auswählen",
           "retry_discovery": "Erkennung wiederholen",
           "use_manual_config": "Manuelle Konfiguration verwenden"
+        },
+        "data_description": {
+          "selected_device": "Wählen Sie Ihr KKT Kolbe Gerät aus den erkannten Geräten",
+          "retry_discovery": "Erneut nach Geräten im Netzwerk suchen",
+          "use_manual_config": "Gerät manuell mit IP und Geräte-ID konfigurieren"
         }
       },
       "manual": {
         "title": "Manuelle Konfiguration",
-        "description": "Geben Sie die Grunddaten Ihres KKT Kolbe Geräts ein.\n\nBeispiele:\nIP-Adresse: {ip_example}\nGeräte-ID: {device_id_example}\n\nHinweis: Der Local Key wird im nächsten Schritt abgefragt.",
+        "description": "Geben Sie die Details Ihres KKT Kolbe Geräts manuell ein.\n\n**Tipp:** Wenn Ihr spezifisches Modell nicht aufgeführt ist, wählen Sie 'Default Hood - Generische Dunstabzugshaube' für grundlegende Steuerung.",
         "data": {
-          "ip_address": "IP-Adresse",
-          "device_id": "Tuya Geräte-ID",
+          "host": "IP-Adresse",
+          "device_id": "Geräte-ID",
           "device_type": "Gerätetyp",
           "back_to_discovery": "Zurück zur Erkennung"
+        },
+        "data_description": {
+          "host": "IP-Adresse Ihres KKT Kolbe Geräts (z.B. 192.168.1.100)",
+          "device_id": "20-stellige Geräte-ID aus der Smart Life App",
+          "device_type": "Wählen Sie Ihr spezifisches Modell oder 'Default Hood' wenn unbekannt",
+          "back_to_discovery": "Zurück zur automatischen Geräteerkennung"
+        }
+      },
+      "manual_config": {
+        "title": "Manuelle Konfiguration",
+        "description": "Gerätedaten manuell eingeben.",
+        "data": {
+          "device_id": "Geräte-ID",
+          "host": "IP-Adresse",
+          "local_key": "Local Key"
+        },
+        "data_description": {
+          "device_id": "20-stellige Geräte-ID aus der Tuya/Smart Life App",
+          "host": "IP-Adresse des Geräts in Ihrem Netzwerk",
+          "local_key": "Lokaler Verschlüsselungsschlüssel (16 Zeichen)"
         }
       },
       "authentication": {
@@ -34,10 +66,15 @@
           "local_key": "Local Key",
           "test_connection": "Verbindung testen",
           "back_to_previous": "Zurück zum vorherigen Schritt"
+        },
+        "data_description": {
+          "local_key": "16-stelliger lokaler Verschlüsselungsschlüssel aus der Smart Life App",
+          "test_connection": "Verbindung mit dem angegebenen Local Key testen",
+          "back_to_previous": "Zurück zur Geräteauswahl oder manuellen Konfiguration"
         }
       },
       "settings": {
-        "title": "Erweiterte Einstellungen",
+        "title": "Geräteeinstellungen",
         "description": "Konfigurieren Sie erweiterte Einstellungen für {device_name}.\n\nEmpfohlen: {recommended_interval}",
         "data": {
           "update_interval": "Aktualisierungsintervall",
@@ -45,14 +82,153 @@
           "enable_advanced_entities": "Erweiterte Entitäten aktivieren",
           "zone_naming_scheme": "Zonenbenennung",
           "back_to_authentication": "Zurück zur Authentifizierung"
+        },
+        "data_description": {
+          "update_interval": "Wie oft der Gerätestatus aktualisiert wird (Sekunden)",
+          "enable_debug_logging": "Detaillierte Protokollierung zur Fehlerbehebung aktivieren",
+          "enable_advanced_entities": "Zusätzliche Diagnose-Entitäten anzeigen",
+          "zone_naming_scheme": "Namenskonvention für Multi-Zonen-Geräte"
         }
       },
       "confirmation": {
-        "title": "Einrichtung bestätigen",
+        "title": "Einrichtung abgeschlossen",
         "description": "Bitte bestätigen Sie Ihre Konfiguration:\n\nGerät: {device_name}\nIP: {ip_address}\nGeräte-ID: {device_id}\nProdukt: {product_name}\n\nEinstellungen:\nAktualisierungsintervall: {update_interval} Sekunden\nDebug-Protokollierung: {debug_logging}\nErweiterte Entitäten: {advanced_entities}",
         "data": {
           "confirm": "Einrichtung bestätigen",
+          "finish_setup": "Einrichtung abschließen",
           "back_to_settings": "Zurück zu Einstellungen"
+        },
+        "data_description": {
+          "finish_setup": "Integrations-Einrichtung abschließen"
+        }
+      },
+      "api_config": {
+        "title": "API-Konfiguration",
+        "description": "TinyTuya Cloud API Zugangsdaten konfigurieren.",
+        "data": {
+          "api_client_id": "Client ID",
+          "api_client_secret": "Client Secret",
+          "api_endpoint": "API-Endpunkt"
+        },
+        "data_description": {
+          "api_client_id": "Access ID aus dem Tuya IoT Platform Projekt",
+          "api_client_secret": "Access Secret aus dem Tuya IoT Platform Projekt",
+          "api_endpoint": "API-Endpunkt (EU: openapi.tuyaeu.com, US: openapi.tuyaus.com)"
+        }
+      },
+      "api_only": {
+        "title": "Nur-API-Einrichtung",
+        "description": "Konfigurieren Sie Ihr Gerät nur über die TinyTuya Cloud API.",
+        "data": {
+          "api_client_id": "API Client ID",
+          "api_client_secret": "API Client Secret",
+          "api_endpoint": "API-Endpunkt Region"
+        },
+        "data_description": {
+          "api_client_id": "Access ID aus Ihrem Tuya IoT Platform Projekt",
+          "api_client_secret": "Access Secret aus Ihrem Tuya IoT Platform Projekt",
+          "api_endpoint": "Wählen Sie Ihren regionalen API-Endpunkt"
+        }
+      },
+      "api_discovery": {
+        "title": "Geräteerkennung",
+        "description": "Wählen Sie Ihr KKT Kolbe Gerät aus den erkannten Geräten.",
+        "data": {
+          "selected_device": "Gerät"
+        }
+      },
+      "api_device_selection": {
+        "title": "Gerät auswählen",
+        "description": "Wählen Sie Ihr KKT Kolbe Gerät aus der API-Erkennung.",
+        "data": {
+          "selected_device": "Gerät",
+          "retry_discovery": "Erkennung wiederholen"
+        },
+        "data_description": {
+          "selected_device": "Wählen Sie Ihr KKT Kolbe Gerät aus den erkannten Geräten",
+          "retry_discovery": "Geräteerkennung mit anderen API-Einstellungen wiederholen"
+        }
+      },
+      "api_choice": {
+        "title": "API-Zugangsdaten",
+        "description": "Gespeicherte API-Zugangsdaten verwenden oder neue eingeben.",
+        "data": {
+          "use_stored_api": "Gespeicherte API-Zugangsdaten verwenden",
+          "manage_api": "API-Einstellungen verwalten"
+        },
+        "data_description": {
+          "use_stored_api": "Zuvor gespeicherte TinyTuya API-Zugangsdaten verwenden: {stored_api_info}",
+          "manage_api": "Erweitert: Gespeicherte API-Zugangsdaten löschen oder ändern"
+        }
+      },
+      "api_credentials": {
+        "title": "Neue API-Zugangsdaten",
+        "description": "Neue TinyTuya Cloud API-Zugangsdaten eingeben.",
+        "data": {
+          "api_client_id": "API Client ID",
+          "api_client_secret": "API Client Secret",
+          "api_endpoint": "API-Endpunkt Region"
+        },
+        "data_description": {
+          "api_client_id": "Access ID aus Ihrem Tuya IoT Platform Projekt",
+          "api_client_secret": "Access Secret aus Ihrem Tuya IoT Platform Projekt",
+          "api_endpoint": "Wählen Sie Ihren regionalen API-Endpunkt"
+        }
+      },
+      "hybrid_manual_details": {
+        "title": "Lokale Verbindungsdetails",
+        "description": "Geben Sie lokale Verbindungsdetails für den Hybrid-Modus ein.",
+        "data": {
+          "host": "IP-Adresse",
+          "local_key": "Local Key"
+        },
+        "data_description": {
+          "host": "IP-Adresse für lokale Kommunikation",
+          "local_key": "Lokaler Verschlüsselungsschlüssel für direkte Kommunikation"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Zugangsdaten aktualisieren",
+        "description": "Authentifizierungsdaten für {device_name} aktualisieren.",
+        "data": {
+          "local_key": "Neuer Local Key",
+          "api_client_id": "API Client ID",
+          "api_client_secret": "API Client Secret",
+          "api_endpoint": "API-Endpunkt"
+        },
+        "data_description": {
+          "local_key": "Neuen 16-stelligen Local Key eingeben, wenn das Gerät zurückgesetzt wurde",
+          "api_client_id": "Aktualisierte Access ID von der Tuya IoT Platform",
+          "api_client_secret": "Aktualisiertes Access Secret von der Tuya IoT Platform",
+          "api_endpoint": "Regionaler API-Endpunkt für Ihr Konto"
+        }
+      },
+      "init": {
+        "title": "KKT Kolbe Optionen",
+        "description": "Konfigurieren Sie Optionen für Ihr KKT Kolbe Gerät.",
+        "data": {
+          "scan_interval": "Aktualisierungsintervall",
+          "new_local_key": "Neuer Local Key",
+          "api_enabled": "TinyTuya Cloud API aktivieren",
+          "api_client_id": "API Client ID",
+          "api_client_secret": "API Client Secret",
+          "api_endpoint": "API-Endpunkt Region",
+          "enable_debug_logging": "Debug-Protokollierung aktivieren",
+          "enable_advanced_entities": "Erweiterte Entitäten aktivieren",
+          "zone_naming_scheme": "Zonenbenennung",
+          "test_connection": "Verbindung testen"
+        },
+        "data_description": {
+          "scan_interval": "Wie oft der Gerätestatus aktualisiert wird (10-300 Sekunden)",
+          "new_local_key": "Neuen Local Key eingeben, wenn das Gerät zurückgesetzt wurde (16 Zeichen)",
+          "api_enabled": "TinyTuya Cloud API für Hybrid-Modus und Geräteerkennung aktivieren",
+          "api_client_id": "Access ID aus dem Tuya IoT Platform Projekt",
+          "api_client_secret": "Access Secret aus dem Tuya IoT Platform Projekt",
+          "api_endpoint": "Wählen Sie Ihren regionalen API-Endpunkt",
+          "enable_debug_logging": "Detaillierte Protokollierung zur Fehlerbehebung aktivieren",
+          "enable_advanced_entities": "Zusätzliche Diagnose-Entitäten anzeigen",
+          "zone_naming_scheme": "Benennung von Multi-Zonen-Entitäten",
+          "test_connection": "Geräteverbindung nach Änderungen testen"
         }
       }
     },
@@ -65,24 +241,20 @@
       "invalid_device_id": "Ungültiges Geräte-ID-Format (muss 20+ Zeichen haben)",
       "invalid_local_key": "Ungültiges Local Key Format (muss 16+ Zeichen haben)",
       "connection_test_failed": "Verbindungstest fehlgeschlagen",
-      "unknown": "Unerwarteter Fehler"
+      "unknown": "Unerwarteter Fehler",
+      "missing_required_fields": "Bitte füllen Sie alle erforderlichen Felder aus",
+      "api_connection_failed": "Verbindung zur Tuya Cloud API fehlgeschlagen",
+      "api_auth_failed": "API-Authentifizierung fehlgeschlagen. Überprüfen Sie Ihre Zugangsdaten",
+      "api_error": "API-Fehler aufgetreten",
+      "unknown_api_error": "Unbekannter API-Fehler aufgetreten",
+      "analysis_failed": "Geräteanalyse fehlgeschlagen",
+      "no_kkt_devices_found": "Keine KKT Kolbe Geräte gefunden",
+      "missing_local_details": "Bitte geben Sie lokale Verbindungsdetails an"
     },
     "abort": {
       "already_configured": "Gerät ist bereits konfiguriert",
       "reauth_successful": "Erneute Authentifizierung erfolgreich",
       "reauth_failed": "Erneute Authentifizierung fehlgeschlagen"
-    },
-    "reauth": {
-      "reauth_confirm": {
-        "title": "KKT Kolbe erneut authentifizieren",
-        "description": "Die Authentifizierung für {device_name} ist fehlgeschlagen. Bitte aktualisieren Sie Ihre Zugangsdaten.\n\nGeräte-ID: {device_id}",
-        "data": {
-          "api_client_id": "Tuya API Client ID",
-          "api_client_secret": "Tuya API Client Secret",
-          "api_endpoint": "API Endpunkt",
-          "local_key": "Local Key"
-        }
-      }
     }
   },
   "options": {
@@ -92,15 +264,39 @@
         "description": "Konfigurieren Sie Optionen für {device_name}.\n\nAktuelles Aktualisierungsintervall: {current_interval} Sekunden",
         "data": {
           "scan_interval": "Aktualisierungsintervall",
+          "new_local_key": "Neuer Local Key",
+          "api_enabled": "TinyTuya Cloud API aktivieren",
+          "api_client_id": "API Client ID",
+          "api_client_secret": "API Client Secret",
+          "api_endpoint": "API-Endpunkt Region",
           "enable_debug_logging": "Debug-Protokollierung aktivieren",
           "enable_advanced_entities": "Erweiterte Entitäten aktivieren",
           "zone_naming_scheme": "Zonenbenennung",
           "test_connection": "Verbindung testen"
+        },
+        "data_description": {
+          "new_local_key": "Neuen Local Key eingeben, wenn das Gerät zurückgesetzt wurde (16 Zeichen, beliebiges Format)",
+          "api_enabled": "TinyTuya Cloud API für Hybrid-Modus und Geräteerkennung aktivieren",
+          "api_client_id": "Access ID aus dem Tuya IoT Platform Projekt",
+          "api_client_secret": "Access Secret aus dem Tuya IoT Platform Projekt",
+          "api_endpoint": "Wählen Sie Ihren regionalen API-Endpunkt",
+          "enable_debug_logging": "Detaillierte Protokollierung zur Fehlerbehebung aktivieren",
+          "enable_advanced_entities": "Zusätzliche Diagnose-Entitäten anzeigen",
+          "zone_naming_scheme": "Benennung von Multi-Zonen-Entitäten",
+          "test_connection": "Geräteverbindung nach Änderungen testen"
         }
       }
     },
     "error": {
       "connection_test_failed": "Verbindungstest fehlgeschlagen - prüfen Sie die Geräteverfügbarkeit",
+      "invalid_local_key_length": "Local Key muss exakt 16 Zeichen lang sein",
+      "local_key_test_failed": "Verbindung mit neuem Local Key fehlgeschlagen. Bitte überprüfen Sie den Schlüssel",
+      "missing_device_info": "Geräteinformationen fehlen in der Konfiguration",
+      "api_client_id_required": "API Client ID ist erforderlich, wenn API aktiviert ist",
+      "api_client_id_invalid": "API Client ID muss mindestens 10 Zeichen haben",
+      "api_client_secret_required": "API Client Secret ist erforderlich, wenn API aktiviert ist",
+      "api_client_secret_invalid": "API Client Secret muss mindestens 20 Zeichen haben",
+      "api_test_failed": "Verbindung zur TinyTuya Cloud API fehlgeschlagen. Bitte überprüfen Sie Ihre Zugangsdaten",
       "invalid_region": "Ungültige Region ausgewählt",
       "invalid_local_key": "Local Key muss exakt 16 Zeichen lang sein"
     }
@@ -121,10 +317,12 @@
     },
     "device_type": {
       "options": {
-        "hermes_style": "KKT Kolbe HERMES & STYLE (Dunstabzugshaube)",
-        "hermes": "KKT Kolbe HERMES (Dunstabzugshaube)",
-        "ecco_hcm": "KKT Kolbe ECCO HCM (Dunstabzugshaube)",
-        "ind7705hc": "KKT IND7705HC (Induktionskochfeld)"
+        "hermes_style_hood": "KKT Kolbe HERMES & STYLE (Dunstabzugshaube)",
+        "hermes_hood": "KKT Kolbe HERMES (Dunstabzugshaube)",
+        "ecco_hcm_hood": "KKT Kolbe ECCO HCM (Dunstabzugshaube)",
+        "flat_hood": "KKT Kolbe FLAT (Dunstabzugshaube)",
+        "ind7705hc_cooktop": "KKT IND7705HC (Induktionskochfeld)",
+        "default_hood": "Default Hood - Generische Dunstabzugshaube"
       }
     }
   },

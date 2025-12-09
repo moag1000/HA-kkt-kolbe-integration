@@ -1,10 +1,13 @@
 """Custom exceptions for KKT Kolbe integration."""
+from __future__ import annotations
+
+from typing import Any
 
 
 class KKTKolbeError(Exception):
     """Base exception for KKT Kolbe integration."""
 
-    def __init__(self, message: str = "Unknown KKT Kolbe error occurred"):
+    def __init__(self, message: str = "Unknown KKT Kolbe error occurred") -> None:
         self.message = message
         super().__init__(self.message)
 
@@ -12,7 +15,13 @@ class KKTKolbeError(Exception):
 class KKTConnectionError(KKTKolbeError):
     """Connection to KKT Kolbe device failed."""
 
-    def __init__(self, operation: str = None, device_id: str = None, reason: str = None, message: str = None):
+    def __init__(
+        self,
+        operation: str | None = None,
+        device_id: str | None = None,
+        reason: str | None = None,
+        message: str | None = None,
+    ) -> None:
         self.operation = operation
         self.device_id = device_id
         self.reason = reason
@@ -31,7 +40,11 @@ class KKTConnectionError(KKTKolbeError):
 class KKTAuthenticationError(KKTKolbeError):
     """Authentication with KKT Kolbe device failed."""
 
-    def __init__(self, device_id: str = None, message: str = None):
+    def __init__(
+        self,
+        device_id: str | None = None,
+        message: str | None = None,
+    ) -> None:
         self.device_id = device_id
         if message is None:
             if device_id:
@@ -44,7 +57,14 @@ class KKTAuthenticationError(KKTKolbeError):
 class KKTTimeoutError(KKTKolbeError):
     """KKT Kolbe device operation timed out."""
 
-    def __init__(self, operation: str = None, device_id: str = None, timeout: float = None, data_point: int = None, message: str = None):
+    def __init__(
+        self,
+        operation: str | None = None,
+        device_id: str | None = None,
+        timeout: float | None = None,
+        data_point: int | None = None,
+        message: str | None = None,
+    ) -> None:
         self.operation = operation
         self.device_id = device_id
         self.timeout = timeout
@@ -66,7 +86,12 @@ class KKTTimeoutError(KKTKolbeError):
 class KKTDeviceError(KKTKolbeError):
     """KKT Kolbe device reported an error."""
 
-    def __init__(self, error_code: int = None, device_message: str = None, message: str = None):
+    def __init__(
+        self,
+        error_code: int | None = None,
+        device_message: str | None = None,
+        message: str | None = None,
+    ) -> None:
         self.error_code = error_code
         self.device_message = device_message
         if message is None:
@@ -84,7 +109,11 @@ class KKTDeviceError(KKTKolbeError):
 class KKTConfigurationError(KKTKolbeError):
     """KKT Kolbe integration configuration error."""
 
-    def __init__(self, config_field: str = None, message: str = None):
+    def __init__(
+        self,
+        config_field: str | None = None,
+        message: str | None = None,
+    ) -> None:
         self.config_field = config_field
         if message is None:
             if config_field:
@@ -97,7 +126,11 @@ class KKTConfigurationError(KKTKolbeError):
 class KKTDiscoveryError(KKTKolbeError):
     """KKT Kolbe device discovery failed."""
 
-    def __init__(self, discovery_method: str = None, message: str = None):
+    def __init__(
+        self,
+        discovery_method: str | None = None,
+        message: str | None = None,
+    ) -> None:
         self.discovery_method = discovery_method
         if message is None:
             if discovery_method:
@@ -110,7 +143,12 @@ class KKTDiscoveryError(KKTKolbeError):
 class KKTServiceError(KKTKolbeError):
     """KKT Kolbe service call failed."""
 
-    def __init__(self, service_name: str = None, reason: str = None, message: str = None):
+    def __init__(
+        self,
+        service_name: str | None = None,
+        reason: str | None = None,
+        message: str | None = None,
+    ) -> None:
         self.service_name = service_name
         self.reason = reason
         if message is None:
@@ -126,7 +164,16 @@ class KKTServiceError(KKTKolbeError):
 class KKTDataPointError(KKTKolbeError):
     """KKT Kolbe data point operation failed."""
 
-    def __init__(self, dp: int = None, operation: str = None, value=None, device_id: str = None, reason: str = None, data_point: int = None, message: str = None):
+    def __init__(
+        self,
+        dp: int | None = None,
+        operation: str | None = None,
+        value: Any = None,
+        device_id: str | None = None,
+        reason: str | None = None,
+        data_point: int | None = None,
+        message: str | None = None,
+    ) -> None:
         self.dp = dp or data_point  # Support both parameter names
         self.operation = operation
         self.value = value

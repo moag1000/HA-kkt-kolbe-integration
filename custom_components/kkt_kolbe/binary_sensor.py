@@ -1,5 +1,9 @@
 """Binary Sensor platform for KKT Kolbe devices."""
+from __future__ import annotations
+
 import logging
+from typing import Any
+
 from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
     BinarySensorDeviceClass,
@@ -8,6 +12,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.entity import EntityCategory
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .base_entity import KKTBaseEntity, KKTZoneBaseEntity
 from .const import DOMAIN
@@ -44,7 +49,12 @@ async def async_setup_entry(
 class KKTKolbeBinarySensor(KKTBaseEntity, BinarySensorEntity):
     """Binary sensor for KKT Kolbe devices."""
 
-    def __init__(self, coordinator, entry: ConfigEntry, config: dict):
+    def __init__(
+        self,
+        coordinator: DataUpdateCoordinator[dict[str, Any]],
+        entry: ConfigEntry,
+        config: dict[str, Any],
+    ) -> None:
         """Initialize the binary sensor."""
         super().__init__(coordinator, entry, config, "binary_sensor")
         self._attr_icon = self._get_icon()
@@ -96,7 +106,12 @@ class KKTKolbeBinarySensor(KKTBaseEntity, BinarySensorEntity):
 class KKTKolbeZoneBinarySensor(KKTZoneBaseEntity, BinarySensorEntity):
     """Zone-specific binary sensor for KKT Kolbe devices."""
 
-    def __init__(self, coordinator, entry: ConfigEntry, config: dict):
+    def __init__(
+        self,
+        coordinator: DataUpdateCoordinator[dict[str, Any]],
+        entry: ConfigEntry,
+        config: dict[str, Any],
+    ) -> None:
         """Initialize the zone binary sensor."""
         super().__init__(coordinator, entry, config, "binary_sensor")
 

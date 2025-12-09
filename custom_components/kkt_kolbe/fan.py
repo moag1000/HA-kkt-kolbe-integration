@@ -1,9 +1,14 @@
 """Fan platform for KKT Kolbe devices."""
+from __future__ import annotations
+
 import logging
+from typing import Any
+
 from homeassistant.components.fan import FanEntity, FanEntityFeature
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util.percentage import (
     ordered_list_item_to_percentage,
     percentage_to_ordered_list_item,
@@ -39,13 +44,18 @@ async def async_setup_entry(
 class KKTKolbeFan(KKTBaseEntity, FanEntity):
     """Representation of a KKT Kolbe fan."""
 
-    def __init__(self, coordinator, entry: ConfigEntry, fan_config: dict):
+    def __init__(
+        self,
+        coordinator: DataUpdateCoordinator[dict[str, Any]],
+        entry: ConfigEntry,
+        fan_config: dict[str, Any],
+    ) -> None:
         """Initialize the fan."""
         # Get speeds from config or use default
         self._speed_list = fan_config.get("speeds", DEFAULT_SPEED_LIST)
         self._dp_id = fan_config.get("dp", 10)  # Default to DP 10 for fan_speed_enum
 
-        config = {
+        config: dict[str, Any] = {
             "dp": self._dp_id,
             "name": "Fan",
         }

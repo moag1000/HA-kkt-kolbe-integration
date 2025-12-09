@@ -1,8 +1,10 @@
 """Config flow for KKT Kolbe integration."""
+from __future__ import annotations
+
 import asyncio
 import logging
 import re
-from typing import Any, Dict, Optional
+from typing import Any
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlow, OptionsFlow, ConfigEntry
@@ -17,6 +19,8 @@ from .const import DOMAIN
 from .discovery import async_start_discovery, async_stop_discovery, get_discovered_devices
 from .tuya_device import KKTKolbeTuyaDevice
 from .api_manager import GlobalAPIManager
+from .api.real_device_mappings import RealDeviceMappings
+from .device_types import KNOWN_DEVICES, CATEGORY_HOOD, CATEGORY_COOKTOP
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -35,17 +39,53 @@ STEP_USER_DATA_SCHEMA = vol.Schema({
     })
 })
 
+def _get_device_type_options() -> list[dict[str, str]]:
+    """Generate device type options from KNOWN_DEVICES.
+
+    Order: Specific hoods, specific cooktops, then generic/default options last.
+
+    Returns:
+        List of dicts with 'value' and 'label' keys for selector options.
+    """
+    options: list[dict[str, str]] = []
+    hoods: list[dict[str, str]] = []
+    cooktops: list[dict[str, str]] = []
+    default_options: list[dict[str, str]] = []
+
+    # Get devices from KNOWN_DEVICES (device_types.py - the main source)
+    for device_key, device_info in KNOWN_DEVICES.items():
+        category = device_info.get("category", "")
+        name = device_info.get("name", device_key)
+
+        # Separate default/generic devices
+        if device_key == "default_hood":
+            default_options.append({
+                "value": device_key,
+                "label": "Default Hood - Generic Range Hood (if model unknown)"
+            })
+        elif category == CATEGORY_HOOD:
+            hoods.append({"value": device_key, "label": f"{name}"})
+        elif category == CATEGORY_COOKTOP:
+            cooktops.append({"value": device_key, "label": f"{name}"})
+
+    # Sort alphabetically
+    hoods.sort(key=lambda x: x["label"])
+    cooktops.sort(key=lambda x: x["label"])
+
+    # Build final list: specific hoods, cooktops, then defaults at the end
+    options.extend(hoods)
+    options.extend(cooktops)
+    options.extend(default_options)
+
+    return options
+
+
 STEP_MANUAL_DATA_SCHEMA = vol.Schema({
     vol.Required(CONF_IP_ADDRESS): str,
     vol.Required("device_id"): str,
     vol.Required("device_type"): selector.selector({
         "select": {
-            "options": [
-                {"value": "hermes_style", "label": "KKT Kolbe HERMES & STYLE (Range Hood)"},
-                {"value": "hermes", "label": "KKT Kolbe HERMES (Range Hood)"},
-                {"value": "ecco_hcm", "label": "KKT Kolbe ECCO HCM (Range Hood)"},
-                {"value": "ind7705hc", "label": "KKT IND7705HC (Induction Cooktop)"}
-            ],
+            "options": _get_device_type_options(),
             "mode": "dropdown",
             "translation_key": "device_type"
         }
@@ -72,7 +112,7 @@ STEP_API_ONLY_DATA_SCHEMA = vol.Schema({
     })
 })
 
-def _get_device_selection_schema(discovered_devices: Dict[str, Dict[str, Any]]):
+def _get_device_selection_schema(discovered_devices: dict[str, dict[str, Any]]) -> vol.Schema:
     """Generate device selection schema based on discovered devices."""
     if not discovered_devices:
         return vol.Schema({
@@ -157,17 +197,17 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
 
     def __init__(self):
         """Initialize the config flow."""
-        self._discovery_data: Dict[str, Dict[str, Any]] = {}
-        self._device_info: Dict[str, Any] = {}
-        self._connection_method: Optional[str] = None
-        self._local_key: Optional[str] = None
-        self._advanced_settings: Dict[str, Any] = {}
+        self._discovery_data: dict[str, dict[str, Any]] = {}
+        self._device_info: dict[str, Any] = {}
+        self._connection_method: str | None = None
+        self._local_key: str | None = None
+        self._advanced_settings: dict[str, Any] = {}
 
     async def async_step_user(
-        self, user_input: Optional[Dict[str, Any]] = None
+        self, user_input: dict[str, Any | None] = None
     ) -> FlowResult:
         """Handle the initial step - setup method selection."""
-        errors: Dict[str, str] = {}
+        errors: dict[str, str] = {}
 
         if user_input is not None:
             setup_method = user_input["setup_method"]
@@ -205,7 +245,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             }
         )
 
-    async def async_step_reauth(self, user_input: Optional[Dict[str, Any]] = None) -> FlowResult:
+    async def async_step_reauth(self, user_input: dict[str, Any | None] = None) -> FlowResult:
         """Handle reauthentication for API credentials."""
         self._reauth_entry = self.hass.config_entries.async_get_entry(
             self.context["entry_id"]
@@ -217,10 +257,10 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         return await self.async_step_reauth_confirm()
 
     async def async_step_reauth_confirm(
-        self, user_input: Optional[Dict[str, Any]] = None
+        self, user_input: dict[str, Any | None] = None
     ) -> FlowResult:
         """Handle reauthentication confirmation."""
-        errors: Dict[str, str] = {}
+        errors: dict[str, str] = {}
 
         if user_input is not None:
             # Check if we're updating API credentials
@@ -318,10 +358,10 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_discovery(
-        self, user_input: Optional[Dict[str, Any]] = None
+        self, user_input: dict[str, Any | None] = None
     ) -> FlowResult:
         """Handle device discovery step."""
-        errors: Dict[str, str] = {}
+        errors: dict[str, str] = {}
 
         # Initialize discovery if not done yet or retry requested
         # Only run discovery on first visit or explicit retry request
@@ -390,10 +430,10 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_manual(
-        self, user_input: Optional[Dict[str, Any]] = None
+        self, user_input: dict[str, Any | None] = None
     ) -> FlowResult:
         """Handle manual configuration step."""
-        errors: Dict[str, str] = {}
+        errors: dict[str, str] = {}
 
         if user_input is not None:
             # Check if user wants to go back to discovery
@@ -405,24 +445,33 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             if not validation_errors:
                 device_type = user_input["device_type"]
 
-                # Map device types to proper names
-                device_type_mapping = {
-                    "hermes_style": "HERMES & STYLE",
-                    "hermes": "HERMES",
-                    "ecco_hcm": "ECCO HCM",
-                    "ind7705hc": "IND7705HC"
-                }
-
-                device_name = device_type_mapping.get(device_type, device_type.upper())
-                is_cooktop = device_type == "ind7705hc"
-                category = "Induction Cooktop" if is_cooktop else "Range Hood"
+                # Check KNOWN_DEVICES first (from device_types.py)
+                if device_type in KNOWN_DEVICES:
+                    known_device = KNOWN_DEVICES[device_type]
+                    device_name = known_device["name"]
+                    device_category = known_device["category"]
+                    is_cooktop = device_category == CATEGORY_COOKTOP
+                    category = "Induction Cooktop" if is_cooktop else "Range Hood"
+                    # Use first product_name for internal identification
+                    product_name_internal = known_device["product_names"][0] if known_device.get("product_names") else device_type
+                elif device_type == "default_hood":
+                    # Default Hood from RealDeviceMappings
+                    device_name = "Default Hood"
+                    category = "Range Hood"
+                    product_name_internal = "default_hood"
+                else:
+                    # Fallback for unknown device types
+                    device_name = device_type.replace("_", " ").title()
+                    category = "Unknown Device"
+                    product_name_internal = device_type
 
                 self._device_info = {
                     "ip": user_input[CONF_IP_ADDRESS],
                     "device_id": user_input["device_id"],
-                    "name": f"KKT Kolbe {device_name} {user_input['device_id']}",
-                    "product_name": f"KKT Kolbe {device_name} ({category})",
-                    "device_type": device_type
+                    "name": f"KKT Kolbe {device_name} {user_input['device_id'][:8]}",
+                    "product_name": product_name_internal,
+                    "device_type": device_type,
+                    "category": category
                 }
                 # Don't set local_key here - it will be asked in authentication step
                 return await self.async_step_authentication()
@@ -441,10 +490,10 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_api_only(
-        self, user_input: Optional[Dict[str, Any]] = None
+        self, user_input: dict[str, Any | None] = None
     ) -> FlowResult:
         """Handle API-only setup step."""
-        errors: Dict[str, str] = {}
+        errors: dict[str, str] = {}
 
         # Check if we have stored global API credentials
         api_manager = GlobalAPIManager(self.hass)
@@ -524,10 +573,10 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_api_device_selection(
-        self, user_input: Optional[Dict[str, Any]] = None
+        self, user_input: dict[str, Any | None] = None
     ) -> FlowResult:
         """Handle device selection from API discovery."""
-        errors: Dict[str, str] = {}
+        errors: dict[str, str] = {}
 
         if user_input is not None:
             if user_input.get("retry_discovery"):
@@ -565,7 +614,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_api_choice(
-        self, user_input: Optional[Dict[str, Any]] = None
+        self, user_input: dict[str, Any | None] = None
     ) -> FlowResult:
         """Handle choice between using stored API credentials or entering new ones."""
         api_manager = GlobalAPIManager(self.hass)
@@ -633,12 +682,12 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         })
 
     async def async_step_api_credentials(
-        self, user_input: Optional[Dict[str, Any]] = None
+        self, user_input: dict[str, Any | None] = None
     ) -> FlowResult:
         """Handle entering new API credentials."""
         # This is essentially the same as the original api_only step
         # but without the stored credentials check
-        errors: Dict[str, str] = {}
+        errors: dict[str, str] = {}
 
         if user_input is not None:
             # Validate API credentials
@@ -712,10 +761,10 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_authentication(
-        self, user_input: Optional[Dict[str, Any]] = None
+        self, user_input: dict[str, Any | None] = None
     ) -> FlowResult:
         """Handle authentication step - local key input and validation."""
-        errors: Dict[str, str] = {}
+        errors: dict[str, str] = {}
 
         if user_input is not None:
             # Check if user wants to go back
@@ -771,7 +820,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_settings(
-        self, user_input: Optional[Dict[str, Any]] = None
+        self, user_input: dict[str, Any | None] = None
     ) -> FlowResult:
         """Handle advanced settings step."""
         if user_input is not None:
@@ -795,13 +844,18 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_confirmation(
-        self, user_input: Optional[Dict[str, Any]] = None
+        self, user_input: dict[str, Any | None] = None
     ) -> FlowResult:
         """Handle confirmation and create config entry."""
         if user_input is not None:
             # Check if user wants to go back to settings
             if user_input.get("back_to_settings"):
                 return await self.async_step_settings()
+
+            # Set unique ID and check for duplicates (Bronze requirement: unique-config-entry)
+            device_id = self._device_info["device_id"]
+            await self.async_set_unique_id(device_id)
+            self._abort_if_unique_id_configured()
 
             # Create the config entry
             title = f"KKT Kolbe {self._device_info.get('name', 'Device')}"
@@ -847,7 +901,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             description_placeholders=summary_info
         )
 
-    async def _validate_manual_input(self, user_input: Dict[str, Any]) -> Dict[str, str]:
+    async def _validate_manual_input(self, user_input: dict[str, Any]) -> dict[str, str]:
         """Validate manual input data (IP and device ID only)."""
         errors = {}
 
@@ -865,7 +919,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
 
         return errors
 
-    async def _validate_api_credentials(self, user_input: Dict[str, Any]) -> Dict[str, str]:
+    async def _validate_api_credentials(self, user_input: dict[str, Any]) -> dict[str, str]:
         """Validate API credentials format."""
         errors = {}
 
@@ -930,10 +984,10 @@ class KKTKolbeOptionsFlow(OptionsFlow):
         pass
 
     async def async_step_init(
-        self, user_input: Optional[Dict[str, Any]] = None
+        self, user_input: dict[str, Any | None] = None
     ) -> FlowResult:
         """Manage the options."""
-        errors: Dict[str, str] = {}
+        errors: dict[str, str] = {}
 
         if user_input is not None:
             # Validate options
@@ -1014,7 +1068,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
             }
         )
 
-    async def _validate_options(self, options: Dict[str, Any]) -> Dict[str, str]:
+    async def _validate_options(self, options: dict[str, Any]) -> dict[str, str]:
         """Validate options."""
         errors = {}
 

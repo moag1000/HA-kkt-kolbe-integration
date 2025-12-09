@@ -1,6 +1,8 @@
 """Enhanced config flow with TinyTuya API support for KKT Kolbe integration."""
+from __future__ import annotations
+
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 
 import voluptuous as vol
 from homeassistant import config_entries
@@ -37,14 +39,14 @@ class KKTKolbeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def __init__(self):
         """Initialize the config flow."""
-        self.api_client: Optional[TuyaCloudClient] = None
+        self.api_client: TuyaCloudClient | None = None
         self.discovered_devices: Dict = {}
-        self.selected_device: Optional[Dict] = None
+        self.selected_device: Dict | None = None
         self.integration_mode: str = MODE_MANUAL
 
     async def async_step_user(
-        self, user_input: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        self, user_input: dict[str, Any | None] = None
+    ) -> dict[str, Any]:
         """Handle the initial step - choose integration mode."""
         if user_input is not None:
             self.integration_mode = user_input[CONF_INTEGRATION_MODE]
@@ -78,8 +80,8 @@ class KKTKolbeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_manual_config(
-        self, user_input: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        self, user_input: dict[str, Any | None] = None
+    ) -> dict[str, Any]:
         """Handle manual device configuration (legacy mode)."""
         errors = {}
 
@@ -127,8 +129,8 @@ class KKTKolbeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_api_config(
-        self, user_input: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        self, user_input: dict[str, Any | None] = None
+    ) -> dict[str, Any]:
         """Handle API credentials configuration."""
         errors = {}
 
@@ -175,8 +177,8 @@ class KKTKolbeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_api_discovery(
-        self, user_input: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        self, user_input: dict[str, Any | None] = None
+    ) -> dict[str, Any]:
         """Handle device discovery via API."""
         if not self.api_client:
             return await self.async_step_api_config()
@@ -253,8 +255,8 @@ class KKTKolbeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_device_analysis(
-        self, user_input: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        self, user_input: dict[str, Any | None] = None
+    ) -> dict[str, Any]:
         """Analyze selected device and create configuration."""
         if not self.selected_device or not self.api_client:
             return await self.async_step_api_discovery()
@@ -311,8 +313,8 @@ class KKTKolbeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
 
     async def async_step_hybrid_manual_details(
-        self, device_config, user_input: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        self, device_config, user_input: dict[str, Any | None] = None
+    ) -> dict[str, Any]:
         """Get manual connection details for hybrid mode."""
         errors = {}
 

@@ -1,5 +1,9 @@
 """Sensor platform for KKT Kolbe devices."""
+from __future__ import annotations
+
 import logging
+from typing import Any, Union
+
 from homeassistant.components.sensor import (
     SensorEntity,
     SensorDeviceClass,
@@ -10,6 +14,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.entity import EntityCategory
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .base_entity import KKTBaseEntity, KKTZoneBaseEntity
 from .const import DOMAIN
@@ -45,7 +50,12 @@ async def async_setup_entry(
 class KKTKolbeSensor(KKTBaseEntity, SensorEntity):
     """Representation of a KKT Kolbe sensor."""
 
-    def __init__(self, coordinator, entry: ConfigEntry, config: dict):
+    def __init__(
+        self,
+        coordinator: DataUpdateCoordinator[dict[str, Any]],
+        entry: ConfigEntry,
+        config: dict[str, Any],
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, config, "sensor")
         self._cached_value = None
@@ -96,7 +106,7 @@ class KKTKolbeSensor(KKTBaseEntity, SensorEntity):
             self._cached_value = value
 
     @property
-    def native_value(self):
+    def native_value(self) -> Any | None:
         """Return the state of the sensor."""
         return self._cached_value
 
@@ -104,7 +114,12 @@ class KKTKolbeSensor(KKTBaseEntity, SensorEntity):
 class KKTKolbeZoneSensor(KKTZoneBaseEntity, SensorEntity):
     """Zone-specific sensor for KKT Kolbe devices."""
 
-    def __init__(self, coordinator, entry: ConfigEntry, config: dict):
+    def __init__(
+        self,
+        coordinator: DataUpdateCoordinator[dict[str, Any]],
+        entry: ConfigEntry,
+        config: dict[str, Any],
+    ) -> None:
         """Initialize the zone sensor."""
         super().__init__(coordinator, entry, config, "sensor")
 
@@ -162,6 +177,6 @@ class KKTKolbeZoneSensor(KKTZoneBaseEntity, SensorEntity):
             self._cached_value = raw_value
 
     @property
-    def native_value(self):
+    def native_value(self) -> Any | None:
         """Return the state of the zone sensor."""
         return self._cached_value

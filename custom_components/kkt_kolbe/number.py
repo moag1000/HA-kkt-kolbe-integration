@@ -1,9 +1,14 @@
 """Number platform for KKT Kolbe devices."""
+from __future__ import annotations
+
 import logging
+from typing import Any
+
 from homeassistant.components.number import NumberEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .base_entity import KKTBaseEntity, KKTZoneBaseEntity
 from .const import DOMAIN
@@ -38,7 +43,12 @@ async def async_setup_entry(
 class KKTKolbeNumber(KKTBaseEntity, NumberEntity):
     """Representation of a KKT Kolbe number entity."""
 
-    def __init__(self, coordinator, entry: ConfigEntry, config: dict):
+    def __init__(
+        self,
+        coordinator: DataUpdateCoordinator[dict[str, Any]],
+        entry: ConfigEntry,
+        config: dict[str, Any],
+    ) -> None:
         """Initialize the number entity."""
         super().__init__(coordinator, entry, config, "number")
 
@@ -88,7 +98,12 @@ class KKTKolbeNumber(KKTBaseEntity, NumberEntity):
 class KKTKolbeZoneNumber(KKTZoneBaseEntity, NumberEntity):
     """Zone-specific number entity for KKT Kolbe devices."""
 
-    def __init__(self, coordinator, entry: ConfigEntry, config: dict):
+    def __init__(
+        self,
+        coordinator: DataUpdateCoordinator[dict[str, Any]],
+        entry: ConfigEntry,
+        config: dict[str, Any],
+    ) -> None:
         """Initialize the zone number entity."""
         super().__init__(coordinator, entry, config, "number")
 
