@@ -210,6 +210,65 @@ KNOWN_DEVICES = {
         }
     },
 
+    # KKT Kolbe SOLO HCM Hood - Similar to HERMES but without RGB lighting
+    # Based on: https://www.kolbe.de/Dunstabzugshaube-60cm-SOLO6005S
+    # Features: 9 fan speeds (mapped to off/low/middle/high/strong), white LED, timer, filter reminder
+    "solo_hcm_hood": {
+        "model_id": "bgvbvjwomgbisd8x",  # Product ID from Tuya
+        "category": CATEGORY_HOOD,
+        "name": "KKT Kolbe SOLO HCM Hood",
+        "product_names": ["bgvbvjwomgbisd8x", "KKT Kolbe SOLO HCM"],
+        "device_ids": ["bf34515c4ab6ec7f9axqy8"],
+        "device_id_patterns": ["bf34515c4ab6ec7f9a"],
+        "platforms": ["light", "switch", "sensor", "select", "number"],
+        "data_points": {
+            # Active DPs (expected based on HERMES pattern)
+            1: "switch",              # Main power
+            4: "light",               # Light on/off (white LED only, no RGB)
+            6: "switch_lamp",         # Filter cleaning reminder
+            10: "fan_speed_enum",     # Fan speed (off/low/middle/high/strong)
+            13: "countdown",          # Timer (0-60 min)
+            # Experimental DPs (may be available)
+            2: "delay_switch",        # Delayed shutdown (afterrun/Nachlauf)
+            5: "light_brightness",    # Light brightness (0-255)
+            7: "switch_wash",         # Wash/cleaning mode
+            14: "filter_hours",       # Filter usage hours
+            15: "filter_reset",       # Reset filter counter
+            17: "eco_mode"            # Eco mode
+        },
+        "entities": {
+            "switch": [
+                {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
+                {"dp": 4, "name": "Light", "device_class": "switch", "icon": "mdi:lightbulb"},
+                {"dp": 6, "name": "Filter Cleaning Reminder", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"},
+                # Experimental switches
+                {"dp": 2, "name": "Delayed Shutdown", "icon": "mdi:timer-off", "advanced": True, "entity_category": "config"},
+                {"dp": 7, "name": "Wash Mode", "icon": "mdi:spray-bottle", "advanced": True},
+                {"dp": 17, "name": "Eco Mode", "icon": "mdi:leaf", "advanced": True, "entity_category": "config"}
+            ],
+            "light": {
+                "dp": 4  # Light on/off only (no RGB support)
+            },
+            "number": [
+                {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"},
+                # Experimental numbers
+                {"dp": 5, "name": "Light Brightness", "min": 0, "max": 255, "step": 1, "icon": "mdi:brightness-6", "advanced": True}
+            ],
+            "sensor": [
+                {"dp": 6, "name": "Filter Status", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"},
+                # Experimental sensors
+                {"dp": 14, "name": "Filter Hours", "unit": "h", "device_class": "duration", "icon": "mdi:clock-outline", "advanced": True, "entity_category": "diagnostic"}
+            ],
+            "select": [
+                {"dp": 10, "name": "Fan Speed", "options": ["off", "low", "middle", "high", "strong"], "icon": "mdi:fan"}
+            ],
+            "button": [
+                # Experimental button
+                {"dp": 15, "name": "Reset Filter Counter", "icon": "mdi:restart", "advanced": True, "entity_category": "config"}
+            ]
+        }
+    },
+
     # KKT Kolbe ECCO HCM Hood
     "ecco_hcm_hood": {
         "model_id": "edjsx0",

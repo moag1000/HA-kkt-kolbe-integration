@@ -3,7 +3,7 @@
 <div align="center">
   <img src="./icon.png" alt="KKT Kolbe Logo" width="128" height="128">
 
-  ## v2.3.0 - Platinum Tier Quality
+  ## v2.4.0 - Platinum Tier Quality
   ### Home Assistant Platinum Tier Quality
 </div>
 
@@ -25,7 +25,7 @@ Unterstützt Dunstabzugshauben und Induktionskochfelder über Tuya Local Protoco
 
 ## 🚀 Unterstützte Geräte
 
-### 🌬️ Dunstabzugshauben (3 Modelle)
+### 🌬️ Dunstabzugshauben (4 Modelle)
 
 #### **HERMES & STYLE Hood** ✅ Vollständig getestet
 - **5-Stufen Lüftersteuerung** (off, low, middle, high, strong)
@@ -46,6 +46,15 @@ Unterstützt Dunstabzugshauben und Induktionskochfelder über Tuya Local Protoco
 - **RGB Farbmodi** (white/colour/scene/music)
 - **Duale Filterüberwachung** (Kohle & Metall)
 - **Wasch-Modus**
+
+#### **SOLO HCM Hood** 🆕 Neu in v2.4.0 - ⚠️ Tester gesucht!
+- **5-Stufen Lüftersteuerung** (off, low, middle, high, strong)
+- **Weiße LED Beleuchtung** (2x1,5W - kein RGB!)
+- **Timer-Funktion** (0-60 Minuten)
+- **Filter-Erinnerungen**
+- **Experimentell**: Nachlauf, Helligkeit, Wasch-Modus, Eco-Modus
+
+> ⚠️ **Tester gesucht!** Die SOLO HCM Konfiguration basiert auf der HERMES-Struktur und Produktspezifikationen. Das vollständige Tuya "Things Data Model" fehlt noch zur Verifizierung der Datenpunkte. Wenn du eine SOLO HCM hast und testen möchtest, [öffne bitte ein Issue](https://github.com/moag1000/HA-kkt-kolbe-integration/issues/new)!
 
 ### 🔥 Induktionskochfeld
 
@@ -87,7 +96,16 @@ Mit deiner Hilfe können wir diese Modelle zur Integration hinzufügen! 🙏
 
 ## ✨ Integration Features
 
-### 🆕 **Neu in v2.2.4: Smart Home Industry Support**
+### 🆕 **Neu in v2.4.0: SOLO HCM Support**
+
+#### **KKT Kolbe SOLO HCM Dunstabzugshaube**
+- ✅ Basis-Konfiguration basierend auf HERMES-Struktur
+- ✅ Weiße LED-Beleuchtung (kein RGB)
+- ✅ 5-Stufen Lüftersteuerung
+- ⚠️ **Beta**: Vollständige DP-Verifizierung ausstehend
+- 📖 Produktseite: [kolbe.de/SOLO6005S](https://www.kolbe.de/Dunstabzugshaube-60cm-SOLO6005S)
+
+### **v2.2.4: Smart Home Industry Support**
 
 #### **Tuya Smart Home Industry Kompatibilität**
 - ✅ Volle Unterstützung für Tuya Smart Home Industry Projekte
