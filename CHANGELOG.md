@@ -5,6 +5,34 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0] - 2025-12-12 🆕
+
+### New Device Support
+
+**Focus**: Added support for KKT Kolbe SOLO HCM range hood.
+
+### Added
+- **KKT Kolbe SOLO HCM Hood**: Full support for the SOLO HCM range hood
+  - Product ID: `bgvbvjwomgbisd8x`
+  - Device ID pattern: `bf34515c4ab6ec7f9a*`
+  - Similar to HERMES & STYLE but **without RGB lighting**
+  - White LED lighting only (2x1.5W)
+  - 9 fan speed levels (mapped to off/low/middle/high/strong)
+  - Timer support (0-60 min)
+  - Filter cleaning reminder
+  - Experimental: Delayed shutdown, brightness control, wash mode, eco mode
+
+### Documentation
+- Added `known_configs/SOLO_HCM_datenpunkte.md` with full DP documentation
+- Product reference: https://www.kolbe.de/Dunstabzugshaube-60cm-SOLO6005S
+
+### Notes
+- Configuration based on HERMES structure and product specifications
+- Actual DPs may vary - awaiting "Things Data Model" from user for verification
+- No RGB support (DPs 101, 102, 103 not available on this model)
+
+---
+
 ## [2.2.4] - 2025-01-05 🔧
 
 ### Hotfix Release - Smart Home Industry Project Support
