@@ -73,22 +73,29 @@ Unterstützt Dunstabzugshauben und Induktionskochfelder über Tuya Local Protoco
 
 Die Integration könnte weitere KKT Kolbe Modelle unterstützen, aber dafür werden **Gerätedaten** benötigt:
 
-#### **Gesucht: VIVA Hood** 🔎
-- Vermutlich ähnlich zu HERMES (basierend auf Firmware)
-- Kategorie: `yyj` (Dunstabzugshaube)
-- **Status**: Konfiguration fehlt
+| Modell | Status | Benötigt |
+|--------|--------|----------|
+| **VIVA Hood** | 🔎 Gesucht | Things Data Model |
+| **SANDRA Hood** | 🔎 Gesucht | Things Data Model |
+| **SOLO HCM** | ⚠️ Beta | Things Data Model zur Verifizierung |
+| **Weitere Modelle** | 🔎 Gesucht | Things Data Model |
 
-#### **Gesucht: SANDRA Hood** 🔎
-- Vermutlich ähnlich zu HERMES/VIVA
-- Kategorie: `yyj` (Dunstabzugshaube)
-- **Status**: Konfiguration fehlt
+### 📖 So kannst du helfen
 
-**Hast du ein VIVA oder SANDRA Modell?**
-→ Bitte [öffne ein Issue](https://github.com/moag1000/HA-kkt-kolbe-integration/issues/new) mit:
-- Gerätemodell
-- Device ID aus der Smart Life App
-- Screenshot der verfügbaren Funktionen
-- Optional: Debug-Logs mit aktivierten Entities
+1. **Tuya IoT Account erstellen** (kostenlos, ~10 Min)
+   → Siehe [Tuya API Setup Anleitung](#-tuya-api-setup---vollstaendige-anleitung) weiter unten
+
+2. **Things Data Model abrufen:**
+   - In der Tuya IoT Platform: **Cloud → API Explorer**
+   - Wähle **"Device Control" → "Query Things Data Model"**
+   - Gib deine **Device ID** ein (findest du unter Devices)
+   - Klicke **"Submit Request"**
+   - **Kopiere die JSON-Antwort**
+
+3. **Issue erstellen:**
+   → Nutze unser [Issue Template für neue Geräte](https://github.com/moag1000/HA-kkt-kolbe-integration/issues/new?template=new_device.md)
+
+**⚠️ Datenschutz:** Bitte entferne `local_key`, `ip`, `lat`/`lon` vor dem Teilen!
 
 Mit deiner Hilfe können wir diese Modelle zur Integration hinzufügen! 🙏
 
