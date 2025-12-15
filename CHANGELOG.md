@@ -5,6 +5,17 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.2] - 2025-12-15 🔧
+
+### Hotfix Release - Device Registry Bug
+
+### Fixed
+- **AttributeError beim Setup**: `coordinator.device_info` existierte nicht
+  - Fehler: `'KKTKolbeHybridCoordinator' object has no attribute 'device_info'`
+  - Fix: Device Registry nutzt jetzt lokale `device_info` Variable korrekt
+
+---
+
 ## [2.4.1] - 2025-12-15 🔧
 
 ### Hotfix Release - SOLO HCM Konfiguration korrigiert

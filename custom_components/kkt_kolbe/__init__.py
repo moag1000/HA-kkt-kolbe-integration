@@ -310,7 +310,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     device_registry = dr.async_get(hass)
     device_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
-        **coordinator.device_info
+        identifiers={(DOMAIN, device_id)},
+        manufacturer="KKT Kolbe",
+        name=device_info.get("name", "KKT Kolbe Device"),
+        model=device_info.get("name", "Unknown"),
     )
 
     # Load only the platforms needed for this specific device
