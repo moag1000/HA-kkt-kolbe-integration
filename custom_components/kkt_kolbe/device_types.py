@@ -210,61 +210,48 @@ KNOWN_DEVICES = {
         }
     },
 
-    # KKT Kolbe SOLO HCM Hood - Similar to HERMES but without RGB lighting
-    # Based on: https://www.kolbe.de/Dunstabzugshaube-60cm-SOLO6005S
-    # Features: 9 fan speeds (mapped to off/low/middle/high/strong), white LED, timer, filter reminder
+    # KKT Kolbe SOLO HCM Hood - Based on ECCO HCM structure (verified via Things Data Model)
+    # Model ID: edjszs (similar to ECCO HCM edjsx0)
+    # Features: 9 fan speeds (0-9), RGB lighting, dual filter monitoring, timer
     "solo_hcm_hood": {
-        "model_id": "bgvbvjwomgbisd8x",  # Product ID from Tuya
+        "model_id": "edjszs",
         "category": CATEGORY_HOOD,
         "name": "KKT Kolbe SOLO HCM Hood",
         "product_names": ["bgvbvjwomgbisd8x", "KKT Kolbe SOLO HCM"],
         "device_ids": ["bf34515c4ab6ec7f9axqy8"],
         "device_id_patterns": ["bf34515c4ab6ec7f9a"],
-        "platforms": ["light", "switch", "sensor", "select", "number"],
+        "platforms": ["switch", "select", "number"],
         "data_points": {
-            # Active DPs (expected based on HERMES pattern)
-            1: "switch",              # Main power
-            4: "light",               # Light on/off (white LED only, no RGB)
-            6: "switch_lamp",         # Filter cleaning reminder
-            10: "fan_speed_enum",     # Fan speed (off/low/middle/high/strong)
-            13: "countdown",          # Timer (0-60 min)
-            # Experimental DPs (may be available)
-            2: "delay_switch",        # Delayed shutdown (afterrun/Nachlauf)
-            5: "light_brightness",    # Light brightness (0-255)
-            7: "switch_wash",         # Wash/cleaning mode
-            14: "filter_hours",       # Filter usage hours
-            15: "filter_reset",       # Reset filter counter
-            17: "eco_mode"            # Eco mode
+            1: "switch",              # Main power (ON/OFF)
+            4: "light",               # Main light on/off
+            6: "switch_lamp",         # RGB switch trigger
+            7: "switch_wash",         # Setting/Wash mode
+            102: "fan_speed",         # Fan speed (0-9)
+            103: "day",               # Carbon filter days remaining (0-250)
+            104: "switch_led_1",      # LED light
+            105: "countdown_1",       # Countdown timer (0-60 min)
+            106: "switch_led",        # Confirm
+            107: "colour_data",       # RGB color data (string, max 255)
+            108: "work_mode",         # RGB work mode (white/colour/scene/music)
+            109: "day_1",             # Metal filter days remaining (0-40)
         },
         "entities": {
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
                 {"dp": 4, "name": "Light", "device_class": "switch", "icon": "mdi:lightbulb"},
-                {"dp": 6, "name": "Filter Cleaning Reminder", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"},
-                # Experimental switches
-                {"dp": 2, "name": "Delayed Shutdown", "icon": "mdi:timer-off", "advanced": True, "entity_category": "config"},
-                {"dp": 7, "name": "Wash Mode", "icon": "mdi:spray-bottle", "advanced": True},
-                {"dp": 17, "name": "Eco Mode", "icon": "mdi:leaf", "advanced": True, "entity_category": "config"}
-            ],
-            "light": {
-                "dp": 4  # Light on/off only (no RGB support)
-            },
-            "number": [
-                {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"},
-                # Experimental numbers
-                {"dp": 5, "name": "Light Brightness", "min": 0, "max": 255, "step": 1, "icon": "mdi:brightness-6", "advanced": True}
-            ],
-            "sensor": [
-                {"dp": 6, "name": "Filter Status", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"},
-                # Experimental sensors
-                {"dp": 14, "name": "Filter Hours", "unit": "h", "device_class": "duration", "icon": "mdi:clock-outline", "advanced": True, "entity_category": "diagnostic"}
+                {"dp": 6, "name": "RGB Light", "device_class": "switch", "icon": "mdi:palette"},
+                {"dp": 7, "name": "Wash Mode", "device_class": "switch", "icon": "mdi:spray-bottle", "advanced": True},
+                {"dp": 104, "name": "LED Light", "device_class": "switch", "icon": "mdi:led-strip"},
+                {"dp": 106, "name": "Confirm", "device_class": "switch", "icon": "mdi:check", "entity_category": "config", "advanced": True}
             ],
             "select": [
-                {"dp": 10, "name": "Fan Speed", "options": ["off", "low", "middle", "high", "strong"], "icon": "mdi:fan"}
+                {"dp": 108, "name": "RGB Mode", "options": ["white", "colour", "scene", "music"], "icon": "mdi:palette"}
             ],
-            "button": [
-                # Experimental button
-                {"dp": 15, "name": "Reset Filter Counter", "icon": "mdi:restart", "advanced": True, "entity_category": "config"}
+            "number": [
+                {"dp": 102, "name": "Fan Speed", "min": 0, "max": 9, "step": 1, "icon": "mdi:fan"},
+                {"dp": 105, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"},
+                {"dp": 103, "name": "Carbon Filter Remaining", "min": 0, "max": 250, "unit": "days", "icon": "mdi:air-filter", "entity_category": "diagnostic"},
+                {"dp": 109, "name": "Metal Filter Remaining", "min": 0, "max": 40, "unit": "days", "icon": "mdi:air-filter", "entity_category": "diagnostic"}
             ]
         }
     },

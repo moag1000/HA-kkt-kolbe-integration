@@ -5,31 +5,47 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.1] - 2025-12-15 🔧
+
+### Hotfix Release - SOLO HCM Konfiguration korrigiert
+
+**Focus**: Korrigierte Konfiguration basierend auf verifiziertem Things Data Model.
+
+### Fixed
+- **SOLO HCM Konfiguration komplett überarbeitet**
+  - Model ID korrigiert: `edjszs` (nicht HERMES-basiert)
+  - **SOLO HCM = ECCO HCM** (identische DP-Struktur!)
+  - Jetzt mit korrekten DPs: 102 (fan_speed), 105 (countdown_1), etc.
+
+### Changed
+- **SOLO HCM Features aktualisiert** (basierend auf Community Things Data Model):
+  - ✅ 9-Stufen Lüftersteuerung (0-9) via DP 102
+  - ✅ RGB Beleuchtung (white/colour/scene/music) via DP 107/108
+  - ✅ Duale Filterüberwachung (Kohle DP 103, Metall DP 109)
+  - ✅ Timer (0-60 min) via DP 105
+  - ✅ Multi-Light Control (Main, LED, RGB)
+
+### Documentation
+- `known_configs/SOLO_HCM_datenpunkte.md` komplett aktualisiert mit verifiziertem Things Data Model
+- Vergleichstabelle: SOLO HCM vs ECCO HCM vs HERMES
+
+### Thanks
+- 🙏 Danke an **@selinamulle123** für das Things Data Model!
+
+---
+
 ## [2.4.0] - 2025-12-12 🆕
 
 ### New Device Support
 
-**Focus**: Added support for KKT Kolbe SOLO HCM range hood.
+**Focus**: Initial support for KKT Kolbe SOLO HCM range hood.
 
 ### Added
-- **KKT Kolbe SOLO HCM Hood**: Full support for the SOLO HCM range hood
-  - Product ID: `bgvbvjwomgbisd8x`
-  - Device ID pattern: `bf34515c4ab6ec7f9a*`
-  - Similar to HERMES & STYLE but **without RGB lighting**
-  - White LED lighting only (2x1.5W)
-  - 9 fan speed levels (mapped to off/low/middle/high/strong)
-  - Timer support (0-60 min)
-  - Filter cleaning reminder
-  - Experimental: Delayed shutdown, brightness control, wash mode, eco mode
-
-### Documentation
-- Added `known_configs/SOLO_HCM_datenpunkte.md` with full DP documentation
-- Product reference: https://www.kolbe.de/Dunstabzugshaube-60cm-SOLO6005S
+- **KKT Kolbe SOLO HCM Hood**: Initial configuration (later corrected in v2.4.1)
 
 ### Notes
-- Configuration based on HERMES structure and product specifications
-- Actual DPs may vary - awaiting "Things Data Model" from user for verification
-- No RGB support (DPs 101, 102, 103 not available on this model)
+- ⚠️ v2.4.0 hatte falsche DP-Konfiguration (HERMES-basiert statt ECCO-basiert)
+- Bitte auf v2.4.1 updaten!
 
 ---
 

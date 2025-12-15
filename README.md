@@ -3,7 +3,7 @@
 <div align="center">
   <img src="./icon.png" alt="KKT Kolbe Logo" width="128" height="128">
 
-  ## v2.4.0 - Platinum Tier Quality
+  ## v2.4.1 - Platinum Tier Quality
   ### Home Assistant Platinum Tier Quality
 </div>
 
@@ -47,14 +47,15 @@ Unterstützt Dunstabzugshauben und Induktionskochfelder über Tuya Local Protoco
 - **Duale Filterüberwachung** (Kohle & Metall)
 - **Wasch-Modus**
 
-#### **SOLO HCM Hood** 🆕 Neu in v2.4.0 - ⚠️ Tester gesucht!
-- **5-Stufen Lüftersteuerung** (off, low, middle, high, strong)
-- **Weiße LED Beleuchtung** (2x1,5W - kein RGB!)
+#### **SOLO HCM Hood** 🆕 Neu in v2.4.1 - ✅ Verifiziert!
+- **9-Stufen Lüftersteuerung** (0-9)
+- **RGB Beleuchtung** (white/colour/scene/music)
+- **Multi-Light Control** (Main, LED, RGB)
 - **Timer-Funktion** (0-60 Minuten)
-- **Filter-Erinnerungen**
-- **Experimentell**: Nachlauf, Helligkeit, Wasch-Modus, Eco-Modus
+- **Duale Filterüberwachung** (Kohle & Metall)
+- **Wasch-Modus**
 
-> ⚠️ **Tester gesucht!** Die SOLO HCM Konfiguration basiert auf der HERMES-Struktur und Produktspezifikationen. Das vollständige Tuya "Things Data Model" fehlt noch zur Verifizierung der Datenpunkte. Wenn du eine SOLO HCM hast und testen möchtest, [öffne bitte ein Issue](https://github.com/moag1000/HA-kkt-kolbe-integration/issues/new)!
+> ℹ️ Die SOLO HCM ist technisch identisch mit der ECCO HCM (Model ID: `edjszs`). Danke an die Community für das Things Data Model!
 
 ### 🔥 Induktionskochfeld
 
@@ -77,7 +78,7 @@ Die Integration könnte weitere KKT Kolbe Modelle unterstützen, aber dafür wer
 |--------|--------|----------|
 | **VIVA Hood** | 🔎 Gesucht | Things Data Model |
 | **SANDRA Hood** | 🔎 Gesucht | Things Data Model |
-| **SOLO HCM** | ⚠️ Beta | Things Data Model zur Verifizierung |
+| **SOLO HCM** | ✅ Verifiziert | - |
 | **Weitere Modelle** | 🔎 Gesucht | Things Data Model |
 
 ### 📖 So kannst du helfen
@@ -103,13 +104,14 @@ Mit deiner Hilfe können wir diese Modelle zur Integration hinzufügen! 🙏
 
 ## ✨ Integration Features
 
-### 🆕 **Neu in v2.4.0: SOLO HCM Support**
+### 🆕 **Neu in v2.4.1: SOLO HCM Support (Verifiziert)**
 
 #### **KKT Kolbe SOLO HCM Dunstabzugshaube**
-- ✅ Basis-Konfiguration basierend auf HERMES-Struktur
-- ✅ Weiße LED-Beleuchtung (kein RGB)
-- ✅ 5-Stufen Lüftersteuerung
-- ⚠️ **Beta**: Vollständige DP-Verifizierung ausstehend
+- ✅ Vollständige Konfiguration basierend auf ECCO HCM Struktur
+- ✅ 9-Stufen Lüftersteuerung (0-9)
+- ✅ RGB Beleuchtung (white/colour/scene/music)
+- ✅ Duale Filterüberwachung (Kohle & Metall)
+- ✅ **Verifiziert** via Community Things Data Model
 - 📖 Produktseite: [kolbe.de/SOLO6005S](https://www.kolbe.de/Dunstabzugshaube-60cm-SOLO6005S)
 
 ### **v2.2.4: Smart Home Industry Support**
