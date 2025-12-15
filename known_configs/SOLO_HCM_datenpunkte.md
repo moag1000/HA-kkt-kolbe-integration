@@ -3,106 +3,79 @@
 ## Geräte-Informationen
 
 - **Modell**: KKT Kolbe SOLO HCM
-- **Produkt-ID**: bgvbvjwomgbisd8x
-- **Device-ID**: bf34515c4ab6ec7f9axqy8
-- **Kategorie**: yyj (Dunstabzugshaube)
+- **Model-ID**: `edjszs` (ähnlich ECCO HCM `edjsx0`)
+- **Produkt-ID**: `bgvbvjwomgbisd8x`
+- **Device-ID**: `bf34515c4ab6ec7f9axqy8`
+- **Kategorie**: `yyj` (Dunstabzugshaube)
 - **Produktseite**: https://www.kolbe.de/Dunstabzugshaube-60cm-SOLO6005S
 
-## Technische Spezifikationen (laut Hersteller)
+## Wichtige Erkenntnis
 
-- **Lüfterstufen**: 9 Stufen (272-782 m³/h)
-- **Beleuchtung**: Weiße LED (2x1,5W) - **KEIN RGB**
-- **Energieeffizienzklasse**: A+++
-- **Schallleistungspegel**: 65 dB
-- **Nachlaufautomatik**: Ja
-- **Betriebsart**: Abluft oder Umluft
+**Die SOLO HCM basiert auf der ECCO HCM Struktur, NICHT auf der HERMES!**
 
-## Alle definierten Datenpunkte
+Entgegen der Produktseite hat die SOLO HCM:
+- ✅ **RGB Beleuchtung** (work_mode: white/colour/scene/music)
+- ✅ **9 Lüfterstufen** (0-9, nicht enum)
+- ✅ **Duale Filterüberwachung** (Kohle + Metall)
 
-Die folgende Tabelle zeigt alle Datenpunkte (DPs), die für dieses Gerätemodell erwartet werden (basierend auf HERMES-Struktur):
+## Alle Datenpunkte (verifiziert via Things Data Model)
 
-| DP-Nummer | Property Code | Beschreibung | Erwartet aktiv |
-|-----------|---------------|-------------|----------------|
-| 1 | switch | Hauptschalter (Ein/Aus) | Ja |
-| 2 | delay_switch | Verzögerte Abschaltung (Nachlauf) | Unklar |
-| 4 | light | Beleuchtung ein/aus | Ja |
-| 5 | light_brightness | Helligkeit der Beleuchtung (0-255) | Unklar |
-| 6 | switch_lamp | Filterreinigungserinnerung | Ja |
-| 7 | switch_wash | Reinigungsmodus | Unklar |
-| 10 | fan_speed_enum | Lüftergeschwindigkeit (Enum: off, low, middle, high, strong) | Ja |
-| 13 | countdown | Timer (0-60 Min) | Ja |
-| 14 | filter_hours | Filternutzungsstunden | Unklar |
-| 15 | filter_reset | Filter zurücksetzen | Unklar |
-| 17 | eco_mode | Eco-Modus ein/aus | Unklar |
+| DP | Code | Name | Typ | Bereich | Status |
+|----|------|------|-----|---------|--------|
+| 1 | `switch` | ON/OFF | bool | - | ✅ Aktiv |
+| 4 | `light` | Light | bool | - | ✅ Aktiv |
+| 6 | `switch_lamp` | RGB-Switch | bool | - | ✅ Aktiv |
+| 7 | `switch_wash` | Setting/Wash | bool | - | ✅ Aktiv |
+| 102 | `fan_speed` | Lüftergeschwindigkeit | value | 0-9 | ✅ Aktiv |
+| 103 | `day` | Kohlefilter Tage | value | 0-250 | ✅ Aktiv |
+| 104 | `switch_led_1` | LED-Light | bool | - | ✅ Aktiv |
+| 105 | `countdown_1` | Countdown Timer | value | 0-60 min | ✅ Aktiv |
+| 106 | `switch_led` | Confirm | bool | - | ✅ Aktiv |
+| 107 | `colour_data` | RGB Farbdaten | string | max 255 | ✅ Aktiv |
+| 108 | `work_mode` | RGB Arbeitsmodus | enum | white/colour/scene/music | ✅ Aktiv |
+| 109 | `day_1` | Metallfilter Tage | value | 0-40 | ✅ Aktiv |
 
-## Unterschiede zur HERMES & STYLE
+## Vergleich mit anderen Modellen
 
-| Feature | SOLO HCM | HERMES & STYLE |
-|---------|----------|----------------|
-| RGB Beleuchtung | **Nein** | Ja (DP 101) |
-| RGB Helligkeit | **Nein** | Ja (DP 102) |
-| Farbtemperatur | **Nein** | Ja (DP 103) |
-| Lüfterstufen | 9 (mapped to 5) | 5 |
-| LED Typ | Weiß (2x1,5W) | RGB |
+| Feature | SOLO HCM | ECCO HCM | HERMES |
+|---------|----------|----------|--------|
+| Model ID | `edjszs` | `edjsx0` | `e1k6i0zo` |
+| Lüfter-DP | 102 (0-9) | 102 (0-9) | 10 (enum) |
+| Timer-DP | 105 | 105 | 13 |
+| RGB | DP 107/108 ✅ | DP 107/108 ✅ | DP 101 |
+| Kohlefilter | DP 103 ✅ | DP 103 ✅ | - |
+| Metallfilter | DP 109 ✅ | DP 109 ✅ | - |
 
-## Erwartete aktive Datenpunkte
+**Fazit**: SOLO HCM ≈ ECCO HCM (nur andere Model-ID)
 
-Basierend auf der Produktbeschreibung und der HERMES-Struktur werden folgende DPs als aktiv erwartet:
+## Home Assistant Entities
 
-1. **DP 1: switch** - Hauptschalter ✅
-2. **DP 4: light** - Beleuchtung ✅
-3. **DP 6: switch_lamp** - Filterreinigungserinnerung ✅
-4. **DP 10: fan_speed_enum** - Lüftergeschwindigkeit ✅
-5. **DP 13: countdown** - Timer ✅
+Nach erfolgreicher Einrichtung werden folgende Entities erstellt:
 
-## Experimentelle Datenpunkte
+### Switches
+- `switch.solo_hcm_power` - Hauptschalter
+- `switch.solo_hcm_light` - Hauptlicht
+- `switch.solo_hcm_rgb_light` - RGB Beleuchtung
+- `switch.solo_hcm_led_light` - LED Streifen
+- `switch.solo_hcm_wash_mode` - Reinigungsmodus (advanced)
+- `switch.solo_hcm_confirm` - Bestätigen (advanced)
 
-Die folgenden DPs könnten funktionieren, sind aber als **"disabled by default"** verfügbar:
+### Numbers
+- `number.solo_hcm_fan_speed` - Lüftergeschwindigkeit (0-9)
+- `number.solo_hcm_timer` - Timer (0-60 min)
+- `number.solo_hcm_carbon_filter_remaining` - Kohlefilter Tage (diagnostic)
+- `number.solo_hcm_metal_filter_remaining` - Metallfilter Tage (diagnostic)
 
-1. **DP 2: delay_switch** - Nachlaufautomatik 🧪
-2. **DP 5: light_brightness** - Helligkeitssteuerung (0-255) 🧪
-3. **DP 7: switch_wash** - Reinigungsmodus 🧪
-4. **DP 14: filter_hours** - Filternutzungsstunden 🧪
-5. **DP 15: filter_reset** - Filter-Zähler zurücksetzen 🧪
-6. **DP 17: eco_mode** - Eco-Modus 🧪
+### Selects
+- `select.solo_hcm_rgb_mode` - RGB Modus (white/colour/scene/music)
 
-**Aktivierung:** Diese experimentellen Entities müssen manuell in Home Assistant aktiviert werden:
-- Einstellungen → Geräte & Dienste → KKT Kolbe → Gerät auswählen
-- "X disabled entities" → Entity auswählen → Enable
+## Things Data Model (Original)
 
-## Hinweise
-
-- **WICHTIG**: Diese Konfiguration basiert auf Annahmen und der HERMES-Struktur
-- Das tatsächliche "Things Data Model" von Tuya wird benötigt, um die exakten DPs zu bestätigen
-- Die 9 physischen Lüfterstufen werden auf 5 Enum-Werte gemappt (off/low/middle/high/strong)
-- Keine RGB-Unterstützung - nur weiße LED-Beleuchtung
-
-## Tuya API Daten (von Nutzer geliefert)
-
-### Device Details
 ```json
 {
   "result": {
-    "id": "bf34515c4ab6ec7f9axqy8",
-    "product_id": "bgvbvjwomgbisd8x",
-    "product_name": "KKT Kolbe SOLO HCM",
-    "model": "SOLO HCM",
-    "category": "yyj",
-    "is_online": true
-  }
+    "model": "{\"modelId\":\"edjszs\",\"services\":[{\"properties\":[{\"abilityId\":1,\"code\":\"switch\",\"name\":\"ON\\\\OFF\",\"typeSpec\":{\"type\":\"bool\"}},{\"abilityId\":4,\"code\":\"light\",\"name\":\"Light\",\"typeSpec\":{\"type\":\"bool\"}},{\"abilityId\":6,\"code\":\"switch_lamp\",\"name\":\"RGB-Switch\",\"typeSpec\":{\"type\":\"bool\"}},{\"abilityId\":7,\"code\":\"switch_wash\",\"name\":\"Setting\",\"typeSpec\":{\"type\":\"bool\"}},{\"abilityId\":102,\"code\":\"fan_speed\",\"name\":\"风速\",\"typeSpec\":{\"type\":\"value\",\"max\":9,\"min\":0}},{\"abilityId\":103,\"code\":\"day\",\"name\":\"change carborn filter\",\"typeSpec\":{\"type\":\"value\",\"max\":250,\"min\":0,\"unit\":\"day\"}},{\"abilityId\":104,\"code\":\"switch_led_1\",\"name\":\"LED-Light\",\"typeSpec\":{\"type\":\"bool\"}},{\"abilityId\":105,\"code\":\"countdown_1\",\"name\":\"Countdown\",\"typeSpec\":{\"type\":\"value\",\"max\":60,\"min\":0,\"unit\":\"min\"}},{\"abilityId\":106,\"code\":\"switch_led\",\"name\":\"Confirm\",\"typeSpec\":{\"type\":\"bool\"}},{\"abilityId\":107,\"code\":\"colour_data\",\"name\":\"彩光\",\"typeSpec\":{\"type\":\"string\",\"maxlen\":255}},{\"abilityId\":108,\"code\":\"work_mode\",\"name\":\"色盘工作模式\",\"typeSpec\":{\"type\":\"enum\",\"range\":[\"white\",\"colour\",\"scene\",\"music\"]}},{\"abilityId\":109,\"code\":\"day_1\",\"name\":\"clean metal filter\",\"typeSpec\":{\"type\":\"value\",\"max\":40,\"min\":0,\"unit\":\"day\"}}]}]}"
+  },
+  "success": true
 }
 ```
-
-### Get instruction set (unvollständig - nur 4 Standard-DPs)
-```json
-{
-  "functions": [
-    {"code": "switch", "type": "Boolean"},
-    {"code": "light", "type": "Boolean"},
-    {"code": "switch_lamp", "type": "Boolean"},
-    {"code": "switch_wash", "type": "Boolean"}
-  ]
-}
-```
-
-**ACHTUNG**: Diese 4 DPs sind nur die Standard-Boolean-Funktionen. Das vollständige "Things Data Model" sollte weitere DPs wie `fan_speed_enum` und `countdown` enthalten!
