@@ -5,6 +5,17 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.3] - 2025-12-15 🔧
+
+### Hotfix Release - Missing button.py
+
+### Fixed
+- **ModuleNotFoundError: button platform**: HERMES hatte `button` in platforms, aber `button.py` existiert nicht
+  - Fehler: `ModuleNotFoundError: Platform kkt_kolbe.button not found`
+  - Fix: `button` aus HERMES platforms entfernt (experimentelles Feature)
+
+---
+
 ## [2.4.2] - 2025-12-15 🔧
 
 ### Hotfix Release - Device Registry Bug
