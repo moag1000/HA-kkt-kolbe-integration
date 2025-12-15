@@ -86,7 +86,7 @@ KNOWN_DEVICES = {
         "product_names": ["ypaixllljc2dcpae"],
         "device_ids": ["bf735dfe2ad64fba7cpyhn"],
         "device_id_patterns": ["bf735dfe2ad64fba7c"],
-        "platforms": ["light", "switch", "sensor", "select", "number", "button"],
+        "platforms": ["light", "switch", "sensor", "select", "number"],
         "data_points": {
             # Active DPs (verified working)
             1: "switch",              # Main power
@@ -129,11 +129,9 @@ KNOWN_DEVICES = {
                 {"dp": 10, "name": "Fan Speed", "options": ["off", "low", "middle", "high", "strong"], "icon": "mdi:fan"},
                 # Experimental select
                 {"dp": 103, "name": "Color Temperature", "options": ["warm", "neutral", "cold"], "icon": "mdi:thermometer", "advanced": True}
-            ],
-            "button": [
-                # Experimental button
-                {"dp": 15, "name": "Reset Filter Counter", "icon": "mdi:restart", "advanced": True, "entity_category": "config"}
             ]
+            # Note: button platform removed - no button.py exists
+            # {"dp": 15, "name": "Reset Filter Counter"} could be added if button.py is created
         }
     },
 
