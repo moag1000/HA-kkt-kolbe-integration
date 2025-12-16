@@ -8,11 +8,7 @@
           "setup_method": "Einrichtungsmethode"
         },
         "data_description": {
-          "integration_mode": "Wählen Sie, wie Sie Ihr KKT Kolbe Gerät konfigurieren möchten",
-          "setup_method": "Wählen Sie Ihre bevorzugte Einrichtungsmethode",
-          "connection_method": "Wählen Sie die Verbindungsmethode für die Geräteeinrichtung",
-          "device_type": "Wählen Sie Ihren KKT Kolbe Gerätetyp",
-          "zone_naming": "Konfigurieren Sie die Zonenbenennung für Multi-Zonen-Geräte"
+          "setup_method": "Wählen Sie Ihre bevorzugte Einrichtungsmethode"
         }
       },
       "discovery": {
@@ -326,50 +322,6 @@
       }
     }
   },
-  "issues": {
-    "tuya_api_auth_failed": {
-      "title": "Tuya API Authentifizierung fehlgeschlagen",
-      "description": "Die Tuya Cloud API Authentifizierung ist für **{entry_title}** fehlgeschlagen.\n\nDas bedeutet normalerweise, dass Ihre API-Zugangsdaten (Client ID oder Client Secret) falsch oder abgelaufen sind.\n\n**So beheben Sie das Problem:**\n1. Klicken Sie unten auf \"Absenden\", um den Re-Authentifizierungs-Dialog zu öffnen\n2. Überprüfen Sie Ihre Zugangsdaten in der [Tuya IoT Platform](https://iot.tuya.com/)\n3. Geben Sie die korrekte Client ID und Client Secret ein\n\n**Häufige Ursachen:**\n- Falsche Client ID oder Client Secret\n- Abgelaufene API-Zugangsdaten\n- Konto gesperrt",
-      "fix_flow": {
-        "step": {
-          "confirm": {
-            "title": "Tuya API Authentifizierung reparieren",
-            "description": "Klicken Sie auf Absenden, um den Re-Authentifizierungs-Dialog für **{entry_title}** zu öffnen."
-          }
-        }
-      }
-    },
-    "tuya_api_wrong_region": {
-      "title": "Tuya API falsche Region/Endpunkt",
-      "description": "Die Tuya Cloud API Signatur-Validierung ist für **{entry_title}** fehlgeschlagen.\n\nAktueller Endpunkt: `{current_endpoint}`\n\nDas bedeutet normalerweise, dass Sie die falsche Rechenzentrumsregion für Ihr Tuya-Konto ausgewählt haben.\n\n**So beheben Sie das Problem:**\n1. Klicken Sie unten auf \"Absenden\"\n2. Wählen Sie die korrekte Region, in der Ihre Tuya-Geräte registriert sind\n3. Die Integration wird automatisch aktualisiert und neu verbunden\n\n**Häufige Ursachen:**\n- Falsche Rechenzentrumsregion während der Einrichtung ausgewählt\n- Geräte in anderer Region registriert\n- Systemzeit nicht synchronisiert",
-      "fix_flow": {
-        "step": {
-          "confirm_region": {
-            "title": "Korrekte Region auswählen",
-            "description": "Wählen Sie die korrekte Tuya Rechenzentrumsregion für **{entry_title}**.\n\nAktueller Endpunkt: `{current_endpoint}`",
-            "data": {
-              "region": "Rechenzentrumsregion"
-            }
-          }
-        }
-      }
-    },
-    "local_key_expired": {
-      "title": "Local Key abgelaufen oder ungültig",
-      "description": "Die Local Key Authentifizierung ist für Gerät **{entry_title}** (ID: `{device_id}`) fehlgeschlagen.\n\nDas passiert normalerweise nach:\n- Werksreset des Geräts\n- Gerät wurde in Smart Life/Tuya App entfernt und neu hinzugefügt\n- Local Key wurde manuell geändert\n\n**So beheben Sie das Problem:**\n1. Klicken Sie unten auf \"Absenden\"\n2. Geben Sie den neuen Local Key für Ihr Gerät ein\n3. Sie finden den Local Key über die Tuya IoT Platform oder den tinytuya Wizard\n\n**Wie Sie den Local Key erhalten:**\n- Verwenden Sie den [tinytuya Wizard](https://github.com/jasonacox/tinytuya)\n- Prüfen Sie Tuya IoT Platform → Cloud → API Explorer → Get Device Details",
-      "fix_flow": {
-        "step": {
-          "update_local_key": {
-            "title": "Local Key aktualisieren",
-            "description": "Geben Sie den neuen Local Key für Gerät **{entry_title}** (ID: `{device_id}`) ein.",
-            "data": {
-              "local_key": "Local Key (16 Zeichen)"
-            }
-          }
-        }
-      }
-    }
-  },
   "entity": {
     "switch": {
       "power": {
@@ -435,11 +387,6 @@
           "strong": "Stark"
         }
       }
-    }
-  },
-  "entity_component": {
-    "_": {
-      "default": "mdi:stove"
     }
   }
 }

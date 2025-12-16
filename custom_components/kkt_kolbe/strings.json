@@ -8,11 +8,7 @@
           "setup_method": "Setup Method"
         },
         "data_description": {
-          "integration_mode": "Select how you want to configure your KKT Kolbe device",
-          "setup_method": "Choose your preferred setup method",
-          "connection_method": "Choose connection method for device setup",
-          "device_type": "Select your KKT Kolbe device type",
-          "zone_naming": "Configure zone naming for multi-zone devices"
+          "setup_method": "Choose your preferred setup method"
         }
       },
       "manual_config": {
@@ -284,50 +280,6 @@
       "connection_test_failed": "Connection test failed. Please check your device settings",
       "invalid_region": "Invalid region selected",
       "invalid_local_key": "Local key must be exactly 16 characters"
-    }
-  },
-  "issues": {
-    "tuya_api_auth_failed": {
-      "title": "Tuya API Authentication Failed",
-      "description": "The Tuya Cloud API authentication failed for **{entry_title}**.\n\nThis usually means your API credentials (Client ID or Client Secret) are incorrect or expired.\n\n**To fix this:**\n1. Click \"Submit\" below to open the re-authentication dialog\n2. Verify your credentials in the [Tuya IoT Platform](https://iot.tuya.com/)\n3. Enter the correct Client ID and Client Secret\n\n**Common causes:**\n- Incorrect Client ID or Client Secret\n- Expired API credentials\n- Account suspended",
-      "fix_flow": {
-        "step": {
-          "confirm": {
-            "title": "Fix Tuya API Authentication",
-            "description": "Click Submit to open the re-authentication dialog for **{entry_title}**."
-          }
-        }
-      }
-    },
-    "tuya_api_wrong_region": {
-      "title": "Tuya API Wrong Region/Endpoint",
-      "description": "The Tuya Cloud API signature validation failed for **{entry_title}**.\n\nCurrent endpoint: `{current_endpoint}`\n\nThis usually means you selected the wrong data center region for your Tuya account.\n\n**To fix this:**\n1. Click \"Submit\" below\n2. Select the correct region where your Tuya devices are registered\n3. The integration will automatically update and reconnect\n\n**Common causes:**\n- Wrong data center selected during setup\n- Devices registered in different region\n- System time not synchronized",
-      "fix_flow": {
-        "step": {
-          "confirm_region": {
-            "title": "Select Correct Region",
-            "description": "Select the correct Tuya data center region for **{entry_title}**.\n\nCurrent endpoint: `{current_endpoint}`",
-            "data": {
-              "region": "Data Center Region"
-            }
-          }
-        }
-      }
-    },
-    "local_key_expired": {
-      "title": "Local Key Expired or Invalid",
-      "description": "The local key authentication failed for device **{entry_title}** (ID: `{device_id}`).\n\nThis usually happens after:\n- Device factory reset\n- Device removed and re-added in Smart Life/Tuya app\n- Local key manually changed\n\n**To fix this:**\n1. Click \"Submit\" below\n2. Enter the new local key from your device\n3. You can find the local key using the Tuya IoT Platform or tinytuya wizard\n\n**How to get the local key:**\n- Use [tinytuya wizard](https://github.com/jasonacox/tinytuya)\n- Check Tuya IoT Platform → Cloud → API Explorer → Get Device Details",
-      "fix_flow": {
-        "step": {
-          "update_local_key": {
-            "title": "Update Local Key",
-            "description": "Enter the new local key for device **{entry_title}** (ID: `{device_id}`).",
-            "data": {
-              "local_key": "Local Key (16 characters)"
-            }
-          }
-        }
-      }
     }
   }
 }
