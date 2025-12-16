@@ -369,5 +369,77 @@
         }
       }
     }
+  },
+  "entity": {
+    "switch": {
+      "power": {
+        "name": "Power",
+        "state": {
+          "on": "On",
+          "off": "Off"
+        }
+      },
+      "light": {
+        "name": "Light"
+      },
+      "child_lock": {
+        "name": "Child Lock"
+      },
+      "pause": {
+        "name": "Pause"
+      }
+    },
+    "fan": {
+      "hood_fan": {
+        "name": "Hood Fan"
+      }
+    },
+    "sensor": {
+      "filter_status": {
+        "name": "Filter Status"
+      },
+      "current_temperature": {
+        "name": "Current Temperature"
+      }
+    },
+    "binary_sensor": {
+      "zone_active": {
+        "name": "Zone Active"
+      },
+      "boost_active": {
+        "name": "Boost Active"
+      },
+      "error": {
+        "name": "Error"
+      }
+    },
+    "number": {
+      "timer": {
+        "name": "Timer"
+      },
+      "power_level": {
+        "name": "Power Level"
+      },
+      "rgb_mode": {
+        "name": "RGB Mode"
+      }
+    },
+    "select": {
+      "fan_speed": {
+        "name": "Fan Speed",
+        "state": {
+          "off": "Off",
+          "low": "Low",
+          "middle": "Middle",
+          "high": "High",
+          "strong": "Strong"
+        }
+      }
+    }
+  },
+  "entity_component": {
+    "_": {
+      "default": "mdi:stove"
+    }
   }
 }

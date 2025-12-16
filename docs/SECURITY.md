@@ -63,9 +63,9 @@ ip: "192.168.1.xxx"
 
 ❌ **BAD** (never commit):
 ```yaml
-device_id: "bf735dfe2ad64fba7cpyhn"
-local_key: "wGz8(Dz#a:*U{cBR"
-ip: "79.195.80.216"
+device_id: "bf735dfe2ad64fba7creal"
+local_key: "RealKey123456789"
+ip: "203.0.113.42"
 ```
 
 ## Reporting Security Issues

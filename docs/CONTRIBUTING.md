@@ -71,7 +71,6 @@ Erstellen Sie einen GitHub Issue mit:
 - Schreiben Sie Tests für kritische Funktionen
 
 ### Testing
-Da der Original-Code ungetestet ist:
 
 1. **Simulator verwenden**: Testen Sie zunächst ohne echte Hardware
 2. **Schrittweise**: Beginnen Sie mit ungefährlichen Funktionen

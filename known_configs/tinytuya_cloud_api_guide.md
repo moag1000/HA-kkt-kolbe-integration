@@ -78,7 +78,7 @@ for device in devices:
         print(f"Found KKT device: {device['name']} (ID: {device['id']})")
 
 # Get hood status
-hood_id = "bf735dfe2ad64fba7cpyhn"  # Example ID
+hood_id = "your_device_id_here"  # Replace with your device ID
 status = cloud.getDeviceStatus(hood_id)
 print(f"Hood status: {status}")
 
