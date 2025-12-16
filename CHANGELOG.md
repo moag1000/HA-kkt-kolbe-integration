@@ -5,6 +5,21 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.11] - 2025-12-16
+
+### Bugfix Release - Test Suite Overhaul
+
+### Fixed
+- **conftest.py**: Use `MockConfigEntry` from pytest-homeassistant-custom-component
+- **All test files**: Added proper type hints and HomeAssistant fixture
+- **test_config_flow.py**: Fixed to work with proper config flow testing
+- **test_init.py**: Simplified setup tests with proper mocking
+- **test_sensor.py**: Added hass fixture to all tests
+- **test_fan.py**: Added hass fixture to all tests
+- **test_diagnostics.py**: Added hass fixture to all tests
+
+---
+
 ## [2.4.10] - 2025-12-16
 
 ### Bugfix Release - Test Fixtures

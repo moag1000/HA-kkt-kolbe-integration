@@ -2,27 +2,25 @@
 import pytest
 from unittest.mock import MagicMock, patch, AsyncMock
 
-from custom_components.kkt_kolbe.const import DOMAIN
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-# Use the hass fixture from pytest-homeassistant-custom-component
-# Do NOT override it with a custom fixture
+from custom_components.kkt_kolbe.const import DOMAIN
 
 
 @pytest.fixture
 def mock_tuya_device():
     """Mock TinyTuya device for testing."""
-    with patch("custom_components.kkt_kolbe.tuya_device.tinytuya.Device") as mock:
+    with patch("tinytuya.Device") as mock:
         device = MagicMock()
-        # Simulate successful connection and status
         device.status.return_value = {
             "dps": {
-                "1": True,   # Power
-                "4": True,   # Light
-                "5": 128,    # Light brightness
-                "10": "2",   # Fan speed
-                "11": 2,     # Fan speed setting
-                "13": 0,     # Countdown
-                "14": 100,   # Filter hours
+                "1": True,
+                "4": True,
+                "5": 128,
+                "10": "2",
+                "11": 2,
+                "13": 0,
+                "14": 100,
             }
         }
         device.set_value.return_value = None
@@ -32,13 +30,9 @@ def mock_tuya_device():
 
 
 @pytest.fixture
-def mock_config_entry(hass):
+def mock_config_entry():
     """Mock ConfigEntry for testing."""
-    from homeassistant.config_entries import ConfigEntry
-
-    entry = ConfigEntry(
-        version=1,
-        minor_version=1,
+    return MockConfigEntry(
         domain=DOMAIN,
         title="Test KKT Device",
         data={
@@ -48,12 +42,8 @@ def mock_config_entry(hass):
             "integration_mode": "manual",
             "product_name": "KKT DH9509NP",
         },
-        options={},
-        source="user",
         unique_id="test_device_id_12345",
     )
-
-    return entry
 
 
 @pytest.fixture
@@ -77,5 +67,14 @@ def mock_coordinator():
         "manufacturer": "KKT Kolbe",
         "model": "DH9509NP",
     }
-
     return coordinator
+
+
+@pytest.fixture
+def mock_setup_entry():
+    """Mock async_setup_entry."""
+    with patch(
+        "custom_components.kkt_kolbe.async_setup_entry",
+        return_value=True,
+    ) as mock_setup:
+        yield mock_setup

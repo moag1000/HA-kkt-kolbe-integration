@@ -1,6 +1,8 @@
 """Test KKT Kolbe fan platform."""
 import pytest
 from unittest.mock import MagicMock, AsyncMock, patch
+
+from homeassistant.core import HomeAssistant
 from homeassistant.components.fan import FanEntityFeature
 
 from custom_components.kkt_kolbe.fan import KKTKolbeFan
@@ -8,7 +10,9 @@ from custom_components.kkt_kolbe.const import DOMAIN
 
 
 @pytest.mark.asyncio
-async def test_fan_initialization(mock_coordinator, mock_config_entry):
+async def test_fan_initialization(
+    hass: HomeAssistant, mock_coordinator, mock_config_entry
+) -> None:
     """Test fan initialization."""
     config = {
         "name": "Hood Fan",
@@ -25,14 +29,15 @@ async def test_fan_initialization(mock_coordinator, mock_config_entry):
 
 
 @pytest.mark.asyncio
-async def test_fan_is_on_property(mock_coordinator, mock_config_entry):
+async def test_fan_is_on_property(
+    hass: HomeAssistant, mock_coordinator, mock_config_entry
+) -> None:
     """Test fan is_on property."""
     config = {
         "name": "Hood Fan",
-        "dp": 1,  # Power DP
+        "dp": 1,
     }
 
-    # Coordinator data says device is on
     mock_coordinator.data = {"1": True}
     fan = KKTKolbeFan(mock_coordinator, mock_config_entry, config)
 
@@ -40,7 +45,9 @@ async def test_fan_is_on_property(mock_coordinator, mock_config_entry):
 
 
 @pytest.mark.asyncio
-async def test_fan_turn_on(mock_coordinator, mock_config_entry):
+async def test_fan_turn_on(
+    hass: HomeAssistant, mock_coordinator, mock_config_entry
+) -> None:
     """Test turning fan on."""
     config = {
         "name": "Hood Fan",
@@ -56,7 +63,9 @@ async def test_fan_turn_on(mock_coordinator, mock_config_entry):
 
 
 @pytest.mark.asyncio
-async def test_fan_turn_off(mock_coordinator, mock_config_entry):
+async def test_fan_turn_off(
+    hass: HomeAssistant, mock_coordinator, mock_config_entry
+) -> None:
     """Test turning fan off."""
     config = {
         "name": "Hood Fan",
@@ -72,7 +81,9 @@ async def test_fan_turn_off(mock_coordinator, mock_config_entry):
 
 
 @pytest.mark.asyncio
-async def test_fan_preset_modes(mock_coordinator, mock_config_entry):
+async def test_fan_preset_modes(
+    hass: HomeAssistant, mock_coordinator, mock_config_entry
+) -> None:
     """Test fan preset mode setting."""
     config = {
         "name": "Hood Fan",
@@ -85,5 +96,4 @@ async def test_fan_preset_modes(mock_coordinator, mock_config_entry):
 
     await fan.async_set_preset_mode("high")
 
-    # Preset mode "high" should map to value "3"
     mock_coordinator.async_set_data_point.assert_called_once()
