@@ -1,0 +1,321 @@
+"""Smart Discovery for KKT Kolbe - combines local discovery with API data."""
+from __future__ import annotations
+
+import asyncio
+import logging
+from typing import Any
+
+from homeassistant.core import HomeAssistant
+
+from .api_manager import GlobalAPIManager
+from .discovery import get_discovered_devices, async_start_discovery
+
+_LOGGER = logging.getLogger(__name__)
+
+
+class SmartDiscoveryResult:
+    """Result of smart discovery combining local and API data."""
+
+    def __init__(
+        self,
+        device_id: str,
+        name: str,
+        ip_address: str | None = None,
+        local_key: str | None = None,
+        product_name: str | None = None,
+        device_type: str = "auto",
+        tuya_category: str | None = None,
+        discovered_via: str = "unknown",
+        api_enriched: bool = False,
+        ready_to_add: bool = False,
+    ):
+        """Initialize smart discovery result."""
+        self.device_id = device_id
+        self.name = name
+        self.ip_address = ip_address
+        self.local_key = local_key
+        self.product_name = product_name
+        self.device_type = device_type
+        self.tuya_category = tuya_category
+        self.discovered_via = discovered_via
+        self.api_enriched = api_enriched
+        self.ready_to_add = ready_to_add
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dictionary for config flow."""
+        return {
+            "device_id": self.device_id,
+            "name": self.name,
+            "ip_address": self.ip_address,
+            "ip": self.ip_address,  # Alias for compatibility
+            "local_key": self.local_key,
+            "product_name": self.product_name,
+            "device_type": self.device_type,
+            "tuya_category": self.tuya_category,
+            "discovered_via": self.discovered_via,
+            "api_enriched": self.api_enriched,
+            "ready_to_add": self.ready_to_add,
+        }
+
+    @property
+    def display_label(self) -> str:
+        """Get display label for UI."""
+        status = "Ready" if self.ready_to_add else "Needs Local Key"
+        icon = "✅" if self.ready_to_add else "🔑"
+        ip_str = self.ip_address or "Unknown IP"
+        return f"{icon} {self.name} ({ip_str}) - {status}"
+
+
+class SmartDiscovery:
+    """Smart discovery combining local UDP/mDNS with Tuya Cloud API."""
+
+    def __init__(self, hass: HomeAssistant):
+        """Initialize smart discovery."""
+        self.hass = hass
+        self._api_manager = GlobalAPIManager(hass)
+        self._discovered_devices: dict[str, SmartDiscoveryResult] = {}
+
+    async def async_discover(
+        self,
+        local_timeout: float = 6.0,
+        enrich_with_api: bool = True,
+    ) -> dict[str, SmartDiscoveryResult]:
+        """Run smart discovery.
+
+        1. Start local UDP/mDNS discovery
+        2. If API credentials available, fetch device list from API
+        3. Match local devices with API data
+        4. Return enriched device list
+
+        Args:
+            local_timeout: Timeout for local discovery in seconds
+            enrich_with_api: Whether to fetch additional data from API
+
+        Returns:
+            Dictionary of device_id -> SmartDiscoveryResult
+        """
+        self._discovered_devices.clear()
+
+        # Step 1: Run local discovery
+        _LOGGER.info("Smart Discovery: Starting local device scan...")
+        await async_start_discovery(self.hass)
+        await asyncio.sleep(local_timeout)
+
+        local_devices = get_discovered_devices()
+        _LOGGER.info(f"Smart Discovery: Found {len(local_devices)} local devices")
+
+        # Convert local devices to SmartDiscoveryResult
+        for device_id, device_info in local_devices.items():
+            self._discovered_devices[device_id] = SmartDiscoveryResult(
+                device_id=device_id,
+                name=device_info.get("name", f"KKT Device {device_id[:8]}"),
+                ip_address=device_info.get("ip") or device_info.get("ip_address"),
+                product_name=device_info.get("product_name"),
+                device_type=device_info.get("device_type", "auto"),
+                discovered_via=device_info.get("discovered_via", "local"),
+            )
+
+        # Step 2: Enrich with API data if credentials available
+        if enrich_with_api and self._api_manager.has_stored_credentials():
+            await self._enrich_with_api_data()
+
+        # Step 3: Check which devices are ready to add
+        self._update_ready_status()
+
+        return self._discovered_devices
+
+    async def async_discover_api_only(self) -> dict[str, SmartDiscoveryResult]:
+        """Discover devices using only the API (no local scan).
+
+        Useful when:
+        - User has API credentials configured
+        - Local discovery isn't finding devices
+        - Devices are on a different subnet
+
+        Returns:
+            Dictionary of device_id -> SmartDiscoveryResult
+        """
+        self._discovered_devices.clear()
+
+        if not self._api_manager.has_stored_credentials():
+            _LOGGER.warning("Smart Discovery: No API credentials available")
+            return {}
+
+        _LOGGER.info("Smart Discovery: Fetching devices from API...")
+        api_devices = await self._api_manager.get_kkt_devices_from_api()
+
+        for device in api_devices:
+            device_id = device.get("id", "")
+            if not device_id:
+                continue
+
+            # Detect device type from API data
+            device_type, internal_product_name = self._detect_device_type(device)
+
+            self._discovered_devices[device_id] = SmartDiscoveryResult(
+                device_id=device_id,
+                name=device.get("name", f"KKT Device {device_id[:8]}"),
+                ip_address=device.get("ip"),
+                local_key=device.get("local_key"),
+                product_name=internal_product_name,
+                device_type=device_type,
+                tuya_category=device.get("category"),
+                discovered_via="API",
+                api_enriched=True,
+                ready_to_add=bool(device.get("local_key")),
+            )
+
+        _LOGGER.info(f"Smart Discovery: Found {len(self._discovered_devices)} devices via API")
+        return self._discovered_devices
+
+    async def _enrich_with_api_data(self) -> None:
+        """Enrich locally discovered devices with API data."""
+        try:
+            _LOGGER.info("Smart Discovery: Enriching with API data...")
+            api_devices = await self._api_manager.get_kkt_devices_from_api()
+
+            # Create lookup by device_id
+            api_lookup = {d.get("id", ""): d for d in api_devices}
+
+            # Also add any API-only devices not found locally
+            for api_device in api_devices:
+                device_id = api_device.get("id", "")
+                if not device_id:
+                    continue
+
+                if device_id in self._discovered_devices:
+                    # Enrich existing local device with API data
+                    result = self._discovered_devices[device_id]
+                    result.local_key = api_device.get("local_key")
+                    result.tuya_category = api_device.get("category")
+                    result.api_enriched = True
+
+                    # Update device type if we can detect it from API
+                    device_type, product_name = self._detect_device_type(api_device)
+                    if device_type != "auto":
+                        result.device_type = device_type
+                        result.product_name = product_name
+
+                    # Prefer API name if more descriptive
+                    api_name = api_device.get("name", "")
+                    if api_name and len(api_name) > len(result.name):
+                        result.name = api_name
+
+                    _LOGGER.debug(f"Enriched device {device_id[:8]} with API data")
+                else:
+                    # Add API-only device (not found locally)
+                    device_type, product_name = self._detect_device_type(api_device)
+
+                    self._discovered_devices[device_id] = SmartDiscoveryResult(
+                        device_id=device_id,
+                        name=api_device.get("name", f"KKT Device {device_id[:8]}"),
+                        ip_address=api_device.get("ip"),
+                        local_key=api_device.get("local_key"),
+                        product_name=product_name,
+                        device_type=device_type,
+                        tuya_category=api_device.get("category"),
+                        discovered_via="API",
+                        api_enriched=True,
+                    )
+                    _LOGGER.debug(f"Added API-only device {device_id[:8]}")
+
+            _LOGGER.info(f"Smart Discovery: Enriched {len(api_devices)} devices with API data")
+
+        except Exception as err:
+            _LOGGER.warning(f"Smart Discovery: API enrichment failed: {err}")
+
+    def _detect_device_type(self, api_device: dict[str, Any]) -> tuple[str, str]:
+        """Detect device type from API response.
+
+        Args:
+            api_device: Device dict from Tuya API
+
+        Returns:
+            Tuple of (device_type, product_name)
+        """
+        tuya_category = api_device.get("category", "").lower()
+        api_product_name = api_device.get("product_name", "Unknown Device")
+        device_name = api_device.get("name", "").lower()
+
+        # Check Tuya category first (most reliable)
+        if tuya_category == "dcl":  # Cooktop category
+            return ("ind7705hc_cooktop", "ind7705hc_cooktop")
+        elif tuya_category == "yyj":  # Hood category
+            return ("hermes_style_hood", "hermes_style_hood")
+
+        # Fallback: check product name and device name
+        search_text = f"{api_product_name} {device_name}".lower()
+
+        if "ind" in search_text or "cooktop" in search_text or "kochfeld" in search_text:
+            return ("ind7705hc_cooktop", "ind7705hc_cooktop")
+        elif any(kw in search_text for kw in ["hood", "hermes", "style", "ecco", "solo", "dunst", "abzug"]):
+            return ("hermes_style_hood", "hermes_style_hood")
+
+        # Default: unknown, use API product name
+        return ("auto", api_product_name)
+
+    def _update_ready_status(self) -> None:
+        """Update ready_to_add status for all devices."""
+        for device_id, result in self._discovered_devices.items():
+            # A device is ready to add if we have:
+            # 1. Device ID (always have this)
+            # 2. IP address (from local discovery or API)
+            # 3. Local key (from API)
+            result.ready_to_add = bool(
+                result.device_id and
+                result.ip_address and
+                result.local_key
+            )
+
+    def get_ready_devices(self) -> dict[str, SmartDiscoveryResult]:
+        """Get only devices that are ready to add (have all required info)."""
+        return {
+            device_id: result
+            for device_id, result in self._discovered_devices.items()
+            if result.ready_to_add
+        }
+
+    def get_pending_devices(self) -> dict[str, SmartDiscoveryResult]:
+        """Get devices that need manual local key entry."""
+        return {
+            device_id: result
+            for device_id, result in self._discovered_devices.items()
+            if not result.ready_to_add
+        }
+
+
+async def async_smart_discover(
+    hass: HomeAssistant,
+    timeout: float = 6.0,
+) -> dict[str, SmartDiscoveryResult]:
+    """Convenience function for smart discovery.
+
+    Args:
+        hass: Home Assistant instance
+        timeout: Local discovery timeout
+
+    Returns:
+        Dictionary of device_id -> SmartDiscoveryResult
+    """
+    smart_discovery = SmartDiscovery(hass)
+    return await smart_discovery.async_discover(local_timeout=timeout)
+
+
+async def async_get_configured_device_ids(hass: HomeAssistant) -> set[str]:
+    """Get device IDs that are already configured.
+
+    Args:
+        hass: Home Assistant instance
+
+    Returns:
+        Set of configured device IDs
+    """
+    from .const import DOMAIN
+
+    configured_ids = set()
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        device_id = entry.data.get("device_id")
+        if device_id:
+            configured_ids.add(device_id)
+
+    return configured_ids

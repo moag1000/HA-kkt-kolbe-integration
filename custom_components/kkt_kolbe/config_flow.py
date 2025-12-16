@@ -22,6 +22,7 @@ from .tuya_device import KKTKolbeTuyaDevice
 from .api_manager import GlobalAPIManager
 from .api.real_device_mappings import RealDeviceMappings
 from .device_types import KNOWN_DEVICES, CATEGORY_HOOD, CATEGORY_COOKTOP
+from .smart_discovery import SmartDiscovery, SmartDiscoveryResult, async_get_configured_device_ids
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -123,11 +124,12 @@ async def _try_discover_local_ip(
 
 # Configuration step schemas
 STEP_USER_DATA_SCHEMA = vol.Schema({
-    vol.Required("setup_method", default="discovery"): selector.selector({
+    vol.Required("setup_method", default="smart_discovery"): selector.selector({
         "select": {
             "options": [
-                {"value": "discovery", "label": "🔍 Automatic Discovery (Local Network)"},
-                {"value": "manual", "label": "🔧 Manual Local Setup (IP + Local Key)"},
+                {"value": "smart_discovery", "label": "✨ Smart Discovery (Recommended - Auto + API)"},
+                {"value": "discovery", "label": "🔍 Local Discovery (Network Scan Only)"},
+                {"value": "manual", "label": "🔧 Manual Setup (IP + Local Key)"},
                 {"value": "api_only", "label": "☁️ API-Only Setup (TinyTuya Cloud)"}
             ],
             "mode": "dropdown",
@@ -299,6 +301,287 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         self._connection_method: str | None = None
         self._local_key: str | None = None
         self._advanced_settings: dict[str, Any] = {}
+        self._smart_discovery_results: dict[str, SmartDiscoveryResult] = {}
+
+    async def async_step_zeroconf(
+        self, discovery_info: dict[str, Any]
+    ) -> FlowResult:
+        """Handle zeroconf discovery of KKT Kolbe devices.
+
+        Called automatically by Home Assistant when a matching mDNS service is found.
+        """
+        _LOGGER.info(f"Zeroconf discovery triggered: {discovery_info}")
+
+        # Extract device information from zeroconf data
+        host = discovery_info.get("host") or discovery_info.get("ip")
+        device_id = discovery_info.get("device_id") or discovery_info.get("properties", {}).get("id")
+
+        if not device_id:
+            # Try to extract from name (Tuya devices often use device_id as service name)
+            name = discovery_info.get("name", "")
+            if name.startswith("bf") and len(name) >= 20:
+                device_id = name.split(".")[0] if "." in name else name
+
+        if not device_id:
+            _LOGGER.debug("Zeroconf discovery: No device ID found, ignoring")
+            return self.async_abort(reason="no_device_id")
+
+        # Check if device is already configured
+        await self.async_set_unique_id(device_id)
+        self._abort_if_unique_id_configured(updates={CONF_IP_ADDRESS: host} if host else None)
+
+        # Store discovery info for later steps
+        self._device_info = {
+            "device_id": device_id,
+            "ip": host,
+            "name": discovery_info.get("name", f"KKT Device {device_id[:8]}"),
+            "discovered_via": "zeroconf",
+        }
+
+        # Check if we have API credentials to auto-fetch local key
+        api_manager = GlobalAPIManager(self.hass)
+        if api_manager.has_stored_credentials():
+            _LOGGER.info(f"Zeroconf: API credentials available, enriching device {device_id[:8]}")
+            try:
+                api_devices = await api_manager.get_kkt_devices_from_api()
+                for api_device in api_devices:
+                    if api_device.get("id") == device_id:
+                        # Found matching device in API
+                        self._device_info["local_key"] = api_device.get("local_key")
+                        self._device_info["product_name"] = api_device.get("product_name")
+                        self._device_info["tuya_category"] = api_device.get("category")
+
+                        # Detect device type
+                        device_type, product_name = _detect_device_type_from_api(api_device)
+                        self._device_info["device_type"] = device_type
+                        self._device_info["product_name"] = product_name
+
+                        _LOGGER.info(f"Zeroconf: Enriched device {device_id[:8]} with API data")
+                        break
+            except Exception as err:
+                _LOGGER.warning(f"Zeroconf: Failed to enrich with API data: {err}")
+
+        # If we have all required info (including local_key), show confirmation
+        if self._device_info.get("local_key") and self._device_info.get("ip"):
+            return await self.async_step_zeroconf_confirm()
+
+        # Otherwise, show discovery notification and ask for local key
+        return await self.async_step_zeroconf_authenticate()
+
+    async def async_step_zeroconf_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Confirm zeroconf discovered device with all data available (one-click setup)."""
+        if user_input is not None:
+            # User confirmed, create entry
+            device_id = self._device_info["device_id"]
+            await self.async_set_unique_id(device_id)
+            self._abort_if_unique_id_configured()
+
+            config_data = {
+                CONF_IP_ADDRESS: self._device_info["ip"],
+                "device_id": device_id,
+                "local_key": self._device_info["local_key"],
+                "product_name": self._device_info.get("product_name", "auto"),
+                "device_type": self._device_info.get("device_type", "auto"),
+                "integration_mode": "hybrid",
+            }
+
+            title = f"KKT Kolbe {self._device_info.get('name', device_id[:8])}"
+
+            return self.async_create_entry(
+                title=title,
+                data=config_data,
+            )
+
+        # Show confirmation form
+        return self.async_show_form(
+            step_id="zeroconf_confirm",
+            description_placeholders={
+                "device_name": self._device_info.get("name", "Unknown"),
+                "device_id": self._device_info.get("device_id", "Unknown")[:8],
+                "ip_address": self._device_info.get("ip", "Unknown"),
+                "product_name": self._device_info.get("product_name", "Auto-detected"),
+            },
+        )
+
+    async def async_step_zeroconf_authenticate(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Handle zeroconf discovered device that needs local key."""
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            local_key = user_input.get("local_key", "").strip()
+
+            if not local_key or len(local_key) < 16:
+                errors["local_key"] = "invalid_local_key"
+            else:
+                # Test connection
+                connection_valid = await self._test_device_connection(
+                    self._device_info["ip"],
+                    self._device_info["device_id"],
+                    local_key
+                )
+
+                if connection_valid:
+                    # Create entry
+                    device_id = self._device_info["device_id"]
+                    await self.async_set_unique_id(device_id)
+                    self._abort_if_unique_id_configured()
+
+                    config_data = {
+                        CONF_IP_ADDRESS: self._device_info["ip"],
+                        "device_id": device_id,
+                        "local_key": local_key,
+                        "product_name": self._device_info.get("product_name", "auto"),
+                        "device_type": self._device_info.get("device_type", "auto"),
+                    }
+
+                    title = f"KKT Kolbe {self._device_info.get('name', device_id[:8])}"
+
+                    return self.async_create_entry(
+                        title=title,
+                        data=config_data,
+                    )
+                else:
+                    errors["local_key"] = "invalid_auth"
+
+        # Check if API credentials are available but device wasn't found
+        api_manager = GlobalAPIManager(self.hass)
+        api_hint = ""
+        if not api_manager.has_stored_credentials():
+            api_hint = "Tip: Configure API credentials to auto-fetch local keys for future devices."
+
+        return self.async_show_form(
+            step_id="zeroconf_authenticate",
+            data_schema=vol.Schema({
+                vol.Required("local_key"): str,
+            }),
+            errors=errors,
+            description_placeholders={
+                "device_name": self._device_info.get("name", "Unknown"),
+                "device_id": self._device_info.get("device_id", "Unknown")[:8],
+                "ip_address": self._device_info.get("ip", "Unknown"),
+                "api_hint": api_hint,
+            },
+        )
+
+    async def async_step_smart_discovery(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Handle smart discovery - combines local scan with API data."""
+        errors: dict[str, str] = {}
+
+        # Get already configured device IDs
+        configured_ids = await async_get_configured_device_ids(self.hass)
+
+        if user_input is not None:
+            if user_input.get("back_to_user"):
+                return await self.async_step_user()
+
+            if user_input.get("retry_discovery"):
+                # Clear cached results and retry
+                self._smart_discovery_results.clear()
+                return await self.async_step_smart_discovery()
+
+            selected_device_id = user_input.get("selected_device")
+            if selected_device_id and selected_device_id in self._smart_discovery_results:
+                result = self._smart_discovery_results[selected_device_id]
+
+                if result.ready_to_add:
+                    # One-click setup - device has all required info
+                    await self.async_set_unique_id(result.device_id)
+                    self._abort_if_unique_id_configured()
+
+                    # Detect device type
+                    device_type = result.device_type
+                    product_name = result.product_name or "auto"
+
+                    config_data = {
+                        CONF_IP_ADDRESS: result.ip_address,
+                        "device_id": result.device_id,
+                        "local_key": result.local_key,
+                        "product_name": product_name,
+                        "device_type": device_type,
+                        "integration_mode": "hybrid" if result.api_enriched else "manual",
+                    }
+
+                    return self.async_create_entry(
+                        title=f"KKT Kolbe {result.name}",
+                        data=config_data,
+                    )
+                else:
+                    # Device needs local key - go to authentication step
+                    self._device_info = result.to_dict()
+                    return await self.async_step_authentication()
+
+        # Run smart discovery if not already done
+        if not self._smart_discovery_results:
+            smart_discovery = SmartDiscovery(self.hass)
+            self._smart_discovery_results = await smart_discovery.async_discover(
+                local_timeout=8.0,
+                enrich_with_api=True,
+            )
+
+        # Filter out already configured devices
+        available_devices = {
+            device_id: result
+            for device_id, result in self._smart_discovery_results.items()
+            if device_id not in configured_ids
+        }
+
+        if not available_devices:
+            # No devices found or all already configured
+            return self.async_show_form(
+                step_id="smart_discovery",
+                data_schema=vol.Schema({
+                    vol.Optional("retry_discovery", default=False): bool,
+                    vol.Optional("back_to_user", default=False): bool,
+                }),
+                errors={"base": "no_devices_found"} if not self._smart_discovery_results else {},
+                description_placeholders={
+                    "found_count": "0",
+                    "ready_count": "0",
+                    "discovery_status": "No new devices found" if self._smart_discovery_results else "No devices found",
+                },
+            )
+
+        # Build device selection options
+        device_options = []
+        ready_count = 0
+        for device_id, result in available_devices.items():
+            if result.ready_to_add:
+                ready_count += 1
+            device_options.append({
+                "value": device_id,
+                "label": result.display_label,
+            })
+
+        # Sort: ready devices first
+        device_options.sort(key=lambda x: (0 if "✅" in x["label"] else 1, x["label"]))
+
+        schema = vol.Schema({
+            vol.Required("selected_device"): selector.selector({
+                "select": {
+                    "options": device_options,
+                    "mode": "dropdown",
+                }
+            }),
+            vol.Optional("retry_discovery", default=False): bool,
+            vol.Optional("back_to_user", default=False): bool,
+        })
+
+        return self.async_show_form(
+            step_id="smart_discovery",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders={
+                "found_count": str(len(available_devices)),
+                "ready_count": str(ready_count),
+                "discovery_status": f"Found {len(available_devices)} device(s), {ready_count} ready for one-click setup",
+            },
+        )
 
     async def async_step_user(
         self, user_input: dict[str, Any | None] = None
@@ -309,22 +592,29 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             setup_method = user_input["setup_method"]
 
-            if setup_method == "discovery":
+            if setup_method == "smart_discovery":
+                return await self.async_step_smart_discovery()
+            elif setup_method == "discovery":
                 return await self.async_step_discovery()
             elif setup_method == "manual":
                 return await self.async_step_manual()
             elif setup_method == "api_only":
                 return await self.async_step_api_only()
 
-        _LOGGER.debug("Showing user config form with 3 setup methods: %s", STEP_USER_DATA_SCHEMA)
+        _LOGGER.debug("Showing user config form with setup methods")
 
-        # Debug: Create schema inline to ensure it's not a reference issue
-        debug_schema = vol.Schema({
-            vol.Required("setup_method", default="discovery"): selector.selector({
+        # Check if API credentials are available for smart discovery hint
+        api_manager = GlobalAPIManager(self.hass)
+        has_api = api_manager.has_stored_credentials()
+
+        # Build schema with smart discovery as recommended default
+        user_schema = vol.Schema({
+            vol.Required("setup_method", default="smart_discovery"): selector.selector({
                 "select": {
                     "options": [
-                        {"value": "discovery", "label": "🔍 Automatic Discovery (Local Network)"},
-                        {"value": "manual", "label": "🔧 Manual Local Setup (IP + Local Key)"},
+                        {"value": "smart_discovery", "label": "✨ Smart Discovery (Recommended - Auto + API)"},
+                        {"value": "discovery", "label": "🔍 Local Discovery (Network Scan Only)"},
+                        {"value": "manual", "label": "🔧 Manual Setup (IP + Local Key)"},
                         {"value": "api_only", "label": "☁️ API-Only Setup (TinyTuya Cloud)"}
                     ],
                     "mode": "dropdown",
@@ -333,12 +623,15 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             })
         })
 
+        api_status = "API credentials configured - one-click setup available!" if has_api else "Configure API credentials for automatic local key retrieval"
+
         return self.async_show_form(
             step_id="user",
-            data_schema=debug_schema,
+            data_schema=user_schema,
             errors=errors,
             description_placeholders={
-                "setup_mode": "Choose how you want to set up your KKT Kolbe device"
+                "setup_mode": "Choose how you want to set up your KKT Kolbe device",
+                "api_status": api_status,
             }
         )
 
