@@ -3,7 +3,7 @@ import pytest
 from unittest.mock import MagicMock
 from homeassistant.helpers.entity import EntityCategory
 
-from custom_components.kkt_kolbe.sensor import KKTKolbeSensor, DIAGNOSTIC_DPS
+from custom_components.kkt_kolbe.sensor import KKTKolbeSensor
 
 
 @pytest.mark.asyncio

@@ -5,6 +5,23 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.7] - 2025-12-16
+
+### Bugfix Release - CI/CD Validation Fixes
+
+### Fixed
+- **Test ImportError**: Removed unused `DIAGNOSTIC_DPS` import from test_sensor.py
+- **hacs.json**: Removed invalid `iot_class` and `homeassistant` keys
+- **manifest.json**: Removed `homeassistant` and `quality_scale` keys (not allowed for custom components)
+- **Translation Errors**: Fixed `data_description` keys that weren't in `data`
+- **Issues Section**: Removed repair flow translations (complex validation issues)
+- **entity_component**: Removed invalid `default` icon definition
+
+### Added
+- **GitHub Topics**: Added home-assistant, hacs, home-assistant-custom-component, tuya, smart-home
+
+---
+
 ## [2.4.6] - 2025-12-16
 
 ### Bugfix Release - API Device IP Address
