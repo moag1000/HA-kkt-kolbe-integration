@@ -58,6 +58,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Initialize API client if enabled
     if api_enabled:
         from .api import TuyaCloudClient
+        from .api_manager import GlobalAPIManager
 
         client_id = entry.data.get("api_client_id")
         client_secret = entry.data.get("api_client_secret")
@@ -70,6 +71,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 endpoint=endpoint,
             )
             _LOGGER.info("API client initialized for TinyTuya Cloud API")
+
+            # Store credentials globally for reuse with other devices
+            # This ensures credentials persist across restarts via config entry
+            api_manager = GlobalAPIManager(hass)
+            if not api_manager.has_stored_credentials():
+                api_manager.store_api_credentials(client_id, client_secret, endpoint)
+                _LOGGER.info("API credentials restored from config entry to global storage")
 
     # Initialize local device if we have local connection details
     ip_address = entry.data.get(CONF_IP_ADDRESS) or entry.data.get("ip_address") or entry.data.get("host")

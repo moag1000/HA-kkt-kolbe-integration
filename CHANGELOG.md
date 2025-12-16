@@ -5,6 +5,27 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.2] - 2025-12-16
+
+### Bugfix Release - API Credentials Persistence
+
+### Fixed
+- **API credentials not persisting after restart**: Credentials stored in `GlobalAPIManager` were lost on Home Assistant restart
+  - Now restores credentials from config entry to GlobalAPIManager on startup
+  - Enables "Use Stored Credentials" option to work after restart
+  - Credentials are stored in both config entry (persistent) and GlobalAPIManager (runtime)
+
+### Technical Details
+```python
+# In async_setup_entry (__init__.py):
+# Restore credentials from config entry to global storage
+api_manager = GlobalAPIManager(hass)
+if not api_manager.has_stored_credentials():
+    api_manager.store_api_credentials(client_id, client_secret, endpoint)
+```
+
+---
+
 ## [2.5.1] - 2025-12-16
 
 ### Bugfix Release - API WAN IP Fix
