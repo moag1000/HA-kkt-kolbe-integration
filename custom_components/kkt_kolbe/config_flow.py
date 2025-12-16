@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import ipaddress
 import logging
 import re
 from typing import Any
@@ -23,6 +24,71 @@ from .api.real_device_mappings import RealDeviceMappings
 from .device_types import KNOWN_DEVICES, CATEGORY_HOOD, CATEGORY_COOKTOP
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _is_private_ip(ip_str: str | None) -> bool:
+    """Check if an IP address is a private/local network address.
+
+    Returns True for:
+    - 10.0.0.0/8 (Class A private)
+    - 172.16.0.0/12 (Class B private)
+    - 192.168.0.0/16 (Class C private)
+    - 169.254.0.0/16 (Link-local)
+
+    Returns False for public IPs or invalid IPs.
+    """
+    if not ip_str:
+        return False
+    try:
+        ip = ipaddress.ip_address(ip_str)
+        return ip.is_private or ip.is_link_local
+    except ValueError:
+        return False
+
+
+async def _try_discover_local_ip(
+    hass: HomeAssistant,
+    device_id: str,
+    timeout: float = 6.0
+) -> str | None:
+    """Try to discover the local IP address of a device via mDNS/UDP.
+
+    Args:
+        hass: Home Assistant instance
+        device_id: The Tuya device ID to find
+        timeout: Discovery timeout in seconds
+
+    Returns:
+        Local IP address if found, None otherwise
+    """
+    _LOGGER.debug(f"Trying to discover local IP for device {device_id[:8]}...")
+
+    try:
+        # Start discovery
+        await async_start_discovery(hass)
+
+        # Wait for discovery to complete
+        await asyncio.sleep(timeout)
+
+        # Get discovered devices
+        discovered = get_discovered_devices()
+
+        # Look for matching device by ID
+        for disc_id, disc_info in discovered.items():
+            if disc_id == device_id:
+                local_ip = disc_info.get("ip") or disc_info.get("ip_address")
+                if local_ip and _is_private_ip(local_ip):
+                    _LOGGER.info(
+                        f"Found local IP {local_ip} for device {device_id[:8]} via discovery"
+                    )
+                    return local_ip
+
+        _LOGGER.debug(f"No local IP found for device {device_id[:8]} via discovery")
+        return None
+
+    except Exception as err:
+        _LOGGER.debug(f"Local IP discovery failed: {err}")
+        return None
 
 # Configuration step schemas
 STEP_USER_DATA_SCHEMA = vol.Schema({
@@ -600,9 +666,37 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                 "device_type": device_info["device_type"],
             }
 
-            # Add IP address if available from API
-            if device_info.get("ip"):
-                config_data[CONF_IP_ADDRESS] = device_info["ip"]
+            # Get IP address - prefer local IP over API's WAN IP
+            api_ip = device_info.get("ip")
+            final_ip = api_ip
+
+            # Check if API returned a public IP (WAN) instead of local IP
+            if api_ip and not _is_private_ip(api_ip):
+                _LOGGER.warning(
+                    f"API returned public IP {api_ip} for device {selected_device_id[:8]}. "
+                    f"Trying to discover local IP via mDNS..."
+                )
+                # Try to find local IP via discovery
+                local_ip = await _try_discover_local_ip(
+                    self.hass,
+                    selected_device_id,
+                    timeout=6.0
+                )
+                if local_ip:
+                    _LOGGER.info(
+                        f"Using discovered local IP {local_ip} instead of API IP {api_ip}"
+                    )
+                    final_ip = local_ip
+                else:
+                    _LOGGER.warning(
+                        f"Could not discover local IP for device {selected_device_id[:8]}. "
+                        f"Local communication may not work. "
+                        f"Consider using Manual Setup with the device's local IP."
+                    )
+                    # Still use the API IP as fallback (cloud communication might work)
+
+            if final_ip:
+                config_data[CONF_IP_ADDRESS] = final_ip
 
             # Add local_key if available from API (enables local communication)
             if device_info.get("local_key"):

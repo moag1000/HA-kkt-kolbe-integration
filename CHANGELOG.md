@@ -5,6 +5,33 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.1] - 2025-12-16
+
+### Bugfix Release - API WAN IP Fix
+
+### Fixed
+- **Tuya API returns WAN IP instead of LAN IP**: The Tuya Cloud API sometimes returns the external/public IP address instead of the local network IP
+  - Added `_is_private_ip()` helper to detect public vs private IP addresses
+  - Added `_try_discover_local_ip()` to find local IP via mDNS/UDP discovery
+  - Config flow now automatically tries local discovery when API returns public IP
+  - Falls back to API IP if local discovery fails (with warning in logs)
+
+### Technical Details
+```python
+# New helper functions in config_flow.py
+def _is_private_ip(ip_str: str | None) -> bool:
+    """Check if IP is in private ranges (10.x, 172.16-31.x, 192.168.x)"""
+
+async def _try_discover_local_ip(hass, device_id, timeout=6.0) -> str | None:
+    """Discover local IP via mDNS/UDP if API returned public IP"""
+```
+
+### Affected Setup Methods
+- ☁️ API-Only Setup
+- 🔄 Stored API Credentials (async_step_api_choice)
+
+---
+
 ## [2.5.0] - 2025-12-16
 
 ### Major Release - Connection Stability Overhaul 🔄
