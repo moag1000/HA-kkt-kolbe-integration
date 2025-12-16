@@ -3,8 +3,8 @@
 <div align="center">
   <img src="./icon.png" alt="KKT Kolbe Logo" width="128" height="128">
 
-  ## v2.3.0
-  ### Home Assistant Integration
+  ## v2.4.5
+  ### Home Assistant Integration - Gold Tier
 </div>
 
 [![GitHub Release][releases-shield]][releases]

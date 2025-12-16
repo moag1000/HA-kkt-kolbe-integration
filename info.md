@@ -55,5 +55,5 @@ Diese Integration wurde mit Claude (Anthropic) entwickelt. Der Code ist Open Sou
 [hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
 [license-shield]: https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge
 [license-url]: https://opensource.org/licenses/MIT
-[releases-shield]: https://img.shields.io/badge/version-v2.3.0-blue.svg?style=for-the-badge
+[releases-shield]: https://img.shields.io/badge/version-v2.4.5-blue.svg?style=for-the-badge
 [releases]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases

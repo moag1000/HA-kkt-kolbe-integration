@@ -5,7 +5,89 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.3.0] - 2025-12-16
+## [2.4.5] - 2025-12-16
+
+### Documentation, Privacy & CI/CD Release
+
+**Focus**: Repository quality, privacy, and automation.
+
+### Added
+- **CI/CD Workflow**: GitHub Actions for HACS validation, Hassfest, and tests
+- **GitHub Templates**: Issue templates (bug report, feature request), PR template
+- **FUNDING.yml**: GitHub Sponsors support
+- **SECURITY.md**: Vulnerability reporting guidelines (root + docs/)
+- **CONTRIBUTING.md**: Contribution guide (root + docs/)
+- **known_configs/README.md**: Documentation for device configurations
+
+### Changed
+- **Privacy**: Anonymized all personal data in examples
+  - GPS coordinates changed to Laacher See (50.41, 7.27)
+  - IP addresses, device IDs, API keys anonymized
+- **Documentation**: Made all claims factual and modest
+- **Icon Translations**: Complete entity translations (Gold Tier 21/21)
+- **Quality Scale**: Changed from "platinum" to "gold" (factual)
+
+### Removed
+- Obsolete backup files (backups/ folder)
+- Exaggerated marketing claims
+
+### Technical
+- All 32 Python files verified for syntax and imports
+- All translation keys validated
+- Home Assistant Best Practices compliance verified
+
+---
+
+## [2.4.4] - 2025-12-16
+
+### Hotfix Release - API Session Management
+
+### Fixed
+- **"Session is closed" Error**: aiohttp Session automatic creation via `_ensure_session()`
+
+---
+
+## [2.4.3] - 2025-12-15
+
+### Hotfix Release - Missing button.py
+
+### Fixed
+- **ModuleNotFoundError**: Removed `button` from HERMES platforms (button.py didn't exist)
+
+---
+
+## [2.4.2] - 2025-12-15
+
+### Hotfix Release - Device Registry Bug
+
+### Fixed
+- **AttributeError**: Device Registry now uses local `device_info` variable correctly
+
+---
+
+## [2.4.1] - 2025-12-15
+
+### SOLO HCM Support - Verified
+
+### Fixed
+- **SOLO HCM Konfiguration**: Model ID corrected to `edjszs`
+- **SOLO HCM = ECCO HCM**: Identical DP structure confirmed
+
+### Added
+- 9-speed fan control, RGB lighting, dual filter monitoring for SOLO HCM
+
+---
+
+## [2.4.0] - 2025-12-12
+
+### New Device Support
+
+### Added
+- **KKT Kolbe SOLO HCM Hood**: Initial configuration
+
+---
+
+## [2.3.0] - 2025-12-09
 
 ### Documentation & Privacy Update
 
