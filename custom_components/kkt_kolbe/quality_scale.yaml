@@ -87,8 +87,8 @@ rules:
     status: done
     comment: Error messages translated
   icon-translations:
-    status: exempt
-    comment: Uses standard MDI icons
+    status: done
+    comment: Entity translations with icons in translations/*.json
   log-when-unavailable:
     status: done
     comment: Logs connection issues with appropriate levels

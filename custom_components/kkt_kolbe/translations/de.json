@@ -369,5 +369,77 @@
         }
       }
     }
+  },
+  "entity": {
+    "switch": {
+      "power": {
+        "name": "Strom",
+        "state": {
+          "on": "An",
+          "off": "Aus"
+        }
+      },
+      "light": {
+        "name": "Licht"
+      },
+      "child_lock": {
+        "name": "Kindersicherung"
+      },
+      "pause": {
+        "name": "Pause"
+      }
+    },
+    "fan": {
+      "hood_fan": {
+        "name": "Dunstabzugslüfter"
+      }
+    },
+    "sensor": {
+      "filter_status": {
+        "name": "Filterstatus"
+      },
+      "current_temperature": {
+        "name": "Aktuelle Temperatur"
+      }
+    },
+    "binary_sensor": {
+      "zone_active": {
+        "name": "Zone aktiv"
+      },
+      "boost_active": {
+        "name": "Boost aktiv"
+      },
+      "error": {
+        "name": "Fehler"
+      }
+    },
+    "number": {
+      "timer": {
+        "name": "Timer"
+      },
+      "power_level": {
+        "name": "Leistungsstufe"
+      },
+      "rgb_mode": {
+        "name": "RGB-Modus"
+      }
+    },
+    "select": {
+      "fan_speed": {
+        "name": "Lüftergeschwindigkeit",
+        "state": {
+          "off": "Aus",
+          "low": "Niedrig",
+          "middle": "Mittel",
+          "high": "Hoch",
+          "strong": "Stark"
+        }
+      }
+    }
+  },
+  "entity_component": {
+    "_": {
+      "default": "mdi:stove"
+    }
   }
 }

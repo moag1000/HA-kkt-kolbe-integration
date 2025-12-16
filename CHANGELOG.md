@@ -5,80 +5,22 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.4.4] - 2025-12-16 🔧
+## [2.3.0] - 2025-12-16
 
-### Hotfix Release - API Session Management
+### Documentation & Privacy Update
 
-### Fixed
-- **"Session is closed" Error bei API-Only Setup**: aiohttp Session wurde nicht automatisch erstellt
-  - Fehler: `API communication failed: Session is closed`
-  - Fix: `_ensure_session()` Methode erstellt Session automatisch wenn nötig
-
----
-
-## [2.4.3] - 2025-12-15 🔧
-
-### Hotfix Release - Missing button.py
-
-### Fixed
-- **ModuleNotFoundError: button platform**: HERMES hatte `button` in platforms, aber `button.py` existiert nicht
-  - Fehler: `ModuleNotFoundError: Platform kkt_kolbe.button not found`
-  - Fix: `button` aus HERMES platforms entfernt (experimentelles Feature)
-
----
-
-## [2.4.2] - 2025-12-15 🔧
-
-### Hotfix Release - Device Registry Bug
-
-### Fixed
-- **AttributeError beim Setup**: `coordinator.device_info` existierte nicht
-  - Fehler: `'KKTKolbeHybridCoordinator' object has no attribute 'device_info'`
-  - Fix: Device Registry nutzt jetzt lokale `device_info` Variable korrekt
-
----
-
-## [2.4.1] - 2025-12-15 🔧
-
-### Hotfix Release - SOLO HCM Konfiguration korrigiert
-
-**Focus**: Korrigierte Konfiguration basierend auf verifiziertem Things Data Model.
-
-### Fixed
-- **SOLO HCM Konfiguration komplett überarbeitet**
-  - Model ID korrigiert: `edjszs` (nicht HERMES-basiert)
-  - **SOLO HCM = ECCO HCM** (identische DP-Struktur!)
-  - Jetzt mit korrekten DPs: 102 (fan_speed), 105 (countdown_1), etc.
+**Focus**: Documentation cleanup and privacy improvements.
 
 ### Changed
-- **SOLO HCM Features aktualisiert** (basierend auf Community Things Data Model):
-  - ✅ 9-Stufen Lüftersteuerung (0-9) via DP 102
-  - ✅ RGB Beleuchtung (white/colour/scene/music) via DP 107/108
-  - ✅ Duale Filterüberwachung (Kohle DP 103, Metall DP 109)
-  - ✅ Timer (0-60 min) via DP 105
-  - ✅ Multi-Light Control (Main, LED, RGB)
+- **Privacy**: Removed personal data from example files (coordinates, IPs, API keys)
+- **Documentation**: Unified version numbers across all files
+- **Documentation**: Removed exaggerated quality claims, keeping it factual
+- **GitHub**: Added missing templates and improved discoverability
 
-### Documentation
-- `known_configs/SOLO_HCM_datenpunkte.md` komplett aktualisiert mit verifiziertem Things Data Model
-- Vergleichstabelle: SOLO HCM vs ECCO HCM vs HERMES
-
-### Thanks
-- 🙏 Danke an **@selinamulle123** für das Things Data Model!
-
----
-
-## [2.4.0] - 2025-12-12 🆕
-
-### New Device Support
-
-**Focus**: Initial support for KKT Kolbe SOLO HCM range hood.
-
-### Added
-- **KKT Kolbe SOLO HCM Hood**: Initial configuration (later corrected in v2.4.1)
-
-### Notes
-- ⚠️ v2.4.0 hatte falsche DP-Konfiguration (HERMES-basiert statt ECCO-basiert)
-- Bitte auf v2.4.1 updaten!
+### Fixed
+- Inconsistent version numbers in README, info.md, badges
+- Outdated feature descriptions in info.md
+- Missing CHANGELOG entries for recent versions
 
 ---
 
@@ -175,11 +117,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [2.2.0] - 2025-01-05 🏆
+## [2.2.0] - 2025-01-05
 
-### Home Assistant Gold Tier Quality Release - 100% COMPLETE
+### Quality & Features Release
 
-**Focus**: Advanced features, comprehensive documentation, and FULL Gold Tier compliance.
+**Focus**: Advanced features and comprehensive documentation.
 
 ### Added
 - **Entity Disabled by Default**: 46 advanced/diagnostic entities disabled by default (Gold Tier)
@@ -214,7 +156,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [2.1.0] - 2025-01-XX 🥈
+## [2.1.0] - 2025-01-04
 
 ### Home Assistant Silver Tier Quality Release
 
@@ -251,7 +193,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [2.0.0] - 2024-12-XX 🎉
+## [2.0.0] - 2024-12-20
 
 ### Major Release: Global API Management
 

@@ -62,7 +62,7 @@ The most crucial step is extracting the complete device capabilities from Tuya I
 #### Step 2: Query Your Device
 ```bash
 # Input your Device ID (from Smart Life app)
-Device ID: bf735dfe2ad64fba7cpyhn
+Device ID: your_device_id_here
 
 # Execute the API call
 ```
@@ -160,7 +160,7 @@ MODELS = {
 }
 
 DEVICE_ID_PATTERNS = {
-    'bf735dfe2ad64fba7c': "HERMES & STYLE"
+    'device_id_prefix': "HERMES & STYLE"  # First 18 chars of device ID
 }
 ```
 
@@ -201,8 +201,8 @@ MODELS = {
 
 # Add device ID pattern (get from real device)
 DEVICE_ID_PATTERNS = {
-    'bf735dfe2ad64fba7c': "HERMES & STYLE",
-    'bf559abc1234567890': "SuperCook Pro",  # ← NEW (example pattern)
+    'hermes_style_prefix': "HERMES & STYLE",  # First 18 chars of device ID
+    'supercook_prefix': "SuperCook Pro",  # ← NEW (example pattern)
 }
 ```
 

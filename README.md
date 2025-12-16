@@ -3,8 +3,8 @@
 <div align="center">
   <img src="./icon.png" alt="KKT Kolbe Logo" width="128" height="128">
 
-  ## v2.4.1 - Platinum Tier Quality
-  ### Home Assistant Platinum Tier Quality
+  ## v2.3.0
+  ### Home Assistant Integration
 </div>
 
 [![GitHub Release][releases-shield]][releases]
@@ -21,7 +21,7 @@ Unterstützt Dunstabzugshauben und Induktionskochfelder über Tuya Local Protoco
 
 > **🤖 KI-Generiert:** Diese Integration wurde mit Anthropic's Claude entwickelt. Der Code ist Open Source und wurde ausgiebig getestet, aber **Verwendung erfolgt auf eigene Verantwortung** - besonders bei der Kochfeld-Steuerung!
 
-> **✨ Quality:** Diese Integration erfüllt Home Assistant's **Platinum Tier** Quality Standard - die höchste Qualitätsstufe - mit vollständiger Typ-Annotation, async-only I/O, robustem Error Handling, automatischer Wiederherstellung, Repair Flows und umfangreichen Tests.
+> **✨ Quality:** Diese Integration folgt Home Assistant Best Practices mit vollständiger Typ-Annotation, async I/O, robustem Error Handling, automatischer Wiederherstellung und Tests.
 
 ## 🚀 Unterstützte Geräte
 
@@ -47,15 +47,10 @@ Unterstützt Dunstabzugshauben und Induktionskochfelder über Tuya Local Protoco
 - **Duale Filterüberwachung** (Kohle & Metall)
 - **Wasch-Modus**
 
-#### **SOLO HCM Hood** 🆕 Neu in v2.4.1 - ✅ Verifiziert!
-- **9-Stufen Lüftersteuerung** (0-9)
-- **RGB Beleuchtung** (white/colour/scene/music)
-- **Multi-Light Control** (Main, LED, RGB)
-- **Timer-Funktion** (0-60 Minuten)
-- **Duale Filterüberwachung** (Kohle & Metall)
+#### **SOLO HCM Hood** ✅ Konfiguration verfügbar
+- **Lüftersteuerung**
+- **Beleuchtung** (Main, LED)
 - **Wasch-Modus**
-
-> ℹ️ Die SOLO HCM ist technisch identisch mit der ECCO HCM (Model ID: `edjszs`). Danke an die Community für das Things Data Model!
 
 ### 🔥 Induktionskochfeld
 
@@ -74,29 +69,22 @@ Unterstützt Dunstabzugshauben und Induktionskochfelder über Tuya Local Protoco
 
 Die Integration könnte weitere KKT Kolbe Modelle unterstützen, aber dafür werden **Gerätedaten** benötigt:
 
-| Modell | Status | Benötigt |
-|--------|--------|----------|
-| **VIVA Hood** | 🔎 Gesucht | Things Data Model |
-| **SANDRA Hood** | 🔎 Gesucht | Things Data Model |
-| **SOLO HCM** | ✅ Verifiziert | - |
-| **Weitere Modelle** | 🔎 Gesucht | Things Data Model |
+#### **Gesucht: VIVA Hood** 🔎
+- Vermutlich ähnlich zu HERMES (basierend auf Firmware)
+- Kategorie: `yyj` (Dunstabzugshaube)
+- **Status**: Konfiguration fehlt
 
-### 📖 So kannst du helfen
+#### **Gesucht: SANDRA Hood** 🔎
+- Vermutlich ähnlich zu HERMES/VIVA
+- Kategorie: `yyj` (Dunstabzugshaube)
+- **Status**: Konfiguration fehlt
 
-1. **Tuya IoT Account erstellen** (kostenlos, ~10 Min)
-   → Siehe [Tuya API Setup Anleitung](#-tuya-api-setup---vollstaendige-anleitung) weiter unten
-
-2. **Things Data Model abrufen:**
-   - In der Tuya IoT Platform: **Cloud → API Explorer**
-   - Wähle **"Device Control" → "Query Things Data Model"**
-   - Gib deine **Device ID** ein (findest du unter Devices)
-   - Klicke **"Submit Request"**
-   - **Kopiere die JSON-Antwort**
-
-3. **Issue erstellen:**
-   → Nutze unser [Issue Template für neue Geräte](https://github.com/moag1000/HA-kkt-kolbe-integration/issues/new?template=new_device.md)
-
-**⚠️ Datenschutz:** Bitte entferne `local_key`, `ip`, `lat`/`lon` vor dem Teilen!
+**Hast du ein VIVA oder SANDRA Modell?**
+→ Bitte [öffne ein Issue](https://github.com/moag1000/HA-kkt-kolbe-integration/issues/new) mit:
+- Gerätemodell
+- Device ID aus der Smart Life App
+- Screenshot der verfügbaren Funktionen
+- Optional: Debug-Logs mit aktivierten Entities
 
 Mit deiner Hilfe können wir diese Modelle zur Integration hinzufügen! 🙏
 
@@ -104,17 +92,7 @@ Mit deiner Hilfe können wir diese Modelle zur Integration hinzufügen! 🙏
 
 ## ✨ Integration Features
 
-### 🆕 **Neu in v2.4.1: SOLO HCM Support (Verifiziert)**
-
-#### **KKT Kolbe SOLO HCM Dunstabzugshaube**
-- ✅ Vollständige Konfiguration basierend auf ECCO HCM Struktur
-- ✅ 9-Stufen Lüftersteuerung (0-9)
-- ✅ RGB Beleuchtung (white/colour/scene/music)
-- ✅ Duale Filterüberwachung (Kohle & Metall)
-- ✅ **Verifiziert** via Community Things Data Model
-- 📖 Produktseite: [kolbe.de/SOLO6005S](https://www.kolbe.de/Dunstabzugshaube-60cm-SOLO6005S)
-
-### **v2.2.4: Smart Home Industry Support**
+### 🆕 **Neu in v2.2.4: Smart Home Industry Support**
 
 #### **Tuya Smart Home Industry Kompatibilität**
 - ✅ Volle Unterstützung für Tuya Smart Home Industry Projekte
@@ -128,7 +106,7 @@ Mit deiner Hilfe können wir diese Modelle zur Integration hinzufügen! 🙏
 - 📖 Free Tier vs Paid Tier Vergleichstabelle
 - 🌍 Regionsauswahl-Guide für Data Centers
 
-### 🏆 **Gold Tier Features (v2.2.0+)**
+### **Features (v2.2.0+)**
 
 #### **Automatische Wartung & Repair Flows**
 - **Repair Flows**: 3 automatisierte Reparatur-Workflows
@@ -235,7 +213,7 @@ Die Integration findet KKT Geräte automatisch im lokalen Netzwerk über mDNS.
 #### **🔧 Manual Local Setup**
 Für erfahrene Nutzer mit spezifischen Anforderungen:
 - **IP-Adresse**: Lokale IP des Geräts (z.B. 192.168.1.100)
-- **Device ID**: 20-22 Zeichen Tuya Device ID (z.B. bf735dfe2ad64fba7cpyhn)
+- **Device ID**: 20-22 Zeichen Tuya Device ID
 - **Local Key**: 16+ Zeichen Local Key aus Tuya/Smart Life App
 
 ### 🔑 Tuya API Setup - Vollstaendige Anleitung
@@ -616,68 +594,24 @@ cat home-assistant.log | grep "kkt_kolbe"
 
 ## 📝 Changelog
 
-### v2.2.0 (Current Release) 🏆
+### v2.3.0 (Current)
+- Dokumentation überarbeitet und vereinheitlicht
+- Sensible Daten anonymisiert
+- SOLO HCM Unterstützung hinzugefügt
 
-**Home Assistant Gold Tier Quality**
-- **ALL 21/21 Gold Tier requirements met (100%)**
-- 46 entities disabled by default for cleaner UI
-- Automatic IP address updates via discovery
-- Stale device cleanup (30+ days)
-- **3 automated repair flows** for common issues
-- 15+ automation examples and use case guides
-- Enhanced Tuya API error handling
+### v2.2.x
+- Tuya Smart Home Industry Support
+- Verbesserte API-Kompatibilität (Free Tier)
 
-### v2.1.0 (Stable) 🥈
-**Home Assistant Silver Tier Quality Release**
+### v2.1.0
+- Options Flow für Post-Setup Konfiguration
+- Diagnostics Download
+- Verbesserte Fehlerbehandlung
 
-#### **Quality & Reliability**
-- 🥈 **Silver Tier Compliance**: Erfüllt alle Silver Tier Quality Scale Requirements
-- 🛠️ **Options Flow**: Post-Setup Konfiguration über UI (Scan Interval, Debug Logging, etc.)
-- 🔍 **Diagnostics**: Downloadbare Debug-Informationen für Support
-- ✅ **Test Coverage**: 21 automatisierte Tests für Config Flow, Setup, Entities
-- 🏷️ **Entity Categories**: Diagnostic Sensors automatisch kategorisiert
-
-#### **Error Handling & Recovery**
-- 🔐 **ConfigEntryAuthFailed**: Automatischer Reauth-Flow bei falschen Credentials
-- 🔄 **ConfigEntryNotReady**: Auto-Retry bei temporären Connection-Problemen
-- 🧹 **CancelledError Handling**: Sauberes Cleanup bei Task-Abbrüchen
-- ⏱️ **Optimierte Timeouts**: Schnellere Fehlererkennung (15s statt 30s)
-- 📝 **Debug Logging**: Reduziertes Logging bei offline Geräten
-
-#### **Developer Experience**
-- 🏗️ **Best Practices**: hass.async_add_executor_job statt loop.run_in_executor
-- 📚 **Comprehensive Docs**: Erweiterte Troubleshooting Section mit konkreten Lösungen
-- 🧪 **Test Infrastructure**: conftest.py, pytest.ini, requirements_test.txt
-- 🐛 **Bug Fixes**: 4 kritische Bugs in Connection Handling behoben
-
-#### **Breaking Changes**
-- ⚠️ **Advanced Entities**: Einige diagnostic entities sind jetzt standardmäßig deaktiviert
-- ⚠️ **Python 3.13**: Kompatibilität mit neuesten Home Assistant Versionen
-
----
-
-### v2.0.0 (Stable) 🎉
-- 🔑 **Global API Key Management**: API Keys werden wiederverwendet
-- 🎛️ **3-Wege Setup-Architektur**: Discovery/Manual Local/API-Only
-- ☁️ **API-Only Setup**: Cloud-Setup ohne lokale Konfiguration
-- 📱 **Optimierte Benutzerführung**: Schnellerer Setup für weitere Geräte
-- 🌍 **Vollständige Übersetzungen**: Alle Config Flow Steps übersetzt
-- 🛠️ **Verbesserte Config Flow**: Smart routing mit gespeicherten Daten
-- 🔧 **HA 2025.12 Ready**: Moderne OptionsFlow API
-- 🐛 **Stability Fixes**: Umfangreiche Bug-Fixes aus Beta-Phase
-
-### v2.0.0-beta (Beta Series)
-- 🌐 TinyTuya Cloud API Integration
-- 🔄 Enhanced Reconnection System
-- 🔑 Improved Authentication Flow
-- 🛠️ New Device Management Services
-- ✅ Home Assistant 2025.12 Compatibility
-
-### v1.7.10 (Latest Stable)
-- ✅ **State Caching System**: Keine "unknown" States mehr
-- ✅ **Entity Consistency**: Alle Geräte standardisiert
-- ✅ **Config Flow Improvements**: Vollständige Device IDs, bessere UI
-- ✅ **Bug Fixes**: Falsy value handling, bitfield utils optimization
+### v2.0.0
+- 3-Wege Setup: Discovery / Manual / API-Only
+- Global API Key Management
+- TinyTuya Cloud API Integration
 
 [Vollständiges Changelog](./CHANGELOG.md)
 
@@ -703,7 +637,7 @@ MIT License - siehe [LICENSE](./LICENSE) für Details.
 
 **Made with ❤️ and 🤖 by [@moag1000](https://github.com/moag1000) & Claude Code**
 
-[releases-shield]: https://img.shields.io/badge/release-v2.2.4-gold.svg?style=for-the-badge
+[releases-shield]: https://img.shields.io/badge/release-v2.3.0-blue.svg?style=for-the-badge
 [betabadge]: https://img.shields.io/badge/status-STABLE-green.svg?style=for-the-badge
 [beta-release]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v2.0.0
 [releases]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases

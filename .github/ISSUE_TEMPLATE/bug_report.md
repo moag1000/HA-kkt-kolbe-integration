@@ -59,4 +59,4 @@ labels: bug
 
 ---
 
-**⚠️ ERINNERUNG:** Diese Integration wurde von KI erstellt und ist ungetestet. Verwenden Sie sie nur auf eigene Gefahr!
+**Hinweis:** Diese Integration wurde mit KI-Unterstützung erstellt. Verwendung auf eigene Verantwortung.

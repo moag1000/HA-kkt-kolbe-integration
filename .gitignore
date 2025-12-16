@@ -39,6 +39,7 @@ home-assistant_v2.db
 .pytest_cache/
 .coverage
 htmlcov/
+test_env/
 
 # Sensitive data patterns
 *_local_key*
