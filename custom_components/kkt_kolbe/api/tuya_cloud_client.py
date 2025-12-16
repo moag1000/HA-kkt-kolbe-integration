@@ -136,6 +136,12 @@ class TuyaCloudClient:
 
         return headers
 
+    async def _ensure_session(self) -> None:
+        """Ensure aiohttp session is available."""
+        if not self.session or self.session.closed:
+            self.session = aiohttp.ClientSession()
+            self._own_session = True
+
     async def _make_request(
         self,
         method: str,
@@ -143,8 +149,7 @@ class TuyaCloudClient:
         data: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """Make authenticated request to Tuya API."""
-        if not self.session:
-            raise TuyaAPIError("Session not initialized. Use async context manager.")
+        await self._ensure_session()
 
         url = f"{self.endpoint}{path}"
         body = json.dumps(data) if data else ""
