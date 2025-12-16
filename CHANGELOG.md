@@ -5,6 +5,58 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.0] - 2025-12-17
+
+### Feature Release - Smart Discovery with Zero-Config Setup
+
+This release introduces Smart Discovery - a new way to automatically find and configure KKT Kolbe devices with minimal user interaction.
+
+### Added
+
+#### **Smart Discovery (✨ Recommended)**
+- Combines local UDP/mDNS discovery with Tuya Cloud API
+- Automatically fetches `local_key` from API when credentials are configured
+- One-click setup for devices that have all required information
+- Devices show status: ✅ Ready to add | 🔑 Needs local key
+
+#### **Automatic Zeroconf Discovery**
+- Home Assistant automatically detects KKT Kolbe devices on the network
+- Shows notification when new device is found
+- If API credentials are configured: one-click setup
+- Otherwise: prompts for local key entry
+
+#### **New Smart Discovery Module**
+- `smart_discovery.py` - Combines local and API discovery
+- `SmartDiscoveryResult` class for unified device representation
+- Automatic enrichment of local devices with API data
+
+### Technical Details
+```python
+# Smart Discovery combines multiple data sources
+smart_discovery = SmartDiscovery(hass)
+devices = await smart_discovery.async_discover(
+    local_timeout=8.0,
+    enrich_with_api=True,  # Automatically fetch local_key from API
+)
+
+# Devices marked as ready_to_add have all required info
+for device in devices.values():
+    if device.ready_to_add:
+        # One-click setup - no user input needed
+        ...
+```
+
+### manifest.json Changes
+- Added `zeroconf` configuration for automatic discovery
+- Listens for `_tuya._tcp.local.` and `_smartlife._tcp.local.` services
+
+### User Experience Improvements
+- Default setup method changed to "Smart Discovery (Recommended)"
+- Shows API status hint when selecting setup method
+- Clearer device selection with ready/pending status icons
+
+---
+
 ## [2.5.3] - 2025-12-17
 
 ### Bugfix Release - Cooktop/Hood Device Type Detection via API

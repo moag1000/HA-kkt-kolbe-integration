@@ -148,6 +148,36 @@
           "use_manual_config": "Configure device manually with IP and device ID"
         }
       },
+      "smart_discovery": {
+        "title": "Smart Discovery",
+        "description": "{discovery_status}\n\nDevices marked with ✅ have all required information and can be added with one click.\nDevices marked with 🔑 need a local key to be entered manually.",
+        "data": {
+          "selected_device": "Select Device",
+          "retry_discovery": "Scan Again",
+          "back_to_user": "Back to Setup Options"
+        },
+        "data_description": {
+          "selected_device": "Choose a device to configure",
+          "retry_discovery": "Run discovery scan again",
+          "back_to_user": "Go back to choose a different setup method"
+        }
+      },
+      "zeroconf_confirm": {
+        "title": "Device Discovered!",
+        "description": "A KKT Kolbe device was automatically discovered and is ready to be added.\n\n**Device:** {device_name}\n**Device ID:** {device_id}...\n**IP Address:** {ip_address}\n**Type:** {product_name}\n\nClick Submit to add this device.",
+        "data": {},
+        "data_description": {}
+      },
+      "zeroconf_authenticate": {
+        "title": "Device Discovered - Local Key Required",
+        "description": "A KKT Kolbe device was found, but needs a local key to complete setup.\n\n**Device:** {device_name}\n**Device ID:** {device_id}...\n**IP Address:** {ip_address}\n\n{api_hint}",
+        "data": {
+          "local_key": "Local Key"
+        },
+        "data_description": {
+          "local_key": "Enter the 16-character local key from the Smart Life app"
+        }
+      },
       "manual": {
         "title": "Manual Configuration",
         "description": "Enter your KKT Kolbe device details manually.\n\n**Tip:** If your specific model is not listed, select 'Default Hood - Generic Range Hood' for basic range hood controls.",
@@ -233,10 +263,15 @@
       "discovery_failed": "Device discovery failed",
       "analysis_failed": "Device analysis failed",
       "no_kkt_devices_found": "No KKT Kolbe devices found",
-      "missing_local_details": "Please provide local connection details"
+      "missing_local_details": "Please provide local connection details",
+      "no_devices_found": "No devices were found. Make sure your device is powered on and connected to the network.",
+      "invalid_local_key": "Invalid local key. Must be 16 characters.",
+      "invalid_auth": "Authentication failed. Please check your local key."
     },
     "abort": {
-      "already_configured": "Device is already configured"
+      "already_configured": "Device is already configured",
+      "no_device_id": "Could not identify device. No device ID found.",
+      "reauth_failed": "Reauthentication failed. Entry not found."
     }
   },
   "options": {
