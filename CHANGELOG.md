@@ -5,6 +5,18 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.6] - 2025-12-16
+
+### Bugfix Release - API Device IP Address
+
+### Fixed
+- **API Discovery missing IP address**: Devices discovered via Tuya Cloud API now correctly include IP address and local_key
+  - Previously showed "Unknown IP" for API-discovered devices
+  - Now enables local communication fallback for API-only setups
+  - Affected: `async_step_api_only`, `async_step_api_choice`, `async_step_api_device_selection`
+
+---
+
 ## [2.4.5] - 2025-12-16
 
 ### Documentation, Privacy & CI/CD Release
