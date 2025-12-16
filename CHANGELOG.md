@@ -5,6 +5,16 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.9] - 2025-12-16
+
+### Bugfix Release - CONFIG_SCHEMA Definition
+
+### Fixed
+- **CONFIG_SCHEMA**: Added `config_entry_only_config_schema` to `__init__.py`
+  - Fixes Hassfest warning about missing CONFIG_SCHEMA for async_setup
+
+---
+
 ## [2.4.8] - 2025-12-16
 
 ### Bugfix Release - Hassfest Manifest Key Order
