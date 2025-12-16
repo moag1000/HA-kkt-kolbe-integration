@@ -5,6 +5,33 @@ DOMAIN = "kkt_kolbe"
 
 MANUFACTURER = "KKT Kolbe"
 
+# Connection stability configuration
+DEFAULT_SCAN_INTERVAL = 30  # seconds
+DEFAULT_CONNECTION_TIMEOUT = 15.0  # seconds
+DEFAULT_STATUS_TIMEOUT = 10.0  # seconds
+DEFAULT_SET_DP_TIMEOUT = 8.0  # seconds
+DEFAULT_PROTOCOL_TIMEOUT = 3.0  # seconds
+DEFAULT_RECONNECT_TEST_TIMEOUT = 5.0  # seconds
+
+# Reconnection configuration
+DEFAULT_BASE_BACKOFF = 5  # seconds
+DEFAULT_MAX_BACKOFF = 300  # 5 minutes
+DEFAULT_MAX_RECONNECT_ATTEMPTS = 10
+DEFAULT_CONSECUTIVE_FAILURES_THRESHOLD = 3
+
+# Adaptive intervals (during offline/reconnection)
+ADAPTIVE_UPDATE_INTERVAL_OFFLINE = 120  # 2 minutes during offline
+ADAPTIVE_UPDATE_INTERVAL_RECONNECTING = 60  # 1 minute during reconnection
+
+# Circuit breaker configuration
+CIRCUIT_BREAKER_SLEEP_INTERVAL = 3600  # 1 hour sleep when unreachable
+CIRCUIT_BREAKER_MAX_SLEEP_RETRIES = 3  # Max retries per sleep cycle
+
+# TCP Keep-Alive configuration
+TCP_KEEPALIVE_IDLE = 60  # seconds before sending keepalive probes
+TCP_KEEPALIVE_INTERVAL = 10  # seconds between keepalive probes
+TCP_KEEPALIVE_COUNT = 5  # number of failed probes before declaring dead
+
 # Global API storage key
 GLOBAL_API_STORAGE_KEY = f"{DOMAIN}_global_api"
 

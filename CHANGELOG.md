@@ -5,6 +5,92 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2025-12-16
+
+### Major Release - Connection Stability Overhaul 🔄
+
+This release focuses entirely on connection stability and reliability improvements, making the integration much more robust for networks with intermittent connectivity.
+
+### Added
+
+#### **TCP Keep-Alive on Sockets**
+- Platform-specific TCP Keep-Alive configuration (macOS, Linux, Windows)
+- 60s idle timeout, 10s probe interval, 5 probes before declaring dead
+- Prevents silent connection drops from going undetected
+
+#### **Quick Pre-Check before Protocol Detection**
+- Fast TCP connection test (2s timeout) before expensive protocol detection
+- Reduces wasted time on unreachable devices
+- Faster failure detection for offline devices
+
+#### **Circuit Breaker Pattern**
+- After 10 failed reconnection attempts, enters "sleep mode"
+- Retries once per hour (configurable via `CIRCUIT_BREAKER_SLEEP_INTERVAL`)
+- Maximum 3 circuit breaker retries before extended sleep (2h)
+- Prevents excessive reconnection attempts to unreachable devices
+- Manual reconnection resets circuit breaker state
+
+#### **Adaptive Update Intervals**
+- Normal operation: 30s (configurable)
+- Device OFFLINE: 120s (reduced polling, saves resources)
+- Device RECONNECTING: 60s (moderate polling)
+- Device UNREACHABLE: 240s (minimal polling, circuit breaker handles retries)
+- Automatically restores original interval when device comes back online
+
+#### **Bounded Exponential Backoff with Jitter**
+- Prevents "thundering herd" problem when multiple devices reconnect
+- Formula: `min(max_backoff, max(base_backoff, current * 2 + random(0, 0.5 * current)))`
+- Base: 5s, Max: 300s (5 minutes)
+- Ensures backoff never falls below minimum or exceeds maximum
+
+#### **Connection Statistics Tracking**
+- Tracks: total_connects, total_disconnects, total_reconnects, total_timeouts, total_errors
+- Last connect/disconnect timestamps
+- Protocol version detected
+- Available via `device.connection_stats` property
+
+#### **Enhanced Diagnostics**
+- Connection state (ONLINE/OFFLINE/RECONNECTING/UNREACHABLE)
+- Consecutive failure count
+- Circuit breaker status (retries, next retry time)
+- Adaptive interval status
+- Full connection statistics from device
+
+#### **Configurable Timeouts (const.py)**
+- `DEFAULT_CONNECTION_TIMEOUT = 15.0s`
+- `DEFAULT_STATUS_TIMEOUT = 10.0s`
+- `DEFAULT_SET_DP_TIMEOUT = 8.0s`
+- `DEFAULT_PROTOCOL_TIMEOUT = 3.0s`
+- `DEFAULT_RECONNECT_TEST_TIMEOUT = 5.0s`
+
+### Changed
+- **ReconnectCoordinator**: Now uses constants from const.py instead of hardcoded values
+- **Legacy Coordinator**: Added state tracking (ONLINE/OFFLINE/RECONNECTING/UNREACHABLE)
+- **Backoff calculation**: Bounded with jitter for better distribution
+
+### Fixed
+- **`@callback` decorator on async function**: Removed incorrect decorator from `_async_health_check`
+- **Unused imports**: Cleaned up unused imports (`callback`, `STATE_UNAVAILABLE`, `asyncio`, `DEFAULT_SCAN_INTERVAL`)
+- **Hardcoded values**: Replaced with constants for consistency
+
+### Technical Details
+```python
+# New constants in const.py
+DEFAULT_BASE_BACKOFF = 5  # seconds
+DEFAULT_MAX_BACKOFF = 300  # 5 minutes
+DEFAULT_MAX_RECONNECT_ATTEMPTS = 10
+DEFAULT_CONSECUTIVE_FAILURES_THRESHOLD = 3
+ADAPTIVE_UPDATE_INTERVAL_OFFLINE = 120  # 2 minutes
+ADAPTIVE_UPDATE_INTERVAL_RECONNECTING = 60  # 1 minute
+CIRCUIT_BREAKER_SLEEP_INTERVAL = 3600  # 1 hour
+CIRCUIT_BREAKER_MAX_SLEEP_RETRIES = 3
+TCP_KEEPALIVE_IDLE = 60
+TCP_KEEPALIVE_INTERVAL = 10
+TCP_KEEPALIVE_COUNT = 5
+```
+
+---
+
 ## [2.4.14] - 2025-12-16
 
 ### Bugfix Release - Minimal Test Suite

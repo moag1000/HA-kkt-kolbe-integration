@@ -92,7 +92,22 @@ Mit deiner Hilfe können wir diese Modelle zur Integration hinzufügen! 🙏
 
 ## ✨ Integration Features
 
-### 🆕 **Neu in v2.2.4: Smart Home Industry Support**
+### 🆕 **Neu in v2.5.0: Connection Stability Overhaul** 🔄
+
+#### **Robuste Verbindungsstabilität**
+- ✅ **TCP Keep-Alive**: Socket-Level Keepalive-Probes verhindern stille Verbindungsabbrüche
+- ✅ **Circuit Breaker Pattern**: Nach 10 Fehlversuchen 1h Sleep-Modus, dann Retry
+- ✅ **Adaptive Update-Intervalle**: Automatische Anpassung bei Offline/Reconnecting
+- ✅ **Bounded Exponential Backoff**: Verhindert "Thundering Herd" bei Wiederverbindung
+- ✅ **Quick Pre-Check**: Schnelle TCP-Prüfung vor teurer Protokollerkennung
+
+#### **Verbesserte Diagnostics**
+- 📊 Connection State Tracking (ONLINE/OFFLINE/RECONNECTING/UNREACHABLE)
+- 📈 Connection Statistics (Connects, Disconnects, Timeouts, Errors)
+- 🔧 Circuit Breaker Status in HA Diagnostics
+- ⏱️ Konfigurierbare Timeouts über const.py
+
+### **Neu in v2.2.4: Smart Home Industry Support**
 
 #### **Tuya Smart Home Industry Kompatibilität**
 - ✅ Volle Unterstützung für Tuya Smart Home Industry Projekte
@@ -142,11 +157,13 @@ Mit deiner Hilfe können wir diese Modelle zur Integration hinzufügen! 🙏
 - **Device Type Detection**: Intelligente Erkennung basierend auf Device ID und Product Name
 - **Smart Configuration**: Automatische Entity-Konfiguration je nach Gerät
 
-#### **Robuste Konnektivität**
+#### **Robuste Konnektivität** (v2.5.0 Enhanced)
 - **Tuya Local Protocol**: Direkte Verbindung ohne Cloud
-- **Auto-Reconnect**: Automatische Wiederverbindung bei Unterbrechungen
-- **Version Auto-Detection**: Unterstützt verschiedene Tuya Protocol Versionen
-- **Enhanced Timeouts**: Optimierte Verbindungszeiten für stabile Performance
+- **Auto-Reconnect**: Automatische Wiederverbindung mit Circuit Breaker Pattern
+- **TCP Keep-Alive**: Socket-Level Verbindungsüberwachung
+- **Adaptive Polling**: Automatische Intervall-Anpassung bei Verbindungsproblemen
+- **Version Auto-Detection**: Unterstützt Tuya Protocol 3.1, 3.3, 3.4, 3.5
+- **Enhanced Timeouts**: Konfigurierbare Timeouts für alle Operationen
 
 #### **Home Assistant Integration**
 - **Native HA Entities**: Switch, Number, Select, Binary Sensor, Fan
@@ -594,10 +611,20 @@ cat home-assistant.log | grep "kkt_kolbe"
 
 ## 📝 Changelog
 
-### v2.3.0 (Current)
-- Dokumentation überarbeitet und vereinheitlicht
-- Sensible Daten anonymisiert
-- SOLO HCM Unterstützung hinzugefügt
+### v2.5.0 (Current) 🔄
+- **Connection Stability Overhaul**: TCP Keep-Alive, Circuit Breaker, Adaptive Intervals
+- Bounded Exponential Backoff mit Jitter
+- Quick Pre-Check vor Protokollerkennung
+- Connection Statistics in Diagnostics
+- Konfigurierbare Timeouts
+
+### v2.4.x
+- CI/CD Validierung und Test-Suite Fixes
+- Hassfest und HACS Kompatibilität
+
+### v2.3.0
+- SOLO HCM Unterstützung
+- Dokumentation überarbeitet
 
 ### v2.2.x
 - Tuya Smart Home Industry Support
@@ -606,7 +633,6 @@ cat home-assistant.log | grep "kkt_kolbe"
 ### v2.1.0
 - Options Flow für Post-Setup Konfiguration
 - Diagnostics Download
-- Verbesserte Fehlerbehandlung
 
 ### v2.0.0
 - 3-Wege Setup: Discovery / Manual / API-Only
