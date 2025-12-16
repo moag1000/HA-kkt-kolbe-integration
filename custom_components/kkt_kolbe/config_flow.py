@@ -547,6 +547,8 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                                         "device_id": device["id"],
                                         "name": device.get("name", f"KKT Device {device['id']}"),
                                         "product_name": device.get("product_name", "Unknown Device"),
+                                        "ip": device.get("ip"),  # Include IP from API
+                                        "local_key": device.get("local_key"),  # Include local_key from API
                                         "discovered_via": "API",
                                         "device_type": "auto"
                                     }
@@ -586,6 +588,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             device_info = self._discovered_devices[selected_device_id]
 
             # Create config entry with API-only mode
+            # Include IP and local_key if available from API for hybrid/local fallback
             config_data = {
                 "integration_mode": "api_discovery",
                 "api_enabled": True,
@@ -594,8 +597,16 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                 "api_endpoint": self._api_info["endpoint"],
                 CONF_DEVICE_ID: device_info["device_id"],
                 "product_name": device_info["product_name"],
-                "device_type": device_info["device_type"]
+                "device_type": device_info["device_type"],
             }
+
+            # Add IP address if available from API
+            if device_info.get("ip"):
+                config_data[CONF_IP_ADDRESS] = device_info["ip"]
+
+            # Add local_key if available from API (enables local communication)
+            if device_info.get("local_key"):
+                config_data["local_key"] = device_info["local_key"]
 
             return self.async_create_entry(
                 title=device_info["name"],
@@ -635,6 +646,8 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                                 "device_id": device["id"],
                                 "name": device.get("name", f"KKT Device {device['id']}"),
                                 "product_name": device.get("product_name", "Unknown Device"),
+                                "ip": device.get("ip"),  # Include IP from API
+                                "local_key": device.get("local_key"),  # Include local_key from API
                                 "discovered_via": "API",
                                 "device_type": "auto"
                             }
@@ -735,6 +748,8 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                                         "device_id": device["id"],
                                         "name": device.get("name", f"KKT Device {device['id']}"),
                                         "product_name": device.get("product_name", "Unknown Device"),
+                                        "ip": device.get("ip"),  # Include IP from API
+                                        "local_key": device.get("local_key"),  # Include local_key from API
                                         "discovered_via": "API",
                                         "device_type": "auto"
                                     }
