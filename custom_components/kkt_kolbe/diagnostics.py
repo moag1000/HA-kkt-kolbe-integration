@@ -55,6 +55,37 @@ async def async_get_config_entry_diagnostics(
             "data_point_count": len(coordinator.data) if coordinator.data else 0,
         }
 
+        # Add connection state tracking info if available
+        if hasattr(coordinator, "connection_info"):
+            conn_info = coordinator.connection_info
+            diagnostics_data["coordinator"]["connection_state"] = conn_info.get("state", "unknown")
+            diagnostics_data["coordinator"]["consecutive_failures"] = conn_info.get("consecutive_failures", 0)
+            diagnostics_data["coordinator"]["last_successful_update"] = (
+                conn_info.get("last_update").isoformat()
+                if conn_info.get("last_update")
+                else None
+            )
+
+            # Add circuit breaker info if using ReconnectCoordinator
+            if "circuit_breaker_retries" in conn_info:
+                diagnostics_data["coordinator"]["circuit_breaker"] = {
+                    "retries": conn_info.get("circuit_breaker_retries", 0),
+                    "next_retry": (
+                        conn_info.get("circuit_breaker_next_retry").isoformat()
+                        if conn_info.get("circuit_breaker_next_retry")
+                        else None
+                    ),
+                    "adaptive_interval_active": conn_info.get("adaptive_interval_active", False),
+                }
+
+        # Add device state if available
+        if hasattr(coordinator, "device_state"):
+            diagnostics_data["coordinator"]["device_state"] = coordinator.device_state.value
+
+        # Add device availability if available
+        if hasattr(coordinator, "is_device_available"):
+            diagnostics_data["coordinator"]["is_device_available"] = coordinator.is_device_available
+
         # Add available data points (values redacted for privacy)
         if coordinator.data:
             diagnostics_data["coordinator"]["available_data_points"] = list(
@@ -69,6 +100,20 @@ async def async_get_config_entry_diagnostics(
             "device_id_prefix": device.device_id[:8] + "..." if hasattr(device, "device_id") else "unknown",
             "ip_address": device.ip_address if hasattr(device, "ip_address") else "unknown",
         }
+
+        # Add connection statistics if available
+        if hasattr(device, "connection_stats"):
+            stats = device.connection_stats
+            diagnostics_data["device"]["connection_statistics"] = {
+                "total_connects": stats.get("total_connects", 0),
+                "total_disconnects": stats.get("total_disconnects", 0),
+                "total_reconnects": stats.get("total_reconnects", 0),
+                "total_timeouts": stats.get("total_timeouts", 0),
+                "total_errors": stats.get("total_errors", 0),
+                "last_connect_time": stats.get("last_connect_time"),
+                "last_disconnect_time": stats.get("last_disconnect_time"),
+                "protocol_version_detected": stats.get("protocol_version_detected"),
+            }
 
     # Add API client diagnostics
     if api_client:

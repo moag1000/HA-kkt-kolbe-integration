@@ -3,17 +3,27 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import random
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any
 
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.event import async_track_time_interval
-from homeassistant.const import STATE_UNAVAILABLE
 
-from .const import DOMAIN
+from .const import (
+    DOMAIN,
+    DEFAULT_BASE_BACKOFF,
+    DEFAULT_MAX_BACKOFF,
+    DEFAULT_MAX_RECONNECT_ATTEMPTS,
+    DEFAULT_CONSECUTIVE_FAILURES_THRESHOLD,
+    ADAPTIVE_UPDATE_INTERVAL_OFFLINE,
+    ADAPTIVE_UPDATE_INTERVAL_RECONNECTING,
+    CIRCUIT_BREAKER_SLEEP_INTERVAL,
+    CIRCUIT_BREAKER_MAX_SLEEP_RETRIES,
+)
 from .tuya_device import KKTKolbeTuyaDevice
 from .exceptions import KKTTimeoutError, KKTConnectionError
 
@@ -47,16 +57,26 @@ class ReconnectCoordinator(DataUpdateCoordinator):
         self._last_successful_update: datetime | None = None
         self._consecutive_failures = 0
         self._reconnect_attempts = 0
-        self._max_reconnect_attempts = 10
+        self._max_reconnect_attempts = DEFAULT_MAX_RECONNECT_ATTEMPTS
 
         # Backoff configuration
-        self._base_backoff_time = 5  # seconds
-        self._max_backoff_time = 300  # 5 minutes
+        self._base_backoff_time = DEFAULT_BASE_BACKOFF
+        self._max_backoff_time = DEFAULT_MAX_BACKOFF
         self._current_backoff_time = self._base_backoff_time
 
         # Reconnection task
         self._reconnect_task: asyncio.Task | None = None
         self._reconnect_lock = asyncio.Lock()
+
+        # Circuit breaker configuration
+        self._circuit_breaker_sleep_interval = CIRCUIT_BREAKER_SLEEP_INTERVAL
+        self._circuit_breaker_max_retries = CIRCUIT_BREAKER_MAX_SLEEP_RETRIES
+        self._circuit_breaker_retries = 0
+        self._circuit_breaker_next_retry: datetime | None = None
+
+        # Adaptive update interval tracking
+        self._original_update_interval = timedelta(seconds=update_interval)
+        self._adaptive_interval_active = False
 
         # Health check interval (separate from data updates)
         self._health_check_interval = timedelta(minutes=5)
@@ -116,7 +136,46 @@ class ReconnectCoordinator(DataUpdateCoordinator):
             "consecutive_failures": self._consecutive_failures,
             "reconnect_attempts": self._reconnect_attempts,
             "is_connected": self.device.is_connected,
+            "circuit_breaker_retries": self._circuit_breaker_retries,
+            "circuit_breaker_next_retry": self._circuit_breaker_next_retry,
+            "adaptive_interval_active": self._adaptive_interval_active,
         }
+
+    def _set_adaptive_interval(self, state: DeviceState) -> None:
+        """Adjust update interval based on device state."""
+        if state == DeviceState.ONLINE:
+            # Restore original interval
+            if self._adaptive_interval_active:
+                self.update_interval = self._original_update_interval
+                self._adaptive_interval_active = False
+                _LOGGER.debug(
+                    f"Device {self.device.device_id[:8]}: Restored normal update interval "
+                    f"({self._original_update_interval.total_seconds()}s)"
+                )
+        elif state == DeviceState.OFFLINE:
+            # Slow down during offline
+            self.update_interval = timedelta(seconds=ADAPTIVE_UPDATE_INTERVAL_OFFLINE)
+            self._adaptive_interval_active = True
+            _LOGGER.debug(
+                f"Device {self.device.device_id[:8]}: Slowed update interval to "
+                f"{ADAPTIVE_UPDATE_INTERVAL_OFFLINE}s (offline)"
+            )
+        elif state == DeviceState.RECONNECTING:
+            # Medium interval during reconnection
+            self.update_interval = timedelta(seconds=ADAPTIVE_UPDATE_INTERVAL_RECONNECTING)
+            self._adaptive_interval_active = True
+            _LOGGER.debug(
+                f"Device {self.device.device_id[:8]}: Set update interval to "
+                f"{ADAPTIVE_UPDATE_INTERVAL_RECONNECTING}s (reconnecting)"
+            )
+        elif state == DeviceState.UNREACHABLE:
+            # Very slow during unreachable (circuit breaker handles retries)
+            self.update_interval = timedelta(seconds=ADAPTIVE_UPDATE_INTERVAL_OFFLINE * 2)
+            self._adaptive_interval_active = True
+            _LOGGER.debug(
+                f"Device {self.device.device_id[:8]}: Set update interval to "
+                f"{ADAPTIVE_UPDATE_INTERVAL_OFFLINE * 2}s (unreachable)"
+            )
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from device with reconnection logic."""
@@ -156,8 +215,8 @@ class ReconnectCoordinator(DataUpdateCoordinator):
                 f"(attempt {self._consecutive_failures}): {err}"
             )
 
-            # Mark offline after 3 consecutive failures
-            if self._consecutive_failures >= 3:
+            # Mark offline after consecutive failures threshold
+            if self._consecutive_failures >= DEFAULT_CONSECUTIVE_FAILURES_THRESHOLD:
                 await self._async_mark_offline()
                 await self._async_start_reconnection()
 
@@ -171,7 +230,7 @@ class ReconnectCoordinator(DataUpdateCoordinator):
             )
 
             # For unexpected errors, still try to reconnect
-            if self._consecutive_failures >= 3:
+            if self._consecutive_failures >= DEFAULT_CONSECUTIVE_FAILURES_THRESHOLD:
                 await self._async_mark_offline()
                 await self._async_start_reconnection()
 
@@ -188,9 +247,19 @@ class ReconnectCoordinator(DataUpdateCoordinator):
     async def _async_mark_online(self) -> None:
         """Mark device as online."""
         if self._device_state != DeviceState.ONLINE:
+            previous_state = self._device_state
             self._device_state = DeviceState.ONLINE
             self._reconnect_attempts = 0
-            _LOGGER.info(f"Device {self.device.device_id[:8]} is now ONLINE")
+            self._circuit_breaker_retries = 0
+            self._circuit_breaker_next_retry = None
+
+            # Restore normal update interval
+            self._set_adaptive_interval(DeviceState.ONLINE)
+
+            _LOGGER.info(
+                f"Device {self.device.device_id[:8]} is now ONLINE "
+                f"(was {previous_state.value})"
+            )
 
             # Fire event for device online
             self.hass.bus.async_fire(
@@ -202,6 +271,10 @@ class ReconnectCoordinator(DataUpdateCoordinator):
         """Mark device as offline."""
         if self._device_state == DeviceState.ONLINE:
             self._device_state = DeviceState.OFFLINE
+
+            # Slow down update interval during offline
+            self._set_adaptive_interval(DeviceState.OFFLINE)
+
             _LOGGER.warning(f"Device {self.device.device_id[:8]} is now OFFLINE")
 
             # Fire event for device offline
@@ -217,18 +290,30 @@ class ReconnectCoordinator(DataUpdateCoordinator):
             if self._reconnect_task and not self._reconnect_task.done():
                 return
 
-            # Check if we've exceeded max attempts
+            # Check if we've exceeded max attempts (circuit breaker)
             if self._reconnect_attempts >= self._max_reconnect_attempts:
                 if self._device_state != DeviceState.UNREACHABLE:
                     self._device_state = DeviceState.UNREACHABLE
+                    self._circuit_breaker_retries += 1
+                    self._circuit_breaker_next_retry = datetime.now() + timedelta(
+                        seconds=self._circuit_breaker_sleep_interval
+                    )
+
+                    # Set very slow update interval for unreachable
+                    self._set_adaptive_interval(DeviceState.UNREACHABLE)
+
                     _LOGGER.error(
                         f"Device {self.device.device_id[:8]} marked as UNREACHABLE "
-                        f"after {self._max_reconnect_attempts} attempts"
+                        f"after {self._max_reconnect_attempts} attempts. "
+                        f"Circuit breaker retry #{self._circuit_breaker_retries} "
+                        f"scheduled in {self._circuit_breaker_sleep_interval}s"
                     )
                 return
 
             # Start reconnection task
             self._device_state = DeviceState.RECONNECTING
+            self._set_adaptive_interval(DeviceState.RECONNECTING)
+
             self._reconnect_task = self.hass.async_create_task(
                 self._async_reconnect_with_backoff()
             )
@@ -274,11 +359,13 @@ class ReconnectCoordinator(DataUpdateCoordinator):
                     f"Reconnection attempt {self._reconnect_attempts} failed: {err}"
                 )
 
-            # Increase backoff time (exponential backoff with jitter)
-            import random
+            # Increase backoff time (bounded exponential backoff with jitter)
             self._current_backoff_time = min(
-                self._current_backoff_time * 2 + random.uniform(0, 1),
-                self._max_backoff_time
+                self._max_backoff_time,
+                max(
+                    self._base_backoff_time,
+                    self._current_backoff_time * 2 + random.uniform(0, 0.5 * self._current_backoff_time)
+                )
             )
 
         # Max attempts reached
@@ -288,13 +375,35 @@ class ReconnectCoordinator(DataUpdateCoordinator):
             f"after {self._max_reconnect_attempts} attempts"
         )
 
-    @callback
     async def _async_health_check(self, _now) -> None:
         """Periodic health check for device availability."""
         if self._device_state == DeviceState.UNREACHABLE:
+            # Circuit breaker logic - only retry after sleep interval
+            if self._circuit_breaker_next_retry:
+                if datetime.now() < self._circuit_breaker_next_retry:
+                    remaining = (self._circuit_breaker_next_retry - datetime.now()).total_seconds()
+                    _LOGGER.debug(
+                        f"Health check: Device {self.device.device_id[:8]} still in circuit breaker sleep. "
+                        f"Next retry in {remaining:.0f}s"
+                    )
+                    return
+
+            # Check if we've exceeded max circuit breaker retries
+            if self._circuit_breaker_retries >= self._circuit_breaker_max_retries:
+                _LOGGER.warning(
+                    f"Health check: Device {self.device.device_id[:8]} exceeded max circuit breaker "
+                    f"retries ({self._circuit_breaker_max_retries}). Staying in sleep mode."
+                )
+                # Schedule next retry further out (double the interval)
+                self._circuit_breaker_next_retry = datetime.now() + timedelta(
+                    seconds=self._circuit_breaker_sleep_interval * 2
+                )
+                return
+
             # Reset and try again for unreachable devices
             _LOGGER.info(
-                f"Health check: Retrying unreachable device {self.device.device_id[:8]}"
+                f"Health check: Circuit breaker retry #{self._circuit_breaker_retries + 1} "
+                f"for unreachable device {self.device.device_id[:8]}"
             )
             self._reconnect_attempts = 0
             self._current_backoff_time = self._base_backoff_time
@@ -311,14 +420,19 @@ class ReconnectCoordinator(DataUpdateCoordinator):
         """Manually request device reconnection."""
         _LOGGER.info(f"Manual reconnection requested for device {self.device.device_id[:8]}")
 
-        # Reset counters
+        # Reset all counters including circuit breaker
         self._reconnect_attempts = 0
         self._current_backoff_time = self._base_backoff_time
         self._consecutive_failures = 0
+        self._circuit_breaker_retries = 0
+        self._circuit_breaker_next_retry = None
 
         # Close existing connection
         if self.device.is_connected:
             await self.device.async_disconnect()
+
+        # Reset state to offline for fresh reconnection attempt
+        self._device_state = DeviceState.OFFLINE
 
         # Start reconnection
         await self._async_start_reconnection()

@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import random
+import socket
 from typing import Any, Callable, Coroutine, Optional
 
 import tinytuya
@@ -13,6 +15,15 @@ from .exceptions import (
     KKTTimeoutError,
     KKTDataPointError,
     KKTAuthenticationError
+)
+from .const import (
+    DEFAULT_CONNECTION_TIMEOUT,
+    DEFAULT_STATUS_TIMEOUT,
+    DEFAULT_SET_DP_TIMEOUT,
+    DEFAULT_PROTOCOL_TIMEOUT,
+    TCP_KEEPALIVE_IDLE,
+    TCP_KEEPALIVE_INTERVAL,
+    TCP_KEEPALIVE_COUNT,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -38,6 +49,18 @@ class KKTKolbeTuyaDevice:
         self._status = {}
         self._connected = False
         self._hass = hass
+
+        # Connection statistics for diagnostics
+        self._connection_stats = {
+            "total_connects": 0,
+            "total_disconnects": 0,
+            "total_reconnects": 0,
+            "total_timeouts": 0,
+            "total_errors": 0,
+            "last_connect_time": None,
+            "last_disconnect_time": None,
+            "protocol_version_detected": None,
+        }
         # Don't connect in __init__ - will be done async
 
     def _handle_task_result(self, task: asyncio.Task[Any]) -> None:
@@ -55,15 +78,34 @@ class KKTKolbeTuyaDevice:
 
     async def async_connect(self) -> None:
         """Establish async connection to the device with timeout protection and retry mechanism."""
+        from datetime import datetime
+
         if self._connected:
             return
 
         max_retries = 2  # Reduced from 3 to speed up failure detection
-        retry_delay = 3.0  # Reduced from 5s for faster retry
+        base_retry_delay = 3.0  # Base delay for retry
 
         last_exception = None
 
+        # Quick pre-check before full protocol detection
+        is_reachable = await self.async_quick_check(timeout=2.0)
+        if not is_reachable:
+            _LOGGER.warning(
+                f"Quick check failed for device at {self.ip_address}. "
+                f"Device appears to be offline or unreachable."
+            )
+            self._connection_stats["total_errors"] += 1
+            raise KKTConnectionError(
+                operation="quick_check",
+                device_id=self.device_id[:8],
+                reason="Device not reachable on port 6668 - check if device is online"
+            )
+
         for attempt in range(max_retries):
+            # Add jitter to retry delay to prevent thundering herd
+            retry_delay = base_retry_delay * (0.5 + random.random())
+
             try:
                 _LOGGER.info(
                     f"Attempting connection to device {self.device_id[:8]}... "
@@ -72,7 +114,17 @@ class KKTKolbeTuyaDevice:
 
                 # Apply timeout protection for connection operations
                 # Total timeout is 15s (4 versions × 3s + overhead)
-                await asyncio.wait_for(self._perform_connection(), timeout=15.0)
+                await asyncio.wait_for(self._perform_connection(), timeout=DEFAULT_CONNECTION_TIMEOUT)
+
+                # Update connection statistics
+                self._connection_stats["total_connects"] += 1
+                self._connection_stats["last_connect_time"] = datetime.now().isoformat()
+                if attempt > 0:
+                    self._connection_stats["total_reconnects"] += 1
+
+                # Configure TCP Keep-Alive on successful connection
+                if self._device:
+                    self._configure_socket_keepalive(self._device)
 
                 _LOGGER.info(f"Successfully connected to device {self.device_id[:8]}... at {self.ip_address}")
                 return
@@ -88,18 +140,19 @@ class KKTKolbeTuyaDevice:
                 last_exception = e
                 self._connected = False
                 self._device = None
+                self._connection_stats["total_timeouts"] += 1
                 if attempt == max_retries - 1:
                     _LOGGER.error(
-                        f"Connection timeout after 15 seconds for device at {self.ip_address}. "
+                        f"Connection timeout after {DEFAULT_CONNECTION_TIMEOUT} seconds for device at {self.ip_address}. "
                         f"Device may be offline or network unreachable."
                     )
                     raise KKTTimeoutError(
                         operation="connect",
                         device_id=self.device_id[:8],
-                        timeout=15.0
+                        timeout=DEFAULT_CONNECTION_TIMEOUT
                     )
                 else:
-                    _LOGGER.info(f"Timeout, retrying in {retry_delay}s...")
+                    _LOGGER.info(f"Timeout, retrying in {retry_delay:.1f}s...")
                     await asyncio.sleep(retry_delay)
 
             except KKTAuthenticationError as e:
@@ -203,6 +256,7 @@ class KKTKolbeTuyaDevice:
                         "dps" in test_status and test_status["dps"] and
                         len(test_status["dps"]) > 0):
                         self.version = str(test_version)
+                        self._connection_stats["protocol_version_detected"] = str(test_version)
                         _LOGGER.info(f"Detected Tuya protocol version: {test_version}")
                         self._device = test_device
                         self._connected = True
@@ -379,6 +433,102 @@ class KKTKolbeTuyaDevice:
             return False
         except Exception:
             return False
+
+    async def async_disconnect(self) -> None:
+        """Disconnect from device and cleanup resources properly."""
+        from datetime import datetime
+
+        _LOGGER.debug(f"Disconnecting from device {self.device_id[:8]}...")
+
+        if self._device:
+            try:
+                # Close the socket connection
+                self._device.close()
+            except Exception as e:
+                _LOGGER.debug(f"Error closing device socket: {e}")
+            finally:
+                self._device = None
+
+        self._connected = False
+        self._connection_stats["total_disconnects"] += 1
+        self._connection_stats["last_disconnect_time"] = datetime.now().isoformat()
+
+        _LOGGER.debug(f"Disconnected from device {self.device_id[:8]}")
+
+    async def async_quick_check(self, timeout: float = 2.0) -> bool:
+        """Quick pre-check if device is reachable before full protocol detection.
+
+        This performs a simple TCP socket connection to see if the device
+        is even reachable, avoiding the longer protocol detection process
+        for clearly unreachable devices.
+        """
+        try:
+            # Try to open a socket connection to the Tuya port (6668)
+            loop = asyncio.get_running_loop()
+
+            def _check_socket():
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(timeout)
+                try:
+                    result = sock.connect_ex((self.ip_address, 6668))
+                    return result == 0
+                except (socket.timeout, socket.error):
+                    return False
+                finally:
+                    sock.close()
+
+            is_reachable = await asyncio.wait_for(
+                loop.run_in_executor(None, _check_socket),
+                timeout=timeout + 0.5
+            )
+
+            if not is_reachable:
+                _LOGGER.debug(f"Quick check: Device {self.ip_address} not reachable on port 6668")
+            return is_reachable
+
+        except asyncio.TimeoutError:
+            _LOGGER.debug(f"Quick check timeout for {self.ip_address}")
+            return False
+        except Exception as e:
+            _LOGGER.debug(f"Quick check error for {self.ip_address}: {e}")
+            return False
+
+    @property
+    def connection_stats(self) -> dict[str, Any]:
+        """Get connection statistics for diagnostics."""
+        return {
+            **self._connection_stats,
+            "is_connected": self._connected,
+            "device_id": self.device_id[:8] + "...",
+            "ip_address": self.ip_address,
+            "protocol_version": self.version,
+        }
+
+    def _configure_socket_keepalive(self, device: Any) -> None:
+        """Configure TCP Keep-Alive on the device socket."""
+        try:
+            # Get the underlying socket if available
+            if hasattr(device, '_socket') and device._socket:
+                sock = device._socket
+                # Enable TCP Keep-Alive
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+
+                # Platform-specific keep-alive settings
+                import platform
+                if platform.system() == 'Linux':
+                    # TCP_KEEPIDLE - time before sending keepalive probes
+                    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, TCP_KEEPALIVE_IDLE)
+                    # TCP_KEEPINTVL - interval between probes
+                    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, TCP_KEEPALIVE_INTERVAL)
+                    # TCP_KEEPCNT - number of failed probes before declaring dead
+                    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, TCP_KEEPALIVE_COUNT)
+                elif platform.system() == 'Darwin':  # macOS
+                    # macOS uses TCP_KEEPALIVE for idle time
+                    sock.setsockopt(socket.IPPROTO_TCP, 0x10, TCP_KEEPALIVE_IDLE)
+
+                _LOGGER.debug(f"TCP Keep-Alive configured for device {self.device_id[:8]}")
+        except Exception as e:
+            _LOGGER.debug(f"Could not configure TCP Keep-Alive: {e}")
 
     @property
     def is_on(self) -> bool:
