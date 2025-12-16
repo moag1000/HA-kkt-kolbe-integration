@@ -3,11 +3,11 @@
 <div align="center">
   <img src="./icon.png" alt="KKT Kolbe Logo" width="128" height="128">
 
-  ## v2.4.6
-  ### Home Assistant Integration - Gold Tier
+### Home Assistant Integration - Gold Tier
 </div>
 
 [![GitHub Release][releases-shield]][releases]
+[![Validate][validate-shield]][validate]
 [![GitHub Activity][commits-shield]][commits]
 [![License][license-shield]][license-url]
 [![hacs][hacsbadge]][hacs]
@@ -637,10 +637,10 @@ MIT License - siehe [LICENSE](./LICENSE) für Details.
 
 **Made with ❤️ and 🤖 by [@moag1000](https://github.com/moag1000) & Claude Code**
 
-[releases-shield]: https://img.shields.io/badge/release-v2.3.0-blue.svg?style=for-the-badge
-[betabadge]: https://img.shields.io/badge/status-STABLE-green.svg?style=for-the-badge
-[beta-release]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v2.0.0
+[releases-shield]: https://img.shields.io/github/v/release/moag1000/HA-kkt-kolbe-integration?style=for-the-badge
 [releases]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases
+[validate-shield]: https://img.shields.io/github/actions/workflow/status/moag1000/HA-kkt-kolbe-integration/validate.yml?style=for-the-badge&label=Validate
+[validate]: https://github.com/moag1000/HA-kkt-kolbe-integration/actions/workflows/validate.yml
 [commits-shield]: https://img.shields.io/github/commit-activity/y/moag1000/HA-kkt-kolbe-integration.svg?style=for-the-badge
 [commits]: https://github.com/moag1000/HA-kkt-kolbe-integration/commits/main
 [hacs]: https://github.com/hacs/integration
