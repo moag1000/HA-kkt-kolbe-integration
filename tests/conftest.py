@@ -1,10 +1,11 @@
 """Fixtures for KKT Kolbe integration tests."""
 import pytest
 from unittest.mock import MagicMock, patch, AsyncMock
-from homeassistant.core import HomeAssistant
-from homeassistant.setup import async_setup_component
 
 from custom_components.kkt_kolbe.const import DOMAIN
+
+# Use the hass fixture from pytest-homeassistant-custom-component
+# Do NOT override it with a custom fixture
 
 
 @pytest.fixture
@@ -31,12 +32,10 @@ def mock_tuya_device():
 
 
 @pytest.fixture
-def mock_config_entry():
+def mock_config_entry(hass):
     """Mock ConfigEntry for testing."""
     from homeassistant.config_entries import ConfigEntry
-    from homeassistant.data_entry_flow import FlowResultType
 
-    # Create a real ConfigEntry mock that can be added to hass
     entry = ConfigEntry(
         version=1,
         minor_version=1,
@@ -45,7 +44,7 @@ def mock_config_entry():
         data={
             "device_id": "test_device_id_12345",
             "ip_address": "192.168.1.100",
-            "local_key": "test_local_key_12345",
+            "local_key": "test_local_key_1",
             "integration_mode": "manual",
             "product_name": "KKT DH9509NP",
         },
@@ -55,28 +54,6 @@ def mock_config_entry():
     )
 
     return entry
-
-
-@pytest.fixture
-async def hass():
-    """Create a Home Assistant instance for testing."""
-    from homeassistant.core import HomeAssistant
-    from homeassistant.config_entries import ConfigEntries
-    from homeassistant.helpers import entity_registry as er, device_registry as dr
-
-    hass = HomeAssistant("/test/config")
-    hass.config_entries = ConfigEntries(hass, {})
-
-    # Setup required components
-    await async_setup_component(hass, "homeassistant", {})
-
-    # Initialize registries
-    er.async_get(hass)
-    dr.async_get(hass)
-
-    yield hass
-
-    await hass.async_stop()
 
 
 @pytest.fixture
