@@ -46,6 +46,37 @@ def _is_private_ip(ip_str: str | None) -> bool:
         return False
 
 
+def _detect_device_type_from_api(device: dict[str, Any]) -> tuple[str, str]:
+    """Detect device type from Tuya API response.
+
+    Args:
+        device: Device dict from Tuya API
+
+    Returns:
+        Tuple of (device_type, internal_product_name)
+    """
+    tuya_category = device.get("category", "").lower()
+    api_product_name = device.get("product_name", "Unknown Device")
+    device_name = device.get("name", "").lower()
+
+    # Check Tuya category first (most reliable)
+    if tuya_category == "dcl":  # Cooktop category
+        return ("ind7705hc_cooktop", "ind7705hc_cooktop")
+    elif tuya_category == "yyj":  # Hood category
+        return ("hermes_style_hood", "hermes_style_hood")
+
+    # Fallback: check product name and device name
+    search_text = f"{api_product_name} {device_name}".lower()
+
+    if "ind" in search_text or "cooktop" in search_text or "kochfeld" in search_text:
+        return ("ind7705hc_cooktop", "ind7705hc_cooktop")
+    elif any(kw in search_text for kw in ["hood", "hermes", "style", "ecco", "solo", "dunst", "abzug"]):
+        return ("hermes_style_hood", "hermes_style_hood")
+
+    # Default: unknown, use API product name
+    return ("auto", api_product_name)
+
+
 async def _try_discover_local_ip(
     hass: HomeAssistant,
     device_id: str,
@@ -608,18 +639,20 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                                     "client_secret": client_secret,
                                     "endpoint": endpoint
                                 }
-                                self._discovered_devices = {
-                                    device["id"]: {
+                                self._discovered_devices = {}
+                                for device in kkt_devices:
+                                    device_type, internal_product_name = _detect_device_type_from_api(device)
+                                    self._discovered_devices[device["id"]] = {
                                         "device_id": device["id"],
                                         "name": device.get("name", f"KKT Device {device['id']}"),
-                                        "product_name": device.get("product_name", "Unknown Device"),
-                                        "ip": device.get("ip"),  # Include IP from API
-                                        "local_key": device.get("local_key"),  # Include local_key from API
+                                        "product_name": internal_product_name,
+                                        "api_product_name": device.get("product_name", "Unknown Device"),
+                                        "tuya_category": device.get("category", ""),
+                                        "ip": device.get("ip"),
+                                        "local_key": device.get("local_key"),
                                         "discovered_via": "API",
-                                        "device_type": "auto"
+                                        "device_type": device_type
                                     }
-                                    for device in kkt_devices
-                                }
                                 return await self.async_step_api_device_selection()
                             else:
                                 errors["base"] = "no_kkt_devices_found"
@@ -735,18 +768,20 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                         creds = api_manager.get_stored_api_credentials()
                         self._api_info = creds
 
-                        self._discovered_devices = {
-                            device["id"]: {
+                        self._discovered_devices = {}
+                        for device in kkt_devices:
+                            device_type, internal_product_name = _detect_device_type_from_api(device)
+                            self._discovered_devices[device["id"]] = {
                                 "device_id": device["id"],
                                 "name": device.get("name", f"KKT Device {device['id']}"),
-                                "product_name": device.get("product_name", "Unknown Device"),
+                                "product_name": internal_product_name,
+                                "api_product_name": device.get("product_name", "Unknown Device"),
+                                "tuya_category": device.get("category", ""),
                                 "ip": device.get("ip"),  # Include IP from API
                                 "local_key": device.get("local_key"),  # Include local_key from API
                                 "discovered_via": "API",
-                                "device_type": "auto"
+                                "device_type": device_type
                             }
-                            for device in kkt_devices
-                        }
                         return await self.async_step_api_device_selection()
                     else:
                         return self.async_show_form(
@@ -837,18 +872,20 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                                     "client_secret": client_secret,
                                     "endpoint": endpoint
                                 }
-                                self._discovered_devices = {
-                                    device["id"]: {
+                                self._discovered_devices = {}
+                                for device in kkt_devices:
+                                    device_type, internal_product_name = _detect_device_type_from_api(device)
+                                    self._discovered_devices[device["id"]] = {
                                         "device_id": device["id"],
                                         "name": device.get("name", f"KKT Device {device['id']}"),
-                                        "product_name": device.get("product_name", "Unknown Device"),
+                                        "product_name": internal_product_name,
+                                        "api_product_name": device.get("product_name", "Unknown Device"),
+                                        "tuya_category": device.get("category", ""),
                                         "ip": device.get("ip"),  # Include IP from API
                                         "local_key": device.get("local_key"),  # Include local_key from API
                                         "discovered_via": "API",
-                                        "device_type": "auto"
+                                        "device_type": device_type
                                     }
-                                    for device in kkt_devices
-                                }
                                 return await self.async_step_api_device_selection()
                             else:
                                 errors["base"] = "no_kkt_devices_found"

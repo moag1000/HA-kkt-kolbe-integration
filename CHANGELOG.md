@@ -5,6 +5,40 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.3] - 2025-12-17
+
+### Bugfix Release - Cooktop/Hood Device Type Detection via API
+
+### Fixed
+- **Cooktop and Hood not finding entities via API setup**: When using API-Only or Stored Credentials setup, device type was stored as "auto" instead of detecting the actual device type
+  - Added `_detect_device_type_from_api()` helper function
+  - Uses Tuya category codes for detection:
+    - `dcl` = Cooktop (Induktionskochfeld)
+    - `yyj` = Range Hood (Dunstabzugshaube)
+  - Falls back to product name/device name keyword matching
+  - Now properly stores `device_type` and `product_name` for entity creation
+
+### Technical Details
+```python
+# New helper function in config_flow.py
+def _detect_device_type_from_api(device: dict) -> tuple[str, str]:
+    """Detect device type from Tuya API response."""
+    tuya_category = device.get("category", "").lower()
+
+    if tuya_category == "dcl":  # Cooktop
+        return ("ind7705hc_cooktop", "ind7705hc_cooktop")
+    elif tuya_category == "yyj":  # Hood
+        return ("hermes_style_hood", "hermes_style_hood")
+    # ... fallback to keyword matching
+```
+
+### Affected Setup Methods
+- ☁️ API-Only Setup (`async_step_api_only`)
+- 🔄 Stored API Credentials (`async_step_api_choice`)
+- 🔑 New API Credentials (`async_step_api_credentials`)
+
+---
+
 ## [2.5.2] - 2025-12-16
 
 ### Bugfix Release - API Credentials Persistence
