@@ -13,8 +13,12 @@ from homeassistant.const import (
 )
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers import issue_registry as ir
+import homeassistant.helpers.config_validation as cv
 
 from .const import DOMAIN, CONF_API_ENDPOINT
+
+# This integration is config entry only - no YAML configuration
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 # Heavy imports moved to lazy loading to prevent blocking the event loop
 
 _LOGGER = logging.getLogger(__name__)
