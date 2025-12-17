@@ -464,7 +464,37 @@ KNOWN_DEVICES = {
                 {"dp": 155, "name": "Power Limit", "options": ["power_limit_1", "power_limit_2", "power_limit_3", "power_limit_4", "power_limit_5"], "icon": "mdi:flash-triangle"}
             ],
             "sensor": [
-                # Zone temperature sensors (bitfield-decoded)
+                # === CALCULATED SENSORS (für Automationen) ===
+                # Geschätzter Stromverbrauch basierend auf Zonen-Levels (~100W pro Level)
+                {
+                    "dp": 162,
+                    "name": "Estimated Power",
+                    "sensor_type": "calculated_power",
+                    "zones_dp": 162,
+                    "num_zones": 5,
+                    "watts_per_level": 100,
+                    "icon": "mdi:lightning-bolt"
+                },
+                # Summe aller Zonen-Levels (0-125)
+                {
+                    "dp": 162,
+                    "name": "Total Power Level",
+                    "sensor_type": "total_level",
+                    "zones_dp": 162,
+                    "num_zones": 5,
+                    "icon": "mdi:gauge"
+                },
+                # Anzahl aktiver Zonen (0-5)
+                {
+                    "dp": 162,
+                    "name": "Active Zones",
+                    "sensor_type": "active_zones",
+                    "zones_dp": 162,
+                    "num_zones": 5,
+                    "icon": "mdi:stove"
+                },
+
+                # === ZONE TEMPERATURE SENSORS (bitfield-decoded) ===
                 {"dp": 169, "name": "Zone 1: Current Temp", "unit_of_measurement": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 1, "icon": "mdi:thermometer"},
                 {"dp": 169, "name": "Zone 2: Current Temp", "unit_of_measurement": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 2, "icon": "mdi:thermometer"},
                 {"dp": 169, "name": "Zone 3: Current Temp", "unit_of_measurement": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 3, "icon": "mdi:thermometer"},
