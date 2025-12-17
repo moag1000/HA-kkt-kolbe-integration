@@ -5,6 +5,53 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.4] - 2025-12-17
+
+### Feature Release - HomeKit/Siri Light Support
+
+This release improves light control via HomeKit/Siri for all hood models.
+
+### Added
+- **Proper LightEntity for all hoods**: Main light now exposed as light entity instead of switch
+  - Siri understands "Hey Siri, turn on the light" naturally
+  - Better HomeKit integration with proper light controls
+
+### Changed
+- **RGB Light and LED Light marked as advanced**: For SOLO HCM and ECCO HCM hoods
+  - Prevents HomeKit from showing multiple confusing light switches
+  - Use main "Light" entity for simple on/off control
+  - RGB/LED controls still available in Home Assistant for advanced users
+- **Removed duplicate Light switches**: Light is now only exposed as LightEntity, not as both switch and light
+
+### Hood Light Configuration Summary
+
+| Hood Model | Light DP | RGB Mode | LED Light |
+|------------|----------|----------|-----------|
+| HERMES & STYLE | 4 | Yes (advanced) | - |
+| FLAT | 4 | No | - |
+| HERMES | 4 | Yes (advanced) | - |
+| SOLO HCM | 4 | Yes (advanced) | Yes (advanced) |
+| ECCO HCM | 4 | Yes (advanced) | Yes (advanced) |
+| Default Hood | 4 | No | - |
+
+### Technical Details
+```python
+# light.py now uses device_types configuration
+light_configs = get_device_entities(product_name, "light")
+# Creates proper LightEntity with ColorMode.ONOFF
+
+# device_types.py light config
+"light": [
+    {"dp": 4, "name": "Light", "icon": "mdi:lightbulb"}
+]
+
+# RGB/LED marked as advanced to hide from HomeKit
+{"dp": 6, "name": "RGB Light", "advanced": True, "entity_category": "config"}
+{"dp": 104, "name": "LED Light", "advanced": True, "entity_category": "config"}
+```
+
+---
+
 ## [2.6.3] - 2025-12-17
 
 ### Feature Release - HomeKit/Siri for ALL Hoods

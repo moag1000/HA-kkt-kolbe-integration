@@ -109,16 +109,20 @@ KNOWN_DEVICES = {
                 "dp": 10,  # fan_speed_enum - used for HomeKit/Siri integration
                 "speeds": ["off", "low", "middle", "high", "strong"]
             },
+            "light": [
+                # Main light as light entity for HomeKit/Siri ("Hey Siri, turn on the light")
+                {"dp": 4, "name": "Light", "icon": "mdi:lightbulb"}
+            ],
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
-                {"dp": 4, "name": "Light", "device_class": "switch", "icon": "mdi:lightbulb"},
                 {"dp": 6, "name": "Filter Cleaning Reminder", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"},
                 # Experimental switches
                 {"dp": 2, "name": "Delayed Shutdown", "icon": "mdi:timer-off", "advanced": True, "entity_category": "config"},
                 {"dp": 17, "name": "Eco Mode", "icon": "mdi:leaf", "advanced": True, "entity_category": "config"}
             ],
             "number": [
-                {"dp": 101, "name": "RGB Mode", "min": 0, "max": 9, "step": 1, "icon": "mdi:palette"},
+                # RGB Mode marked as advanced - use Light entity for HomeKit
+                {"dp": 101, "name": "RGB Mode", "min": 0, "max": 9, "step": 1, "icon": "mdi:palette", "advanced": True, "entity_category": "config"},
                 {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"},
                 # Experimental numbers
                 {"dp": 5, "name": "Light Brightness", "min": 0, "max": 255, "step": 1, "icon": "mdi:brightness-6", "advanced": True},
@@ -135,8 +139,6 @@ KNOWN_DEVICES = {
                 # Experimental select
                 {"dp": 103, "name": "Color Temperature", "options": ["warm", "neutral", "cold"], "icon": "mdi:thermometer", "advanced": True}
             ]
-            # Note: button platform removed - no button.py exists
-            # {"dp": 15, "name": "Reset Filter Counter"} could be added if button.py is created
         }
     },
 
@@ -148,7 +150,7 @@ KNOWN_DEVICES = {
         "product_names": ["luoxakxm2vm9azwu", "KKT Kolbe FLAT"],
         "device_ids": ["bff904d332b57484da1twc"],
         "device_id_patterns": ["bff904d332b57484da"],
-        "platforms": ["fan", "light", "switch", "sensor", "number"],
+        "platforms": ["fan", "light", "switch", "sensor", "select", "number"],
         "data_points": {
             1: "switch",              # Main power
             4: "light",               # Light on/off (no RGB)
@@ -157,17 +159,18 @@ KNOWN_DEVICES = {
             13: "countdown"           # Timer
         },
         "entities": {
-            "switch": [
-                {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
-                {"dp": 6, "name": "Filter Cleaning Reminder", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"}
-            ],
             "fan": {
                 "dp": 10,  # fan_speed_enum includes "off" state
                 "speeds": ["off", "low", "middle", "high", "strong"]
             },
-            "light": {
-                "dp": 4  # light on/off only (no RGB support)
-            },
+            "light": [
+                # Main light as light entity for HomeKit/Siri
+                {"dp": 4, "name": "Light", "icon": "mdi:lightbulb"}
+            ],
+            "switch": [
+                {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
+                {"dp": 6, "name": "Filter Cleaning Reminder", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"}
+            ],
             "number": [
                 {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"}
             ],
@@ -189,24 +192,27 @@ KNOWN_DEVICES = {
         "product_names": ["0fcj8kha86svfmve", "KKT Kolbe HERMES"],
         "device_ids": [],  # Will be filled when users report
         "device_id_patterns": [],
-        "platforms": ["fan", "switch", "sensor", "select", "number"],
+        "platforms": ["fan", "light", "switch", "sensor", "select", "number"],
         "data_points": HOOD_DPS,
         "entities": {
-            "switch": [
-                {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
-                {"dp": 4, "name": "Light", "device_class": "switch", "icon": "mdi:lightbulb"},
-                {"dp": 6, "name": "Filter Cleaning Reminder", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"}
-            ],
             "fan": {
                 "dp": 10,  # fan_speed_enum
                 "speeds": ["off", "low", "middle", "high", "strong"]
             },
+            "light": [
+                # Main light as light entity for HomeKit/Siri ("Hey Siri, turn on the light")
+                {"dp": 4, "name": "Light", "icon": "mdi:lightbulb"}
+            ],
+            "switch": [
+                {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
+                {"dp": 6, "name": "Filter Cleaning Reminder", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"}
+            ],
             "select": [
                 # Fan Speed select marked as advanced to avoid HomeKit showing both fan and select
                 {"dp": 10, "name": "Fan Speed", "options": ["off", "low", "middle", "high", "strong"], "advanced": True, "entity_category": "config"}
             ],
             "number": [
-                {"dp": 101, "name": "RGB Mode", "min": 0, "max": 9, "step": 1, "icon": "mdi:palette", "advanced": True},
+                {"dp": 101, "name": "RGB Mode", "min": 0, "max": 9, "step": 1, "icon": "mdi:palette", "advanced": True, "entity_category": "config"},
                 {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"}
             ],
             "sensor": [
@@ -225,7 +231,7 @@ KNOWN_DEVICES = {
         "product_names": ["bgvbvjwomgbisd8x", "KKT Kolbe SOLO HCM"],
         "device_ids": ["bf34515c4ab6ec7f9axqy8"],
         "device_id_patterns": ["bf34515c4ab6ec7f9a"],
-        "platforms": ["fan", "switch", "select", "number"],
+        "platforms": ["fan", "light", "switch", "select", "number"],
         "data_points": {
             1: "switch",              # Main power (ON/OFF)
             4: "light",               # Main light on/off
@@ -248,16 +254,21 @@ KNOWN_DEVICES = {
                 "min": 0,
                 "max": 9
             },
+            "light": [
+                # Main light as light entity for HomeKit/Siri ("Hey Siri, turn on the light")
+                {"dp": 4, "name": "Light", "icon": "mdi:lightbulb"}
+            ],
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
-                {"dp": 4, "name": "Light", "device_class": "switch", "icon": "mdi:lightbulb"},
-                {"dp": 6, "name": "RGB Light", "device_class": "switch", "icon": "mdi:palette"},
-                {"dp": 7, "name": "Wash Mode", "device_class": "switch", "icon": "mdi:spray-bottle", "advanced": True},
-                {"dp": 104, "name": "LED Light", "device_class": "switch", "icon": "mdi:led-strip"},
+                # RGB and LED lights as advanced switches (use main Light entity for Siri)
+                {"dp": 6, "name": "RGB Light", "device_class": "switch", "icon": "mdi:palette", "advanced": True, "entity_category": "config"},
+                {"dp": 7, "name": "Wash Mode", "device_class": "switch", "icon": "mdi:spray-bottle", "advanced": True, "entity_category": "config"},
+                {"dp": 104, "name": "LED Light", "device_class": "switch", "icon": "mdi:led-strip", "advanced": True, "entity_category": "config"},
                 {"dp": 106, "name": "Confirm", "device_class": "switch", "icon": "mdi:check", "entity_category": "config", "advanced": True}
             ],
             "select": [
-                {"dp": 108, "name": "RGB Mode", "options": ["white", "colour", "scene", "music"], "icon": "mdi:palette"}
+                # RGB Mode as advanced (use main Light entity for Siri)
+                {"dp": 108, "name": "RGB Mode", "options": ["white", "colour", "scene", "music"], "icon": "mdi:palette", "advanced": True, "entity_category": "config"}
             ],
             "number": [
                 # Fan Speed number marked as advanced to avoid HomeKit showing both fan and number
@@ -277,7 +288,7 @@ KNOWN_DEVICES = {
         "product_names": ["gwdgkteknzvsattn"],
         "device_ids": ["bfd0c94cb36bf4f28epxcf"],
         "device_id_patterns": ["bfd0c94cb36bf4f28e"],
-        "platforms": ["fan", "switch", "sensor", "select", "number"],
+        "platforms": ["fan", "light", "switch", "sensor", "select", "number"],
         "data_points": {
             1: "switch",              # Main power
             4: "light",              # Main light on/off
@@ -300,16 +311,21 @@ KNOWN_DEVICES = {
                 "min": 0,
                 "max": 9
             },
+            "light": [
+                # Main light as light entity for HomeKit/Siri ("Hey Siri, turn on the light")
+                {"dp": 4, "name": "Light", "icon": "mdi:lightbulb"}
+            ],
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
-                {"dp": 4, "name": "Light", "device_class": "switch", "icon": "mdi:lightbulb"},
-                {"dp": 6, "name": "RGB Light", "device_class": "switch", "icon": "mdi:palette", "advanced": True},
-                {"dp": 7, "name": "Wash Mode", "device_class": "switch", "icon": "mdi:spray-bottle", "advanced": True},
-                {"dp": 104, "name": "LED Light", "device_class": "switch", "icon": "mdi:led-strip", "advanced": True},
-                {"dp": 106, "name": "Confirm", "device_class": "switch", "icon": "mdi:check", "entity_category": "config"}
+                # RGB and LED lights as advanced switches (use main Light entity for Siri)
+                {"dp": 6, "name": "RGB Light", "device_class": "switch", "icon": "mdi:palette", "advanced": True, "entity_category": "config"},
+                {"dp": 7, "name": "Wash Mode", "device_class": "switch", "icon": "mdi:spray-bottle", "advanced": True, "entity_category": "config"},
+                {"dp": 104, "name": "LED Light", "device_class": "switch", "icon": "mdi:led-strip", "advanced": True, "entity_category": "config"},
+                {"dp": 106, "name": "Confirm", "device_class": "switch", "icon": "mdi:check", "entity_category": "config", "advanced": True}
             ],
             "select": [
-                {"dp": 108, "name": "RGB Mode", "options": ["white", "colour", "scene", "music"], "advanced": True}
+                # RGB Mode as advanced (use main Light entity for Siri)
+                {"dp": 108, "name": "RGB Mode", "options": ["white", "colour", "scene", "music"], "icon": "mdi:palette", "advanced": True, "entity_category": "config"}
             ],
             "number": [
                 # Fan Speed number marked as advanced to avoid HomeKit showing both fan and number
@@ -332,7 +348,7 @@ KNOWN_DEVICES = {
         "product_names": ["default_hood"],
         "device_ids": [],  # Matches any device when selected manually
         "device_id_patterns": [],
-        "platforms": ["fan", "switch", "sensor", "select", "number"],
+        "platforms": ["fan", "light", "switch", "sensor", "select", "number"],
         "data_points": {
             1: "switch",              # Main power
             3: "fan_speed_enum",      # Fan speed (standard YYJ DP)
@@ -342,14 +358,17 @@ KNOWN_DEVICES = {
             7: "countdown_left",      # Timer remaining
         },
         "entities": {
-            "switch": [
-                {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
-                {"dp": 4, "name": "Light", "device_class": "switch", "icon": "mdi:lightbulb"},
-            ],
             "fan": {
                 "dp": 3,  # fan_speed_enum - standard YYJ DP for fan speed
                 "speeds": ["off", "low", "middle", "high"]
             },
+            "light": [
+                # Main light as light entity for HomeKit/Siri ("Hey Siri, turn on the light")
+                {"dp": 4, "name": "Light", "icon": "mdi:lightbulb"}
+            ],
+            "switch": [
+                {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
+            ],
             "select": [
                 # Fan Speed select marked as advanced to avoid HomeKit showing both fan and select
                 {"dp": 3, "name": "Fan Speed", "options": ["off", "low", "middle", "high"], "icon": "mdi:fan", "advanced": True, "entity_category": "config"}
