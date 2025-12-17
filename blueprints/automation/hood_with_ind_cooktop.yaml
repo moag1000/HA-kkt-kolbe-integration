@@ -1,0 +1,467 @@
+blueprint:
+  name: Dunstabzugshaube mit KKT IND Kochfeld
+  description: >-
+    Speziell für KKT Kolbe IND7705HC Induktionskochfeld!
+    Verwendet die integrierten Sensoren (Estimated Power, Total Level, Active Zones)
+    anstatt eines externen Stromzählers. Die Lüftergeschwindigkeit passt sich
+    automatisch an die Kochintensität an.
+  domain: automation
+  source_url: https://github.com/moag1000/HA-kkt-kolbe-integration/blob/main/blueprints/automation/hood_with_ind_cooktop.yaml
+  input:
+    # === KOCHFELD SENSOREN ===
+    cooktop_sensor:
+      name: Kochfeld Sensor
+      description: >-
+        Wähle einen der KKT IND Sensoren:
+        - "Estimated Power" (geschätzte Watt, empfohlen für diese Blueprint)
+        - "Total Power Level" (Summe der Zonen-Stufen 0-125)
+        - "Active Zones" (Anzahl aktiver Zonen 0-5)
+      selector:
+        entity:
+          domain: sensor
+
+    sensor_type:
+      name: Sensor-Typ
+      description: Welchen Sensor verwendest du?
+      default: "estimated_power"
+      selector:
+        select:
+          options:
+            - label: "Estimated Power (Watt) - Empfohlen"
+              value: "estimated_power"
+            - label: "Total Power Level (0-125)"
+              value: "total_level"
+            - label: "Active Zones (0-5)"
+              value: "active_zones"
+
+    # === DUNSTABZUGSHAUBE ===
+    hood_power:
+      name: Dunstabzugshaube Power
+      description: Der Power-Schalter der Dunstabzugshaube
+      selector:
+        entity:
+          domain: switch
+
+    hood_fan:
+      name: Dunstabzugshaube Lüfter
+      description: Die Fan-Entity der Dunstabzugshaube
+      selector:
+        entity:
+          domain: fan
+
+    hood_light:
+      name: Dunstabzugshaube Licht (optional)
+      description: Das Licht der Dunstabzugshaube
+      default: {}
+      selector:
+        entity:
+          domain: light
+
+    # === SCHWELLENWERTE FÜR ESTIMATED POWER (Watt) ===
+    threshold_start_watt:
+      name: Start-Schwellenwert (Watt)
+      description: Ab welchem geschätzten Verbrauch startet die Haube?
+      default: 100
+      selector:
+        number:
+          min: 50
+          max: 500
+          step: 50
+          unit_of_measurement: "W"
+
+    threshold_medium_watt:
+      name: Mittlere Leistung (Watt)
+      description: Ab wann mittlere Stufe?
+      default: 500
+      selector:
+        number:
+          min: 200
+          max: 2000
+          step: 100
+          unit_of_measurement: "W"
+
+    threshold_high_watt:
+      name: Hohe Leistung (Watt)
+      description: Ab wann hohe Stufe?
+      default: 1500
+      selector:
+        number:
+          min: 500
+          max: 5000
+          step: 100
+          unit_of_measurement: "W"
+
+    threshold_boost_watt:
+      name: Boost-Leistung (Watt)
+      description: Ab wann maximale Stufe?
+      default: 3000
+      selector:
+        number:
+          min: 1000
+          max: 10000
+          step: 500
+          unit_of_measurement: "W"
+
+    # === SCHWELLENWERTE FÜR TOTAL LEVEL (0-125) ===
+    threshold_start_level:
+      name: Start-Schwellenwert (Level)
+      description: Ab welchem Gesamt-Level startet die Haube? (1 Zone auf Stufe 1 = Level 1)
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 25
+          step: 1
+
+    threshold_medium_level:
+      name: Mittlere Leistung (Level)
+      description: Ab wann mittlere Stufe? (z.B. 1 Zone auf Stufe 10 oder 2 Zonen auf 5)
+      default: 10
+      selector:
+        number:
+          min: 5
+          max: 50
+          step: 5
+
+    threshold_high_level:
+      name: Hohe Leistung (Level)
+      description: Ab wann hohe Stufe?
+      default: 30
+      selector:
+        number:
+          min: 15
+          max: 75
+          step: 5
+
+    threshold_boost_level:
+      name: Boost-Leistung (Level)
+      description: Ab wann maximale Stufe?
+      default: 60
+      selector:
+        number:
+          min: 30
+          max: 125
+          step: 10
+
+    # === SCHWELLENWERTE FÜR ACTIVE ZONES (0-5) ===
+    threshold_start_zones:
+      name: Start-Schwellenwert (Zonen)
+      description: Ab wie vielen aktiven Zonen startet die Haube?
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 5
+          step: 1
+
+    threshold_medium_zones:
+      name: Mittlere Leistung (Zonen)
+      description: Ab wie vielen Zonen mittlere Stufe?
+      default: 2
+      selector:
+        number:
+          min: 1
+          max: 5
+          step: 1
+
+    threshold_high_zones:
+      name: Hohe Leistung (Zonen)
+      description: Ab wie vielen Zonen hohe Stufe?
+      default: 3
+      selector:
+        number:
+          min: 2
+          max: 5
+          step: 1
+
+    threshold_boost_zones:
+      name: Boost-Leistung (Zonen)
+      description: Ab wie vielen Zonen maximale Stufe?
+      default: 4
+      selector:
+        number:
+          min: 3
+          max: 5
+          step: 1
+
+    # === LÜFTER-GESCHWINDIGKEITEN ===
+    fan_speed_low:
+      name: Niedrige Geschwindigkeit (%)
+      description: Lüftergeschwindigkeit bei leichtem Kochen
+      default: 25
+      selector:
+        number:
+          min: 25
+          max: 50
+          unit_of_measurement: "%"
+
+    fan_speed_medium:
+      name: Mittlere Geschwindigkeit (%)
+      description: Lüftergeschwindigkeit bei normalem Kochen
+      default: 50
+      selector:
+        number:
+          min: 25
+          max: 75
+          unit_of_measurement: "%"
+
+    fan_speed_high:
+      name: Hohe Geschwindigkeit (%)
+      description: Lüftergeschwindigkeit bei intensivem Kochen
+      default: 75
+      selector:
+        number:
+          min: 50
+          max: 100
+          unit_of_measurement: "%"
+
+    fan_speed_boost:
+      name: Boost-Geschwindigkeit (%)
+      description: Maximale Lüftergeschwindigkeit
+      default: 100
+      selector:
+        number:
+          min: 75
+          max: 100
+          unit_of_measurement: "%"
+
+    # === NACHLAUF ===
+    afterrun_time:
+      name: Nachlaufzeit (Minuten)
+      description: Wie lange soll die Haube nach dem Kochen weiterlaufen?
+      default: 10
+      selector:
+        number:
+          min: 1
+          max: 30
+          unit_of_measurement: min
+
+    # === LICHT ===
+    turn_on_light:
+      name: Licht beim Kochen einschalten
+      description: Soll das Licht automatisch mit eingeschaltet werden?
+      default: true
+      selector:
+        boolean:
+
+variables:
+  sensor: !input cooktop_sensor
+  sensor_mode: !input sensor_type
+  hood_power_switch: !input hood_power
+  hood_fan_entity: !input hood_fan
+  hood_light_entity: !input hood_light
+  # Watt thresholds
+  thresh_start_w: !input threshold_start_watt
+  thresh_medium_w: !input threshold_medium_watt
+  thresh_high_w: !input threshold_high_watt
+  thresh_boost_w: !input threshold_boost_watt
+  # Level thresholds
+  thresh_start_l: !input threshold_start_level
+  thresh_medium_l: !input threshold_medium_level
+  thresh_high_l: !input threshold_high_level
+  thresh_boost_l: !input threshold_boost_level
+  # Zone thresholds
+  thresh_start_z: !input threshold_start_zones
+  thresh_medium_z: !input threshold_medium_zones
+  thresh_high_z: !input threshold_high_zones
+  thresh_boost_z: !input threshold_boost_zones
+  # Speeds
+  speed_low: !input fan_speed_low
+  speed_medium: !input fan_speed_medium
+  speed_high: !input fan_speed_high
+  speed_boost: !input fan_speed_boost
+  # Options
+  afterrun: !input afterrun_time
+  light_enabled: !input turn_on_light
+  # Current values
+  current_value: "{{ states(sensor) | float(0) }}"
+  # Dynamic thresholds based on sensor type
+  threshold_start: >-
+    {% if sensor_mode == 'estimated_power' %}
+      {{ thresh_start_w }}
+    {% elif sensor_mode == 'total_level' %}
+      {{ thresh_start_l }}
+    {% else %}
+      {{ thresh_start_z }}
+    {% endif %}
+  threshold_medium: >-
+    {% if sensor_mode == 'estimated_power' %}
+      {{ thresh_medium_w }}
+    {% elif sensor_mode == 'total_level' %}
+      {{ thresh_medium_l }}
+    {% else %}
+      {{ thresh_medium_z }}
+    {% endif %}
+  threshold_high: >-
+    {% if sensor_mode == 'estimated_power' %}
+      {{ thresh_high_w }}
+    {% elif sensor_mode == 'total_level' %}
+      {{ thresh_high_l }}
+    {% else %}
+      {{ thresh_high_z }}
+    {% endif %}
+  threshold_boost: >-
+    {% if sensor_mode == 'estimated_power' %}
+      {{ thresh_boost_w }}
+    {% elif sensor_mode == 'total_level' %}
+      {{ thresh_boost_l }}
+    {% else %}
+      {{ thresh_boost_z }}
+    {% endif %}
+  # Calculate target speed
+  target_speed: >-
+    {% if current_value >= threshold_boost | float %}
+      {{ speed_boost }}
+    {% elif current_value >= threshold_high | float %}
+      {{ speed_high }}
+    {% elif current_value >= threshold_medium | float %}
+      {{ speed_medium }}
+    {% elif current_value >= threshold_start | float %}
+      {{ speed_low }}
+    {% else %}
+      0
+    {% endif %}
+  is_cooking: "{{ current_value >= threshold_start | float }}"
+
+trigger:
+  # Kochen gestartet
+  - platform: template
+    value_template: "{{ states(sensor) | float(0) >= threshold_start | float }}"
+    for:
+      seconds: 5
+    id: cooking_started
+
+  # Kochen beendet
+  - platform: template
+    value_template: "{{ states(sensor) | float(0) < threshold_start | float }}"
+    for:
+      seconds: 30
+    id: cooking_stopped
+
+  # Periodische Aktualisierung
+  - platform: time_pattern
+    seconds: /30
+    id: periodic_update
+
+  # Schnelle Reaktion bei Erhöhung
+  - platform: state
+    entity_id: !input cooktop_sensor
+    id: value_changed
+
+condition: []
+
+action:
+  - choose:
+      # === KOCHEN GESTARTET ===
+      - conditions:
+          - condition: trigger
+            id: cooking_started
+          - condition: state
+            entity_id: !input hood_power
+            state: "off"
+        sequence:
+          - service: switch.turn_on
+            target:
+              entity_id: !input hood_power
+          - delay:
+              milliseconds: 500
+          - service: fan.set_percentage
+            target:
+              entity_id: !input hood_fan
+            data:
+              percentage: "{{ target_speed }}"
+          - if:
+              - condition: template
+                value_template: "{{ light_enabled and hood_light_entity }}"
+            then:
+              - service: light.turn_on
+                target:
+                  entity_id: !input hood_light
+
+      # === WERT GEÄNDERT - GESCHWINDIGKEIT ANPASSEN ===
+      - conditions:
+          - condition: trigger
+            id: value_changed
+          - condition: state
+            entity_id: !input hood_power
+            state: "on"
+          - condition: template
+            value_template: "{{ is_cooking }}"
+        sequence:
+          - service: fan.set_percentage
+            target:
+              entity_id: !input hood_fan
+            data:
+              percentage: "{{ target_speed }}"
+
+      # === PERIODISCHE AKTUALISIERUNG ===
+      - conditions:
+          - condition: trigger
+            id: periodic_update
+          - condition: state
+            entity_id: !input hood_power
+            state: "on"
+          - condition: template
+            value_template: "{{ is_cooking }}"
+        sequence:
+          - service: fan.set_percentage
+            target:
+              entity_id: !input hood_fan
+            data:
+              percentage: "{{ target_speed }}"
+
+      # === KOCHEN BEENDET ===
+      - conditions:
+          - condition: trigger
+            id: cooking_stopped
+          - condition: state
+            entity_id: !input hood_power
+            state: "on"
+        sequence:
+          # Gestufter Nachlauf
+          - service: fan.set_percentage
+            target:
+              entity_id: !input hood_fan
+            data:
+              percentage: "{{ speed_medium }}"
+          - delay:
+              minutes: "{{ (afterrun / 3) | int }}"
+          # Prüfen ob noch aus
+          - condition: template
+            value_template: "{{ states(sensor) | float(0) < threshold_start | float }}"
+          - service: fan.set_percentage
+            target:
+              entity_id: !input hood_fan
+            data:
+              percentage: "{{ speed_low }}"
+          - delay:
+              minutes: "{{ (afterrun / 3) | int }}"
+          - condition: template
+            value_template: "{{ states(sensor) | float(0) < threshold_start | float }}"
+          - service: fan.set_percentage
+            target:
+              entity_id: !input hood_fan
+            data:
+              percentage: 25
+          - delay:
+              minutes: "{{ (afterrun / 3) | int }}"
+          - condition: template
+            value_template: "{{ states(sensor) | float(0) < threshold_start | float }}"
+          # Ausschalten
+          - service: fan.turn_off
+            target:
+              entity_id: !input hood_fan
+          - delay:
+              milliseconds: 500
+          - service: switch.turn_off
+            target:
+              entity_id: !input hood_power
+          - if:
+              - condition: template
+                value_template: "{{ light_enabled and hood_light_entity }}"
+            then:
+              - service: light.turn_off
+                target:
+                  entity_id: !input hood_light
+
+mode: restart

@@ -12,7 +12,8 @@ Klicke auf den Import-Button bei der gewünschten Blueprint:
 |-----------|--------------|--------|
 | [Hood Auto-Off](automation/hood_auto_off.yaml) | Intelligente Auto-Abschaltung | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fmoag1000%2FHA-kkt-kolbe-integration%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fhood_auto_off.yaml) |
 | [Hood Light Auto-Off](automation/hood_light_auto_off.yaml) | Licht intelligent ausschalten | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fmoag1000%2FHA-kkt-kolbe-integration%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fhood_light_auto_off.yaml) |
-| [Hood with Cooktop](automation/hood_with_cooktop.yaml) | Kochfeld-Synchronisation | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fmoag1000%2FHA-kkt-kolbe-integration%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fhood_with_cooktop.yaml) |
+| [Hood with Cooktop](automation/hood_with_cooktop.yaml) | Kochfeld-Sync (externer Sensor) | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fmoag1000%2FHA-kkt-kolbe-integration%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fhood_with_cooktop.yaml) |
+| [Hood with IND Cooktop](automation/hood_with_ind_cooktop.yaml) | **NEU!** Für KKT IND7705HC | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fmoag1000%2FHA-kkt-kolbe-integration%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fhood_with_ind_cooktop.yaml) |
 
 ### Methode 2: Manuell
 
@@ -148,6 +149,65 @@ Kochen beendet
 | **Licht** | Beim Kochen einschalten | Ja |
 | | Während Nachlauf anlassen | Ja |
 | **Benachrichtigungen** | Senden | Nein |
+
+---
+
+## Dunstabzugshaube mit KKT IND Kochfeld (NEU!)
+
+**Speziell für das KKT Kolbe IND7705HC Induktionskochfeld!**
+
+Diese Blueprint funktioniert **ohne externen Stromzähler** und nutzt stattdessen die integrierten Sensoren der IND7705HC:
+
+### Verfügbare Sensoren
+
+| Sensor | Beschreibung | Wertebereich |
+|--------|--------------|--------------|
+| **Estimated Power** | Geschätzter Stromverbrauch | 0-12500W |
+| **Total Power Level** | Summe aller Zonen-Levels | 0-125 |
+| **Active Zones** | Anzahl aktiver Kochzonen | 0-5 |
+
+### Welchen Sensor wählen?
+
+- **Estimated Power** (empfohlen): Arbeitet wie ein echter Stromzähler, kompatibel mit der Standard-Blueprint
+- **Total Power Level**: Feiner abgestuft, berücksichtigt Intensität pro Zone
+- **Active Zones**: Einfach, basiert nur auf Anzahl aktiver Zonen
+
+### Standardwerte
+
+**Für Estimated Power (Watt):**
+| Schwelle | Wert | Lüfter |
+|----------|------|--------|
+| Start | 100W | 25% |
+| Mittel | 500W | 50% |
+| Hoch | 1500W | 75% |
+| Boost | 3000W | 100% |
+
+**Für Total Level (0-125):**
+| Schwelle | Wert | Beispiel |
+|----------|------|----------|
+| Start | 1 | 1 Zone auf Stufe 1 |
+| Mittel | 10 | 1 Zone auf 10 oder 2 Zonen auf 5 |
+| Hoch | 30 | 2 Zonen auf 15 |
+| Boost | 60 | 3 Zonen auf 20 |
+
+**Für Active Zones (0-5):**
+| Schwelle | Zonen | Lüfter |
+|----------|-------|--------|
+| Start | 1 | 25% |
+| Mittel | 2 | 50% |
+| Hoch | 3 | 75% |
+| Boost | 4+ | 100% |
+
+### Hinweis zur Genauigkeit
+
+Die "Estimated Power" basiert auf der Formel: `Power Level × 100W`
+
+Das ist eine Näherung! Die tatsächliche Leistung hängt von vielen Faktoren ab:
+- Topfgröße und -material
+- Induktionseffizienz
+- Boost-Modus aktiv
+
+Für präzise Messungen empfehlen wir einen externen Stromzähler (Shelly, etc.) am Kochfeld-Stromkreis.
 
 ---
 

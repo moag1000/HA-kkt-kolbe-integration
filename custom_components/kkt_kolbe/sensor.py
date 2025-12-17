@@ -9,7 +9,7 @@ from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorStateClass,
 )
-from homeassistant.const import UnitOfTemperature
+from homeassistant.const import UnitOfTemperature, UnitOfPower
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -20,6 +20,10 @@ from .base_entity import KKTBaseEntity, KKTZoneBaseEntity
 from .const import DOMAIN
 from .device_types import get_device_entities
 from .bitfield_utils import get_zone_value_from_coordinator, BITFIELD_CONFIG
+
+# Estimated watt per power level for induction cooktops
+# Level 0 = 0W, Level 25 = ~2500W per zone (typical for 7kW 5-zone cooktop)
+WATTS_PER_LEVEL = 100  # ~100W per level is a reasonable estimate
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -37,7 +41,18 @@ async def async_setup_entry(
     sensor_configs = get_device_entities(product_name, "sensor")
 
     for config in sensor_configs:
-        if "zone" in config:
+        sensor_type = config.get("sensor_type", "standard")
+
+        if sensor_type == "calculated_power":
+            # Calculated power sensor (estimates watts from zone levels)
+            entities.append(KKTKolbeCalculatedPowerSensor(coordinator, entry, config))
+        elif sensor_type == "total_level":
+            # Total power level sensor (sum of all zones)
+            entities.append(KKTKolbeTotalLevelSensor(coordinator, entry, config))
+        elif sensor_type == "active_zones":
+            # Active zones counter
+            entities.append(KKTKolbeActiveZonesSensor(coordinator, entry, config))
+        elif "zone" in config:
             # Zone-specific sensor
             entities.append(KKTKolbeZoneSensor(coordinator, entry, config))
         else:
@@ -179,4 +194,129 @@ class KKTKolbeZoneSensor(KKTZoneBaseEntity, SensorEntity):
     @property
     def native_value(self) -> Any | None:
         """Return the state of the zone sensor."""
+        return self._cached_value
+
+
+class KKTKolbeCalculatedPowerSensor(KKTBaseEntity, SensorEntity):
+    """Calculated power sensor that estimates watts from zone power levels."""
+
+    def __init__(
+        self,
+        coordinator: DataUpdateCoordinator[dict[str, Any]],
+        entry: ConfigEntry,
+        config: dict[str, Any],
+    ) -> None:
+        """Initialize the calculated power sensor."""
+        super().__init__(coordinator, entry, config, "sensor")
+        self._zones_dp = config.get("zones_dp", 162)  # DP for zone levels
+        self._num_zones = config.get("num_zones", 5)
+        self._watts_per_level = config.get("watts_per_level", WATTS_PER_LEVEL)
+        self._cached_value = None
+
+        # Set sensor attributes
+        self._attr_device_class = SensorDeviceClass.POWER
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_native_unit_of_measurement = UnitOfPower.WATT
+        self._attr_icon = "mdi:lightning-bolt"
+
+        self._update_cached_state()
+
+    def _update_cached_state(self) -> None:
+        """Calculate estimated power from all zone levels."""
+        total_power = 0
+
+        for zone in range(1, self._num_zones + 1):
+            # Get zone level using bitfield utilities
+            level = get_zone_value_from_coordinator(
+                self.coordinator, self._zones_dp, zone
+            )
+            if level is not None and isinstance(level, (int, float)):
+                # Estimate watts: level * watts_per_level
+                total_power += int(level) * self._watts_per_level
+
+        self._cached_value = total_power
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the estimated power in watts."""
+        return self._cached_value
+
+
+class KKTKolbeTotalLevelSensor(KKTBaseEntity, SensorEntity):
+    """Sensor that shows the sum of all zone power levels."""
+
+    def __init__(
+        self,
+        coordinator: DataUpdateCoordinator[dict[str, Any]],
+        entry: ConfigEntry,
+        config: dict[str, Any],
+    ) -> None:
+        """Initialize the total level sensor."""
+        super().__init__(coordinator, entry, config, "sensor")
+        self._zones_dp = config.get("zones_dp", 162)
+        self._num_zones = config.get("num_zones", 5)
+        self._cached_value = None
+
+        # Set sensor attributes
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_icon = "mdi:gauge"
+
+        self._update_cached_state()
+
+    def _update_cached_state(self) -> None:
+        """Calculate total power level from all zones."""
+        total_level = 0
+
+        for zone in range(1, self._num_zones + 1):
+            level = get_zone_value_from_coordinator(
+                self.coordinator, self._zones_dp, zone
+            )
+            if level is not None and isinstance(level, (int, float)):
+                total_level += int(level)
+
+        self._cached_value = total_level
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the total power level."""
+        return self._cached_value
+
+
+class KKTKolbeActiveZonesSensor(KKTBaseEntity, SensorEntity):
+    """Sensor that counts active cooking zones."""
+
+    def __init__(
+        self,
+        coordinator: DataUpdateCoordinator[dict[str, Any]],
+        entry: ConfigEntry,
+        config: dict[str, Any],
+    ) -> None:
+        """Initialize the active zones sensor."""
+        super().__init__(coordinator, entry, config, "sensor")
+        self._zones_dp = config.get("zones_dp", 162)
+        self._num_zones = config.get("num_zones", 5)
+        self._cached_value = None
+
+        # Set sensor attributes
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_icon = "mdi:stove"
+
+        self._update_cached_state()
+
+    def _update_cached_state(self) -> None:
+        """Count zones with power level > 0."""
+        active_count = 0
+
+        for zone in range(1, self._num_zones + 1):
+            level = get_zone_value_from_coordinator(
+                self.coordinator, self._zones_dp, zone
+            )
+            if level is not None and isinstance(level, (int, float)) and int(level) > 0:
+                active_count += 1
+
+        self._cached_value = active_count
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the number of active zones."""
         return self._cached_value
