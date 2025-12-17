@@ -1,0 +1,429 @@
+blueprint:
+  name: Dunstabzugshaube mit Kochfeld synchronisieren (Erweitert)
+  description: >-
+    Intelligente Steuerung der Dunstabzugshaube basierend auf dem Stromverbrauch
+    des Kochfelds. Die Lüftergeschwindigkeit passt sich automatisch an die
+    Kochintensität an. Mit gestuftem Nachlauf für optimale Geruchsbeseitigung.
+  domain: automation
+  source_url: https://github.com/moag1000/HA-kkt-kolbe-integration/blob/main/blueprints/automation/hood_with_cooktop.yaml
+  input:
+    # === KOCHFELD KONFIGURATION ===
+    cooktop_power:
+      name: Kochfeld Power-Schalter
+      description: Der Power-Schalter des Kochfelds (optional, wenn nur Sensor verwendet wird)
+      default: {}
+      selector:
+        entity:
+          domain: switch
+
+    cooktop_power_sensor:
+      name: Kochfeld Stromverbrauch-Sensor
+      description: >-
+        Der Sensor der den aktuellen Stromverbrauch des Kochfelds misst (in Watt).
+        Empfohlen: Shelly Plug oder ähnliches Messgerät.
+      selector:
+        entity:
+          domain: sensor
+          device_class: power
+
+    # === DUNSTABZUGSHAUBE KONFIGURATION ===
+    hood_power:
+      name: Dunstabzugshaube Power
+      description: Der Power-Schalter der Dunstabzugshaube
+      selector:
+        entity:
+          domain: switch
+
+    hood_fan:
+      name: Dunstabzugshaube Lüfter
+      description: Die Fan-Entity der Dunstabzugshaube
+      selector:
+        entity:
+          domain: fan
+
+    hood_light:
+      name: Dunstabzugshaube Licht (optional)
+      description: Das Licht der Dunstabzugshaube - wird beim Kochen automatisch eingeschaltet
+      default: {}
+      selector:
+        entity:
+          domain: light
+
+    # === POWER-SCHWELLENWERTE ===
+    power_threshold_start:
+      name: Start-Schwellenwert (Watt)
+      description: >-
+        Ab welchem Stromverbrauch soll die Haube starten?
+        Typisch: 50W (Standby eines Induktionsfelds ist ca. 5-20W)
+      default: 50
+      selector:
+        number:
+          min: 10
+          max: 500
+          step: 10
+          unit_of_measurement: "W"
+
+    power_threshold_medium:
+      name: Mittlere Leistung (Watt)
+      description: >-
+        Ab welchem Verbrauch soll auf mittlere Stufe gewechselt werden?
+        Typisch: Eine Platte auf mittlerer Stufe (800-1200W)
+      default: 1000
+      selector:
+        number:
+          min: 200
+          max: 3000
+          step: 100
+          unit_of_measurement: "W"
+
+    power_threshold_high:
+      name: Hohe Leistung (Watt)
+      description: >-
+        Ab welchem Verbrauch soll auf hohe Stufe gewechselt werden?
+        Typisch: Mehrere Platten oder Boost-Modus (2500W+)
+      default: 2500
+      selector:
+        number:
+          min: 500
+          max: 7500
+          step: 100
+          unit_of_measurement: "W"
+
+    power_threshold_boost:
+      name: Boost-Leistung (Watt)
+      description: >-
+        Ab welchem Verbrauch soll auf maximale Stufe gewechselt werden?
+        Typisch: Mehrere Platten auf Vollgas (5000W+)
+      default: 5000
+      selector:
+        number:
+          min: 1000
+          max: 10000
+          step: 500
+          unit_of_measurement: "W"
+
+    # === LÜFTER-GESCHWINDIGKEITEN ===
+    fan_speed_low:
+      name: Niedrige Geschwindigkeit (%)
+      description: Lüftergeschwindigkeit bei leichtem Kochen
+      default: 25
+      selector:
+        number:
+          min: 25
+          max: 50
+          unit_of_measurement: "%"
+
+    fan_speed_medium:
+      name: Mittlere Geschwindigkeit (%)
+      description: Lüftergeschwindigkeit bei normalem Kochen
+      default: 50
+      selector:
+        number:
+          min: 25
+          max: 75
+          unit_of_measurement: "%"
+
+    fan_speed_high:
+      name: Hohe Geschwindigkeit (%)
+      description: Lüftergeschwindigkeit bei intensivem Kochen
+      default: 75
+      selector:
+        number:
+          min: 50
+          max: 100
+          unit_of_measurement: "%"
+
+    fan_speed_boost:
+      name: Boost-Geschwindigkeit (%)
+      description: Maximale Lüftergeschwindigkeit
+      default: 100
+      selector:
+        number:
+          min: 75
+          max: 100
+          unit_of_measurement: "%"
+
+    # === NACHLAUF-KONFIGURATION ===
+    afterrun_enabled:
+      name: Gestuften Nachlauf aktivieren
+      description: >-
+        Bei aktiviertem Nachlauf reduziert sich die Geschwindigkeit stufenweise
+        bevor die Haube ausschaltet. Dies sorgt für bessere Geruchsbeseitigung.
+      default: true
+      selector:
+        boolean:
+
+    afterrun_time_high:
+      name: Nachlauf bei hoher Stufe (Minuten)
+      description: Wie lange soll auf mittlerer Stufe nachgelaufen werden nach intensivem Kochen?
+      default: 3
+      selector:
+        number:
+          min: 0
+          max: 15
+          unit_of_measurement: min
+
+    afterrun_time_medium:
+      name: Nachlauf bei mittlerer Stufe (Minuten)
+      description: Wie lange soll auf niedriger Stufe nachgelaufen werden?
+      default: 5
+      selector:
+        number:
+          min: 0
+          max: 15
+          unit_of_measurement: min
+
+    afterrun_time_low:
+      name: Nachlauf bei niedriger Stufe (Minuten)
+      description: Wie lange soll auf niedrigster Stufe nachgelaufen werden bevor Abschaltung?
+      default: 5
+      selector:
+        number:
+          min: 1
+          max: 30
+          unit_of_measurement: min
+
+    # === ERWEITERTE OPTIONEN ===
+    turn_on_light:
+      name: Licht beim Kochen einschalten
+      description: Soll das Licht der Haube automatisch mit eingeschaltet werden?
+      default: true
+      selector:
+        boolean:
+
+    update_interval:
+      name: Aktualisierungsintervall (Sekunden)
+      description: >-
+        Wie oft soll die Lüftergeschwindigkeit angepasst werden?
+        Niedrigere Werte = reaktionsschneller, aber mehr Automations-Aufrufe.
+      default: 30
+      selector:
+        number:
+          min: 10
+          max: 120
+          step: 5
+          unit_of_measurement: s
+
+variables:
+  cooktop_power_switch: !input cooktop_power
+  cooktop_sensor: !input cooktop_power_sensor
+  hood_power_switch: !input hood_power
+  hood_fan_entity: !input hood_fan
+  hood_light_entity: !input hood_light
+  threshold_start: !input power_threshold_start
+  threshold_medium: !input power_threshold_medium
+  threshold_high: !input power_threshold_high
+  threshold_boost: !input power_threshold_boost
+  speed_low: !input fan_speed_low
+  speed_medium: !input fan_speed_medium
+  speed_high: !input fan_speed_high
+  speed_boost: !input fan_speed_boost
+  afterrun_enabled: !input afterrun_enabled
+  afterrun_high: !input afterrun_time_high
+  afterrun_medium: !input afterrun_time_medium
+  afterrun_low: !input afterrun_time_low
+  light_enabled: !input turn_on_light
+  current_power: "{{ states(cooktop_sensor) | float(0) }}"
+  target_speed: >-
+    {% if current_power >= threshold_boost %}
+      {{ speed_boost }}
+    {% elif current_power >= threshold_high %}
+      {{ speed_high }}
+    {% elif current_power >= threshold_medium %}
+      {{ speed_medium }}
+    {% elif current_power >= threshold_start %}
+      {{ speed_low }}
+    {% else %}
+      0
+    {% endif %}
+
+trigger:
+  # Trigger bei Stromverbrauch über Startschwelle
+  - platform: numeric_state
+    entity_id: !input cooktop_power_sensor
+    above: !input power_threshold_start
+    id: cooking_started
+
+  # Trigger bei Stromverbrauch unter Startschwelle (Kochen beendet)
+  - platform: numeric_state
+    entity_id: !input cooktop_power_sensor
+    below: !input power_threshold_start
+    for:
+      seconds: 30
+    id: cooking_stopped
+
+  # Regelmäßige Aktualisierung während des Kochens
+  - platform: time_pattern
+    seconds: /30
+    id: periodic_update
+
+  # Trigger bei Schwellenwert-Überschreitungen für schnelle Reaktion
+  - platform: numeric_state
+    entity_id: !input cooktop_power_sensor
+    above: !input power_threshold_medium
+    id: power_increased
+
+  - platform: numeric_state
+    entity_id: !input cooktop_power_sensor
+    above: !input power_threshold_high
+    id: power_increased
+
+  - platform: numeric_state
+    entity_id: !input cooktop_power_sensor
+    above: !input power_threshold_boost
+    id: power_increased
+
+condition: []
+
+action:
+  - choose:
+      # === KOCHEN GESTARTET ===
+      - conditions:
+          - condition: trigger
+            id: cooking_started
+        sequence:
+          # Haube einschalten
+          - service: switch.turn_on
+            target:
+              entity_id: !input hood_power
+          - delay:
+              milliseconds: 500
+          # Lüfter auf berechnete Geschwindigkeit
+          - service: fan.set_percentage
+            target:
+              entity_id: !input hood_fan
+            data:
+              percentage: "{{ target_speed }}"
+          # Optional: Licht einschalten
+          - if:
+              - condition: template
+                value_template: "{{ light_enabled and hood_light_entity }}"
+            then:
+              - service: light.turn_on
+                target:
+                  entity_id: !input hood_light
+
+      # === LEISTUNG ERHÖHT - SCHNELLE ANPASSUNG ===
+      - conditions:
+          - condition: trigger
+            id: power_increased
+          - condition: state
+            entity_id: !input hood_power
+            state: "on"
+        sequence:
+          - service: fan.set_percentage
+            target:
+              entity_id: !input hood_fan
+            data:
+              percentage: "{{ target_speed }}"
+
+      # === PERIODISCHE AKTUALISIERUNG ===
+      - conditions:
+          - condition: trigger
+            id: periodic_update
+          - condition: state
+            entity_id: !input hood_power
+            state: "on"
+          - condition: template
+            value_template: "{{ current_power >= threshold_start }}"
+        sequence:
+          - service: fan.set_percentage
+            target:
+              entity_id: !input hood_fan
+            data:
+              percentage: "{{ target_speed }}"
+
+      # === KOCHEN BEENDET - GESTUFTER NACHLAUF ===
+      - conditions:
+          - condition: trigger
+            id: cooking_stopped
+          - condition: state
+            entity_id: !input hood_power
+            state: "on"
+        sequence:
+          - choose:
+              # Mit gestuftem Nachlauf
+              - conditions:
+                  - condition: template
+                    value_template: "{{ afterrun_enabled }}"
+                sequence:
+                  # Stufe 1: Mittlere Geschwindigkeit
+                  - if:
+                      - condition: template
+                        value_template: "{{ afterrun_high > 0 }}"
+                    then:
+                      - service: fan.set_percentage
+                        target:
+                          entity_id: !input hood_fan
+                        data:
+                          percentage: "{{ speed_medium }}"
+                      - delay:
+                          minutes: !input afterrun_time_high
+                      # Prüfen ob Kochfeld immer noch aus ist
+                      - condition: template
+                        value_template: "{{ states(cooktop_sensor) | float(0) < threshold_start }}"
+
+                  # Stufe 2: Niedrige Geschwindigkeit
+                  - if:
+                      - condition: template
+                        value_template: "{{ afterrun_medium > 0 }}"
+                    then:
+                      - service: fan.set_percentage
+                        target:
+                          entity_id: !input hood_fan
+                        data:
+                          percentage: "{{ speed_low }}"
+                      - delay:
+                          minutes: !input afterrun_time_medium
+                      # Prüfen ob Kochfeld immer noch aus ist
+                      - condition: template
+                        value_template: "{{ states(cooktop_sensor) | float(0) < threshold_start }}"
+
+                  # Stufe 3: Minimale Geschwindigkeit vor Abschaltung
+                  - service: fan.set_percentage
+                    target:
+                      entity_id: !input hood_fan
+                    data:
+                      percentage: 25
+                  - delay:
+                      minutes: !input afterrun_time_low
+                  # Finale Prüfung ob Kochfeld immer noch aus ist
+                  - condition: template
+                    value_template: "{{ states(cooktop_sensor) | float(0) < threshold_start }}"
+                  # Alles ausschalten
+                  - service: fan.turn_off
+                    target:
+                      entity_id: !input hood_fan
+                  - service: switch.turn_off
+                    target:
+                      entity_id: !input hood_power
+                  # Optional: Licht ausschalten
+                  - if:
+                      - condition: template
+                        value_template: "{{ light_enabled and hood_light_entity }}"
+                    then:
+                      - service: light.turn_off
+                        target:
+                          entity_id: !input hood_light
+
+            # Ohne Nachlauf: Direkt ausschalten
+            default:
+              - delay:
+                  minutes: !input afterrun_time_low
+              - condition: template
+                value_template: "{{ states(cooktop_sensor) | float(0) < threshold_start }}"
+              - service: fan.turn_off
+                target:
+                  entity_id: !input hood_fan
+              - service: switch.turn_off
+                target:
+                  entity_id: !input hood_power
+              - if:
+                  - condition: template
+                    value_template: "{{ light_enabled and hood_light_entity }}"
+                then:
+                  - service: light.turn_off
+                    target:
+                      entity_id: !input hood_light
+
+mode: restart

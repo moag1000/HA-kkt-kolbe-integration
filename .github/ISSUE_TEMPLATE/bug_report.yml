@@ -1,0 +1,150 @@
+name: Bug Report
+description: Problem mit der Integration melden
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Danke, dass du dir die Zeit nimmst, einen Bug zu melden!
+
+        Bitte fülle das Formular so vollständig wie möglich aus, damit wir das Problem schnell identifizieren können.
+
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Sicherheitscheck
+      description: Bitte bestätige, dass keine Sicherheitsrisiken vorliegen
+      options:
+        - label: Das Problem stellt keine Gefahr für Personen oder Sachen dar
+          required: true
+        - label: Das Gerät verhält sich sicher (kein unkontrolliertes Ein-/Ausschalten)
+          required: true
+        - label: Bei Kochfeldern - Keine Überhitzung oder ungewollte Aktivierung
+          required: false
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Problembeschreibung
+      description: Was ist passiert?
+      placeholder: Beschreibe das Problem so genau wie möglich...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Erwartetes Verhalten
+      description: Was sollte eigentlich passieren?
+      placeholder: Ich habe erwartet, dass...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: reproducibility
+    attributes:
+      label: Reproduzierbarkeit
+      description: Wie oft tritt das Problem auf?
+      options:
+        - Immer (100%)
+        - Häufig (>50%)
+        - Manchmal (<50%)
+        - Einmalig
+        - Nicht getestet
+    validations:
+      required: true
+
+  - type: dropdown
+    id: device_type
+    attributes:
+      label: Gerätetyp
+      description: Um welchen KKT Kolbe Gerätetyp handelt es sich?
+      options:
+        - Dunstabzugshaube - HERMES & STYLE
+        - Dunstabzugshaube - HERMES
+        - Dunstabzugshaube - ECCO HCM
+        - Dunstabzugshaube - SOLO HCM
+        - Kochfeld - IND7705HC
+        - Anderes Gerät (bitte in Beschreibung angeben)
+    validations:
+      required: true
+
+  - type: input
+    id: model
+    attributes:
+      label: Genaue Modellbezeichnung
+      description: Die genaue Modellbezeichnung deines Geräts
+      placeholder: z.B. KKT KOLBE HERMES-60CM-BLK
+    validations:
+      required: false
+
+  - type: input
+    id: ha_version
+    attributes:
+      label: Home Assistant Version
+      description: "Zu finden unter: Einstellungen → Über"
+      placeholder: z.B. 2024.12.0
+    validations:
+      required: true
+
+  - type: input
+    id: integration_version
+    attributes:
+      label: Integration Version
+      description: "Zu finden unter: HACS → KKT Kolbe → Versionsnummer"
+      placeholder: z.B. v2.7.1
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Schritte zur Reproduktion
+      description: Wie kann man das Problem nachstellen?
+      placeholder: |
+        1. Gehe zu ...
+        2. Klicke auf ...
+        3. Beobachte ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Home Assistant Logs
+      description: |
+        Relevante Log-Einträge (Einstellungen → System → Logs → Nach "kkt_kolbe" suchen)
+      render: shell
+      placeholder: |
+        2024-12-15 12:00:00 ERROR (MainThread) [custom_components.kkt_kolbe] ...
+    validations:
+      required: false
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnose-Daten
+      description: |
+        Optional: Diagnose-Daten des Geräts (Einstellungen → Geräte & Dienste → KKT Kolbe → Gerät → "Diagnose herunterladen")
+      render: json
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Zusätzlicher Kontext
+      description: Screenshots, Netzwerk-Setup, weitere relevante Informationen
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checkliste
+      options:
+        - label: Ich habe die bestehenden Issues nach ähnlichen Problemen durchsucht
+          required: true
+        - label: Ich habe die aktuellste Version der Integration installiert
+          required: true

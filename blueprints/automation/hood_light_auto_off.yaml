@@ -1,0 +1,39 @@
+blueprint:
+  name: Dunstabzugshaube Licht Auto-Aus
+  description: >-
+    Schaltet das Licht der Dunstabzugshaube automatisch aus, wenn es eine
+    bestimmte Zeit lang an war.
+  domain: automation
+  source_url: https://github.com/moag1000/HA-kkt-kolbe-integration/blob/main/blueprints/automation/hood_light_auto_off.yaml
+  input:
+    hood_light:
+      name: Dunstabzugshaube Licht
+      description: Die Licht-Entity der Dunstabzugshaube
+      selector:
+        entity:
+          domain: light
+    timeout_minutes:
+      name: Timeout (Minuten)
+      description: Nach wie vielen Minuten soll das Licht ausgeschaltet werden?
+      default: 30
+      selector:
+        number:
+          min: 1
+          max: 120
+          unit_of_measurement: min
+
+trigger:
+  - platform: state
+    entity_id: !input hood_light
+    to: "on"
+    for:
+      minutes: !input timeout_minutes
+
+condition: []
+
+action:
+  - service: light.turn_off
+    target:
+      entity_id: !input hood_light
+
+mode: restart

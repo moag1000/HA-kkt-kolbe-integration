@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Frage zur Nutzung
+    url: https://github.com/moag1000/HA-kkt-kolbe-integration/discussions/categories/q-a
+    about: Hast du eine Frage zur Integration? Nutze die Discussions!
+  - name: Dokumentation
+    url: https://github.com/moag1000/HA-kkt-kolbe-integration#readme
+    about: Schau dir die README und Dokumentation an
+  - name: Home Assistant Community
+    url: https://community.home-assistant.io/
+    about: Allgemeine Home Assistant Fragen im Community Forum
