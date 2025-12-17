@@ -5,6 +5,29 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.1] - 2025-12-17
+
+### Bugfix Release - Device Type Lookup Fix
+
+### Fixed
+- **Cooktop/Hood entities not created via Smart Discovery**: The `get_device_info_by_product_name()` function didn't recognize device keys like `ind7705hc_cooktop` or `hermes_style_hood`
+  - Now supports lookup by device key (e.g., `ind7705hc_cooktop`) in addition to Tuya product ID
+  - Also fixed `get_device_platforms_by_product_name()` and `get_device_entities()` for consistent behavior
+  - Entities are now correctly created when using Smart Discovery or API-based setup
+
+### Technical Details
+```python
+# Before: Only looked up by Tuya product ID
+get_device_info_by_product_name("p8volecsgzdyun29")  # ✅ worked
+get_device_info_by_product_name("ind7705hc_cooktop")  # ❌ failed
+
+# After: Supports both device key and Tuya product ID
+get_device_info_by_product_name("ind7705hc_cooktop")  # ✅ now works
+get_device_info_by_product_name("p8volecsgzdyun29")   # ✅ still works
+```
+
+---
+
 ## [2.6.0] - 2025-12-17
 
 ### Feature Release - Smart Discovery with Zero-Config Setup

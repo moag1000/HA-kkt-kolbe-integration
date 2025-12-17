@@ -516,8 +516,23 @@ def auto_detect_device_config(device_id: str = None, provided_product_name: str 
     return None
 
 def get_device_info_by_product_name(product_name: str) -> dict:
-    """Get device information based on product name from discovery."""
-    # Check central database first
+    """Get device information based on product name from discovery.
+
+    Supports multiple lookup methods:
+    1. Device key lookup (e.g., "ind7705hc_cooktop", "hermes_style_hood")
+    2. Tuya product ID lookup (e.g., "p8volecsgzdyun29")
+    3. Pattern matching fallback
+    """
+    # Method 1: Check if product_name is a device key in KNOWN_DEVICES
+    if product_name in KNOWN_DEVICES:
+        device_info = KNOWN_DEVICES[product_name]
+        return {
+            "model_id": device_info["model_id"],
+            "category": device_info["category"],
+            "name": device_info["name"]
+        }
+
+    # Method 2: Check central database by Tuya product ID
     device_info = find_device_by_product_name(product_name)
     if device_info:
         return {
@@ -586,7 +601,17 @@ def get_device_platforms(category: str) -> list:
         return ["fan", "light", "switch", "sensor", "select", "number", "binary_sensor"]
 
 def get_device_platforms_by_product_name(product_name: str) -> list:
-    """Get platforms directly by product name (most efficient)."""
+    """Get platforms directly by product name (most efficient).
+
+    Supports:
+    1. Device key lookup (e.g., "ind7705hc_cooktop")
+    2. Tuya product ID lookup (e.g., "p8volecsgzdyun29")
+    """
+    # Method 1: Check if product_name is a device key
+    if product_name in KNOWN_DEVICES:
+        return KNOWN_DEVICES[product_name]["platforms"]
+
+    # Method 2: Try Tuya product ID lookup
     device_info = find_device_by_product_name(product_name)
     if device_info:
         return device_info["platforms"]
@@ -596,8 +621,21 @@ def get_device_platforms_by_product_name(product_name: str) -> list:
     return get_device_platforms(device_type_info["category"])
 
 def get_device_entities(product_name: str, platform: str) -> list:
-    """Get entity configurations for a specific product and platform."""
-    device_info = find_device_by_product_name(product_name)
+    """Get entity configurations for a specific product and platform.
+
+    Supports:
+    1. Device key lookup (e.g., "ind7705hc_cooktop")
+    2. Tuya product ID lookup (e.g., "p8volecsgzdyun29")
+    """
+    device_info = None
+
+    # Method 1: Check if product_name is a device key
+    if product_name in KNOWN_DEVICES:
+        device_info = KNOWN_DEVICES[product_name]
+    else:
+        # Method 2: Try Tuya product ID lookup
+        device_info = find_device_by_product_name(product_name)
+
     if device_info and "entities" in device_info:
         entities_config = device_info["entities"]
         if platform in entities_config:
