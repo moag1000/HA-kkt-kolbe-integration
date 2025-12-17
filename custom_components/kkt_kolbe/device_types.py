@@ -110,8 +110,15 @@ KNOWN_DEVICES = {
                 "speeds": ["off", "low", "middle", "high", "strong"]
             },
             "light": [
-                # Main light as light entity for HomeKit/Siri ("Hey Siri, turn on the light")
-                {"dp": 4, "name": "Light", "icon": "mdi:lightbulb"}
+                # Main light with RGB effects for HomeKit/Siri
+                {
+                    "dp": 4,
+                    "name": "Light",
+                    "icon": "mdi:lightbulb",
+                    "effect_dp": 101,
+                    "effect_numeric": True,
+                    "effects": ["Aus", "Modus 1", "Modus 2", "Modus 3", "Modus 4", "Modus 5", "Modus 6", "Modus 7", "Modus 8", "Modus 9"]
+                }
             ],
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
@@ -121,8 +128,8 @@ KNOWN_DEVICES = {
                 {"dp": 17, "name": "Eco Mode", "icon": "mdi:leaf", "advanced": True, "entity_category": "config"}
             ],
             "number": [
-                # RGB Mode - appears under Controls, not hidden from HomeKit
-                {"dp": 101, "name": "RGB Mode", "min": 0, "max": 9, "step": 1, "icon": "mdi:palette"},
+                # RGB Mode as number (backup, advanced) - use Light effects instead
+                {"dp": 101, "name": "RGB Mode", "min": 0, "max": 9, "step": 1, "icon": "mdi:palette", "advanced": True, "entity_category": "config"},
                 {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"},
                 # Experimental numbers
                 {"dp": 5, "name": "Light Brightness", "min": 0, "max": 255, "step": 1, "icon": "mdi:brightness-6", "advanced": True},
@@ -200,8 +207,15 @@ KNOWN_DEVICES = {
                 "speeds": ["off", "low", "middle", "high", "strong"]
             },
             "light": [
-                # Main light as light entity for HomeKit/Siri ("Hey Siri, turn on the light")
-                {"dp": 4, "name": "Light", "icon": "mdi:lightbulb"}
+                # Main light with RGB effects for HomeKit/Siri
+                {
+                    "dp": 4,
+                    "name": "Light",
+                    "icon": "mdi:lightbulb",
+                    "effect_dp": 101,
+                    "effect_numeric": True,
+                    "effects": ["Aus", "Modus 1", "Modus 2", "Modus 3", "Modus 4", "Modus 5", "Modus 6", "Modus 7", "Modus 8", "Modus 9"]
+                }
             ],
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
@@ -212,8 +226,8 @@ KNOWN_DEVICES = {
                 {"dp": 10, "name": "Fan Speed", "options": ["off", "low", "middle", "high", "strong"], "advanced": True, "entity_category": "config"}
             ],
             "number": [
-                # RGB Mode - appears under Controls
-                {"dp": 101, "name": "RGB Mode", "min": 0, "max": 9, "step": 1, "icon": "mdi:palette"},
+                # RGB Mode as number (backup, advanced) - use Light effects instead
+                {"dp": 101, "name": "RGB Mode", "min": 0, "max": 9, "step": 1, "icon": "mdi:palette", "advanced": True, "entity_category": "config"},
                 {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"}
             ],
             "sensor": [
@@ -256,8 +270,15 @@ KNOWN_DEVICES = {
                 "max": 9
             },
             "light": [
-                # Main light as light entity for HomeKit/Siri ("Hey Siri, turn on the light")
-                {"dp": 4, "name": "Light", "icon": "mdi:lightbulb"}
+                # Main light with RGB mode effects for HomeKit/Siri
+                {
+                    "dp": 4,
+                    "name": "Light",
+                    "icon": "mdi:lightbulb",
+                    "effect_dp": 108,
+                    "effect_numeric": False,
+                    "effects": ["white", "colour", "scene", "music"]
+                }
             ],
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
@@ -268,7 +289,7 @@ KNOWN_DEVICES = {
                 {"dp": 106, "name": "Confirm", "device_class": "switch", "icon": "mdi:check", "entity_category": "config", "advanced": True}
             ],
             "select": [
-                # RGB Mode as advanced (use main Light entity for Siri)
+                # RGB Mode as select (backup, advanced) - use Light effects instead
                 {"dp": 108, "name": "RGB Mode", "options": ["white", "colour", "scene", "music"], "icon": "mdi:palette", "advanced": True, "entity_category": "config"}
             ],
             "number": [
@@ -313,8 +334,15 @@ KNOWN_DEVICES = {
                 "max": 9
             },
             "light": [
-                # Main light as light entity for HomeKit/Siri ("Hey Siri, turn on the light")
-                {"dp": 4, "name": "Light", "icon": "mdi:lightbulb"}
+                # Main light with RGB mode effects for HomeKit/Siri
+                {
+                    "dp": 4,
+                    "name": "Light",
+                    "icon": "mdi:lightbulb",
+                    "effect_dp": 108,
+                    "effect_numeric": False,
+                    "effects": ["white", "colour", "scene", "music"]
+                }
             ],
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
@@ -325,7 +353,7 @@ KNOWN_DEVICES = {
                 {"dp": 106, "name": "Confirm", "device_class": "switch", "icon": "mdi:check", "entity_category": "config", "advanced": True}
             ],
             "select": [
-                # RGB Mode as advanced (use main Light entity for Siri)
+                # RGB Mode as select (backup, advanced) - use Light effects instead
                 {"dp": 108, "name": "RGB Mode", "options": ["white", "colour", "scene", "music"], "icon": "mdi:palette", "advanced": True, "entity_category": "config"}
             ],
             "number": [
