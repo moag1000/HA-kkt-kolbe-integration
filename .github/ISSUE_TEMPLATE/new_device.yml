@@ -1,0 +1,146 @@
+name: Neues KKT Kolbe Gerät
+description: Unterstützung für ein neues KKT Kolbe Modell anfordern
+title: "[DEVICE] KKT "
+labels: ["enhancement", "new-device"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Neues Gerät hinzufügen
+
+        Super, dass du ein neues KKT Kolbe Gerät hast! Um es zur Integration hinzuzufügen, benötigen wir einige Informationen.
+
+        **Wichtig:** Du brauchst Zugang zur [Tuya IoT Platform](https://iot.tuya.com/) um die Gerätedaten auszulesen.
+
+  - type: input
+    id: model
+    attributes:
+      label: Modellbezeichnung
+      description: Die vollständige Modellbezeichnung von KKT Kolbe
+      placeholder: z.B. KKT KOLBE HERMES-90CM-WHT
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Gerätekategorie
+      options:
+        - Dunstabzugshaube (Inselhaube)
+        - Dunstabzugshaube (Wandhaube)
+        - Dunstabzugshaube (Einbau/Flachschirmhaube)
+        - Induktionskochfeld
+        - Ceran-/Glaskeramikkochfeld
+        - Gaskochfeld
+        - Anderes (bitte beschreiben)
+    validations:
+      required: true
+
+  - type: input
+    id: device_id
+    attributes:
+      label: Device ID (anonymisiert)
+      description: "Die ersten 10 Zeichen der Device ID (letzten Zeichen aus Datenschutzgründen entfernen)"
+      placeholder: z.B. bf1234567890...
+    validations:
+      required: false
+
+  - type: textarea
+    id: data_model
+    attributes:
+      label: Tuya Data Model (JSON)
+      description: |
+        Die Daten von der Tuya IoT Platform → Cloud → Development → Device → Query Things Data Model
+
+        **So findest du sie:**
+        1. Gehe zu [Tuya IoT Platform](https://iot.tuya.com/)
+        2. Cloud → Development → Dein Projekt
+        3. Devices → All Devices → Dein Gerät
+        4. "Query Things Data Model" Button klicken
+        5. Das JSON hier einfügen
+      render: json
+      placeholder: |
+        {
+          "result": {
+            "model": "..."
+          },
+          "success": true
+        }
+    validations:
+      required: true
+
+  - type: textarea
+    id: dp_status
+    attributes:
+      label: Aktuelle DP Status (optional)
+      description: |
+        Die aktuellen Werte aller Data Points (Device Status → Query Device Status)
+      render: json
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: features
+    attributes:
+      label: Gewünschte Funktionen
+      description: Welche Funktionen soll die Integration unterstützen?
+      options:
+        - label: Power On/Off
+        - label: Lüftersteuerung (Geschwindigkeit)
+        - label: Beleuchtung
+        - label: RGB-Lichtmodus
+        - label: Timer
+        - label: Temperaturanzeige
+        - label: Kindersicherung
+        - label: Boost-Modus
+        - label: Sonstiges (bitte in Beschreibung angeben)
+
+  - type: textarea
+    id: smart_life
+    attributes:
+      label: Smart Life App Funktionen
+      description: Was kann die Smart Life / Tuya Smart App mit diesem Gerät steuern?
+      placeholder: |
+        - Lüfter ein/aus
+        - 4 Geschwindigkeitsstufen
+        - Licht an/aus
+        - ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: safety
+    attributes:
+      label: Sicherheitsaspekte
+      description: |
+        Besonders wichtig bei Kochfeldern! Welche Sicherheitsfunktionen hat das Gerät?
+      placeholder: |
+        - Kindersicherung
+        - Überhitzungsschutz
+        - Automatische Abschaltung
+        - ...
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: availability
+    attributes:
+      label: Verfügbarkeit für Tests
+      description: Wie kannst du bei der Entwicklung unterstützen?
+      options:
+        - label: Ich habe dauerhaft Zugang zu diesem Gerät für Tests
+          required: true
+        - label: Ich kann Logs und Debug-Informationen bereitstellen
+        - label: Ich könnte bei der Code-Entwicklung helfen
+        - label: Ich verstehe, dass Tests auf eigene Gefahr erfolgen
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+
+        **Wichtige Hinweise:**
+        - Die Entwicklung erfolgt auf Basis der von dir bereitgestellten Daten
+        - Tests erfolgen auf eigene Verantwortung
+        - Bei Kochfeldern ist besondere Vorsicht geboten - Fehler können zu gefährlichen Situationen führen
+        - Wir empfehlen, das Gerät während der Testphase nicht unbeaufsichtigt zu lassen

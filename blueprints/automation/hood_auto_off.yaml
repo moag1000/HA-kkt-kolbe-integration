@@ -1,0 +1,74 @@
+blueprint:
+  name: Dunstabzugshaube Auto-Aus
+  description: >-
+    Schaltet die Dunstabzugshaube automatisch aus, wenn sie eine bestimmte Zeit
+    lang gelaufen ist. Nützlich um zu verhindern, dass die Haube vergessen wird.
+  domain: automation
+  source_url: https://github.com/moag1000/HA-kkt-kolbe-integration/blob/main/blueprints/automation/hood_auto_off.yaml
+  input:
+    hood_power:
+      name: Dunstabzugshaube Power
+      description: Der Power-Schalter der Dunstabzugshaube
+      selector:
+        entity:
+          domain: switch
+    fan_entity:
+      name: Lüfter Entity
+      description: Die Fan-Entity der Dunstabzugshaube
+      selector:
+        entity:
+          domain: fan
+    timeout_minutes:
+      name: Timeout (Minuten)
+      description: Nach wie vielen Minuten soll die Haube ausgeschaltet werden?
+      default: 60
+      selector:
+        number:
+          min: 5
+          max: 180
+          unit_of_measurement: min
+    notify_before_off:
+      name: Vorher benachrichtigen
+      description: Soll vor dem Ausschalten eine Benachrichtigung gesendet werden?
+      default: true
+      selector:
+        boolean:
+    notification_service:
+      name: Benachrichtigungs-Service
+      description: Der Service für Benachrichtigungen (z.B. notify.mobile_app)
+      default: notify.notify
+      selector:
+        text:
+
+trigger:
+  - platform: state
+    entity_id: !input hood_power
+    to: "on"
+    for:
+      minutes: !input timeout_minutes
+
+condition: []
+
+action:
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ notify_before_off }}"
+        sequence:
+          - service: !input notification_service
+            data:
+              title: "Dunstabzugshaube"
+              message: "Die Dunstabzugshaube wird in 1 Minute ausgeschaltet."
+          - delay:
+              minutes: 1
+  - service: fan.turn_off
+    target:
+      entity_id: !input fan_entity
+  - service: switch.turn_off
+    target:
+      entity_id: !input hood_power
+
+mode: restart
+
+variables:
+  notify_before_off: !input notify_before_off

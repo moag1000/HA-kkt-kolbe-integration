@@ -1,0 +1,100 @@
+name: Feature Request
+description: Neue Funktion oder Verbesserung vorschlagen
+title: "[FEATURE] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Tolle Idee!
+
+        Wir freuen uns über Vorschläge zur Verbesserung der Integration.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Beschreibung der Funktion
+      description: Was soll hinzugefügt oder verbessert werden?
+      placeholder: Ich wünsche mir, dass...
+    validations:
+      required: true
+
+  - type: textarea
+    id: usecase
+    attributes:
+      label: Anwendungsfall
+      description: Warum ist diese Funktion nützlich? Welches Problem löst sie?
+      placeholder: Diese Funktion würde mir helfen, weil...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: device_scope
+    attributes:
+      label: Betroffene Geräte
+      description: Für welche Geräte ist diese Funktion relevant?
+      multiple: true
+      options:
+        - Alle Geräte
+        - Dunstabzugshauben (alle Modelle)
+        - HERMES & STYLE
+        - HERMES
+        - ECCO HCM
+        - SOLO HCM
+        - Kochfeld IND7705HC
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Kategorie
+      description: In welchen Bereich fällt diese Funktion?
+      options:
+        - Neue Entity / Steuerung
+        - HomeKit / Siri Verbesserung
+        - Automatisierung / Blueprint
+        - UI / Dashboard
+        - Performance / Stabilität
+        - Dokumentation
+        - Sonstiges
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Mögliche Lösung
+      description: Hast du bereits eine Idee, wie das umgesetzt werden könnte?
+      placeholder: Optional - Technische Ideen oder Referenzen zu anderen Integrationen...
+    validations:
+      required: false
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Wie wichtig ist diese Funktion für dich?
+      options:
+        - Nice-to-have - Wäre praktisch
+        - Wichtig - Würde meine Nutzung verbessern
+        - Sehr wichtig - Essentiell für meinen Anwendungsfall
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Zusätzlicher Kontext
+      description: Screenshots, Links zu ähnlichen Funktionen, Dokumentation, etc.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Mitarbeit
+      options:
+        - label: Ich könnte bei der Umsetzung helfen (Code, Tests, Dokumentation)
+          required: false
+        - label: Ich habe Zugang zu entsprechender Hardware zum Testen
+          required: false

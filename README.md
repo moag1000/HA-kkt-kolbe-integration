@@ -141,8 +141,36 @@ Mit deiner Hilfe können wir diese Modelle zur Integration hinzufügen! 🙏
 - "Use Stored Credentials" Option bei weiteren Geräten
 - Optimiert für Haushalte mit mehreren KKT Geräten
 
+## 🎨 Neu in v2.7.x: Light Effects & HomeKit
+
+### Light mit RGB-Effekten
+Das Licht der Dunstabzugshaube unterstützt jetzt **Effekte** direkt in Home Assistant:
+
+**HERMES & STYLE / HERMES Hood:**
+- Weiß, Rot, Grün, Blau, Gelb, Lila, Orange, Cyan, Grasgrün
+
+**SOLO HCM / ECCO HCM Hood:**
+- white, colour, scene, music
+
+### HomeKit/Siri Integration
+- **Fan**: Vollständige Geschwindigkeitssteuerung mit Slider
+- **Light**: An/Aus + Effekte in Home Assistant App
+
+## 📘 Blueprints
+
+Fertige Automations-Vorlagen zum Importieren:
+
+| Blueprint | Beschreibung | Import |
+|-----------|--------------|--------|
+| Hood Auto-Off | Schaltet Haube nach X Min aus | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fmoag1000%2FHA-kkt-kolbe-integration%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fhood_auto_off.yaml) |
+| Hood Light Auto-Off | Schaltet Licht nach X Min aus | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fmoag1000%2FHA-kkt-kolbe-integration%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fhood_light_auto_off.yaml) |
+| Hood with Cooktop | Synchronisiert Haube mit Kochfeld | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fmoag1000%2FHA-kkt-kolbe-integration%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fhood_with_cooktop.yaml) |
+
+[Alle Blueprints →](blueprints/README.md)
+
 ## 📚 Documentation & Examples
 
+- **[Blueprints](blueprints/README.md)** - One-click automation templates
 - **[Automation Examples](docs/AUTOMATION_EXAMPLES.md)** - 15+ ready-to-use automation examples
 - **[Use Cases](docs/USE_CASES.md)** - Practical scenarios and implementation guides
 - **[Gold Tier Checklist](docs/GOLD_TIER_CHECKLIST.md)** - Quality compliance status
