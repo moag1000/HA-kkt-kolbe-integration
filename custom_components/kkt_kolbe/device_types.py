@@ -110,14 +110,14 @@ KNOWN_DEVICES = {
                 "speeds": ["off", "low", "middle", "high", "strong"]
             },
             "light": [
-                # Main light with RGB effects for HomeKit/Siri
+                # Main light with RGB color effects for HomeKit/Siri
                 {
                     "dp": 4,
                     "name": "Light",
                     "icon": "mdi:lightbulb",
                     "effect_dp": 101,
                     "effect_numeric": True,
-                    "effects": ["Aus", "Modus 1", "Modus 2", "Modus 3", "Modus 4", "Modus 5", "Modus 6", "Modus 7", "Modus 8", "Modus 9"]
+                    "effects": ["Weiß", "Rot", "Grün", "Blau", "Gelb", "Lila", "Orange", "Cyan", "Grasgrün"]
                 }
             ],
             "switch": [
@@ -129,7 +129,7 @@ KNOWN_DEVICES = {
             ],
             "number": [
                 # RGB Mode as number (backup, advanced) - use Light effects instead
-                {"dp": 101, "name": "RGB Mode", "min": 0, "max": 9, "step": 1, "icon": "mdi:palette", "advanced": True, "entity_category": "config"},
+                {"dp": 101, "name": "RGB Mode", "min": 0, "max": 8, "step": 1, "icon": "mdi:palette", "advanced": True, "entity_category": "config"},
                 {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"},
                 # Experimental numbers
                 {"dp": 5, "name": "Light Brightness", "min": 0, "max": 255, "step": 1, "icon": "mdi:brightness-6", "advanced": True},
@@ -207,14 +207,14 @@ KNOWN_DEVICES = {
                 "speeds": ["off", "low", "middle", "high", "strong"]
             },
             "light": [
-                # Main light with RGB effects for HomeKit/Siri
+                # Main light with RGB color effects for HomeKit/Siri
                 {
                     "dp": 4,
                     "name": "Light",
                     "icon": "mdi:lightbulb",
                     "effect_dp": 101,
                     "effect_numeric": True,
-                    "effects": ["Aus", "Modus 1", "Modus 2", "Modus 3", "Modus 4", "Modus 5", "Modus 6", "Modus 7", "Modus 8", "Modus 9"]
+                    "effects": ["Weiß", "Rot", "Grün", "Blau", "Gelb", "Lila", "Orange", "Cyan", "Grasgrün"]
                 }
             ],
             "switch": [
@@ -227,7 +227,7 @@ KNOWN_DEVICES = {
             ],
             "number": [
                 # RGB Mode as number (backup, advanced) - use Light effects instead
-                {"dp": 101, "name": "RGB Mode", "min": 0, "max": 9, "step": 1, "icon": "mdi:palette", "advanced": True, "entity_category": "config"},
+                {"dp": 101, "name": "RGB Mode", "min": 0, "max": 8, "step": 1, "icon": "mdi:palette", "advanced": True, "entity_category": "config"},
                 {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"}
             ],
             "sensor": [
