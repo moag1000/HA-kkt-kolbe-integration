@@ -121,8 +121,8 @@ KNOWN_DEVICES = {
                 {"dp": 17, "name": "Eco Mode", "icon": "mdi:leaf", "advanced": True, "entity_category": "config"}
             ],
             "number": [
-                # RGB Mode marked as advanced - use Light entity for HomeKit
-                {"dp": 101, "name": "RGB Mode", "min": 0, "max": 9, "step": 1, "icon": "mdi:palette", "advanced": True, "entity_category": "config"},
+                # RGB Mode - appears under Controls, not hidden from HomeKit
+                {"dp": 101, "name": "RGB Mode", "min": 0, "max": 9, "step": 1, "icon": "mdi:palette"},
                 {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"},
                 # Experimental numbers
                 {"dp": 5, "name": "Light Brightness", "min": 0, "max": 255, "step": 1, "icon": "mdi:brightness-6", "advanced": True},
@@ -212,7 +212,8 @@ KNOWN_DEVICES = {
                 {"dp": 10, "name": "Fan Speed", "options": ["off", "low", "middle", "high", "strong"], "advanced": True, "entity_category": "config"}
             ],
             "number": [
-                {"dp": 101, "name": "RGB Mode", "min": 0, "max": 9, "step": 1, "icon": "mdi:palette", "advanced": True, "entity_category": "config"},
+                # RGB Mode - appears under Controls
+                {"dp": 101, "name": "RGB Mode", "min": 0, "max": 9, "step": 1, "icon": "mdi:palette"},
                 {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"}
             ],
             "sensor": [
