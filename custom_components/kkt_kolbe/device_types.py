@@ -86,7 +86,7 @@ KNOWN_DEVICES = {
         "product_names": ["ypaixllljc2dcpae"],
         "device_ids": ["bf735dfe2ad64fba7cpyhn"],
         "device_id_patterns": ["bf735dfe2ad64fba7c"],
-        "platforms": ["light", "switch", "sensor", "select", "number"],
+        "platforms": ["fan", "light", "switch", "sensor", "select", "number"],
         "data_points": {
             # Active DPs (verified working)
             1: "switch",              # Main power
@@ -105,6 +105,10 @@ KNOWN_DEVICES = {
             103: "color_temp"         # Color temperature
         },
         "entities": {
+            "fan": {
+                "dp": 10,  # fan_speed_enum - used for HomeKit/Siri integration
+                "speeds": ["off", "low", "middle", "high", "strong"]
+            },
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
                 {"dp": 4, "name": "Light", "device_class": "switch", "icon": "mdi:lightbulb"},
@@ -126,7 +130,8 @@ KNOWN_DEVICES = {
                 {"dp": 14, "name": "Filter Hours", "unit": "h", "device_class": "duration", "icon": "mdi:clock-outline", "advanced": True, "entity_category": "diagnostic"}
             ],
             "select": [
-                {"dp": 10, "name": "Fan Speed", "options": ["off", "low", "middle", "high", "strong"], "icon": "mdi:fan"},
+                # Fan Speed select marked as advanced to avoid HomeKit showing both fan and select
+                {"dp": 10, "name": "Fan Speed", "options": ["off", "low", "middle", "high", "strong"], "icon": "mdi:fan", "advanced": True, "entity_category": "config"},
                 # Experimental select
                 {"dp": 103, "name": "Color Temperature", "options": ["warm", "neutral", "cold"], "icon": "mdi:thermometer", "advanced": True}
             ]
