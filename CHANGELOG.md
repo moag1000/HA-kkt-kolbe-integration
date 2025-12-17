@@ -5,6 +5,42 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.2] - 2025-12-17
+
+### Feature Release - Improved HomeKit/Siri Integration
+
+### Added
+- **Proper Fan Entity for HERMES & STYLE Hood**: Now exposes fan as a percentage-based speed control instead of multiple switches
+  - HomeKit/Siri now shows a single fan with speed slider
+  - Supports "Hey Siri, set fan to 50%" or "Hey Siri, turn on the fan"
+  - Remembers last speed when turning on without percentage
+
+### Changed
+- **Fan Speed Select marked as advanced**: The separate "Fan Speed" select entity is now hidden from HomeKit to avoid duplicate controls
+- **Fan platform added to HERMES & STYLE Hood**: Previously missing, now properly configured
+
+### Technical Details
+```
+HomeKit Integration:
+- Before: 5 separate switches (off, low, middle, high, strong)
+- After: 1 fan entity with percentage-based speed control
+
+Speed Mapping:
+- 0% = off
+- 1-25% = low
+- 26-50% = middle
+- 51-75% = high
+- 76-100% = strong
+```
+
+### fan.py Improvements
+- Added `FanEntityFeature.TURN_ON` and `FanEntityFeature.TURN_OFF` support
+- Implemented `async_turn_on()` with last-speed memory
+- Implemented `async_turn_off()`
+- Added `_handle_coordinator_update()` for proper state updates
+
+---
+
 ## [2.6.1] - 2025-12-17
 
 ### Bugfix Release - Device Type Lookup Fix
