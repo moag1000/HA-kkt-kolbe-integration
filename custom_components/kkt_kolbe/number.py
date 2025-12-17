@@ -52,11 +52,11 @@ class KKTKolbeNumber(KKTBaseEntity, NumberEntity):
         """Initialize the number entity."""
         super().__init__(coordinator, entry, config, "number")
 
-        # Set number-specific attributes
-        self._attr_native_min_value = config.get("min_value", 0)
-        self._attr_native_max_value = config.get("max_value", 100)
+        # Set number-specific attributes (support both "min"/"max" and "min_value"/"max_value")
+        self._attr_native_min_value = config.get("min", config.get("min_value", 0))
+        self._attr_native_max_value = config.get("max", config.get("max_value", 100))
         self._attr_native_step = config.get("step", 1)
-        self._attr_native_unit_of_measurement = config.get("unit_of_measurement")
+        self._attr_native_unit_of_measurement = config.get("unit", config.get("unit_of_measurement"))
         self._attr_icon = self._get_icon()
         self._cached_value = None
 
