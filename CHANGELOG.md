@@ -5,6 +5,19 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.1] - 2025-12-17
+
+### Verbesserung - RGB Effekt-Namen mit Farben
+
+Effekte haben jetzt sprechende Namen statt "Modus 1-9".
+
+### Changed
+- **HERMES & STYLE / HERMES Hood RGB Effekte**:
+  - Weiß, Rot, Grün, Blau, Gelb, Lila, Orange, Cyan, Grasgrün
+  - (Basierend auf KKT Kolbe Bedienungsanleitung)
+
+---
+
 ## [2.7.0] - 2025-12-17
 
 ### Feature Release - Light Effects (RGB Modi als Licht-Effekte)
