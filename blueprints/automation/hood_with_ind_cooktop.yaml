@@ -2,18 +2,19 @@ blueprint:
   name: Dunstabzugshaube mit KKT IND Kochfeld
   description: >-
     Speziell für KKT Kolbe IND7705HC Induktionskochfeld!
-    Verwendet die integrierten Sensoren (Estimated Power, Total Level, Active Zones)
+    Verwendet die integrierten Sensoren (Estimated Power, Total Level, Active Zones, Temperatur)
     anstatt eines externen Stromzählers. Die Lüftergeschwindigkeit passt sich
-    automatisch an die Kochintensität an.
+    automatisch an die Kochintensität an. Optional: Temperatur-basierter Nachlauf -
+    die Haube läuft so lange bis das Kochfeld abgekühlt ist!
   domain: automation
   source_url: https://github.com/moag1000/HA-kkt-kolbe-integration/blob/main/blueprints/automation/hood_with_ind_cooktop.yaml
   input:
     # === KOCHFELD SENSOREN ===
     cooktop_sensor:
-      name: Kochfeld Sensor
+      name: Kochfeld Sensor (Power/Level)
       description: >-
         Wähle einen der KKT IND Sensoren:
-        - "Estimated Power" (geschätzte Watt, empfohlen für diese Blueprint)
+        - "Estimated Power" (geschätzte Watt, empfohlen)
         - "Total Power Level" (Summe der Zonen-Stufen 0-125)
         - "Active Zones" (Anzahl aktiver Zonen 0-5)
       selector:
@@ -22,7 +23,7 @@ blueprint:
 
     sensor_type:
       name: Sensor-Typ
-      description: Welchen Sensor verwendest du?
+      description: Welchen Power-Sensor verwendest du?
       default: "estimated_power"
       selector:
         select:
@@ -33,6 +34,85 @@ blueprint:
               value: "total_level"
             - label: "Active Zones (0-5)"
               value: "active_zones"
+
+    # === TEMPERATUR-SENSOREN (OPTIONAL) ===
+    use_temperature:
+      name: Temperatur-basierter Nachlauf
+      description: >-
+        Wenn aktiviert, läuft die Haube weiter bis das Kochfeld abgekühlt ist.
+        Nutzt die Zone-Temperatursensoren der IND7705HC.
+      default: false
+      selector:
+        boolean:
+
+    temp_sensor_1:
+      name: Zone 1 Temperatur (optional)
+      description: Temperatursensor Zone 1 - wird für Nachlauf-Erkennung verwendet
+      default: {}
+      selector:
+        entity:
+          domain: sensor
+          device_class: temperature
+
+    temp_sensor_2:
+      name: Zone 2 Temperatur (optional)
+      description: Temperatursensor Zone 2
+      default: {}
+      selector:
+        entity:
+          domain: sensor
+          device_class: temperature
+
+    temp_sensor_3:
+      name: Zone 3 Temperatur (optional)
+      description: Temperatursensor Zone 3
+      default: {}
+      selector:
+        entity:
+          domain: sensor
+          device_class: temperature
+
+    temp_sensor_4:
+      name: Zone 4 Temperatur (optional)
+      description: Temperatursensor Zone 4
+      default: {}
+      selector:
+        entity:
+          domain: sensor
+          device_class: temperature
+
+    temp_sensor_5:
+      name: Zone 5 Temperatur (optional)
+      description: Temperatursensor Zone 5
+      default: {}
+      selector:
+        entity:
+          domain: sensor
+          device_class: temperature
+
+    temp_threshold_start:
+      name: Temperatur-Schwelle Start (°C)
+      description: >-
+        Ab welcher Temperatur gilt eine Zone als "heiß"?
+        Wird für zusätzliche Kochen-Erkennung verwendet.
+      default: 50
+      selector:
+        number:
+          min: 30
+          max: 100
+          unit_of_measurement: "°C"
+
+    temp_threshold_stop:
+      name: Temperatur-Schwelle Stop (°C)
+      description: >-
+        Unter welcher Temperatur gilt eine Zone als "abgekühlt"?
+        Haube schaltet erst aus wenn ALLE Zonen unter diesem Wert sind.
+      default: 40
+      selector:
+        number:
+          min: 25
+          max: 80
+          unit_of_measurement: "°C"
 
     # === DUNSTABZUGSHAUBE ===
     hood_power:
@@ -250,6 +330,15 @@ variables:
   hood_power_switch: !input hood_power
   hood_fan_entity: !input hood_fan
   hood_light_entity: !input hood_light
+  # Temperature sensors
+  use_temp: !input use_temperature
+  temp1: !input temp_sensor_1
+  temp2: !input temp_sensor_2
+  temp3: !input temp_sensor_3
+  temp4: !input temp_sensor_4
+  temp5: !input temp_sensor_5
+  temp_start: !input temp_threshold_start
+  temp_stop: !input temp_threshold_stop
   # Watt thresholds
   thresh_start_w: !input threshold_start_watt
   thresh_medium_w: !input threshold_medium_watt
@@ -275,6 +364,19 @@ variables:
   light_enabled: !input turn_on_light
   # Current values
   current_value: "{{ states(sensor) | float(0) }}"
+  # Max temperature across all configured zones
+  max_temp: >-
+    {% set temps = [] %}
+    {% if temp1 %}{% set temps = temps + [states(temp1) | float(0)] %}{% endif %}
+    {% if temp2 %}{% set temps = temps + [states(temp2) | float(0)] %}{% endif %}
+    {% if temp3 %}{% set temps = temps + [states(temp3) | float(0)] %}{% endif %}
+    {% if temp4 %}{% set temps = temps + [states(temp4) | float(0)] %}{% endif %}
+    {% if temp5 %}{% set temps = temps + [states(temp5) | float(0)] %}{% endif %}
+    {{ temps | max | default(0) }}
+  # Check if any zone is still hot
+  is_still_hot: "{{ use_temp and max_temp | float >= temp_stop | float }}"
+  # Check if any zone is hot enough to trigger start
+  is_hot_start: "{{ use_temp and max_temp | float >= temp_start | float }}"
   # Dynamic thresholds based on sensor type
   threshold_start: >-
     {% if sensor_mode == 'estimated_power' %}
@@ -324,12 +426,19 @@ variables:
   is_cooking: "{{ current_value >= threshold_start | float }}"
 
 trigger:
-  # Kochen gestartet
+  # Kochen gestartet (Power/Level basiert)
   - platform: template
     value_template: "{{ states(sensor) | float(0) >= threshold_start | float }}"
     for:
       seconds: 5
     id: cooking_started
+
+  # Kochen gestartet (Temperatur basiert - optional)
+  - platform: template
+    value_template: "{{ is_hot_start }}"
+    for:
+      seconds: 10
+    id: temp_cooking_started
 
   # Kochen beendet
   - platform: template
@@ -352,7 +461,7 @@ condition: []
 
 action:
   - choose:
-      # === KOCHEN GESTARTET ===
+      # === KOCHEN GESTARTET (Power/Level) ===
       - conditions:
           - condition: trigger
             id: cooking_started
@@ -370,6 +479,34 @@ action:
               entity_id: !input hood_fan
             data:
               percentage: "{{ target_speed }}"
+          - if:
+              - condition: template
+                value_template: "{{ light_enabled and hood_light_entity }}"
+            then:
+              - service: light.turn_on
+                target:
+                  entity_id: !input hood_light
+
+      # === KOCHEN GESTARTET (Temperatur) ===
+      # Wenn Temperatur ansteigt, aber Power noch nicht erkannt wurde
+      - conditions:
+          - condition: trigger
+            id: temp_cooking_started
+          - condition: state
+            entity_id: !input hood_power
+            state: "off"
+        sequence:
+          - service: switch.turn_on
+            target:
+              entity_id: !input hood_power
+          - delay:
+              milliseconds: 500
+          # Starte mit niedriger Geschwindigkeit (Temperatur = nachträglich erkannt)
+          - service: fan.set_percentage
+            target:
+              entity_id: !input hood_fan
+            data:
+              percentage: "{{ speed_low }}"
           - if:
               - condition: template
                 value_template: "{{ light_enabled and hood_light_entity }}"
@@ -426,7 +563,23 @@ action:
               percentage: "{{ speed_medium }}"
           - delay:
               minutes: "{{ (afterrun / 3) | int }}"
-          # Prüfen ob noch aus
+
+          # === TEMPERATUR-BASIERTER NACHLAUF ===
+          # Wenn Temperatur-Modus aktiv: Warte bis alle Zonen abgekühlt sind
+          - repeat:
+              while:
+                - condition: template
+                  value_template: "{{ is_still_hot }}"
+                - condition: template
+                  value_template: "{{ states(sensor) | float(0) < threshold_start | float }}"
+              sequence:
+                - delay:
+                    minutes: 1
+                # Prüfe ob wieder gekocht wird
+                - condition: template
+                  value_template: "{{ states(sensor) | float(0) < threshold_start | float }}"
+
+          # Prüfen ob Kochfeld noch aus
           - condition: template
             value_template: "{{ states(sensor) | float(0) < threshold_start | float }}"
           - service: fan.set_percentage
@@ -445,8 +598,13 @@ action:
               percentage: 25
           - delay:
               minutes: "{{ (afterrun / 3) | int }}"
+
+          # Finale Prüfung: Power UND Temperatur
           - condition: template
-            value_template: "{{ states(sensor) | float(0) < threshold_start | float }}"
+            value_template: >-
+              {{ states(sensor) | float(0) < threshold_start | float and
+                 (not use_temp or not is_still_hot) }}
+
           # Ausschalten
           - service: fan.turn_off
             target:

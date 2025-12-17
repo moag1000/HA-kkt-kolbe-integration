@@ -198,6 +198,38 @@ Diese Blueprint funktioniert **ohne externen Stromzähler** und nutzt stattdesse
 | Hoch | 3 | 75% |
 | Boost | 4+ | 100% |
 
+### Temperatur-basierter Nachlauf (NEU!)
+
+Die IND7705HC hat Temperatursensoren für jede Zone. Diese können für einen intelligenten Nachlauf verwendet werden:
+
+**Vorteile:**
+- **Natürlicher Nachlauf**: Haube läuft bis Kochfeld abgekühlt ist
+- **Doppelte Erkennung**: Startet auch wenn Temperatur steigt (z.B. Nachwärme)
+- **Sicherer**: Abschaltung erst wenn wirklich alles kalt ist
+
+**Einstellungen:**
+| Einstellung | Beschreibung | Standard |
+|-------------|--------------|----------|
+| Temperatur-Start | Ab wann gilt Zone als "heiß"? | 50°C |
+| Temperatur-Stop | Unter welcher Temp ist "abgekühlt"? | 40°C |
+
+**So funktioniert es:**
+```
+Kochen beendet (Power = 0)
+         ↓
+    Temperatur > 40°C?
+         ↓ Ja
+    Haube läuft weiter (niedrige Stufe)
+         ↓
+    [Warte 1 Minute, prüfe erneut]
+         ↓
+    Temperatur < 40°C?
+         ↓ Ja
+    Normaler Nachlauf startet
+         ↓
+    Haube aus
+```
+
 ### Hinweis zur Genauigkeit
 
 Die "Estimated Power" basiert auf der Formel: `Power Level × 100W`
