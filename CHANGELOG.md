@@ -5,6 +5,41 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.0] - 2025-12-17
+
+### Feature Release - Light Effects (RGB Modi als Licht-Effekte)
+
+RGB Modi sind jetzt direkt in der Light-Entity als **Effekte** verfügbar!
+
+### Added
+- **Light Effects für alle Hauben mit RGB**:
+  - HERMES & STYLE: Effekte "Aus", "Modus 1" bis "Modus 9"
+  - HERMES: Effekte "Aus", "Modus 1" bis "Modus 9"
+  - SOLO HCM: Effekte "white", "colour", "scene", "music"
+  - ECCO HCM: Effekte "white", "colour", "scene", "music"
+
+### Changed
+- RGB Mode Number/Select Entities sind jetzt `advanced` (Backup-Steuerung)
+- Light Entity hat jetzt `LightEntityFeature.EFFECT` Support
+
+### HomeKit/Siri Integration
+- Effekte erscheinen im Light-Menü in HomeKit
+- "Hey Siri, stelle Licht auf Modus 3" funktioniert jetzt
+
+### Technical Details
+```python
+# Light config in device_types.py
+{
+    "dp": 4,
+    "name": "Light",
+    "effect_dp": 101,           # DP für RGB Mode
+    "effect_numeric": True,     # True = 0-9, False = string
+    "effects": ["Aus", "Modus 1", ...]
+}
+```
+
+---
+
 ## [2.6.5] - 2025-12-17
 
 ### Bugfix - RGB Mode unter Steuerelemente

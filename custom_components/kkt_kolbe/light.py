@@ -6,7 +6,8 @@ Using light entities instead of switches allows Siri to understand
 
 Supports:
 - Simple on/off lights
-- Lights with brightness control (future)
+- Lights with brightness control
+- Lights with effect modes (RGB presets)
 """
 from __future__ import annotations
 
@@ -15,8 +16,10 @@ from typing import Any
 
 from homeassistant.components.light import (
     LightEntity,
+    LightEntityFeature,
     ColorMode,
     ATTR_BRIGHTNESS,
+    ATTR_EFFECT,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
@@ -63,6 +66,7 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
     This light entity is designed to work well with HomeKit/Siri:
     - Siri understands "Turn on the light"
     - Supports brightness if configured
+    - Supports effect modes (RGB presets)
     """
 
     def __init__(
@@ -76,6 +80,11 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
         self._brightness_dp = light_config.get("brightness_dp")
         self._max_brightness = light_config.get("max_brightness", 255)
 
+        # Effect/RGB mode configuration
+        self._effect_dp = light_config.get("effect_dp")
+        self._effect_list = light_config.get("effects", [])
+        self._effect_numeric = light_config.get("effect_numeric", False)
+
         # Determine color modes
         if self._brightness_dp:
             self._attr_supported_color_modes = {ColorMode.BRIGHTNESS}
@@ -83,6 +92,12 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
         else:
             self._attr_supported_color_modes = {ColorMode.ONOFF}
             self._attr_color_mode = ColorMode.ONOFF
+
+        # Determine supported features
+        features = LightEntityFeature(0)
+        if self._effect_list:
+            features |= LightEntityFeature.EFFECT
+        self._attr_supported_features = features
 
         config: dict[str, Any] = {
             "dp": self._dp_id,
@@ -94,8 +109,8 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
         self._attr_icon = light_config.get("icon", "mdi:lightbulb")
 
         _LOGGER.info(
-            "KKTKolbeLight [%s] initialized - dp: %d, brightness_dp: %s",
-            self._name, self._dp_id, self._brightness_dp
+            "KKTKolbeLight [%s] initialized - dp: %d, brightness_dp: %s, effect_dp: %s, effects: %s",
+            self._name, self._dp_id, self._brightness_dp, self._effect_dp, self._effect_list
         )
 
     @property
@@ -120,6 +135,36 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
                 return int((brightness_value / self._max_brightness) * 255)
         return None
 
+    @property
+    def effect_list(self) -> list[str] | None:
+        """Return the list of supported effects."""
+        if not self._effect_list:
+            return None
+        return self._effect_list
+
+    @property
+    def effect(self) -> str | None:
+        """Return the current effect."""
+        if not self._effect_dp or not self._effect_list:
+            return None
+
+        if self.coordinator.data:
+            effect_value = self.coordinator.data.get(str(self._effect_dp))
+            if effect_value is not None:
+                if self._effect_numeric:
+                    # Numeric mode: value is index
+                    try:
+                        idx = int(effect_value)
+                        if 0 <= idx < len(self._effect_list):
+                            return self._effect_list[idx]
+                    except (ValueError, TypeError):
+                        pass
+                else:
+                    # String mode: value is effect name
+                    if str(effect_value) in self._effect_list:
+                        return str(effect_value)
+        return None
+
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
@@ -127,6 +172,11 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the light."""
+        # Handle effect if provided
+        if ATTR_EFFECT in kwargs and self._effect_dp:
+            effect = kwargs[ATTR_EFFECT]
+            await self._set_effect(effect)
+
         # Handle brightness if provided and supported
         if ATTR_BRIGHTNESS in kwargs and self._brightness_dp:
             brightness = kwargs[ATTR_BRIGHTNESS]
@@ -143,3 +193,18 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
         """Turn off the light."""
         await self._async_set_data_point(self._dp_id, False)
         self._log_entity_state("Turn Off", f"DP {self._dp_id} set to False")
+
+    async def _set_effect(self, effect: str) -> None:
+        """Set the light effect."""
+        if not self._effect_dp or effect not in self._effect_list:
+            return
+
+        if self._effect_numeric:
+            # Numeric mode: send index
+            idx = self._effect_list.index(effect)
+            await self._async_set_data_point(self._effect_dp, idx)
+            self._log_entity_state("Set Effect", f"Effect: {effect} (index {idx})")
+        else:
+            # String mode: send effect name
+            await self._async_set_data_point(self._effect_dp, effect)
+            self._log_entity_state("Set Effect", f"Effect: {effect}")
