@@ -1,23 +1,36 @@
 blueprint:
-  name: Dunstabzugshaube Auto-Aus
+  name: Dunstabzugshaube Auto-Aus (Erweitert)
   description: >-
     Schaltet die Dunstabzugshaube automatisch aus, wenn sie eine bestimmte Zeit
-    lang gelaufen ist. Nützlich um zu verhindern, dass die Haube vergessen wird.
+    lang gelaufen ist. Mit gestuftem Herunterfahren, Benachrichtigungen und
+    optionaler Lichtabschaltung.
   domain: automation
   source_url: https://github.com/moag1000/HA-kkt-kolbe-integration/blob/main/blueprints/automation/hood_auto_off.yaml
   input:
+    # === GERÄTE ===
     hood_power:
       name: Dunstabzugshaube Power
       description: Der Power-Schalter der Dunstabzugshaube
       selector:
         entity:
           domain: switch
+
     fan_entity:
       name: Lüfter Entity
       description: Die Fan-Entity der Dunstabzugshaube
       selector:
         entity:
           domain: fan
+
+    hood_light:
+      name: Dunstabzugshaube Licht (optional)
+      description: Soll das Licht auch ausgeschaltet werden?
+      default: {}
+      selector:
+        entity:
+          domain: light
+
+    # === TIMING ===
     timeout_minutes:
       name: Timeout (Minuten)
       description: Nach wie vielen Minuten soll die Haube ausgeschaltet werden?
@@ -26,49 +39,215 @@ blueprint:
         number:
           min: 5
           max: 180
+          step: 5
           unit_of_measurement: min
+
+    reset_on_speed_change:
+      name: Timer bei Geschwindigkeitsänderung zurücksetzen
+      description: >-
+        Wenn aktiviert, wird der Timer zurückgesetzt sobald die Lüftergeschwindigkeit
+        geändert wird (= Benutzer ist aktiv am Kochen)
+      default: true
+      selector:
+        boolean:
+
+    # === HERUNTERFAHREN ===
+    gradual_shutdown:
+      name: Gestuftes Herunterfahren
+      description: >-
+        Reduziert die Geschwindigkeit schrittweise vor dem Ausschalten
+        (besser für den Motor und leiser)
+      default: true
+      selector:
+        boolean:
+
+    shutdown_step_time:
+      name: Zeit pro Stufe beim Herunterfahren (Sekunden)
+      description: Wie lange auf jeder Stufe bleiben vor der nächsten Reduzierung?
+      default: 30
+      selector:
+        number:
+          min: 10
+          max: 120
+          step: 10
+          unit_of_measurement: s
+
+    # === BENACHRICHTIGUNGEN ===
     notify_before_off:
       name: Vorher benachrichtigen
       description: Soll vor dem Ausschalten eine Benachrichtigung gesendet werden?
       default: true
       selector:
         boolean:
+
+    warning_time_minutes:
+      name: Vorwarnzeit (Minuten)
+      description: Wie viele Minuten vor dem Ausschalten soll benachrichtigt werden?
+      default: 2
+      selector:
+        number:
+          min: 1
+          max: 10
+          unit_of_measurement: min
+
     notification_service:
       name: Benachrichtigungs-Service
-      description: Der Service für Benachrichtigungen (z.B. notify.mobile_app)
+      description: Der Service für Benachrichtigungen (z.B. notify.mobile_app_iphone)
       default: notify.notify
       selector:
         text:
 
+    # === SICHERHEIT ===
+    only_when_fan_running:
+      name: Nur wenn Lüfter läuft
+      description: >-
+        Nur ausschalten wenn der Lüfter tatsächlich läuft
+        (verhindert Ausschalten wenn nur das Licht an ist)
+      default: true
+      selector:
+        boolean:
+
+variables:
+  hood_power_entity: !input hood_power
+  fan: !input fan_entity
+  light: !input hood_light
+  timeout: !input timeout_minutes
+  notify_enabled: !input notify_before_off
+  warning_time: !input warning_time_minutes
+  gradual: !input gradual_shutdown
+  step_time: !input shutdown_step_time
+  only_fan_running: !input only_when_fan_running
+  current_speed: "{{ state_attr(fan, 'percentage') | int(0) }}"
+
 trigger:
+  # Haupt-Trigger: Power ist für X Minuten an
   - platform: state
     entity_id: !input hood_power
     to: "on"
     for:
       minutes: !input timeout_minutes
+    id: timeout_reached
+
+  # Optional: Timer zurücksetzen bei Geschwindigkeitsänderung
+  - platform: state
+    entity_id: !input fan_entity
+    attribute: percentage
+    id: speed_changed
 
 condition: []
 
 action:
   - choose:
+      # === GESCHWINDIGKEITSÄNDERUNG - TIMER NEUSTART ===
       - conditions:
+          - condition: trigger
+            id: speed_changed
           - condition: template
-            value_template: "{{ notify_before_off }}"
+            value_template: !input reset_on_speed_change
+          - condition: state
+            entity_id: !input hood_power
+            state: "on"
         sequence:
-          - service: !input notification_service
-            data:
-              title: "Dunstabzugshaube"
-              message: "Die Dunstabzugshaube wird in 1 Minute ausgeschaltet."
+          # Automation wird durch mode: restart automatisch neu gestartet
           - delay:
-              minutes: 1
-  - service: fan.turn_off
-    target:
-      entity_id: !input fan_entity
-  - service: switch.turn_off
-    target:
-      entity_id: !input hood_power
+              minutes: !input timeout_minutes
+          # Nach dem Delay weitermachen mit Abschaltung (wird unten fortgesetzt)
+          - event: kkt_kolbe_hood_timeout
+            event_data:
+              entity_id: !input hood_power
+
+      # === TIMEOUT ERREICHT ===
+      - conditions:
+          - condition: trigger
+            id: timeout_reached
+        sequence:
+          # Prüfen ob Lüfter läuft (wenn Option aktiviert)
+          - condition: or
+            conditions:
+              - condition: template
+                value_template: "{{ not only_fan_running }}"
+              - condition: template
+                value_template: "{{ current_speed > 0 }}"
+
+          # Warnung senden
+          - if:
+              - condition: template
+                value_template: "{{ notify_enabled }}"
+            then:
+              - service: !input notification_service
+                data:
+                  title: "🌀 Dunstabzugshaube"
+                  message: >-
+                    Die Dunstabzugshaube läuft seit {{ timeout }} Minuten und wird
+                    in {{ warning_time }} Minute(n) ausgeschaltet.
+                  data:
+                    tag: "hood_auto_off"
+                    actions:
+                      - action: "HOOD_KEEP_RUNNING"
+                        title: "+30 Min"
+              - delay:
+                  minutes: !input warning_time_minutes
+
+          # Prüfen ob immer noch an (falls manuell ausgeschaltet)
+          - condition: state
+            entity_id: !input hood_power
+            state: "on"
+
+          # Gestuftes Herunterfahren
+          - if:
+              - condition: template
+                value_template: "{{ gradual and current_speed > 25 }}"
+            then:
+              # Auf 50% reduzieren wenn höher
+              - if:
+                  - condition: template
+                    value_template: "{{ current_speed > 50 }}"
+                then:
+                  - service: fan.set_percentage
+                    target:
+                      entity_id: !input fan_entity
+                    data:
+                      percentage: 50
+                  - delay:
+                      seconds: !input shutdown_step_time
+              # Auf 25% reduzieren
+              - service: fan.set_percentage
+                target:
+                  entity_id: !input fan_entity
+                data:
+                  percentage: 25
+              - delay:
+                  seconds: !input shutdown_step_time
+
+          # Endgültig ausschalten
+          - service: fan.turn_off
+            target:
+              entity_id: !input fan_entity
+          - delay:
+              milliseconds: 500
+          - service: switch.turn_off
+            target:
+              entity_id: !input hood_power
+
+          # Optional: Licht ausschalten
+          - if:
+              - condition: template
+                value_template: "{{ light is defined and light }}"
+            then:
+              - service: light.turn_off
+                target:
+                  entity_id: !input hood_light
+
+          # Abschluss-Benachrichtigung
+          - if:
+              - condition: template
+                value_template: "{{ notify_enabled }}"
+            then:
+              - service: !input notification_service
+                data:
+                  title: "🌀 Dunstabzugshaube"
+                  message: "Die Dunstabzugshaube wurde automatisch ausgeschaltet."
+                  data:
+                    tag: "hood_auto_off"
 
 mode: restart
-
-variables:
-  notify_before_off: !input notify_before_off

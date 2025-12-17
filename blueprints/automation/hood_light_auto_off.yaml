@@ -1,17 +1,41 @@
 blueprint:
-  name: Dunstabzugshaube Licht Auto-Aus
+  name: Dunstabzugshaube Licht Auto-Aus (Erweitert)
   description: >-
-    Schaltet das Licht der Dunstabzugshaube automatisch aus, wenn es eine
-    bestimmte Zeit lang an war.
+    Schaltet das Licht der Dunstabzugshaube automatisch aus. Mit Optionen für
+    Dimmen vor dem Ausschalten, Lüfter-Abhängigkeit und Bewegungsmelder-Reset.
   domain: automation
   source_url: https://github.com/moag1000/HA-kkt-kolbe-integration/blob/main/blueprints/automation/hood_light_auto_off.yaml
   input:
+    # === GERÄTE ===
     hood_light:
       name: Dunstabzugshaube Licht
       description: Die Licht-Entity der Dunstabzugshaube
       selector:
         entity:
           domain: light
+
+    fan_entity:
+      name: Lüfter Entity (optional)
+      description: >-
+        Wenn angegeben, wird das Licht nur ausgeschaltet wenn der Lüfter auch aus ist.
+        Praktisch wenn das Licht beim Kochen an bleiben soll.
+      default: {}
+      selector:
+        entity:
+          domain: fan
+
+    motion_sensor:
+      name: Bewegungsmelder (optional)
+      description: >-
+        Wenn angegeben, wird der Timer bei Bewegung zurückgesetzt.
+        Ideal für Küchen mit Bewegungsmelder.
+      default: {}
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class: motion
+
+    # === TIMING ===
     timeout_minutes:
       name: Timeout (Minuten)
       description: Nach wie vielen Minuten soll das Licht ausgeschaltet werden?
@@ -20,20 +44,223 @@ blueprint:
         number:
           min: 1
           max: 120
+          step: 5
           unit_of_measurement: min
 
+    timeout_when_fan_off:
+      name: Timeout wenn Lüfter aus (Minuten)
+      description: >-
+        Kürzerer Timeout nachdem der Lüfter ausgeschaltet wurde.
+        Nur relevant wenn Lüfter-Entity angegeben ist.
+      default: 5
+      selector:
+        number:
+          min: 1
+          max: 30
+          unit_of_measurement: min
+
+    # === VERHALTEN ===
+    only_when_fan_off:
+      name: Nur ausschalten wenn Lüfter aus
+      description: >-
+        Wenn aktiviert, wird das Licht nur ausgeschaltet wenn der Lüfter
+        nicht läuft. Das Licht bleibt an solange gekocht wird.
+      default: false
+      selector:
+        boolean:
+
+    dim_before_off:
+      name: Dimmen vor Ausschalten
+      description: >-
+        Reduziert die Helligkeit vor dem Ausschalten als visuelle Warnung.
+        Nur wenn die Lampe dimmbar ist.
+      default: false
+      selector:
+        boolean:
+
+    dim_brightness:
+      name: Dimm-Helligkeit (%)
+      description: Auf welche Helligkeit soll gedimmt werden?
+      default: 20
+      selector:
+        number:
+          min: 5
+          max: 50
+          unit_of_measurement: "%"
+
+    dim_duration:
+      name: Dimm-Dauer (Sekunden)
+      description: Wie lange soll das gedimmte Licht an bleiben vor dem Ausschalten?
+      default: 30
+      selector:
+        number:
+          min: 5
+          max: 120
+          unit_of_measurement: s
+
+    # === EFFEKT ===
+    set_effect_before_off:
+      name: Effekt-Wechsel als Warnung
+      description: >-
+        Wechselt den Lichteffekt (z.B. auf Rot) bevor das Licht ausgeht.
+        Nur für RGB-Lichter.
+      default: false
+      selector:
+        boolean:
+
+    warning_effect:
+      name: Warn-Effekt
+      description: Welcher Effekt soll als Warnung verwendet werden?
+      default: "Rot"
+      selector:
+        select:
+          options:
+            - "Rot"
+            - "Orange"
+            - "Gelb"
+            - "Lila"
+
+variables:
+  light: !input hood_light
+  fan: !input fan_entity
+  motion: !input motion_sensor
+  timeout: !input timeout_minutes
+  timeout_fan_off: !input timeout_when_fan_off
+  only_fan_off: !input only_when_fan_off
+  dim_enabled: !input dim_before_off
+  dim_level: !input dim_brightness
+  dim_time: !input dim_duration
+  effect_enabled: !input set_effect_before_off
+  effect_name: !input warning_effect
+  has_fan: "{{ fan is defined and fan }}"
+  has_motion: "{{ motion is defined and motion }}"
+  fan_is_off: "{{ not has_fan or is_state(fan, 'off') or state_attr(fan, 'percentage') | int(0) == 0 }}"
+
 trigger:
+  # Haupt-Trigger: Licht ist für X Minuten an
   - platform: state
     entity_id: !input hood_light
     to: "on"
     for:
       minutes: !input timeout_minutes
+    id: timeout_reached
+
+  # Trigger: Lüfter wurde ausgeschaltet (kürzerer Timeout)
+  - platform: state
+    entity_id: !input fan_entity
+    to: "off"
+    for:
+      minutes: !input timeout_when_fan_off
+    id: fan_turned_off
+
+  # Trigger: Bewegung erkannt (Timer zurücksetzen)
+  - platform: state
+    entity_id: !input motion_sensor
+    to: "on"
+    id: motion_detected
 
 condition: []
 
 action:
-  - service: light.turn_off
-    target:
-      entity_id: !input hood_light
+  - choose:
+      # === BEWEGUNG ERKANNT - TIMER RESET ===
+      - conditions:
+          - condition: trigger
+            id: motion_detected
+          - condition: template
+            value_template: "{{ has_motion }}"
+          - condition: state
+            entity_id: !input hood_light
+            state: "on"
+        sequence:
+          # Durch mode: restart wird die Automation neu gestartet
+          # und der Timer beginnt von vorne
+          - delay:
+              minutes: !input timeout_minutes
+
+      # === LÜFTER AUSGESCHALTET - KÜRZERER TIMEOUT ===
+      - conditions:
+          - condition: trigger
+            id: fan_turned_off
+          - condition: template
+            value_template: "{{ has_fan }}"
+          - condition: state
+            entity_id: !input hood_light
+            state: "on"
+        sequence:
+          # Licht ausschalten (mit optionalem Dimmen/Effekt)
+          - if:
+              - condition: template
+                value_template: "{{ effect_enabled }}"
+            then:
+              - service: light.turn_on
+                target:
+                  entity_id: !input hood_light
+                data:
+                  effect: "{{ effect_name }}"
+              - delay:
+                  seconds: 10
+          - if:
+              - condition: template
+                value_template: "{{ dim_enabled }}"
+            then:
+              - service: light.turn_on
+                target:
+                  entity_id: !input hood_light
+                data:
+                  brightness_pct: "{{ dim_level }}"
+              - delay:
+                  seconds: !input dim_duration
+          - service: light.turn_off
+            target:
+              entity_id: !input hood_light
+
+      # === NORMALER TIMEOUT ERREICHT ===
+      - conditions:
+          - condition: trigger
+            id: timeout_reached
+        sequence:
+          # Prüfen ob Lüfter aus ist (wenn erforderlich)
+          - condition: or
+            conditions:
+              - condition: template
+                value_template: "{{ not only_fan_off }}"
+              - condition: template
+                value_template: "{{ fan_is_off }}"
+
+          # Effekt-Warnung (für RGB Lichter)
+          - if:
+              - condition: template
+                value_template: "{{ effect_enabled }}"
+            then:
+              - service: light.turn_on
+                target:
+                  entity_id: !input hood_light
+                data:
+                  effect: "{{ effect_name }}"
+              - delay:
+                  seconds: 10
+
+          # Dimmen als Warnung
+          - if:
+              - condition: template
+                value_template: "{{ dim_enabled }}"
+            then:
+              - service: light.turn_on
+                target:
+                  entity_id: !input hood_light
+                data:
+                  brightness_pct: "{{ dim_level }}"
+              - delay:
+                  seconds: !input dim_duration
+              # Nochmal prüfen ob noch an (falls manuell aus)
+              - condition: state
+                entity_id: !input hood_light
+                state: "on"
+
+          # Licht ausschalten
+          - service: light.turn_off
+            target:
+              entity_id: !input hood_light
 
 mode: restart

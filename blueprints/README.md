@@ -1,6 +1,6 @@
 # KKT Kolbe Blueprints
 
-Fertige Automations-Vorlagen für deine KKT Kolbe Geräte.
+Fertige Automations-Vorlagen für deine KKT Kolbe Geräte - durchdacht und praxisnah.
 
 ## Installation
 
@@ -10,9 +10,9 @@ Klicke auf den Import-Button bei der gewünschten Blueprint:
 
 | Blueprint | Beschreibung | Import |
 |-----------|--------------|--------|
-| [Hood Auto-Off](automation/hood_auto_off.yaml) | Schaltet Haube nach X Minuten aus | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fmoag1000%2FHA-kkt-kolbe-integration%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fhood_auto_off.yaml) |
-| [Hood Light Auto-Off](automation/hood_light_auto_off.yaml) | Schaltet Licht nach X Minuten aus | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fmoag1000%2FHA-kkt-kolbe-integration%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fhood_light_auto_off.yaml) |
-| [Hood with Cooktop (Erweitert)](automation/hood_with_cooktop.yaml) | Intelligente Synchronisation mit Kochfeld | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fmoag1000%2FHA-kkt-kolbe-integration%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fhood_with_cooktop.yaml) |
+| [Hood Auto-Off](automation/hood_auto_off.yaml) | Intelligente Auto-Abschaltung | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fmoag1000%2FHA-kkt-kolbe-integration%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fhood_auto_off.yaml) |
+| [Hood Light Auto-Off](automation/hood_light_auto_off.yaml) | Licht intelligent ausschalten | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fmoag1000%2FHA-kkt-kolbe-integration%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fhood_light_auto_off.yaml) |
+| [Hood with Cooktop](automation/hood_with_cooktop.yaml) | Kochfeld-Synchronisation | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fmoag1000%2FHA-kkt-kolbe-integration%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fhood_with_cooktop.yaml) |
 
 ### Methode 2: Manuell
 
@@ -20,69 +20,162 @@ Klicke auf den Import-Button bei der gewünschten Blueprint:
 2. Starte Home Assistant neu
 3. Gehe zu Einstellungen → Automatisierungen → Blueprints
 
-## Verfügbare Blueprints
+---
 
-### Dunstabzugshaube Auto-Aus
-Schaltet die Dunstabzugshaube automatisch aus, wenn sie eine bestimmte Zeit lang gelaufen ist.
+## Dunstabzugshaube Auto-Aus (Erweitert)
 
-**Einstellungen:**
-- Power-Entity der Haube
-- Fan-Entity der Haube
-- Timeout in Minuten (Standard: 60)
-- Optionale Benachrichtigung vor dem Ausschalten
+Schaltet die Dunstabzugshaube automatisch aus mit intelligenten Features.
 
-### Dunstabzugshaube Licht Auto-Aus
-Schaltet das Licht der Dunstabzugshaube automatisch aus.
+### Features
+- **Gestuftes Herunterfahren** - Reduziert Geschwindigkeit schrittweise (schonender für Motor)
+- **Timer-Reset bei Aktivität** - Geschwindigkeitsänderung verlängert die Laufzeit
+- **Vorwarnung** - Benachrichtigung X Minuten vor dem Ausschalten
+- **Actionable Notification** - "+30 Min" Button in der Benachrichtigung
+- **Licht-Steuerung** - Optional Licht mit ausschalten
+- **Lüfter-Check** - Nur ausschalten wenn Lüfter tatsächlich läuft
 
-**Einstellungen:**
-- Licht-Entity der Haube
-- Timeout in Minuten (Standard: 30)
-
-### Dunstabzugshaube mit Kochfeld synchronisieren (Erweitert)
-
-**Die intelligenteste Art, deine Dunstabzugshaube zu steuern!**
-
-Diese erweiterte Blueprint passt die Lüftergeschwindigkeit automatisch an den Stromverbrauch deines Kochfelds an. Je intensiver du kochst, desto stärker läuft der Lüfter.
-
-**Features:**
-- **Power-basierte Geschwindigkeit**: 4 Stufen (niedrig/mittel/hoch/boost) basierend auf Watt-Verbrauch
-- **Gestufter Nachlauf**: Nach dem Kochen reduziert sich die Geschwindigkeit schrittweise
-- **Automatische Lichtsteuerung**: Optional wird das Licht beim Kochen mitgeschaltet
-- **Schnelle Reaktion**: Bei plötzlichem Power-Anstieg wird sofort hochgeregelt
-- **Wiederkoch-Erkennung**: Wenn du während des Nachlaufs wieder anfängst zu kochen, startet die Automation neu
-
-**Voraussetzungen:**
-- Stromverbrauch-Sensor für das Kochfeld (z.B. Shelly Plug)
-- KKT Kolbe Dunstabzugshaube
-
-**Standardwerte (optimiert für typische Induktionskochfelder):**
-
-| Schwellenwert | Leistung | Lüfter-Geschwindigkeit |
-|---------------|----------|------------------------|
-| Start | 50W | 25% |
-| Mittel | 1000W | 50% |
-| Hoch | 2500W | 75% |
-| Boost | 5000W | 100% |
-
-**Nachlauf-Stufen (Standard):**
-1. **3 Minuten** auf mittlerer Stufe (50%)
-2. **5 Minuten** auf niedriger Stufe (25%)
-3. **5 Minuten** auf minimaler Stufe (25%)
-4. Dann Abschaltung
-
-**Einstellungen im Detail:**
+### Einstellungen
 
 | Einstellung | Beschreibung | Standard |
 |-------------|--------------|----------|
-| Kochfeld Stromverbrauch-Sensor | Sensor der den aktuellen Verbrauch misst | - |
-| Start-Schwellenwert | Ab welchem Verbrauch startet die Haube? | 50W |
-| Mittlere Leistung | Ab wann mittlere Stufe? | 1000W |
-| Hohe Leistung | Ab wann hohe Stufe? | 2500W |
-| Boost-Leistung | Ab wann maximale Stufe? | 5000W |
-| Lüfter-Geschwindigkeiten | Für jede Stufe einstellbar | 25/50/75/100% |
-| Gestufter Nachlauf | Schrittweise Reduzierung aktivieren | Ja |
-| Nachlauf-Zeiten | Für jede Stufe einstellbar | 3/5/5 min |
-| Licht einschalten | Automatisch Licht an beim Kochen | Ja |
+| Timeout | Nach wie vielen Minuten ausschalten? | 60 min |
+| Timer bei Aktivität zurücksetzen | Neustart bei Geschwindigkeitsänderung | Ja |
+| Gestuftes Herunterfahren | Schrittweise Reduzierung | Ja |
+| Zeit pro Stufe | Dauer auf jeder Stufe | 30 s |
+| Vorwarnzeit | Benachrichtigung X Min vorher | 2 min |
+
+---
+
+## Dunstabzugshaube Licht Auto-Aus (Erweitert)
+
+Schaltet das Licht der Dunstabzugshaube intelligent aus.
+
+### Features
+- **Lüfter-Abhängigkeit** - Licht bleibt an solange Lüfter läuft
+- **Bewegungsmelder-Integration** - Timer-Reset bei Bewegung in der Küche
+- **Dimm-Warnung** - Reduziert Helligkeit vor dem Ausschalten
+- **RGB-Effekt-Warnung** - Wechselt auf Rot/Orange als visuelle Warnung
+- **Kürzerer Timeout nach Lüfter-Aus** - Schnellere Abschaltung wenn Kochen beendet
+
+### Einstellungen
+
+| Einstellung | Beschreibung | Standard |
+|-------------|--------------|----------|
+| Timeout | Nach wie vielen Minuten ausschalten? | 30 min |
+| Timeout wenn Lüfter aus | Kürzerer Timeout nach Kochen | 5 min |
+| Nur wenn Lüfter aus | Licht bleibt beim Kochen an | Nein |
+| Dimmen vor Aus | Helligkeit reduzieren als Warnung | Nein |
+| Effekt-Warnung | RGB auf Rot wechseln | Nein |
+
+---
+
+## Dunstabzugshaube mit Kochfeld synchronisieren (Erweitert)
+
+**Die intelligenteste Art, deine Dunstabzugshaube zu steuern!**
+
+Diese Blueprint passt die Lüftergeschwindigkeit automatisch an den Stromverbrauch deines Kochfelds an.
+
+### Features
+- **4 Power-Stufen** - Geschwindigkeit passt sich der Kochintensität an
+- **Hysterese** - Verhindert ständiges Umschalten bei schwankendem Verbrauch
+- **Startverzögerung** - Keine Fehlstarts bei kurzen Power-Spitzen
+- **Mindestzeit pro Stufe** - Kein hektisches Hin- und Herschalten
+- **Gestufter Nachlauf** - Schrittweise Reduzierung nach dem Kochen
+- **Wiederkoch-Erkennung** - Startet neu wenn während Nachlauf wieder gekocht wird
+- **Benachrichtigungen** - Optional bei Start/Stop/Ende
+- **Licht-Steuerung** - Automatisch an beim Kochen, optional während Nachlauf
+
+### Voraussetzungen
+- **Stromverbrauch-Sensor** für das Kochfeld (z.B. Shelly Plug)
+- KKT Kolbe Dunstabzugshaube
+
+### Power-Schwellenwerte (Standardwerte)
+
+| Schwellenwert | Leistung | Lüfter | Typische Verwendung |
+|---------------|----------|--------|---------------------|
+| Start | 50W | 25% | Aufwärmen, Simmern |
+| Mittel | 1000W | 50% | Normales Kochen, Braten |
+| Hoch | 2500W | 75% | Scharfes Anbraten |
+| Boost | 5000W | 100% | Wok, mehrere Platten Vollgas |
+
+### Hysterese & Stabilität
+
+| Einstellung | Beschreibung | Standard |
+|-------------|--------------|----------|
+| Hysterese | Mindest-Differenz vor Stufenwechsel | 150W |
+| Mindestzeit pro Stufe | Minimale Laufzeit auf einer Stufe | 30s |
+| Startverzögerung | Verzögerung vor Einschalten | 5s |
+
+### Nachlauf-Stufen (Standard)
+
+```
+Kochen beendet
+    ↓
+┌─────────────────────────────────┐
+│ 3 Min auf mittlerer Stufe (50%) │  ← Restgerüche abziehen
+└─────────────────────────────────┘
+    ↓
+┌─────────────────────────────────┐
+│ 5 Min auf niedriger Stufe (25%) │  ← Nachlüften
+└─────────────────────────────────┘
+    ↓
+┌─────────────────────────────────┐
+│ 5 Min auf minimaler Stufe (25%) │  ← Sanftes Auslaufen
+└─────────────────────────────────┘
+    ↓
+   AUS
+```
+
+### Alle Einstellungen
+
+| Kategorie | Einstellung | Standard |
+|-----------|-------------|----------|
+| **Schwellenwerte** | Start-Schwellenwert | 50W |
+| | Mittlere Leistung | 1000W |
+| | Hohe Leistung | 2500W |
+| | Boost-Leistung | 5000W |
+| **Geschwindigkeiten** | Niedrig | 25% |
+| | Mittel | 50% |
+| | Hoch | 75% |
+| | Boost | 100% |
+| **Stabilität** | Hysterese | 150W |
+| | Mindestzeit pro Stufe | 30s |
+| | Startverzögerung | 5s |
+| **Nachlauf** | Gestufter Nachlauf | Ja |
+| | Nachlauf Stufe 1 (mittel) | 3 min |
+| | Nachlauf Stufe 2 (niedrig) | 5 min |
+| | Nachlauf Stufe 3 (minimal) | 5 min |
+| **Licht** | Beim Kochen einschalten | Ja |
+| | Während Nachlauf anlassen | Ja |
+| **Benachrichtigungen** | Senden | Nein |
+
+---
+
+## Tipps zur Konfiguration
+
+### Stromverbrauch-Schwellenwerte ermitteln
+
+1. Öffne **Entwicklerwerkzeuge → Zustände** in Home Assistant
+2. Suche deinen Kochfeld-Power-Sensor
+3. Beobachte die Werte beim Kochen:
+   - Eine Platte auf Stufe 3: ca. 500-800W
+   - Eine Platte auf Stufe 6: ca. 1200-1500W
+   - Eine Platte auf Boost: ca. 2000-3000W
+   - Zwei Platten gleichzeitig: addiere die Werte
+
+### Hysterese richtig einstellen
+
+- **Zu niedrig** (z.B. 50W): Häufiges Umschalten
+- **Zu hoch** (z.B. 500W): Träge Reaktion
+- **Empfehlung**: 100-200W für die meisten Kochfelder
+
+### Nachlauf anpassen
+
+- **Kurzes Kochen** (Aufwärmen): 5 Min Nachlauf reicht
+- **Normales Kochen**: 10-15 Min Nachlauf
+- **Intensives Braten**: 15-20 Min Nachlauf empfohlen
+
+---
 
 ## Weitere Beispiele
 
