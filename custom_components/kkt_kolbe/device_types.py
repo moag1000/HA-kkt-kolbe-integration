@@ -172,7 +172,8 @@ KNOWN_DEVICES = {
                 {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"}
             ],
             "select": [
-                {"dp": 10, "name": "Fan Speed", "options": ["off", "low", "middle", "high", "strong"]}
+                # Fan Speed select marked as advanced to avoid HomeKit showing both fan and select
+                {"dp": 10, "name": "Fan Speed", "options": ["off", "low", "middle", "high", "strong"], "advanced": True, "entity_category": "config"}
             ],
             "sensor": [
                 {"dp": 6, "name": "Filter Status", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"}
@@ -201,7 +202,8 @@ KNOWN_DEVICES = {
                 "speeds": ["off", "low", "middle", "high", "strong"]
             },
             "select": [
-                {"dp": 10, "name": "Fan Speed", "options": ["off", "low", "middle", "high", "strong"]}
+                # Fan Speed select marked as advanced to avoid HomeKit showing both fan and select
+                {"dp": 10, "name": "Fan Speed", "options": ["off", "low", "middle", "high", "strong"], "advanced": True, "entity_category": "config"}
             ],
             "number": [
                 {"dp": 101, "name": "RGB Mode", "min": 0, "max": 9, "step": 1, "icon": "mdi:palette", "advanced": True},
@@ -223,7 +225,7 @@ KNOWN_DEVICES = {
         "product_names": ["bgvbvjwomgbisd8x", "KKT Kolbe SOLO HCM"],
         "device_ids": ["bf34515c4ab6ec7f9axqy8"],
         "device_id_patterns": ["bf34515c4ab6ec7f9a"],
-        "platforms": ["switch", "select", "number"],
+        "platforms": ["fan", "switch", "select", "number"],
         "data_points": {
             1: "switch",              # Main power (ON/OFF)
             4: "light",               # Main light on/off
@@ -239,6 +241,13 @@ KNOWN_DEVICES = {
             109: "day_1",             # Metal filter days remaining (0-40)
         },
         "entities": {
+            "fan": {
+                "dp": 102,  # fan_speed numeric (0-9) - for HomeKit/Siri
+                "speeds": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
+                "numeric": True,  # Use numeric mode instead of enum
+                "min": 0,
+                "max": 9
+            },
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
                 {"dp": 4, "name": "Light", "device_class": "switch", "icon": "mdi:lightbulb"},
@@ -251,7 +260,8 @@ KNOWN_DEVICES = {
                 {"dp": 108, "name": "RGB Mode", "options": ["white", "colour", "scene", "music"], "icon": "mdi:palette"}
             ],
             "number": [
-                {"dp": 102, "name": "Fan Speed", "min": 0, "max": 9, "step": 1, "icon": "mdi:fan"},
+                # Fan Speed number marked as advanced to avoid HomeKit showing both fan and number
+                {"dp": 102, "name": "Fan Speed", "min": 0, "max": 9, "step": 1, "icon": "mdi:fan", "advanced": True, "entity_category": "config"},
                 {"dp": 105, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"},
                 {"dp": 103, "name": "Carbon Filter Remaining", "min": 0, "max": 250, "unit": "days", "icon": "mdi:air-filter", "entity_category": "diagnostic"},
                 {"dp": 109, "name": "Metal Filter Remaining", "min": 0, "max": 40, "unit": "days", "icon": "mdi:air-filter", "entity_category": "diagnostic"}
@@ -283,6 +293,13 @@ KNOWN_DEVICES = {
             109: "day_1",            # Metal filter days (0-40)
         },
         "entities": {
+            "fan": {
+                "dp": 102,  # fan_speed numeric (0-9) - for HomeKit/Siri
+                "speeds": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
+                "numeric": True,  # Use numeric mode instead of enum
+                "min": 0,
+                "max": 9
+            },
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
                 {"dp": 4, "name": "Light", "device_class": "switch", "icon": "mdi:lightbulb"},
@@ -295,7 +312,8 @@ KNOWN_DEVICES = {
                 {"dp": 108, "name": "RGB Mode", "options": ["white", "colour", "scene", "music"], "advanced": True}
             ],
             "number": [
-                {"dp": 102, "name": "Fan Speed", "min": 0, "max": 9, "step": 1, "icon": "mdi:fan"},
+                # Fan Speed number marked as advanced to avoid HomeKit showing both fan and number
+                {"dp": 102, "name": "Fan Speed", "min": 0, "max": 9, "step": 1, "icon": "mdi:fan", "advanced": True, "entity_category": "config"},
                 {"dp": 105, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"},
                 {"dp": 103, "name": "Carbon Filter Remaining", "min": 0, "max": 250, "unit": "days", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"},
                 {"dp": 109, "name": "Metal Filter Remaining", "min": 0, "max": 40, "unit": "days", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"}
@@ -333,7 +351,8 @@ KNOWN_DEVICES = {
                 "speeds": ["off", "low", "middle", "high"]
             },
             "select": [
-                {"dp": 3, "name": "Fan Speed", "options": ["off", "low", "middle", "high"], "icon": "mdi:fan"}
+                # Fan Speed select marked as advanced to avoid HomeKit showing both fan and select
+                {"dp": 3, "name": "Fan Speed", "options": ["off", "low", "middle", "high"], "icon": "mdi:fan", "advanced": True, "entity_category": "config"}
             ],
             "number": [
                 {"dp": 6, "name": "Timer", "min": 0, "max": 100, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"}

@@ -5,6 +5,53 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.3] - 2025-12-17
+
+### Feature Release - HomeKit/Siri for ALL Hoods
+
+This release ensures all hood models have proper HomeKit/Siri integration.
+
+### Fixed
+- **All Hoods now have proper fan entity**: Previously only some models had the fan platform configured
+- **All Fan Speed select/number entities marked as advanced**: Prevents HomeKit from showing duplicate controls
+
+### Added
+- **Numeric fan mode for SOLO HCM and ECCO HCM**: These models use speed levels 0-9 instead of enum values
+  - Supports percentage-based control via HomeKit/Siri
+  - "Hey Siri, set fan to 50%" → Level 5
+
+### Hood Configuration Summary
+
+| Hood Model | Fan Mode | Speeds | DP |
+|------------|----------|--------|-----|
+| HERMES & STYLE | Enum | off, low, middle, high, strong | 10 |
+| FLAT | Enum | off, low, middle, high, strong | 10 |
+| HERMES | Enum | off, low, middle, high, strong | 10 |
+| SOLO HCM | Numeric | 0-9 | 102 |
+| ECCO HCM | Numeric | 0-9 | 102 |
+| Default Hood | Enum | off, low, middle, high | 3 |
+
+### Technical Changes
+```python
+# fan.py now supports two modes:
+
+# Enum mode (5 speeds)
+fan_config = {
+    "dp": 10,
+    "speeds": ["off", "low", "middle", "high", "strong"]
+}
+
+# Numeric mode (0-9)
+fan_config = {
+    "dp": 102,
+    "numeric": True,
+    "min": 0,
+    "max": 9
+}
+```
+
+---
+
 ## [2.6.2] - 2025-12-17
 
 ### Feature Release - Improved HomeKit/Siri Integration
