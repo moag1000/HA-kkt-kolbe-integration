@@ -55,24 +55,56 @@ def _detect_device_type_from_api(device: dict[str, Any]) -> tuple[str, str]:
 
     Returns:
         Tuple of (device_type, internal_product_name)
+        - device_type: Internal device key for UI display
+        - internal_product_name: Product name for entity lookup in KNOWN_DEVICES
     """
+    from .device_types import find_device_by_product_name, KNOWN_DEVICES
+
     tuya_category = device.get("category", "").lower()
     api_product_name = device.get("product_name", "Unknown Device")
+    product_id = device.get("product_id", "")  # Tuya product ID (e.g., "bgvbvjwomgbisd8x")
     device_name = device.get("name", "").lower()
 
-    # Check Tuya category first (most reliable)
+    # Method 1: Try to match by Tuya product_id (most accurate)
+    # This uses the KNOWN_DEVICES database to find exact matches
+    if product_id:
+        device_info = find_device_by_product_name(product_id)
+        if device_info:
+            # Found exact match - return the device key and product_id
+            for device_key, info in KNOWN_DEVICES.items():
+                if product_id in info.get("product_names", []):
+                    _LOGGER.debug(f"Detected device by product_id: {device_key} ({product_id})")
+                    return (device_key, product_id)
+
+    # Method 2: Category-based detection with specific device matching
+    search_text = f"{api_product_name} {device_name}".lower()
+
     if tuya_category == "dcl":  # Cooktop category
         return ("ind7705hc_cooktop", "ind7705hc_cooktop")
     elif tuya_category == "yyj":  # Hood category
-        return ("hermes_style_hood", "hermes_style_hood")
+        # Try to identify specific hood model from product name
+        if "solo" in search_text:
+            return ("solo_hcm_hood", "bgvbvjwomgbisd8x")
+        elif "ecco" in search_text:
+            return ("ecco_hcm_hood", "gwdgkteknzvsattn")
+        elif "flat" in search_text:
+            return ("flat_hood", "luoxakxm2vm9azwu")
+        elif "hermes" in search_text:
+            return ("hermes_style_hood", "ypaixllljc2dcpae")
+        else:
+            # Default to generic hood for unknown yyj devices
+            return ("default_hood", "default_hood")
 
-    # Fallback: check product name and device name
-    search_text = f"{api_product_name} {device_name}".lower()
-
+    # Method 3: Fallback keyword detection
     if "ind" in search_text or "cooktop" in search_text or "kochfeld" in search_text:
         return ("ind7705hc_cooktop", "ind7705hc_cooktop")
     elif any(kw in search_text for kw in ["hood", "hermes", "style", "ecco", "solo", "dunst", "abzug"]):
-        return ("hermes_style_hood", "hermes_style_hood")
+        # Try specific matches first
+        if "solo" in search_text:
+            return ("solo_hcm_hood", "bgvbvjwomgbisd8x")
+        elif "ecco" in search_text:
+            return ("ecco_hcm_hood", "gwdgkteknzvsattn")
+        return ("default_hood", "default_hood")
 
     # Default: unknown, use API product name
     return ("auto", api_product_name)
