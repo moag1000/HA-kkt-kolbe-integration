@@ -58,12 +58,16 @@ def _detect_device_type_from_api(device: dict[str, Any]) -> tuple[str, str]:
         - device_type: Internal device key for UI display
         - internal_product_name: Product name for entity lookup in KNOWN_DEVICES
     """
-    from .device_types import find_device_by_product_name, KNOWN_DEVICES
+    from .device_types import find_device_by_product_name, find_device_by_device_id, KNOWN_DEVICES
 
     tuya_category = device.get("category", "").lower()
     api_product_name = device.get("product_name", "Unknown Device")
     product_id = device.get("product_id", "")  # Tuya product ID (e.g., "bgvbvjwomgbisd8x")
+    device_id = device.get("id", "")  # Device ID for pattern matching
     device_name = device.get("name", "").lower()
+
+    _LOGGER.debug(f"Device detection: product_id={product_id}, device_id={device_id[:12] if device_id else 'N/A'}, "
+                  f"category={tuya_category}, product_name={api_product_name}")
 
     # Method 1: Try to match by Tuya product_id (most accurate)
     # This uses the KNOWN_DEVICES database to find exact matches
@@ -73,8 +77,24 @@ def _detect_device_type_from_api(device: dict[str, Any]) -> tuple[str, str]:
             # Found exact match - return the device key and product_id
             for device_key, info in KNOWN_DEVICES.items():
                 if product_id in info.get("product_names", []):
-                    _LOGGER.debug(f"Detected device by product_id: {device_key} ({product_id})")
+                    _LOGGER.info(f"Detected device by product_id: {device_key} ({product_id})")
                     return (device_key, product_id)
+
+    # Method 2: Try to match by device_id pattern
+    # Many devices have predictable ID prefixes (e.g., "bf34515c4ab6ec7f9a" for SOLO HCM)
+    if device_id:
+        device_info = find_device_by_device_id(device_id)
+        if device_info:
+            for device_key, info in KNOWN_DEVICES.items():
+                # Check exact match
+                if device_id in info.get("device_ids", []):
+                    _LOGGER.info(f"Detected device by device_id: {device_key} ({device_id[:12]}...)")
+                    return (device_key, info["product_names"][0])
+                # Check pattern match
+                for pattern in info.get("device_id_patterns", []):
+                    if device_id.startswith(pattern):
+                        _LOGGER.info(f"Detected device by device_id pattern: {device_key} ({pattern}*)")
+                        return (device_key, info["product_names"][0])
 
     # Method 2: Category-based detection with specific device matching
     search_text = f"{api_product_name} {device_name}".lower()
