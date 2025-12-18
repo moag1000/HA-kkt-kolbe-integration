@@ -5,6 +5,26 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.3] - 2025-12-18
+
+### Bugfix - Device ID Pattern Matching für SOLO HCM
+
+**Problem**: v2.7.2 Fix funktionierte nicht, weil die v2.0 Tuya API `productId` nicht in der Device-Liste zurückgibt.
+
+### Fixed
+- **Device ID Pattern Matching hinzugefügt**:
+  - SOLO HCM wird jetzt über Device ID Pattern erkannt (`bf34515c4ab6ec7f9a*`)
+  - Alle bekannten Geräte haben `device_id_patterns` für robuste Erkennung
+  - Debug-Logging für bessere Fehleranalyse
+
+### Detection Priority
+1. `product_id` (falls vorhanden) → Exakte Zuordnung
+2. `device_id` Pattern → SOLO HCM, ECCO HCM, HERMES, etc.
+3. Keyword-basiert (`solo`, `ecco`, `hermes` im Namen)
+4. Fallback → `default_hood`
+
+---
+
 ## [2.7.2] - 2025-12-18
 
 ### Bugfix - SOLO HCM und andere Hauben korrekt erkennen
