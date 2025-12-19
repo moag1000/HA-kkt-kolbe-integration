@@ -5,6 +5,26 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.5] - 2025-12-19
+
+### Improvement - Bessere Geräte-Anzeige bei Zeroconf Discovery
+
+**Problem**: Auto-entdeckte Geräte wurden nur als "KKT Kolbe Integration" angezeigt, ohne zwischen Hood und Cooktop unterscheiden zu können.
+
+### Fixed
+- **Zeroconf Discovery zeigt jetzt Gerätetyp**:
+  - "HERMES & STYLE Hood" statt generisches "KKT Kolbe Integration"
+  - "IND7705HC Induction Cooktop" für Kochfelder
+  - "SOLO HCM Hood" für SOLO Hauben
+- **API-Enrichment**: Zeroconf-entdeckte Geräte werden automatisch mit API-Daten angereichert (product_id, local_key, Gerätename)
+- **Bessere Titel**: Config Entries verwenden jetzt `friendly_type` aus KNOWN_DEVICES
+
+### User Experience
+- Benutzer können jetzt sofort erkennen, welches Gerät welches ist
+- Notification zeigt: "HERMES & STYLE Hood gefunden" statt "KKT Kolbe Integration gefunden"
+
+---
+
 ## [2.7.4] - 2025-12-19
 
 ### Feature - Vollständige Device Details via API

@@ -390,7 +390,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             "discovered_via": "zeroconf",
         }
 
-        # Check if we have API credentials to auto-fetch local key
+        # Check if we have API credentials to auto-fetch local key and device details
         api_manager = GlobalAPIManager(self.hass)
         if api_manager.has_stored_credentials():
             _LOGGER.info(f"Zeroconf: API credentials available, enriching device {device_id[:8]}")
@@ -398,17 +398,33 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                 api_devices = await api_manager.get_kkt_devices_from_api()
                 for api_device in api_devices:
                     if api_device.get("id") == device_id:
-                        # Found matching device in API
+                        # Found matching device in API - store ALL useful info
                         self._device_info["local_key"] = api_device.get("local_key")
-                        self._device_info["product_name"] = api_device.get("product_name")
+                        self._device_info["product_id"] = api_device.get("product_id")
                         self._device_info["tuya_category"] = api_device.get("category")
 
-                        # Detect device type
-                        device_type, product_name = _detect_device_type_from_api(api_device)
-                        self._device_info["device_type"] = device_type
-                        self._device_info["product_name"] = product_name
+                        # Use API name (user-configured name) or product_name
+                        api_name = api_device.get("name") or api_device.get("product_name")
+                        if api_name:
+                            self._device_info["name"] = api_name
 
-                        _LOGGER.info(f"Zeroconf: Enriched device {device_id[:8]} with API data")
+                        # Detect device type for proper entity setup
+                        device_type, internal_product_name = _detect_device_type_from_api(api_device)
+                        self._device_info["device_type"] = device_type
+                        self._device_info["product_name"] = internal_product_name
+
+                        # Create friendly display name based on detected type
+                        from .device_types import KNOWN_DEVICES
+                        if device_type in KNOWN_DEVICES:
+                            device_info = KNOWN_DEVICES[device_type]
+                            self._device_info["friendly_type"] = device_info.get("name", device_type)
+                        else:
+                            self._device_info["friendly_type"] = api_device.get("product_name", "KKT Device")
+
+                        _LOGGER.info(f"Zeroconf: Enriched device {device_id[:8]}: "
+                                    f"name={self._device_info.get('name')}, "
+                                    f"type={device_type}, "
+                                    f"product_id={api_device.get('product_id', 'N/A')}")
                         break
             except Exception as err:
                 _LOGGER.warning(f"Zeroconf: Failed to enrich with API data: {err}")
@@ -435,25 +451,38 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                 "device_id": device_id,
                 "local_key": self._device_info["local_key"],
                 "product_name": self._device_info.get("product_name", "auto"),
+                "product_id": self._device_info.get("product_id"),
                 "device_type": self._device_info.get("device_type", "auto"),
                 "integration_mode": "hybrid",
             }
 
-            title = f"KKT Kolbe {self._device_info.get('name', device_id[:8])}"
+            # Use friendly_type for better display name
+            friendly_type = self._device_info.get("friendly_type", "")
+            device_name = self._device_info.get("name", device_id[:8])
+
+            # Create descriptive title: "HERMES Hood" or "IND7705HC Cooktop"
+            if friendly_type:
+                title = friendly_type
+            else:
+                title = f"KKT Kolbe {device_name}"
 
             return self.async_create_entry(
                 title=title,
                 data=config_data,
             )
 
+        # Get friendly display info
+        friendly_type = self._device_info.get("friendly_type", "Auto-detected")
+        device_name = self._device_info.get("name", "Unknown")
+
         # Show confirmation form
         return self.async_show_form(
             step_id="zeroconf_confirm",
             description_placeholders={
-                "device_name": self._device_info.get("name", "Unknown"),
+                "device_name": device_name,
                 "device_id": self._device_info.get("device_id", "Unknown")[:8],
                 "ip_address": self._device_info.get("ip", "Unknown"),
-                "product_name": self._device_info.get("product_name", "Auto-detected"),
+                "product_name": friendly_type,
             },
         )
 
@@ -487,10 +516,18 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                         "device_id": device_id,
                         "local_key": local_key,
                         "product_name": self._device_info.get("product_name", "auto"),
+                        "product_id": self._device_info.get("product_id"),
                         "device_type": self._device_info.get("device_type", "auto"),
                     }
 
-                    title = f"KKT Kolbe {self._device_info.get('name', device_id[:8])}"
+                    # Use friendly_type for better display name
+                    friendly_type = self._device_info.get("friendly_type", "")
+                    device_name = self._device_info.get("name", device_id[:8])
+
+                    if friendly_type:
+                        title = friendly_type
+                    else:
+                        title = f"KKT Kolbe {device_name}"
 
                     return self.async_create_entry(
                         title=title,
@@ -505,6 +542,13 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         if not api_manager.has_stored_credentials():
             api_hint = "Tip: Configure API credentials to auto-fetch local keys for future devices."
 
+        # Get friendly display info
+        friendly_type = self._device_info.get("friendly_type", "")
+        device_name = self._device_info.get("name", "Unknown")
+        display_name = device_name if device_name != "Unknown" else f"Device {self._device_info.get('device_id', '')[:8]}"
+        if friendly_type:
+            display_name = f"{display_name} ({friendly_type})"
+
         return self.async_show_form(
             step_id="zeroconf_authenticate",
             data_schema=vol.Schema({
@@ -512,7 +556,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             }),
             errors=errors,
             description_placeholders={
-                "device_name": self._device_info.get("name", "Unknown"),
+                "device_name": display_name,
                 "device_id": self._device_info.get("device_id", "Unknown")[:8],
                 "ip_address": self._device_info.get("ip", "Unknown"),
                 "api_hint": api_hint,
