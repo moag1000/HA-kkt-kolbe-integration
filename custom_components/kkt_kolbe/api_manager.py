@@ -99,15 +99,25 @@ class GlobalAPIManager:
 
             async with api_client:
                 if await api_client.test_connection():
-                    devices = await api_client.get_device_list()
+                    # Use get_device_list_with_details to get full device info
+                    # including product_id and local_key for proper detection
+                    devices = await api_client.get_device_list_with_details()
 
                     # Filter for KKT Kolbe devices
                     kkt_devices = []
                     for device in devices:
                         product_name = device.get("product_name", "").lower()
                         device_name = device.get("name", "").lower()
-                        if any(keyword in f"{product_name} {device_name}"
-                               for keyword in ["kkt", "kolbe", "range", "hood", "induction"]):
+                        category = device.get("category", "").lower()
+
+                        # Match by keywords or Tuya category
+                        is_kkt = any(keyword in f"{product_name} {device_name}"
+                                     for keyword in ["kkt", "kolbe", "range", "hood", "induction"])
+                        is_hood_category = category in ["yyj", "dcl"]  # Hood or Cooktop
+
+                        if is_kkt or is_hood_category:
+                            _LOGGER.debug(f"Found KKT device: {device.get('name')} "
+                                         f"(product_id={device.get('product_id', 'N/A')})")
                             kkt_devices.append(device)
 
                     return kkt_devices

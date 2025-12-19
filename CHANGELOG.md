@@ -5,6 +5,29 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.4] - 2025-12-19
+
+### Feature - Vollständige Device Details via API
+
+**Problem**: Die v2.0 Device-Liste API gibt `product_id` und `local_key` nicht zurück.
+
+### Added
+- **`get_device_details(device_id)`**: Holt vollständige Device-Infos via `/v1.0/devices/{id}`
+- **`get_device_list_with_details()`**: Enriched Device-Liste mit allen Details
+- **v2.0 Failover**: `/v2.0/cloud/thing/{id}` als Fallback
+
+### API Priority
+```
+1. /v1.0/devices/{id}     → product_id, local_key, category, etc. ✅
+2. /v2.0/cloud/thing/{id} → Failover mit camelCase Normalisierung
+```
+
+### Changed
+- `api_manager.get_kkt_devices_from_api()` nutzt jetzt `get_device_list_with_details()`
+- Bessere Erkennung durch vollständige `product_id` und `category` Daten
+
+---
+
 ## [2.7.3] - 2025-12-18
 
 ### Bugfix - Device ID Pattern Matching für SOLO HCM
