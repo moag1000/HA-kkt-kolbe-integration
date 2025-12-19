@@ -292,6 +292,95 @@ class TuyaCloudClient:
                 _LOGGER.error(f"Both v2.0 and v1.0 device list APIs failed")
                 raise
 
+    async def get_device_details(self, device_id: str) -> dict[str, Any]:
+        """Get full device details including product_id and local_key.
+
+        Tries /v1.0/devices/{device_id} first (most complete data).
+        Falls back to /v2.0/cloud/thing/{device_id} if v1.0 fails.
+
+        Returns:
+            Device dict with: id, name, local_key, product_id, product_name,
+            category, online, ip, model, uuid, time_zone, etc.
+        """
+        await self._ensure_authenticated()
+
+        _LOGGER.debug(f"Fetching device details for {device_id}")
+
+        # Try v1.0 API first (returns local_key, product_id, etc.)
+        try:
+            response = await self._make_request("GET", f"/v1.0/devices/{device_id}")
+            device = response.get("result", {})
+
+            if device:
+                _LOGGER.info(f"Retrieved device details (v1.0): product_id={device.get('product_id', 'N/A')}")
+                return device
+
+        except TuyaAPIError as e:
+            _LOGGER.debug(f"v1.0 device details failed, trying v2.0: {e}")
+
+        # Fallback to v2.0 API
+        try:
+            response = await self._make_request("GET", f"/v2.0/cloud/thing/{device_id}")
+            result = response.get("result", {})
+
+            # v2.0 uses camelCase, normalize to snake_case
+            if result:
+                device = {
+                    "id": result.get("id"),
+                    "name": result.get("name"),
+                    "local_key": result.get("localKey"),
+                    "product_id": result.get("productId"),
+                    "product_name": result.get("productName"),
+                    "category": result.get("category"),
+                    "online": result.get("isOnline", False),
+                    "ip": result.get("ip"),
+                    "model": result.get("model"),
+                    "uuid": result.get("uuid"),
+                    "time_zone": result.get("timeZone"),
+                }
+                _LOGGER.info(f"Retrieved device details (v2.0): product_id={device.get('product_id', 'N/A')}")
+                return device
+
+        except TuyaAPIError as e:
+            _LOGGER.warning(f"Both v1.0 and v2.0 device details failed for {device_id}: {e}")
+
+        return {}
+
+    async def get_device_list_with_details(self) -> list[dict[str, Any]]:
+        """Get device list with full details for each device.
+
+        First gets basic device list, then enriches each device with
+        full details from /v1.0/devices/{id} to get product_id, local_key, etc.
+
+        Returns:
+            List of fully populated device dicts.
+        """
+        # Get basic device list
+        devices = await self.get_device_list()
+
+        # Enrich each device with full details
+        enriched_devices = []
+        for device in devices:
+            device_id = device.get("id")
+            if device_id:
+                try:
+                    details = await self.get_device_details(device_id)
+                    if details:
+                        # Merge: details take priority, keep any fields from list that aren't in details
+                        merged = {**device, **details}
+                        enriched_devices.append(merged)
+                        _LOGGER.debug(f"Enriched device {device_id[:8]}: product_id={details.get('product_id', 'N/A')}")
+                    else:
+                        enriched_devices.append(device)
+                except Exception as e:
+                    _LOGGER.debug(f"Could not enrich device {device_id[:8]}: {e}")
+                    enriched_devices.append(device)
+            else:
+                enriched_devices.append(device)
+
+        _LOGGER.info(f"Retrieved {len(enriched_devices)} devices with full details")
+        return enriched_devices
+
     async def get_device_properties(self, device_id: str) -> dict[str, Any]:
         """Get device properties using Things Data Model.
 
