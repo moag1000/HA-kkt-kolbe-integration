@@ -5,6 +5,34 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.6] - 2025-12-20
+
+### Fix - Smart Discovery zeigt jetzt Gerätetypen korrekt an
+
+**Problem**: Smart Discovery zeigte "KKT Device (ID) - Needs Local Key" statt richtigem Gerätenamen.
+
+### Fixed
+- **SmartDiscoveryResult erweitert**: Neues `friendly_type` Feld für Gerätetypnamen
+- **`_detect_device_type` verbessert**: Nutzt jetzt KNOWN_DEVICES mit product_id und device_id Matching
+- **`display_label` zeigt jetzt Gerätetyp**: z.B. "✅ HERMES & STYLE Hood (192.168.1.100) - Ready"
+- **Config Entry Titel**: Verwendet `friendly_type` statt generischem Namen
+
+### Detection Priority in Smart Discovery
+```
+1. product_id → Exakte KNOWN_DEVICES Zuordnung
+2. device_id Pattern → SOLO HCM, ECCO HCM, etc.
+3. Tuya Category + Keywords → yyj/dcl mit solo/ecco/hermes Erkennung
+4. Fallback → "KKT Kolbe Device"
+```
+
+### Beispiel Anzeige
+| Vorher | Nachher |
+|--------|---------|
+| "🔑 KKT Device bf735d... - Needs Local Key" | "🔑 HERMES & STYLE Hood (192.168.1.100) - Needs Local Key" |
+| "✅ KKT Device bf592b... - Ready" | "✅ IND7705HC Induction Cooktop (192.168.1.101) - Ready" |
+
+---
+
 ## [2.7.5] - 2025-12-19
 
 ### Improvement - Bessere Geräte-Anzeige bei Zeroconf Discovery

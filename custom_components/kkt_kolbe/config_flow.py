@@ -603,8 +603,11 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                         "integration_mode": "hybrid" if result.api_enriched else "manual",
                     }
 
+                    # Use friendly_type for better display name
+                    title = result.friendly_type or f"KKT Kolbe {result.name}"
+
                     return self.async_create_entry(
-                        title=f"KKT Kolbe {result.name}",
+                        title=title,
                         data=config_data,
                     )
                 else:
@@ -1392,8 +1395,12 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             await self.async_set_unique_id(device_id)
             self._abort_if_unique_id_configured()
 
-            # Create the config entry
-            title = f"KKT Kolbe {self._device_info.get('name', 'Device')}"
+            # Create the config entry with friendly type as title
+            friendly_type = self._device_info.get("friendly_type")
+            if friendly_type:
+                title = friendly_type
+            else:
+                title = f"KKT Kolbe {self._device_info.get('name', 'Device')}"
 
             config_data = {
                 CONF_IP_ADDRESS: self._device_info["ip"],
