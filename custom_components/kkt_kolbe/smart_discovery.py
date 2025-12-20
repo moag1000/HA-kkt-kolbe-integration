@@ -28,6 +28,7 @@ class SmartDiscoveryResult:
         discovered_via: str = "unknown",
         api_enriched: bool = False,
         ready_to_add: bool = False,
+        friendly_type: str | None = None,
     ):
         """Initialize smart discovery result."""
         self.device_id = device_id
@@ -40,6 +41,7 @@ class SmartDiscoveryResult:
         self.discovered_via = discovered_via
         self.api_enriched = api_enriched
         self.ready_to_add = ready_to_add
+        self.friendly_type = friendly_type
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for config flow."""
@@ -55,6 +57,7 @@ class SmartDiscoveryResult:
             "discovered_via": self.discovered_via,
             "api_enriched": self.api_enriched,
             "ready_to_add": self.ready_to_add,
+            "friendly_type": self.friendly_type,
         }
 
     @property
@@ -63,7 +66,11 @@ class SmartDiscoveryResult:
         status = "Ready" if self.ready_to_add else "Needs Local Key"
         icon = "✅" if self.ready_to_add else "🔑"
         ip_str = self.ip_address or "Unknown IP"
-        return f"{icon} {self.name} ({ip_str}) - {status}"
+
+        # Use friendly_type if available, otherwise fall back to name or device_id
+        display_name = self.friendly_type or self.name or f"Device {self.device_id[:8]}"
+
+        return f"{icon} {display_name} ({ip_str}) - {status}"
 
 
 class SmartDiscovery:
@@ -150,7 +157,7 @@ class SmartDiscovery:
                 continue
 
             # Detect device type from API data
-            device_type, internal_product_name = self._detect_device_type(device)
+            device_type, internal_product_name, friendly_type = self._detect_device_type(device)
 
             self._discovered_devices[device_id] = SmartDiscoveryResult(
                 device_id=device_id,
@@ -163,6 +170,7 @@ class SmartDiscovery:
                 discovered_via="API",
                 api_enriched=True,
                 ready_to_add=bool(device.get("local_key")),
+                friendly_type=friendly_type,
             )
 
         _LOGGER.info(f"Smart Discovery: Found {len(self._discovered_devices)} devices via API")
@@ -191,20 +199,21 @@ class SmartDiscovery:
                     result.api_enriched = True
 
                     # Update device type if we can detect it from API
-                    device_type, product_name = self._detect_device_type(api_device)
+                    device_type, product_name, friendly_type = self._detect_device_type(api_device)
                     if device_type != "auto":
                         result.device_type = device_type
                         result.product_name = product_name
+                        result.friendly_type = friendly_type
 
                     # Prefer API name if more descriptive
                     api_name = api_device.get("name", "")
                     if api_name and len(api_name) > len(result.name):
                         result.name = api_name
 
-                    _LOGGER.debug(f"Enriched device {device_id[:8]} with API data")
+                    _LOGGER.debug(f"Enriched device {device_id[:8]} with API data: {friendly_type}")
                 else:
                     # Add API-only device (not found locally)
-                    device_type, product_name = self._detect_device_type(api_device)
+                    device_type, product_name, friendly_type = self._detect_device_type(api_device)
 
                     self._discovered_devices[device_id] = SmartDiscoveryResult(
                         device_id=device_id,
@@ -216,43 +225,103 @@ class SmartDiscovery:
                         tuya_category=api_device.get("category"),
                         discovered_via="API",
                         api_enriched=True,
+                        friendly_type=friendly_type,
                     )
-                    _LOGGER.debug(f"Added API-only device {device_id[:8]}")
+                    _LOGGER.debug(f"Added API-only device {device_id[:8]}: {friendly_type}")
 
             _LOGGER.info(f"Smart Discovery: Enriched {len(api_devices)} devices with API data")
 
         except Exception as err:
             _LOGGER.warning(f"Smart Discovery: API enrichment failed: {err}")
 
-    def _detect_device_type(self, api_device: dict[str, Any]) -> tuple[str, str]:
-        """Detect device type from API response.
+    def _detect_device_type(self, api_device: dict[str, Any]) -> tuple[str, str, str]:
+        """Detect device type from API response using KNOWN_DEVICES.
 
         Args:
             api_device: Device dict from Tuya API
 
         Returns:
-            Tuple of (device_type, product_name)
+            Tuple of (device_type, product_name, friendly_type)
         """
+        from .device_types import KNOWN_DEVICES, find_device_by_product_name, find_device_by_device_id
+
         tuya_category = api_device.get("category", "").lower()
         api_product_name = api_device.get("product_name", "Unknown Device")
         device_name = api_device.get("name", "").lower()
+        product_id = api_device.get("product_id", "")
+        device_id = api_device.get("id", "")
 
-        # Check Tuya category first (most reliable)
-        if tuya_category == "dcl":  # Cooktop category
-            return ("ind7705hc_cooktop", "ind7705hc_cooktop")
-        elif tuya_category == "yyj":  # Hood category
-            return ("hermes_style_hood", "hermes_style_hood")
+        _LOGGER.debug(f"Smart Discovery detecting: product_id={product_id}, device_id={device_id[:12] if device_id else 'N/A'}, "
+                      f"category={tuya_category}")
 
-        # Fallback: check product name and device name
+        # Method 1: Try to match by Tuya product_id (most accurate)
+        if product_id:
+            device_info = find_device_by_product_name(product_id)
+            if device_info:
+                for device_key, info in KNOWN_DEVICES.items():
+                    if product_id in info.get("product_names", []):
+                        friendly_type = info.get("name", device_key)
+                        _LOGGER.info(f"Smart Discovery: Detected {friendly_type} by product_id")
+                        return (device_key, product_id, friendly_type)
+
+        # Method 2: Try to match by device_id pattern
+        if device_id:
+            device_info = find_device_by_device_id(device_id)
+            if device_info:
+                for device_key, info in KNOWN_DEVICES.items():
+                    # Check exact match
+                    if device_id in info.get("device_ids", []):
+                        friendly_type = info.get("name", device_key)
+                        _LOGGER.info(f"Smart Discovery: Detected {friendly_type} by device_id")
+                        return (device_key, info["product_names"][0], friendly_type)
+                    # Check pattern match
+                    for pattern in info.get("device_id_patterns", []):
+                        if device_id.startswith(pattern):
+                            friendly_type = info.get("name", device_key)
+                            _LOGGER.info(f"Smart Discovery: Detected {friendly_type} by device_id pattern")
+                            return (device_key, info["product_names"][0], friendly_type)
+
+        # Method 3: Category-based detection with keyword matching
         search_text = f"{api_product_name} {device_name}".lower()
 
-        if "ind" in search_text or "cooktop" in search_text or "kochfeld" in search_text:
-            return ("ind7705hc_cooktop", "ind7705hc_cooktop")
-        elif any(kw in search_text for kw in ["hood", "hermes", "style", "ecco", "solo", "dunst", "abzug"]):
-            return ("hermes_style_hood", "hermes_style_hood")
+        if tuya_category == "dcl":  # Cooktop category
+            friendly_type = KNOWN_DEVICES.get("ind7705hc_cooktop", {}).get("name", "Induction Cooktop")
+            return ("ind7705hc_cooktop", "ind7705hc_cooktop", friendly_type)
+        elif tuya_category == "yyj":  # Hood category
+            # Try to identify specific hood model
+            if "solo" in search_text:
+                friendly_type = KNOWN_DEVICES.get("solo_hcm_hood", {}).get("name", "SOLO HCM Hood")
+                return ("solo_hcm_hood", "bgvbvjwomgbisd8x", friendly_type)
+            elif "ecco" in search_text:
+                friendly_type = KNOWN_DEVICES.get("ecco_hcm_hood", {}).get("name", "ECCO HCM Hood")
+                return ("ecco_hcm_hood", "gwdgkteknzvsattn", friendly_type)
+            elif "flat" in search_text:
+                friendly_type = KNOWN_DEVICES.get("flat_hood", {}).get("name", "FLAT Hood")
+                return ("flat_hood", "luoxakxm2vm9azwu", friendly_type)
+            elif "hermes" in search_text:
+                friendly_type = KNOWN_DEVICES.get("hermes_style_hood", {}).get("name", "HERMES & STYLE Hood")
+                return ("hermes_style_hood", "ypaixllljc2dcpae", friendly_type)
+            else:
+                # Default hood
+                friendly_type = KNOWN_DEVICES.get("default_hood", {}).get("name", "Range Hood")
+                return ("default_hood", "default_hood", friendly_type)
 
-        # Default: unknown, use API product name
-        return ("auto", api_product_name)
+        # Method 4: Fallback keyword detection
+        if "ind" in search_text or "cooktop" in search_text or "kochfeld" in search_text:
+            friendly_type = KNOWN_DEVICES.get("ind7705hc_cooktop", {}).get("name", "Induction Cooktop")
+            return ("ind7705hc_cooktop", "ind7705hc_cooktop", friendly_type)
+        elif any(kw in search_text for kw in ["hood", "hermes", "style", "ecco", "solo", "dunst", "abzug"]):
+            if "solo" in search_text:
+                friendly_type = KNOWN_DEVICES.get("solo_hcm_hood", {}).get("name", "SOLO HCM Hood")
+                return ("solo_hcm_hood", "bgvbvjwomgbisd8x", friendly_type)
+            elif "ecco" in search_text:
+                friendly_type = KNOWN_DEVICES.get("ecco_hcm_hood", {}).get("name", "ECCO HCM Hood")
+                return ("ecco_hcm_hood", "gwdgkteknzvsattn", friendly_type)
+            friendly_type = KNOWN_DEVICES.get("default_hood", {}).get("name", "Range Hood")
+            return ("default_hood", "default_hood", friendly_type)
+
+        # Default: unknown device
+        return ("auto", api_product_name, "KKT Kolbe Device")
 
     def _update_ready_status(self) -> None:
         """Update ready_to_add status for all devices."""
