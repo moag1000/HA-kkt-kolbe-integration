@@ -312,7 +312,9 @@ class TuyaCloudClient:
             device = response.get("result", {})
 
             if device:
-                _LOGGER.info(f"Retrieved device details (v1.0): product_id={device.get('product_id', 'N/A')}")
+                has_local_key = bool(device.get('local_key'))
+                _LOGGER.info(f"Retrieved device details (v1.0): product_id={device.get('product_id', 'N/A')}, "
+                            f"local_key={'present' if has_local_key else 'MISSING'}")
                 return device
 
         except TuyaAPIError as e:
@@ -338,7 +340,9 @@ class TuyaCloudClient:
                     "uuid": result.get("uuid"),
                     "time_zone": result.get("timeZone"),
                 }
-                _LOGGER.info(f"Retrieved device details (v2.0): product_id={device.get('product_id', 'N/A')}")
+                has_local_key = bool(device.get('local_key'))
+                _LOGGER.info(f"Retrieved device details (v2.0): product_id={device.get('product_id', 'N/A')}, "
+                            f"local_key={'present' if has_local_key else 'MISSING'}")
                 return device
 
         except TuyaAPIError as e:
