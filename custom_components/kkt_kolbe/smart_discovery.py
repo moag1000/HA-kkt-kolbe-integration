@@ -210,7 +210,9 @@ class SmartDiscovery:
                     if api_name and len(api_name) > len(result.name):
                         result.name = api_name
 
-                    _LOGGER.debug(f"Enriched device {device_id[:8]} with API data: {friendly_type}")
+                    has_key = bool(result.local_key)
+                    _LOGGER.info(f"Enriched device {device_id[:8]}: {friendly_type}, "
+                                f"local_key={'present' if has_key else 'MISSING'}")
                 else:
                     # Add API-only device (not found locally)
                     device_type, product_name, friendly_type = self._detect_device_type(api_device)

@@ -116,8 +116,10 @@ class GlobalAPIManager:
                         is_hood_category = category in ["yyj", "dcl"]  # Hood or Cooktop
 
                         if is_kkt or is_hood_category:
-                            _LOGGER.debug(f"Found KKT device: {device.get('name')} "
-                                         f"(product_id={device.get('product_id', 'N/A')})")
+                            has_local_key = bool(device.get('local_key'))
+                            _LOGGER.info(f"Found KKT device: {device.get('name')} "
+                                        f"(product_id={device.get('product_id', 'N/A')}, "
+                                        f"local_key={'present' if has_local_key else 'MISSING'})")
                             kkt_devices.append(device)
 
                     return kkt_devices
