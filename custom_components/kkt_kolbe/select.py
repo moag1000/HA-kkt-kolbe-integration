@@ -24,10 +24,14 @@ async def async_setup_entry(
 ) -> None:
     """Set up KKT Kolbe select entities."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+    device_type = hass.data[DOMAIN][entry.entry_id].get("device_type", "auto")
     product_name = hass.data[DOMAIN][entry.entry_id].get("product_name", "unknown")
 
+    # Prefer device_type (KNOWN_DEVICES key) over product_name (Tuya product ID)
+    lookup_key = device_type if device_type not in ("auto", None, "") else product_name
+
     entities = []
-    select_configs = get_device_entities(product_name, "select")
+    select_configs = get_device_entities(lookup_key, "select")
 
     for config in select_configs:
         entities.append(KKTKolbeSelect(coordinator, entry, config))

@@ -40,10 +40,14 @@ async def async_setup_entry(
 ) -> None:
     """Set up KKT Kolbe light entities from device_types configuration."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+    device_type = hass.data[DOMAIN][entry.entry_id].get("device_type", "auto")
     product_name = hass.data[DOMAIN][entry.entry_id].get("product_name", "unknown")
 
+    # Prefer device_type (KNOWN_DEVICES key) over product_name (Tuya product ID)
+    lookup_key = device_type if device_type not in ("auto", None, "") else product_name
+
     # Get light configuration from device_types
-    light_configs = get_device_entities(product_name, "light")
+    light_configs = get_device_entities(lookup_key, "light")
 
     entities = []
 
@@ -54,10 +58,10 @@ async def async_setup_entry(
                 entities.append(KKTKolbeLight(coordinator, entry, light_config))
 
     if entities:
-        _LOGGER.info(f"Setting up {len(entities)} light entities for {product_name}")
+        _LOGGER.info(f"Setting up {len(entities)} light entities for {lookup_key} (device_type={device_type}, product={product_name})")
         async_add_entities(entities)
     else:
-        _LOGGER.debug(f"No light configuration found for {product_name}")
+        _LOGGER.debug(f"No light configuration found for {lookup_key}")
 
 
 class KKTKolbeLight(KKTBaseEntity, LightEntity):

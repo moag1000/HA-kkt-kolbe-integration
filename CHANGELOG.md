@@ -5,6 +5,36 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.1] - 2025-12-21
+
+### Fix - Device Type Detection & Entity Configuration
+
+**Problem**: Devices were detected as "Auto" in local-only discovery and entity creation used `product_name` instead of `device_type`, causing incorrect entities to be created.
+
+### Fixed
+- **Zeroconf without API**: Now uses `device_id_patterns` from KNOWN_DEVICES to detect device type even without API credentials
+- **async_step_confirmation**: Now correctly saves `device_type` and `product_id` to config entry data
+- **API-Only flow**: Changed BOTH API flow locations from `get_device_list()` to `get_device_list_with_details()` to get `local_key`
+- **Entity creation priority**: `__init__.py` now uses priority: device_type > product_name > device_id pattern matching
+- **All platform files updated**: fan.py, light.py, switch.py, sensor.py, select.py, number.py, binary_sensor.py now all prefer `device_type` over `product_name` for entity configuration lookup
+
+### New Function
+- **`_detect_device_type_from_device_id()`**: Detects device type from device_id patterns without requiring API access
+
+### Detection Priority
+```
+1. device_type (KNOWN_DEVICES key like "hermes_style_hood")
+2. product_name (Tuya product ID like "ypaixllljc2dcpae")
+3. device_id pattern matching (e.g., "bf735d" → HERMES)
+4. Fallback → "default_hood"
+```
+
+### Improved Logging
+- All platform files now log both `device_type` and `product_name` for debugging
+- `__init__.py` logs which detection method was used
+
+---
+
 ## [2.8.0] - 2025-12-21
 
 ### Feature - API-Konfiguration direkt im Zeroconf Discovery Flow

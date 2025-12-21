@@ -130,6 +130,46 @@ def _detect_device_type_from_api(device: dict[str, Any]) -> tuple[str, str]:
     return ("auto", api_product_name)
 
 
+def _detect_device_type_from_device_id(device_id: str) -> tuple[str, str, str]:
+    """Detect device type from device_id only (for discovery without API).
+
+    Uses device_id patterns from KNOWN_DEVICES to detect device type.
+
+    Args:
+        device_id: The Tuya device ID
+
+    Returns:
+        Tuple of (device_type, product_name, friendly_name)
+    """
+    from .device_types import KNOWN_DEVICES
+
+    if not device_id:
+        return ("auto", "auto", "KKT Kolbe Device")
+
+    _LOGGER.debug(f"Detecting device type from device_id: {device_id[:12]}...")
+
+    # Check each known device for device_id matches
+    for device_key, info in KNOWN_DEVICES.items():
+        # Check exact device_id match
+        if device_id in info.get("device_ids", []):
+            friendly_name = info.get("name", device_key)
+            product_name = info["product_names"][0] if info.get("product_names") else device_key
+            _LOGGER.info(f"Detected device by exact device_id: {device_key} -> {friendly_name}")
+            return (device_key, product_name, friendly_name)
+
+        # Check device_id pattern match
+        for pattern in info.get("device_id_patterns", []):
+            if device_id.startswith(pattern):
+                friendly_name = info.get("name", device_key)
+                product_name = info["product_names"][0] if info.get("product_names") else device_key
+                _LOGGER.info(f"Detected device by device_id pattern {pattern}*: {device_key} -> {friendly_name}")
+                return (device_key, product_name, friendly_name)
+
+    # No match found - return defaults
+    _LOGGER.debug(f"No device_id pattern matched for {device_id[:12]}, using defaults")
+    return ("auto", "auto", "KKT Kolbe Device")
+
+
 async def _try_discover_local_ip(
     hass: HomeAssistant,
     device_id: str,
@@ -447,8 +487,17 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             except Exception as err:
                 _LOGGER.warning(f"Zeroconf: Failed to enrich with API data: {err}")
         else:
-            _LOGGER.warning(f"Zeroconf: NO API credentials stored! Device {device_id[:8]} cannot be auto-enriched. "
-                           f"Configure a device via 'API-Only Setup' first to enable one-click discovery.")
+            _LOGGER.warning(f"Zeroconf: NO API credentials stored! Device {device_id[:8]} cannot get local_key automatically. "
+                           f"Trying device_id pattern matching for device type detection...")
+
+            # Try to detect device type from device_id patterns (works without API)
+            device_type, product_name, friendly_type = _detect_device_type_from_device_id(device_id)
+            if device_type != "auto":
+                self._device_info["device_type"] = device_type
+                self._device_info["product_name"] = product_name
+                self._device_info["friendly_type"] = friendly_type
+                self.context["title_placeholders"] = {"name": friendly_type}
+                _LOGGER.info(f"Zeroconf: Detected device type from device_id: {friendly_type}")
 
         # If we have all required info (including local_key), show confirmation
         if self._device_info.get("local_key") and self._device_info.get("ip"):
@@ -668,6 +717,16 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                             else:
                                 # API works but device not found or no local_key
                                 _LOGGER.warning(f"API configured but device {device_id[:8]} not found or has no local_key")
+
+                                # Still try to detect device type from device_id if not already detected
+                                if not self._device_info.get("device_type") or self._device_info.get("device_type") == "auto":
+                                    dev_type, prod_name, friendly = _detect_device_type_from_device_id(device_id)
+                                    if dev_type != "auto":
+                                        self._device_info["device_type"] = dev_type
+                                        self._device_info["product_name"] = prod_name
+                                        self._device_info["friendly_type"] = friendly
+                                        _LOGGER.info(f"Detected device type from device_id: {friendly}")
+
                                 return await self.async_step_zeroconf_authenticate()
                         else:
                             errors["base"] = "api_connection_failed"
@@ -1092,7 +1151,8 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                     "name": f"KKT Kolbe {device_name} {user_input['device_id'][:8]}",
                     "product_name": product_name_internal,
                     "device_type": device_type,
-                    "category": category
+                    "category": category,
+                    "friendly_type": device_name,  # Use device name from KNOWN_DEVICES
                 }
                 # Don't set local_key here - it will be asked in authentication step
                 return await self.async_step_authentication()
@@ -1141,16 +1201,24 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                         endpoint=endpoint
                     )
 
-                    # Test connection and get device list
+                    # Test connection and get device list with full details (local_key, product_id)
                     async with api_client:
                         if await api_client.test_connection():
-                            devices = await api_client.get_device_list()
+                            devices = await api_client.get_device_list_with_details()
 
                             # Filter for KKT Kolbe devices
                             kkt_devices = []
                             for device in devices:
                                 product_name = device.get("product_name", "").lower()
-                                if any(keyword in product_name for keyword in ["kkt", "kolbe", "range", "hood", "induction"]):
+                                device_name = device.get("name", "").lower()
+                                category = device.get("category", "").lower()
+
+                                # Match by keywords or Tuya category
+                                is_kkt = any(keyword in f"{product_name} {device_name}"
+                                            for keyword in ["kkt", "kolbe", "range", "hood", "induction"])
+                                is_hood_category = category in ["yyj", "dcl"]
+
+                                if is_kkt or is_hood_category:
                                     kkt_devices.append(device)
 
                             if kkt_devices:
@@ -1166,16 +1234,26 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                                 self._discovered_devices = {}
                                 for device in kkt_devices:
                                     device_type, internal_product_name = _detect_device_type_from_api(device)
+
+                                    # Get friendly_type from KNOWN_DEVICES
+                                    from .device_types import KNOWN_DEVICES
+                                    if device_type in KNOWN_DEVICES:
+                                        friendly_type = KNOWN_DEVICES[device_type].get("name", device_type)
+                                    else:
+                                        friendly_type = device.get("product_name", "KKT Device")
+
                                     self._discovered_devices[device["id"]] = {
                                         "device_id": device["id"],
                                         "name": device.get("name", f"KKT Device {device['id']}"),
                                         "product_name": internal_product_name,
+                                        "product_id": device.get("product_id"),
                                         "api_product_name": device.get("product_name", "Unknown Device"),
                                         "tuya_category": device.get("category", ""),
                                         "ip": device.get("ip"),
                                         "local_key": device.get("local_key"),
                                         "discovered_via": "API",
-                                        "device_type": device_type
+                                        "device_type": device_type,
+                                        "friendly_type": friendly_type,
                                     }
                                 return await self.async_step_api_device_selection()
                             else:
@@ -1220,6 +1298,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                 "api_endpoint": self._api_info["endpoint"],
                 CONF_DEVICE_ID: device_info["device_id"],
                 "product_name": device_info["product_name"],
+                "product_id": device_info.get("product_id"),
                 "device_type": device_info["device_type"],
             }
 
@@ -1259,8 +1338,11 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             if device_info.get("local_key"):
                 config_data["local_key"] = device_info["local_key"]
 
+            # Use friendly_type as title, fallback to device name
+            title = device_info.get("friendly_type") or device_info["name"]
+
             return self.async_create_entry(
-                title=device_info["name"],
+                title=title,
                 data=config_data
             )
 
@@ -1373,10 +1455,10 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                         endpoint=endpoint
                     )
 
-                    # Test connection and get device list
+                    # Test connection and get device list with full details (including local_key)
                     async with api_client:
                         if await api_client.test_connection():
-                            devices = await api_client.get_device_list()
+                            devices = await api_client.get_device_list_with_details()
 
                             # Filter for KKT Kolbe devices
                             kkt_devices = []
@@ -1538,7 +1620,9 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                 CONF_IP_ADDRESS: self._device_info["ip"],
                 "device_id": self._device_info["device_id"],
                 "local_key": self._local_key,
-                "product_name": self._device_info.get("product_name", "Unknown"),
+                "product_name": self._device_info.get("product_name", "auto"),
+                "device_type": self._device_info.get("device_type", "auto"),
+                "product_id": self._device_info.get("product_id"),
             }
 
             # Add advanced settings as options
