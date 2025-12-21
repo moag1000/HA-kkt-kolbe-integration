@@ -354,6 +354,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         self._local_key: str | None = None
         self._advanced_settings: dict[str, Any] = {}
         self._smart_discovery_results: dict[str, SmartDiscoveryResult] = {}
+        self._zeroconf_pending: bool = False
 
     async def async_step_zeroconf(
         self, discovery_info: dict[str, Any]
@@ -509,10 +510,19 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_zeroconf_authenticate(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Handle zeroconf discovered device that needs local key."""
+        """Handle zeroconf discovered device that needs local key or API config."""
         errors: dict[str, str] = {}
 
+        api_manager = GlobalAPIManager(self.hass)
+        has_api = api_manager.has_stored_credentials()
+
         if user_input is not None:
+            # Check if user wants to configure API instead
+            if user_input.get("configure_api"):
+                # Store that we came from zeroconf, so we return here after API config
+                self._zeroconf_pending = True
+                return await self.async_step_zeroconf_api_credentials()
+
             local_key = user_input.get("local_key", "").strip()
 
             if not local_key or len(local_key) < 16:
@@ -556,12 +566,6 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                 else:
                     errors["local_key"] = "invalid_auth"
 
-        # Check if API credentials are available but device wasn't found
-        api_manager = GlobalAPIManager(self.hass)
-        api_hint = ""
-        if not api_manager.has_stored_credentials():
-            api_hint = "Tip: Configure API credentials to auto-fetch local keys for future devices."
-
         # Get friendly display info
         friendly_type = self._device_info.get("friendly_type", "")
         device_name = self._device_info.get("name", "Unknown")
@@ -569,17 +573,125 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         if friendly_type:
             display_name = f"{display_name} ({friendly_type})"
 
+        # Build schema - add API option if no credentials stored
+        if has_api:
+            # API is already configured, just show local key field
+            schema = vol.Schema({
+                vol.Required("local_key"): str,
+            })
+            api_hint = "API credentials are configured but local_key was not found for this device."
+        else:
+            # No API configured - offer both options
+            schema = vol.Schema({
+                vol.Optional("local_key"): str,
+                vol.Optional("configure_api", default=False): bool,
+            })
+            api_hint = "You can enter the local key manually, or configure API credentials to fetch it automatically."
+
         return self.async_show_form(
             step_id="zeroconf_authenticate",
-            data_schema=vol.Schema({
-                vol.Required("local_key"): str,
-            }),
+            data_schema=schema,
             errors=errors,
             description_placeholders={
                 "device_name": display_name,
                 "device_id": self._device_info.get("device_id", "Unknown")[:8],
                 "ip_address": self._device_info.get("ip", "Unknown"),
                 "api_hint": api_hint,
+            },
+        )
+
+    async def async_step_zeroconf_api_credentials(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Configure API credentials from zeroconf discovery flow."""
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            client_id = user_input.get("api_client_id", "").strip()
+            client_secret = user_input.get("api_client_secret", "").strip()
+            endpoint = user_input.get("api_endpoint", "https://openapi.tuyaeu.com")
+
+            if not client_id or len(client_id) < 10:
+                errors["api_client_id"] = "api_client_id_invalid"
+            elif not client_secret or len(client_secret) < 20:
+                errors["api_client_secret"] = "api_client_secret_invalid"
+            else:
+                # Test API connection
+                from .api import TuyaCloudClient
+
+                try:
+                    api_client = TuyaCloudClient(
+                        client_id=client_id,
+                        client_secret=client_secret,
+                        endpoint=endpoint,
+                    )
+                    async with api_client:
+                        if await api_client.test_connection():
+                            # Store credentials globally
+                            api_manager = GlobalAPIManager(self.hass)
+                            api_manager.store_api_credentials(client_id, client_secret, endpoint)
+                            _LOGGER.info("API credentials stored from zeroconf flow")
+
+                            # Now try to fetch device info with the new API credentials
+                            device_id = self._device_info.get("device_id")
+                            api_devices = await api_manager.get_kkt_devices_from_api()
+
+                            for api_device in api_devices:
+                                if api_device.get("id") == device_id:
+                                    # Found the device! Update info
+                                    self._device_info["local_key"] = api_device.get("local_key")
+                                    self._device_info["product_id"] = api_device.get("product_id")
+                                    self._device_info["tuya_category"] = api_device.get("category")
+
+                                    api_name = api_device.get("name") or api_device.get("product_name")
+                                    if api_name:
+                                        self._device_info["name"] = api_name
+
+                                    # Detect device type
+                                    device_type, internal_product_name = _detect_device_type_from_api(api_device)
+                                    self._device_info["device_type"] = device_type
+                                    self._device_info["product_name"] = internal_product_name
+
+                                    from .device_types import KNOWN_DEVICES
+                                    if device_type in KNOWN_DEVICES:
+                                        self._device_info["friendly_type"] = KNOWN_DEVICES[device_type].get("name", device_type)
+                                    else:
+                                        self._device_info["friendly_type"] = api_device.get("product_name", "KKT Device")
+
+                                    _LOGGER.info(f"Zeroconf API: Found device {device_id[:8]}, "
+                                                f"local_key={'PRESENT' if self._device_info.get('local_key') else 'MISSING'}")
+                                    break
+
+                            # If we now have local_key, go to confirm step
+                            if self._device_info.get("local_key"):
+                                return await self.async_step_zeroconf_confirm()
+                            else:
+                                # API works but device not found or no local_key
+                                _LOGGER.warning(f"API configured but device {device_id[:8]} not found or has no local_key")
+                                return await self.async_step_zeroconf_authenticate()
+                        else:
+                            errors["base"] = "api_connection_failed"
+                except Exception as err:
+                    _LOGGER.error(f"API test failed: {err}")
+                    errors["base"] = "api_connection_failed"
+
+        # Show API configuration form
+        return self.async_show_form(
+            step_id="zeroconf_api_credentials",
+            data_schema=vol.Schema({
+                vol.Required("api_client_id"): str,
+                vol.Required("api_client_secret"): str,
+                vol.Required("api_endpoint", default="https://openapi.tuyaeu.com"): vol.In({
+                    "https://openapi.tuyaeu.com": "Europe (EU)",
+                    "https://openapi.tuyaus.com": "Americas (US)",
+                    "https://openapi.tuyacn.com": "China (CN)",
+                    "https://openapi.tuyain.com": "India (IN)",
+                }),
+            }),
+            errors=errors,
+            description_placeholders={
+                "device_name": self._device_info.get("name", "Unknown"),
+                "device_id": self._device_info.get("device_id", "Unknown")[:8],
             },
         )
 

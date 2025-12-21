@@ -5,6 +5,41 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.0] - 2025-12-21
+
+### Feature - API-Konfiguration direkt im Zeroconf Discovery Flow
+
+**Verbesserung**: Wenn ein Gerät per Zeroconf entdeckt wird und kein `local_key` verfügbar ist, kann der Benutzer jetzt direkt API-Credentials eingeben statt nur den Local Key.
+
+### Added
+- **Neuer Step `zeroconf_api_credentials`**: Ermöglicht API-Konfiguration während Zeroconf Discovery
+- **Checkbox "Configure API credentials instead"**: Alternative zum manuellen Local Key
+- **Auto-Enrichment nach API-Config**: Nach erfolgreicher API-Konfiguration wird das Gerät automatisch mit allen Details angereichert
+
+### Flow
+```
+Zeroconf Discovery
+       ↓
+Device gefunden, kein local_key
+       ↓
+┌─────────────────────────────────┐
+│  ○ Local Key eingeben           │
+│  ☑ API Credentials (empfohlen)  │
+└─────────────────────────────────┘
+       ↓ (API gewählt)
+API Credentials eingeben
+       ↓
+local_key automatisch geholt
+       ↓
+One-Click Setup ✅
+```
+
+### Improved
+- Besseres Logging für API-Enrichment Debugging
+- Detaillierte Fehlermeldungen wenn Gerät nicht in API gefunden
+
+---
+
 ## [2.7.7] - 2025-12-21
 
 ### Fix - Zeroconf Discovery Titel zeigt jetzt Gerätetyp
