@@ -400,8 +400,12 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             _LOGGER.info(f"Zeroconf: API credentials available, enriching device {device_id[:8]}")
             try:
                 api_devices = await api_manager.get_kkt_devices_from_api()
+                _LOGGER.info(f"Zeroconf: API returned {len(api_devices)} KKT devices")
+
+                device_found = False
                 for api_device in api_devices:
                     if api_device.get("id") == device_id:
+                        device_found = True
                         # Found matching device in API - store ALL useful info
                         self._device_info["local_key"] = api_device.get("local_key")
                         self._device_info["product_id"] = api_device.get("product_id")
@@ -428,14 +432,22 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                         # Update title placeholder for discovery notification
                         self.context["title_placeholders"] = {"name": self._device_info["friendly_type"]}
 
+                        has_local_key = bool(self._device_info.get("local_key"))
                         _LOGGER.info(f"Zeroconf: Enriched device {device_id[:8]}: "
-                                    f"name={self._device_info.get('name')}, "
-                                    f"type={device_type}, "
                                     f"friendly_type={self._device_info['friendly_type']}, "
+                                    f"local_key={'PRESENT' if has_local_key else 'MISSING'}, "
                                     f"product_id={api_device.get('product_id', 'N/A')}")
                         break
+
+                if not device_found:
+                    _LOGGER.warning(f"Zeroconf: Device {device_id[:8]} NOT FOUND in API response! "
+                                   f"API returned IDs: {[d.get('id', '')[:8] for d in api_devices]}")
+
             except Exception as err:
                 _LOGGER.warning(f"Zeroconf: Failed to enrich with API data: {err}")
+        else:
+            _LOGGER.warning(f"Zeroconf: NO API credentials stored! Device {device_id[:8]} cannot be auto-enriched. "
+                           f"Configure a device via 'API-Only Setup' first to enable one-click discovery.")
 
         # If we have all required info (including local_key), show confirmation
         if self._device_info.get("local_key") and self._device_info.get("ip"):
