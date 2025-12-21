@@ -5,6 +5,23 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.7] - 2025-12-21
+
+### Fix - Zeroconf Discovery Titel zeigt jetzt Gerätetyp
+
+**Problem**: Zeroconf Discovery Notification zeigte immer "KKT Kolbe Integration" statt Gerätetyp.
+
+### Fixed
+- **`flow_title` hinzugefügt**: strings.json hat jetzt `flow_title: "{name}"` für dynamische Titel
+- **`title_placeholders` gesetzt**: Zeroconf Flow setzt `self.context["title_placeholders"]` mit friendly_type
+- **Besseres Logging**: Zeigt ob `local_key` von API zurückkommt
+
+### Erwartetes Verhalten
+- Discovery Notification zeigt: "HERMES & STYLE Hood" oder "IND7705HC Induction Cooktop"
+- Statt generischem "KKT Kolbe Integration"
+
+---
+
 ## [2.7.6] - 2025-12-20
 
 ### Fix - Smart Discovery zeigt jetzt Gerätetypen korrekt an

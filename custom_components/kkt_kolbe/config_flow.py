@@ -388,7 +388,11 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             "ip": host,
             "name": discovery_info.get("name", f"KKT Device {device_id[:8]}"),
             "discovered_via": "zeroconf",
+            "friendly_type": "KKT Kolbe Device",  # Default, will be updated if API available
         }
+
+        # Set initial title placeholder (will be updated after API enrichment)
+        self.context["title_placeholders"] = {"name": "KKT Kolbe Device"}
 
         # Check if we have API credentials to auto-fetch local key and device details
         api_manager = GlobalAPIManager(self.hass)
@@ -421,9 +425,13 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                         else:
                             self._device_info["friendly_type"] = api_device.get("product_name", "KKT Device")
 
+                        # Update title placeholder for discovery notification
+                        self.context["title_placeholders"] = {"name": self._device_info["friendly_type"]}
+
                         _LOGGER.info(f"Zeroconf: Enriched device {device_id[:8]}: "
                                     f"name={self._device_info.get('name')}, "
                                     f"type={device_type}, "
+                                    f"friendly_type={self._device_info['friendly_type']}, "
                                     f"product_id={api_device.get('product_id', 'N/A')}")
                         break
             except Exception as err:
