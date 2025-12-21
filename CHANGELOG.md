@@ -5,6 +5,21 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.3] - 2025-12-21
+
+### Fix - Config Flow Back Navigation
+
+**Problem**: "Zurück" Button in Authentication Step navigierte immer zu Discovery, auch wenn man von Manual kam.
+
+### Fixed
+- **Source Tracking**: Alle Flows setzen jetzt `source` in `_device_info`:
+  - `"manual"` - Von manueller Konfiguration
+  - `"discovery"` - Von lokaler Discovery
+  - `"smart_discovery"` - Von Smart Discovery
+- **Back Navigation**: `async_step_authentication` navigiert jetzt korrekt basierend auf `source`
+
+---
+
 ## [2.8.2] - 2025-12-21
 
 ### Fix - Existing Config Entries Entity Lookup
