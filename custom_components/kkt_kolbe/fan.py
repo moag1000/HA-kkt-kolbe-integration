@@ -42,17 +42,21 @@ async def async_setup_entry(
 ) -> None:
     """Set up KKT Kolbe fan entity."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+    device_type = hass.data[DOMAIN][entry.entry_id].get("device_type", "auto")
     product_name = hass.data[DOMAIN][entry.entry_id].get("product_name", "unknown")
 
+    # Prefer device_type (KNOWN_DEVICES key) over product_name (Tuya product ID)
+    lookup_key = device_type if device_type not in ("auto", None, "") else product_name
+
     # Get fan configuration from device_types
-    fan_config = get_device_entity_config(product_name, "fan")
+    fan_config = get_device_entity_config(lookup_key, "fan")
 
     # Only add if device has fan configuration
     if fan_config:
-        _LOGGER.info(f"Setting up fan entity for {product_name} with config: {fan_config}")
+        _LOGGER.info(f"Setting up fan entity for {lookup_key} (device_type={device_type}, product={product_name}) with config: {fan_config}")
         async_add_entities([KKTKolbeFan(coordinator, entry, fan_config)])
     else:
-        _LOGGER.debug(f"No fan configuration found for {product_name}")
+        _LOGGER.debug(f"No fan configuration found for {lookup_key}")
 
 
 class KKTKolbeFan(KKTBaseEntity, FanEntity):

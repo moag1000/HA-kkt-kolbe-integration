@@ -29,10 +29,14 @@ async def async_setup_entry(
 ) -> None:
     """Set up KKT Kolbe binary sensor entities."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+    device_type = hass.data[DOMAIN][entry.entry_id].get("device_type", "auto")
     product_name = hass.data[DOMAIN][entry.entry_id].get("product_name", "unknown")
 
+    # Prefer device_type (KNOWN_DEVICES key) over product_name (Tuya product ID)
+    lookup_key = device_type if device_type not in ("auto", None, "") else product_name
+
     # Get binary sensor configurations for this device
-    entity_configs = get_device_entities(product_name, "binary_sensor")
+    entity_configs = get_device_entities(lookup_key, "binary_sensor")
 
     if entity_configs:
         entities = []

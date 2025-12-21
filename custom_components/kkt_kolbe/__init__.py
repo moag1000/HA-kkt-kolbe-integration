@@ -289,22 +289,40 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.error(f"Unexpected error during setup: {e}", exc_info=True)
         raise
 
-    # Determine device type and platforms based on product name
-    from .device_types import get_device_info_by_product_name, get_device_platforms
+    # Determine device type and platforms
+    # Priority: device_type (KNOWN_DEVICES key) > product_name (Tuya product ID)
+    from .device_types import get_device_info_by_product_name, get_device_platforms, KNOWN_DEVICES
 
-    product_name = entry.data.get("product_name", "unknown")
+    device_type = entry.data.get("device_type", "auto")
+    product_name = entry.data.get("product_name", "auto")
 
-    # For manual setup, try to detect product_name from device if possible
-    if product_name == "unknown":
-        try:
-            # Try to get device info to detect product name
-            device_status = await device.async_get_status()
-            # Here we could add logic to detect device type from status
-            # For now, use fallback detection
-        except Exception as e:
-            _LOGGER.debug(f"Could not get device status for product detection: {e}")
+    # Try to get device_info from device_type first (it's often a KNOWN_DEVICES key)
+    if device_type and device_type != "auto" and device_type in KNOWN_DEVICES:
+        device_info = {
+            "model_id": KNOWN_DEVICES[device_type].get("model_id", device_type),
+            "category": KNOWN_DEVICES[device_type].get("category", "unknown"),
+            "name": KNOWN_DEVICES[device_type].get("name", "KKT Kolbe Device"),
+        }
+        _LOGGER.info(f"Using device_type '{device_type}' from config: {device_info['name']}")
+    elif product_name and product_name != "auto" and product_name != "unknown":
+        # Fallback to product_name lookup
+        device_info = get_device_info_by_product_name(product_name)
+        _LOGGER.info(f"Using product_name '{product_name}' for device lookup: {device_info['name']}")
+    else:
+        # Last resort - try device_id pattern matching
+        from .config_flow import _detect_device_type_from_device_id
+        detected_type, detected_product, detected_name = _detect_device_type_from_device_id(device_id)
+        if detected_type != "auto":
+            device_info = {
+                "model_id": detected_type,
+                "category": KNOWN_DEVICES.get(detected_type, {}).get("category", "unknown"),
+                "name": detected_name,
+            }
+            _LOGGER.info(f"Detected device from device_id pattern: {detected_name}")
+        else:
+            device_info = get_device_info_by_product_name("default_hood")
+            _LOGGER.warning(f"Could not detect device type, using default_hood")
 
-    device_info = get_device_info_by_product_name(product_name)
     platforms = get_device_platforms(device_info["category"])
 
     hass.data[DOMAIN][entry.entry_id] = {
@@ -314,6 +332,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "config": entry.data,
         "device_info": device_info,
         "product_name": product_name,
+        "device_type": device_type,  # KNOWN_DEVICES key for entity lookup
         "integration_mode": integration_mode,
     }
 
