@@ -252,6 +252,12 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
             109: "day_1",
         }
 
+    async def async_set_data_point(self, dp: int, value: Any) -> None:
+        """Set a data point on the device (compatibility wrapper for async_send_command)."""
+        success = await self.async_send_command(dp, value)
+        if not success:
+            raise Exception(f"Failed to set DP {dp} to {value}")
+
     async def async_send_command(self, dp_id: int, value: Any) -> bool:
         """Send command using available communication method."""
         _LOGGER.debug(f"Sending command to DP {dp_id}: {value}")
