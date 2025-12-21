@@ -170,13 +170,29 @@
         "data_description": {}
       },
       "zeroconf_authenticate": {
-        "title": "Device Discovered - Local Key Required",
-        "description": "A KKT Kolbe device was found, but needs a local key to complete setup.\n\n**Device:** {device_name}\n**Device ID:** {device_id}...\n**IP Address:** {ip_address}\n\n{api_hint}",
+        "title": "Device Discovered - Authentication Required",
+        "description": "A KKT Kolbe device was found, but needs authentication to complete setup.\n\n**Device:** {device_name}\n**Device ID:** {device_id}...\n**IP Address:** {ip_address}\n\n{api_hint}",
         "data": {
-          "local_key": "Local Key"
+          "local_key": "Local Key (16 characters)",
+          "configure_api": "Configure API credentials instead (recommended)"
         },
         "data_description": {
-          "local_key": "Enter the 16-character local key from the Smart Life app"
+          "local_key": "Enter the 16-character local key from the Smart Life app",
+          "configure_api": "Use Tuya Cloud API to automatically fetch local keys for all devices"
+        }
+      },
+      "zeroconf_api_credentials": {
+        "title": "Configure Tuya Cloud API",
+        "description": "Enter your Tuya IoT Platform credentials to automatically fetch device keys.\n\n**Device:** {device_name}\n**Device ID:** {device_id}...\n\nGet credentials from: https://iot.tuya.com",
+        "data": {
+          "api_client_id": "Access ID",
+          "api_client_secret": "Access Secret",
+          "api_endpoint": "Region"
+        },
+        "data_description": {
+          "api_client_id": "Access ID from your Tuya IoT Platform project",
+          "api_client_secret": "Access Secret from your Tuya IoT Platform project",
+          "api_endpoint": "Select your regional API endpoint"
         }
       },
       "manual": {
