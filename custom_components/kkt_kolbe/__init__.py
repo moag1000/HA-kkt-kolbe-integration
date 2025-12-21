@@ -291,10 +291,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Determine device type and platforms
     # Priority: device_type (KNOWN_DEVICES key) > product_name (Tuya product ID)
-    from .device_types import get_device_info_by_product_name, get_device_platforms, KNOWN_DEVICES
+    from .device_types import get_device_info_by_product_name, get_device_platforms, KNOWN_DEVICES, find_device_by_product_name
 
     device_type = entry.data.get("device_type", "auto")
     product_name = entry.data.get("product_name", "auto")
+    effective_device_type = device_type  # Will be updated if we detect a better match
 
     # Try to get device_info from device_type first (it's often a KNOWN_DEVICES key)
     if device_type and device_type != "auto" and device_type in KNOWN_DEVICES:
@@ -303,10 +304,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             "category": KNOWN_DEVICES[device_type].get("category", "unknown"),
             "name": KNOWN_DEVICES[device_type].get("name", "KKT Kolbe Device"),
         }
+        effective_device_type = device_type
         _LOGGER.info(f"Using device_type '{device_type}' from config: {device_info['name']}")
     elif product_name and product_name != "auto" and product_name != "unknown":
         # Fallback to product_name lookup
         device_info = get_device_info_by_product_name(product_name)
+        # Try to find the KNOWN_DEVICES key for this product_name
+        for key, info in KNOWN_DEVICES.items():
+            if product_name in info.get("product_names", []):
+                effective_device_type = key
+                _LOGGER.info(f"Resolved product_name '{product_name}' to device_type '{key}'")
+                break
         _LOGGER.info(f"Using product_name '{product_name}' for device lookup: {device_info['name']}")
     else:
         # Last resort - try device_id pattern matching
@@ -318,9 +326,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 "category": KNOWN_DEVICES.get(detected_type, {}).get("category", "unknown"),
                 "name": detected_name,
             }
-            _LOGGER.info(f"Detected device from device_id pattern: {detected_name}")
+            effective_device_type = detected_type  # Use the detected type!
+            product_name = detected_product  # Also update product_name
+            _LOGGER.info(f"Detected device from device_id pattern: {detected_name} (device_type={detected_type})")
         else:
             device_info = get_device_info_by_product_name("default_hood")
+            effective_device_type = "default_hood"
             _LOGGER.warning(f"Could not detect device type, using default_hood")
 
     platforms = get_device_platforms(device_info["category"])
@@ -332,7 +343,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "config": entry.data,
         "device_info": device_info,
         "product_name": product_name,
-        "device_type": device_type,  # KNOWN_DEVICES key for entity lookup
+        "device_type": effective_device_type,  # KNOWN_DEVICES key for entity lookup
         "integration_mode": integration_mode,
     }
 

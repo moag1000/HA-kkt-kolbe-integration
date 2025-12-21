@@ -5,6 +5,23 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.2] - 2025-12-21
+
+### Fix - Existing Config Entries Entity Lookup
+
+**Problem**: Bestehende Config Entries ohne gespeichertes `device_type` bekamen falsche Entities, weil der erkannte Typ nicht in `hass.data` gespeichert wurde.
+
+### Fixed
+- **`__init__.py`**: Verwendet jetzt `effective_device_type` - der erkannte Typ wird gespeichert, nicht der originale "auto" Wert
+- **product_name Lookup**: Wenn ein Gerät über `product_name` gefunden wird, wird der passende KNOWN_DEVICES Schlüssel ermittelt
+- **device_id Pattern Fallback**: Der erkannte `detected_type` wird jetzt korrekt in `hass.data` gespeichert
+
+### Betroffene Geräte
+- Alle bestehenden Installationen die vor v2.8.1 eingerichtet wurden
+- Geräte mit `device_type: auto` in der Config Entry
+
+---
+
 ## [2.8.1] - 2025-12-21
 
 ### Fix - Device Type Detection & Entity Configuration
