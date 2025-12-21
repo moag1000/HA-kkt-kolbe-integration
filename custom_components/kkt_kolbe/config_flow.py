@@ -804,6 +804,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                 else:
                     # Device needs local key - go to authentication step
                     self._device_info = result.to_dict()
+                    self._device_info["source"] = "smart_discovery"
                     return await self.async_step_authentication()
 
         # Run smart discovery if not already done
@@ -1083,6 +1084,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                 device_id = user_input["selected_device"]
                 if device_id in self._discovery_data:
                     self._device_info = self._discovery_data[device_id]
+                    self._device_info["source"] = "discovery"
                     return await self.async_step_authentication()
                 else:
                     errors["base"] = "device_not_found"
@@ -1153,6 +1155,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                     "device_type": device_type,
                     "category": category,
                     "friendly_type": device_name,  # Use device name from KNOWN_DEVICES
+                    "source": "manual",  # Track where we came from for back navigation
                 }
                 # Don't set local_key here - it will be asked in authentication step
                 return await self.async_step_authentication()
@@ -1521,9 +1524,12 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             # Check if user wants to go back
             if user_input.get("back_to_previous"):
-                # Go back to manual or discovery based on where we came from
-                if self._device_info.get("product_name") == "Manual Configuration":
+                # Go back to the previous step based on where we came from
+                source = self._device_info.get("source", "discovery")
+                if source == "manual":
                     return await self.async_step_manual()
+                elif source == "smart_discovery":
+                    return await self.async_step_smart_discovery()
                 else:
                     return await self.async_step_discovery()
 
