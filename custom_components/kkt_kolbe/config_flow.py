@@ -434,6 +434,13 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             _LOGGER.debug("Zeroconf discovery: No device ID found, ignoring")
             return self.async_abort(reason="no_device_id")
 
+        # Check if another flow is already in progress for this device
+        # This prevents zeroconf from blocking user-initiated flows
+        for flow in self._async_in_progress():
+            if flow["context"].get("unique_id") == device_id:
+                _LOGGER.debug(f"Zeroconf: Flow already in progress for {device_id[:8]}, aborting")
+                return self.async_abort(reason="already_in_progress")
+
         # Check if device is already configured
         await self.async_set_unique_id(device_id)
         self._abort_if_unique_id_configured(updates={CONF_IP_ADDRESS: host} if host else None)
@@ -518,8 +525,11 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         if self._device_info.get("local_key") and self._device_info.get("ip"):
             return await self.async_step_zeroconf_confirm()
 
-        # Otherwise, show discovery notification and ask for local key
-        return await self.async_step_zeroconf_authenticate()
+        # No local_key available - abort silently to avoid blocking Smart Discovery
+        # The user can use Smart Discovery or manual setup instead
+        _LOGGER.info(f"Zeroconf: Device {device_id[:8]} found but no local_key available. "
+                    f"Use Smart Discovery or manual setup. Aborting zeroconf flow.")
+        return self.async_abort(reason="no_local_key")
 
     async def async_step_zeroconf_confirm(
         self, user_input: dict[str, Any] | None = None
@@ -1640,6 +1650,11 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             # Check if user wants to go back
             if user_input.get("back_to_authentication"):
                 return await self.async_step_authentication()
+
+            # Ensure enable_advanced_entities defaults to True if not in input
+            # (HA UI sometimes doesn't send unchecked bool fields)
+            if "enable_advanced_entities" not in user_input:
+                user_input["enable_advanced_entities"] = True
 
             self._advanced_settings = user_input
             return await self.async_step_confirmation()
