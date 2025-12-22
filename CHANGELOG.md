@@ -5,6 +5,24 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.8] - 2025-12-22
+
+### Fix - Device-Erkennung bei lokaler Discovery (ohne API)
+
+**Problem**: Bei Smart Discovery ohne API-Credentials wurde die HERMES & STYLE Hood nicht erkannt und als "KKT Device bf735dfe..." angezeigt statt "HERMES & STYLE Hood".
+
+### Fixed
+- **Lokale Discovery**: Verwendet jetzt `device_id` Pattern-Matching auch OHNE API-Anreicherung
+- **SmartDiscoveryResult**: Setzt `friendly_type`, `device_type` und `product_name` basierend auf `device_id` Pattern
+- **HERMES Hood**: Wird jetzt auch bei reiner lokaler Discovery korrekt als "HERMES & STYLE Hood" erkannt
+
+### Erkennungslogik:
+Die HERMES Hood wird erkannt über:
+- Device ID: `bf735dfe2ad64fba7cpyhn` (exakt)
+- Device ID Pattern: `bf735dfe2ad64fba7c` (Prefix)
+
+---
+
 ## [2.8.7] - 2025-12-22
 
 ### Fix - Advanced Entities und Device Display Labels
