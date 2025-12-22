@@ -5,6 +5,23 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.4] - 2025-12-21
+
+### Improvement - Better "Already in Progress" Message
+
+**Problem**: User sieht "already_in_progress" ohne klare Erklärung was zu tun ist.
+
+### Improved
+- **Bessere Fehlermeldung**: Erklärt dass ein Setup Flow bereits läuft und abgeschlossen/verworfen werden muss
+
+### Lösung bei "already_in_progress":
+1. Gehe zu **Einstellungen → Geräte & Dienste**
+2. Oben rechts nach ausstehenden Config Flows suchen
+3. Den alten Flow schließen/löschen
+4. Neu versuchen
+
+---
+
 ## [2.8.3] - 2025-12-21
 
 ### Fix - Config Flow Back Navigation

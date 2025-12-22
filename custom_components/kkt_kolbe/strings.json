@@ -287,6 +287,7 @@
     },
     "abort": {
       "already_configured": "Device is already configured",
+      "already_in_progress": "A setup flow for this device is already running. Please complete or dismiss the existing flow first.",
       "no_device_id": "Could not identify device. No device ID found.",
       "reauth_failed": "Reauthentication failed. Entry not found."
     }
