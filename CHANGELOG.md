@@ -5,6 +5,26 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.5] - 2025-12-21
+
+### Fix - Advanced Entities jetzt standardmäßig aktiviert
+
+**Problem**: Entities wie RGB Mode, Fan Speed Select, Filter Status waren versteckt weil `enable_advanced_entities` standardmäßig auf `False` stand.
+
+### Fixed
+- **Default geändert**: `enable_advanced_entities` ist jetzt standardmäßig `True`
+- **Alle Platform-Files**: switch.py, number.py, select.py, sensor.py, binary_sensor.py prüfen jetzt die Option korrekt
+- **HERMES Hood**: Alle Entities (RGB Mode, Fan Speed, Filter Status, etc.) sind jetzt sichtbar
+
+### HERMES & STYLE Hood Entities (jetzt alle sichtbar):
+- Fan, Light, Power, Timer (wie bisher)
+- RGB Mode, Light Brightness, RGB Brightness
+- Fan Speed Select, Color Temperature Select
+- Filter Status, Filter Hours, Filter Cleaning Reminder
+- Delayed Shutdown, Eco Mode
+
+---
+
 ## [2.8.4] - 2025-12-21
 
 ### Improvement - Better "Already in Progress" Message

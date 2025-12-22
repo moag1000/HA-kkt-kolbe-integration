@@ -353,7 +353,7 @@ def get_settings_schema(device_type: str = None) -> vol.Schema:
 
     # Only show advanced entities option for induction cooktops
     if device_type in ["ind7705hc", "induction_cooktop"]:
-        schema_dict[vol.Optional("enable_advanced_entities", default=False)] = bool
+        schema_dict[vol.Optional("enable_advanced_entities", default=True)] = bool
         schema_dict[vol.Optional("zone_naming_scheme", default="zone")] = selector.selector({
             "select": {
                 "options": [
