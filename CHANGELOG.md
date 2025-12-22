@@ -5,6 +5,31 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.7] - 2025-12-22
+
+### Fix - Advanced Entities und Device Display Labels
+
+**Problem 1**: Bei Smart Discovery, Zeroconf und API-Only Flows wurden `enable_advanced_entities: True` nicht in den Config Entry Options gesetzt. Dadurch wurden nur 4 Entities (Fan, Light, Power, Timer) erstellt, obwohl alle Advanced Entities konfiguriert sind.
+
+**Problem 2**: Im Device-Auswahl-Dropdown wurden raw Tuya-IDs angezeigt (z.B. "ypaixllljc2dcpae - bf735dfe...") statt benutzerfreundliche Namen wie "HERMES & STYLE Hood".
+
+### Fixed
+- **Config Entry Options**: Alle `async_create_entry` Aufrufe setzen jetzt `options={"enable_advanced_entities": True, ...}`
+  - `async_step_zeroconf_confirm`
+  - `async_step_zeroconf_authenticate`
+  - `async_step_smart_discovery` (One-Click Setup)
+  - `async_step_api_device_selection`
+- **Device Display Labels**: `_get_device_selection_schema()` verwendet jetzt `friendly_type` aus `KNOWN_DEVICES`
+  - Zeigt "HERMES & STYLE Hood (192.168.x.x)" statt "ypaixllljc2dcpae - bf735dfe... (192.168.x.x)"
+- **friendly_type in Discovered Devices**: Alle API-Flows setzen jetzt `friendly_type` in `_discovered_devices`
+
+### HERMES Hood Entities (jetzt alle sichtbar):
+Nach diesem Fix werden jetzt alle Entities erstellt:
+- **Basis**: Fan, Light, Power, Timer
+- **Advanced**: RGB Mode, Light Brightness, RGB Brightness, Fan Speed Select, Color Temperature, Filter Status, Filter Hours, Filter Cleaning Reminder, Delayed Shutdown, Eco Mode
+
+---
+
 ## [2.8.6] - 2025-12-22
 
 ### Fix - Advanced Entities Option für ALLE Gerätetypen
