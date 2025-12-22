@@ -349,11 +349,11 @@ def get_settings_schema(device_type: str = None) -> vol.Schema:
             }
         }),
         vol.Optional("enable_debug_logging", default=False): bool,
+        vol.Optional("enable_advanced_entities", default=True): bool,  # Show all entities by default
     }
 
-    # Only show advanced entities option for induction cooktops
+    # Additional options for induction cooktops
     if device_type in ["ind7705hc", "induction_cooktop"]:
-        schema_dict[vol.Optional("enable_advanced_entities", default=True)] = bool
         schema_dict[vol.Optional("zone_naming_scheme", default="zone")] = selector.selector({
             "select": {
                 "options": [
@@ -1635,7 +1635,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             options_data = {
                 CONF_SCAN_INTERVAL: self._advanced_settings.get("update_interval", 30),
                 "enable_debug_logging": self._advanced_settings.get("enable_debug_logging", False),
-                "enable_advanced_entities": self._advanced_settings.get("enable_advanced_entities", False),
+                "enable_advanced_entities": self._advanced_settings.get("enable_advanced_entities", True),
                 "zone_naming_scheme": self._advanced_settings.get("zone_naming_scheme", "zone"),
             }
 
@@ -1764,7 +1764,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
         # Get current settings from config_entry
         current_interval = self.config_entry.options.get(CONF_SCAN_INTERVAL, 30)
         current_debug = self.config_entry.options.get("enable_debug_logging", False)
-        current_advanced = self.config_entry.options.get("enable_advanced_entities", False)
+        current_advanced = self.config_entry.options.get("enable_advanced_entities", True)
         current_naming = self.config_entry.options.get("zone_naming_scheme", "zone")
         current_local_key = self.config_entry.data.get(CONF_ACCESS_TOKEN, self.config_entry.data.get("local_key", ""))
 

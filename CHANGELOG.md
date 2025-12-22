@@ -5,6 +5,19 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.6] - 2025-12-22
+
+### Fix - Advanced Entities Option für ALLE Gerätetypen
+
+**Problem**: Die `enable_advanced_entities` Option war nur für Cooktops verfügbar, nicht für Hoods.
+
+### Fixed
+- **Settings Schema**: Option ist jetzt für ALLE Gerätetypen verfügbar (nicht nur Cooktops)
+- **Alle Defaults auf True**: Konsistent in allen Flows (confirmation, options)
+- **HERMES Hood**: Kann jetzt auch in den Optionen "Advanced Entities" konfigurieren
+
+---
+
 ## [2.8.5] - 2025-12-21
 
 ### Fix - Advanced Entities jetzt standardmäßig aktiviert
