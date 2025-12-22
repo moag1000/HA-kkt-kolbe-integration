@@ -38,6 +38,9 @@ async def async_setup_entry(
     device_type = hass.data[DOMAIN][entry.entry_id].get("device_type", "auto")
     product_name = hass.data[DOMAIN][entry.entry_id].get("product_name", "unknown")
 
+    # Check if advanced entities are enabled (default: True)
+    enable_advanced = entry.options.get("enable_advanced_entities", True)
+
     # Prefer device_type (KNOWN_DEVICES key) over product_name (Tuya product ID)
     lookup_key = device_type if device_type not in ("auto", None, "") else product_name
 
@@ -45,6 +48,9 @@ async def async_setup_entry(
     sensor_configs = get_device_entities(lookup_key, "sensor")
 
     for config in sensor_configs:
+        # Skip advanced entities if not enabled
+        if config.get("advanced", False) and not enable_advanced:
+            continue
         sensor_type = config.get("sensor_type", "standard")
 
         if sensor_type == "calculated_power":
