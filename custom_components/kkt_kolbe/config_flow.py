@@ -313,12 +313,27 @@ def _get_device_selection_schema(discovered_devices: dict[str, dict[str, Any]]) 
 
     device_options = []
     for device_id, device in discovered_devices.items():
+        # Use friendly_type if available (from device detection), then device name, then fallback
+        friendly_type = device.get("friendly_type")
+        device_name = device.get("name", "")
         product_name = device.get("product_name", "Unknown Device")
-        device_name = device.get("name", device_id)
+
+        # Build display name: prefer friendly_type > device_name > product_name
+        if friendly_type:
+            display_name = friendly_type
+        elif device_name and device_name != device_id and not device_name.startswith("KKT Device"):
+            display_name = device_name
+        else:
+            # Last resort: use product_name, but truncate if it looks like a Tuya ID
+            if len(product_name) > 12 and product_name.isalnum():
+                display_name = f"KKT Device ({device_id[:8]})"
+            else:
+                display_name = product_name
+
         # Try both possible IP keys from discovery
         ip_address = device.get("ip") or device.get("host") or "Unknown IP"
 
-        label = f"{product_name} - {device_id} ({ip_address})"
+        label = f"{display_name} ({ip_address})"
         device_options.append({"value": device_id, "label": label})
 
     return vol.Schema({
@@ -536,9 +551,16 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             else:
                 title = f"KKT Kolbe {device_name}"
 
+            # Default options with advanced entities enabled
+            default_options = {
+                "enable_advanced_entities": True,
+                "enable_debug_logging": False,
+            }
+
             return self.async_create_entry(
                 title=title,
                 data=config_data,
+                options=default_options,
             )
 
         # Get friendly display info
@@ -608,9 +630,16 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                     else:
                         title = f"KKT Kolbe {device_name}"
 
+                    # Default options with advanced entities enabled
+                    default_options = {
+                        "enable_advanced_entities": True,
+                        "enable_debug_logging": False,
+                    }
+
                     return self.async_create_entry(
                         title=title,
                         data=config_data,
+                        options=default_options,
                     )
                 else:
                     errors["local_key"] = "invalid_auth"
@@ -797,9 +826,16 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                     # Use friendly_type for better display name
                     title = result.friendly_type or f"KKT Kolbe {result.name}"
 
+                    # Default options with advanced entities enabled
+                    default_options = {
+                        "enable_advanced_entities": True,
+                        "enable_debug_logging": False,
+                    }
+
                     return self.async_create_entry(
                         title=title,
                         data=config_data,
+                        options=default_options,
                     )
                 else:
                     # Device needs local key - go to authentication step
@@ -1344,9 +1380,16 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             # Use friendly_type as title, fallback to device name
             title = device_info.get("friendly_type") or device_info["name"]
 
+            # Default options with advanced entities enabled
+            default_options = {
+                "enable_advanced_entities": True,
+                "enable_debug_logging": False,
+            }
+
             return self.async_create_entry(
                 title=title,
-                data=config_data
+                data=config_data,
+                options=default_options,
             )
 
         # Show device selection form
@@ -1380,6 +1423,11 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                         self._discovered_devices = {}
                         for device in kkt_devices:
                             device_type, internal_product_name = _detect_device_type_from_api(device)
+
+                            # Get friendly_type from KNOWN_DEVICES
+                            from .device_types import KNOWN_DEVICES
+                            friendly_type = KNOWN_DEVICES.get(device_type, {}).get("name")
+
                             self._discovered_devices[device["id"]] = {
                                 "device_id": device["id"],
                                 "name": device.get("name", f"KKT Device {device['id']}"),
@@ -1389,7 +1437,8 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                                 "ip": device.get("ip"),  # Include IP from API
                                 "local_key": device.get("local_key"),  # Include local_key from API
                                 "discovered_via": "API",
-                                "device_type": device_type
+                                "device_type": device_type,
+                                "friendly_type": friendly_type,
                             }
                         return await self.async_step_api_device_selection()
                     else:
@@ -1484,6 +1533,11 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                                 self._discovered_devices = {}
                                 for device in kkt_devices:
                                     device_type, internal_product_name = _detect_device_type_from_api(device)
+
+                                    # Get friendly_type from KNOWN_DEVICES
+                                    from .device_types import KNOWN_DEVICES
+                                    friendly_type = KNOWN_DEVICES.get(device_type, {}).get("name")
+
                                     self._discovered_devices[device["id"]] = {
                                         "device_id": device["id"],
                                         "name": device.get("name", f"KKT Device {device['id']}"),
@@ -1493,7 +1547,8 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                                         "ip": device.get("ip"),  # Include IP from API
                                         "local_key": device.get("local_key"),  # Include local_key from API
                                         "discovered_via": "API",
-                                        "device_type": device_type
+                                        "device_type": device_type,
+                                        "friendly_type": friendly_type,
                                     }
                                 return await self.async_step_api_device_selection()
                             else:
