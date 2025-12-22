@@ -113,13 +113,38 @@ class SmartDiscovery:
 
         # Convert local devices to SmartDiscoveryResult
         for device_id, device_info in local_devices.items():
+            # Try to detect device type from device_id pattern (even without API)
+            device_type = device_info.get("device_type", "auto")
+            product_name = device_info.get("product_name")
+            friendly_type = None
+
+            # Use device_id pattern matching to identify device
+            if device_id:
+                from .device_types import KNOWN_DEVICES, find_device_by_device_id
+                detected_info = find_device_by_device_id(device_id)
+                if detected_info:
+                    friendly_type = detected_info.get("name")
+                    if detected_info.get("product_names"):
+                        product_name = detected_info["product_names"][0]
+                    # Find the device key
+                    for key, info in KNOWN_DEVICES.items():
+                        if device_id in info.get("device_ids", []):
+                            device_type = key
+                            break
+                        for pattern in info.get("device_id_patterns", []):
+                            if device_id.startswith(pattern):
+                                device_type = key
+                                break
+                    _LOGGER.info(f"Smart Discovery: Detected {friendly_type} from device_id pattern")
+
             self._discovered_devices[device_id] = SmartDiscoveryResult(
                 device_id=device_id,
                 name=device_info.get("name", f"KKT Device {device_id[:8]}"),
                 ip_address=device_info.get("ip") or device_info.get("ip_address"),
-                product_name=device_info.get("product_name"),
-                device_type=device_info.get("device_type", "auto"),
+                product_name=product_name,
+                device_type=device_type,
                 discovered_via=device_info.get("discovered_via", "local"),
+                friendly_type=friendly_type,
             )
 
         # Step 2: Enrich with API data if credentials available
