@@ -5,6 +5,24 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.9] - 2025-12-22
+
+### Fix - Advanced Entities Default + Zeroconf Blocking
+
+**Problem 1**: `enable_advanced_entities` wurde manchmal nicht auf `True` gesetzt, obwohl es der Default ist.
+**Problem 2**: Zeroconf Flow blockierte Smart Discovery mit "already_in_progress".
+
+### Fixed
+- **Settings Flow**: Explizite Behandlung wenn `enable_advanced_entities` nicht im Input ist → Default `True`
+- **Zeroconf**: Bricht sich selbst ab wenn kein local_key verfügbar ist (blockiert nicht mehr Smart Discovery)
+- **Zeroconf**: Prüft ob bereits ein Flow läuft bevor unique_id gesetzt wird
+
+### Ergebnis:
+- Fan Speed, RGB Mode und andere Advanced Entities sind jetzt standardmäßig aktiviert
+- "already_in_progress" tritt nicht mehr auf wenn Zeroconf und Smart Discovery gleichzeitig laufen
+
+---
+
 ## [2.8.8] - 2025-12-22
 
 ### Fix - Device-Erkennung bei lokaler Discovery (ohne API)
