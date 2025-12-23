@@ -5,6 +5,32 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.0] - 2025-12-23
+
+### Fix - API Credentials Persistence
+
+**Problem**: API Credentials wurden bei Smart Discovery, Zeroconf und dem manuellen Flow nicht persistent in der Config Entry gespeichert. Nach einem Home Assistant Neustart waren die Credentials verloren und mussten neu eingegeben werden.
+
+### Fixed
+- **Smart Discovery**: API Credentials werden jetzt in `config_data` gespeichert wenn `result.api_enriched` ist
+- **Zeroconf Confirm**: API Credentials werden gespeichert falls verfügbar
+- **Zeroconf Authenticate**: API Credentials werden gespeichert falls verfügbar
+- **Confirmation Flow**: API Credentials werden gespeichert wenn der GlobalAPIManager Credentials hat
+- **Integration Mode**: Alle Flows setzen jetzt korrekt `integration_mode: "hybrid"` oder `"manual"`
+
+### Betroffene Flows:
+- `async_step_smart_discovery` - One-Click Setup
+- `async_step_zeroconf_confirm` - Automatische Erkennung
+- `async_step_zeroconf_authenticate` - Manuelle Local Key Eingabe
+- `async_step_confirmation` - Manueller Setup Flow
+
+### Ergebnis:
+- API Credentials bleiben nach HA Neustart erhalten
+- Smart Discovery findet Geräte auch nach Neustart automatisch
+- Local Key kann weiterhin via API abgerufen werden
+
+---
+
 ## [2.8.9] - 2025-12-22
 
 ### Fix - Advanced Entities Default + Zeroconf Blocking

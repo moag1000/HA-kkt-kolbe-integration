@@ -551,6 +551,16 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                 "integration_mode": "hybrid",
             }
 
+            # Store API credentials if available (for persistence after restart)
+            api_manager = GlobalAPIManager(self.hass)
+            creds = api_manager.get_stored_api_credentials()
+            if creds:
+                config_data["api_enabled"] = True
+                config_data["api_client_id"] = creds["client_id"]
+                config_data["api_client_secret"] = creds["client_secret"]
+                config_data["api_endpoint"] = creds["endpoint"]
+                _LOGGER.info("Zeroconf: API credentials stored in config entry for persistence")
+
             # Use friendly_type for better display name
             friendly_type = self._device_info.get("friendly_type", "")
             device_name = self._device_info.get("name", device_id[:8])
@@ -629,7 +639,17 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                         "product_name": self._device_info.get("product_name", "auto"),
                         "product_id": self._device_info.get("product_id"),
                         "device_type": self._device_info.get("device_type", "auto"),
+                        "integration_mode": "hybrid" if has_api else "manual",
                     }
+
+                    # Store API credentials if available (for persistence after restart)
+                    creds = api_manager.get_stored_api_credentials()
+                    if creds:
+                        config_data["api_enabled"] = True
+                        config_data["api_client_id"] = creds["client_id"]
+                        config_data["api_client_secret"] = creds["client_secret"]
+                        config_data["api_endpoint"] = creds["endpoint"]
+                        _LOGGER.info("Zeroconf authenticate: API credentials stored in config entry")
 
                     # Use friendly_type for better display name
                     friendly_type = self._device_info.get("friendly_type", "")
@@ -832,6 +852,17 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                         "device_type": device_type,
                         "integration_mode": "hybrid" if result.api_enriched else "manual",
                     }
+
+                    # If API was used for enrichment, store credentials persistently
+                    if result.api_enriched:
+                        api_manager = GlobalAPIManager(self.hass)
+                        creds = api_manager.get_stored_api_credentials()
+                        if creds:
+                            config_data["api_enabled"] = True
+                            config_data["api_client_id"] = creds["client_id"]
+                            config_data["api_client_secret"] = creds["client_secret"]
+                            config_data["api_endpoint"] = creds["endpoint"]
+                            _LOGGER.info("Smart Discovery: API credentials stored in config entry for persistence")
 
                     # Use friendly_type for better display name
                     title = result.friendly_type or f"KKT Kolbe {result.name}"
@@ -1692,6 +1723,10 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             else:
                 title = f"KKT Kolbe {self._device_info.get('name', 'Device')}"
 
+            # Check if we have API credentials stored
+            api_manager = GlobalAPIManager(self.hass)
+            has_api = api_manager.has_stored_credentials()
+
             config_data = {
                 CONF_IP_ADDRESS: self._device_info["ip"],
                 "device_id": self._device_info["device_id"],
@@ -1699,7 +1734,18 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                 "product_name": self._device_info.get("product_name", "auto"),
                 "device_type": self._device_info.get("device_type", "auto"),
                 "product_id": self._device_info.get("product_id"),
+                "integration_mode": "hybrid" if has_api else "manual",
             }
+
+            # Store API credentials if available (for persistence after restart)
+            if has_api:
+                creds = api_manager.get_stored_api_credentials()
+                if creds:
+                    config_data["api_enabled"] = True
+                    config_data["api_client_id"] = creds["client_id"]
+                    config_data["api_client_secret"] = creds["client_secret"]
+                    config_data["api_endpoint"] = creds["endpoint"]
+                    _LOGGER.info("Confirmation: API credentials stored in config entry for persistence")
 
             # Add advanced settings as options
             options_data = {
