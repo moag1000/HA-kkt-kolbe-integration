@@ -5,6 +5,45 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.3] - 2025-12-23
+
+### Feature - Hilfe-Links und vollständige Übersetzungen
+
+**Verbesserung**: Alle Config Flow Steps die Local Key oder API Credentials benötigen haben jetzt Hilfetexte mit Links zur Dokumentation.
+
+### Added
+- **Hilfe-Links in allen relevanten Steps**:
+  - Links zu [Setup Guide](https://github.com/moag1000/HA-kkt-kolbe-integration#-tuya-api-setup---vollstaendige-anleitung)
+  - Links zur [Tuya IoT Platform](https://iot.tuya.com)
+  - Schritt-für-Schritt Anleitungen für API-Zugangsdaten
+
+### Steps mit Hilfe-Links:
+**Local Key Eingabe:**
+- `manual_config` - Manuelle Konfiguration
+- `authentication` - Geräte-Authentifizierung
+- `zeroconf_authenticate` - Zeroconf Authentifizierung
+- `hybrid_manual_details` - Hybrid-Modus Details
+- `reauth_confirm` - Erneute Authentifizierung
+
+**API Credentials Eingabe:**
+- `zeroconf_api_credentials` - Zeroconf API Setup
+- `api_only` - API-Only Setup
+- `api_config` - API Konfiguration
+- `api_credentials` - API Zugangsdaten
+
+### Translations
+- **Vollständige Übersetzung aller 18 Config Flow Steps** (EN + DE)
+- Alle `data`, `data_description`, `error`, `abort` Schlüssel übersetzt
+- Options Flow vollständig übersetzt
+- Entity-Übersetzungen für alle Plattformen
+
+### Ergebnis
+- Benutzer finden direkt im Config Flow Links zur Dokumentation
+- Keine Suche nach Setup-Anleitungen mehr nötig
+- Konsistente Übersetzungen in Englisch und Deutsch
+
+---
+
 ## [2.9.2] - 2025-12-23
 
 ### Fix - Zeroconf blockiert Smart Discovery nicht mehr

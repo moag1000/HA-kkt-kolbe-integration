@@ -3,12 +3,25 @@
     "step": {
       "user": {
         "title": "KKT Kolbe Integration Setup",
-        "description": "Choose your setup method for KKT Kolbe devices.",
+        "description": "Choose your setup method for KKT Kolbe devices.\n\n**Recommended:** Smart Discovery (automatic detection with API support)",
         "data": {
           "setup_method": "Setup Method"
         },
         "data_description": {
           "setup_method": "Choose your preferred setup method"
+        }
+      },
+      "smart_discovery": {
+        "title": "Smart Discovery",
+        "description": "Automatic device discovery with API enrichment.\n\nFound: {found_count} device(s), {ready_count} ready for one-click setup.\n\n{discovery_status}",
+        "data": {
+          "selected_device": "Select Device",
+          "retry_discovery": "Retry Discovery",
+          "back_to_user": "Back to Setup Methods"
+        },
+        "data_description": {
+          "selected_device": "Select your KKT Kolbe device",
+          "retry_discovery": "Search again for devices on the network"
         }
       },
       "discovery": {
@@ -43,7 +56,7 @@
       },
       "manual_config": {
         "title": "Manual Configuration",
-        "description": "Enter device details manually.",
+        "description": "Enter device details manually.\n\n**How to get the Local Key:**\nYou need to set up the Tuya IoT Platform to retrieve the Local Key.\n\n[Setup Guide](https://github.com/moag1000/HA-kkt-kolbe-integration#-tuya-api-setup---vollstaendige-anleitung) | [Tuya IoT Platform](https://iot.tuya.com)",
         "data": {
           "device_id": "Device ID",
           "host": "IP Address",
@@ -52,21 +65,53 @@
         "data_description": {
           "device_id": "20-character device ID from Tuya/Smart Life app",
           "host": "IP address of the device on your network",
-          "local_key": "Local encryption key (16 characters)"
+          "local_key": "16-character local encryption key from Tuya IoT Platform"
         }
       },
       "authentication": {
         "title": "Device Authentication",
-        "description": "Enter the Local Key for your device:\n\nDevice: {device_name}\nDevice ID: {device_id}\nIP Address: {ip_address}",
+        "description": "Enter the Local Key for your device.\n\n**Device:** {device_name}\n**Device ID:** {device_id}\n**IP Address:** {ip_address}\n\n**How to get the Local Key:**\nThe Local Key is retrieved from the Tuya IoT Platform. Follow our setup guide to configure API access.\n\n[Setup Guide](https://github.com/moag1000/HA-kkt-kolbe-integration#-tuya-api-setup---vollstaendige-anleitung) | [Tuya IoT Platform](https://iot.tuya.com)",
         "data": {
           "local_key": "Local Key",
           "test_connection": "Test Connection",
           "back_to_previous": "Back to Previous Step"
         },
         "data_description": {
-          "local_key": "16-character local encryption key from Smart Life app",
+          "local_key": "16-character local encryption key from Tuya IoT Platform",
           "test_connection": "Test connection with the provided local key",
           "back_to_previous": "Return to device selection or manual configuration"
+        }
+      },
+      "zeroconf_confirm": {
+        "title": "Device Discovered",
+        "description": "A KKT Kolbe device was automatically discovered on your network.\n\n**Device:** {device_name}\n**Device ID:** {device_id}\n**IP Address:** {ip_address}\n**Type:** {product_name}\n\nClick Submit to add this device.",
+        "data": {},
+        "data_description": {}
+      },
+      "zeroconf_authenticate": {
+        "title": "Device Authentication Required",
+        "description": "A device was discovered but requires authentication.\n\n**Device:** {device_name}\n**Device ID:** {device_id}\n**IP Address:** {ip_address}\n\n**How to get the Local Key:**\nThe Local Key is a 16-character encryption key from the Tuya IoT Platform.\n\n[Setup Guide](https://github.com/moag1000/HA-kkt-kolbe-integration#-tuya-api-setup---vollstaendige-anleitung) | [Tuya IoT Platform](https://iot.tuya.com)\n\n**Alternative:** Configure API credentials to automatically retrieve the Local Key.",
+        "data": {
+          "local_key": "Local Key",
+          "configure_api": "Configure API Instead"
+        },
+        "data_description": {
+          "local_key": "16-character local encryption key from Tuya IoT Platform",
+          "configure_api": "Set up Tuya Cloud API to automatically get Local Key"
+        }
+      },
+      "zeroconf_api_credentials": {
+        "title": "Tuya Cloud API Setup",
+        "description": "Enter your Tuya Cloud API credentials to automatically retrieve device information.\n\n**How to get API credentials:**\n1. Go to [Tuya IoT Platform](https://iot.tuya.com)\n2. Create a Cloud Project (Smart Home type)\n3. Link your Smart Life app account\n4. Copy Access ID and Access Secret\n\n[Detailed Setup Guide](https://github.com/moag1000/HA-kkt-kolbe-integration#-tuya-api-setup---vollstaendige-anleitung)",
+        "data": {
+          "api_client_id": "Access ID (Client ID)",
+          "api_client_secret": "Access Secret (Client Secret)",
+          "api_endpoint": "API Region"
+        },
+        "data_description": {
+          "api_client_id": "Access ID from your Tuya IoT Platform Cloud Project",
+          "api_client_secret": "Access Secret from your Tuya IoT Platform Cloud Project",
+          "api_endpoint": "Select your regional API endpoint (EU for Europe)"
         }
       },
       "settings": {
@@ -82,13 +127,13 @@
         "data_description": {
           "update_interval": "How often to update device status (seconds)",
           "enable_debug_logging": "Enable detailed logging for troubleshooting",
-          "enable_advanced_entities": "Show additional diagnostic entities",
+          "enable_advanced_entities": "Show all entities including Fan Speed, RGB Mode, Filter Status",
           "zone_naming_scheme": "Naming convention for multi-zone devices"
         }
       },
       "confirmation": {
         "title": "Setup Complete",
-        "description": "Please confirm your configuration:\n\nDevice: {device_name}\nIP: {ip_address}\nDevice ID: {device_id}\nProduct: {product_name}\n\nSettings:\nUpdate Interval: {update_interval} seconds\nDebug Logging: {debug_logging}\nAdvanced Entities: {advanced_entities}",
+        "description": "Please confirm your configuration:\n\n**Device:** {device_name}\n**IP:** {ip_address}\n**Device ID:** {device_id}\n**Product:** {product_name}\n\n**Settings:**\nUpdate Interval: {update_interval} seconds\nDebug Logging: {debug_logging}\nAdvanced Entities: {advanced_entities}",
         "data": {
           "confirm": "Confirm Setup",
           "finish_setup": "Finish Setup",
@@ -98,9 +143,23 @@
           "finish_setup": "Complete the integration setup process"
         }
       },
+      "api_only": {
+        "title": "Tuya Cloud API Setup",
+        "description": "Configure your device using the Tuya Cloud API.\n\n**How to get API credentials:**\n1. Go to [Tuya IoT Platform](https://iot.tuya.com)\n2. Create a Cloud Project (Smart Home type)\n3. Link your Smart Life app account\n4. Copy Access ID and Access Secret\n\n[Detailed Setup Guide](https://github.com/moag1000/HA-kkt-kolbe-integration#-tuya-api-setup---vollstaendige-anleitung)",
+        "data": {
+          "api_client_id": "Access ID (Client ID)",
+          "api_client_secret": "Access Secret (Client Secret)",
+          "api_endpoint": "API Region"
+        },
+        "data_description": {
+          "api_client_id": "Access ID from your Tuya IoT Platform Cloud Project",
+          "api_client_secret": "Access Secret from your Tuya IoT Platform Cloud Project",
+          "api_endpoint": "Select your regional API endpoint"
+        }
+      },
       "api_config": {
         "title": "API Configuration",
-        "description": "Configure TinyTuya Cloud API credentials.",
+        "description": "Configure TinyTuya Cloud API credentials.\n\n[Setup Guide](https://github.com/moag1000/HA-kkt-kolbe-integration#-tuya-api-setup---vollstaendige-anleitung) | [Tuya IoT Platform](https://iot.tuya.com)",
         "data": {
           "api_client_id": "Client ID",
           "api_client_secret": "Client Secret",
@@ -112,20 +171,6 @@
           "api_endpoint": "API endpoint (EU: openapi.tuyaeu.com, US: openapi.tuyaus.com)"
         }
       },
-      "api_only": {
-        "title": "API-Only Setup",
-        "description": "Configure your device using TinyTuya Cloud API only.",
-        "data": {
-          "api_client_id": "API Client ID",
-          "api_client_secret": "API Client Secret",
-          "api_endpoint": "API Endpoint Region"
-        },
-        "data_description": {
-          "api_client_id": "Access ID from your Tuya IoT Platform project",
-          "api_client_secret": "Access Secret from your Tuya IoT Platform project",
-          "api_endpoint": "Select your regional API endpoint"
-        }
-      },
       "api_discovery": {
         "title": "Device Discovery",
         "description": "Select your KKT Kolbe device from discovered devices.",
@@ -135,7 +180,7 @@
       },
       "api_device_selection": {
         "title": "Select Your Device",
-        "description": "Choose your KKT Kolbe device from the API discovery.",
+        "description": "Choose your KKT Kolbe device from the API discovery.\n\nFound {device_count} device(s).",
         "data": {
           "selected_device": "Device",
           "retry_discovery": "Retry Discovery"
@@ -147,45 +192,45 @@
       },
       "api_choice": {
         "title": "API Credentials",
-        "description": "Use stored API credentials or enter new ones.",
+        "description": "Use stored API credentials or enter new ones.\n\n**Stored credentials:** {stored_api_info}",
         "data": {
           "use_stored_api": "Use Stored API Credentials",
-          "manage_api": "Manage API Settings"
+          "manage_api": "Enter New Credentials"
         },
         "data_description": {
-          "use_stored_api": "Use previously saved TinyTuya API credentials: {stored_api_info}",
-          "manage_api": "Advanced: Clear or modify stored API credentials"
+          "use_stored_api": "Use previously saved TinyTuya API credentials",
+          "manage_api": "Enter new API credentials"
         }
       },
       "api_credentials": {
-        "title": "New API Credentials",
-        "description": "Enter new TinyTuya Cloud API credentials.",
+        "title": "Tuya Cloud API Credentials",
+        "description": "Enter your Tuya Cloud API credentials.\n\n**How to get API credentials:**\n1. Go to [Tuya IoT Platform](https://iot.tuya.com)\n2. Create a Cloud Project (Smart Home type)\n3. Link your Smart Life app account\n4. Copy Access ID and Access Secret\n\n[Detailed Setup Guide](https://github.com/moag1000/HA-kkt-kolbe-integration#-tuya-api-setup---vollstaendige-anleitung)",
         "data": {
-          "api_client_id": "API Client ID",
-          "api_client_secret": "API Client Secret",
-          "api_endpoint": "API Endpoint Region"
+          "api_client_id": "Access ID (Client ID)",
+          "api_client_secret": "Access Secret (Client Secret)",
+          "api_endpoint": "API Region"
         },
         "data_description": {
-          "api_client_id": "Access ID from your Tuya IoT Platform project",
-          "api_client_secret": "Access Secret from your Tuya IoT Platform project",
+          "api_client_id": "Access ID from your Tuya IoT Platform Cloud Project",
+          "api_client_secret": "Access Secret from your Tuya IoT Platform Cloud Project",
           "api_endpoint": "Select your regional API endpoint"
         }
       },
       "hybrid_manual_details": {
         "title": "Local Connection Details",
-        "description": "Enter local connection details for hybrid mode.",
+        "description": "Enter local connection details for hybrid mode.\n\n**How to get the Local Key:**\n[Setup Guide](https://github.com/moag1000/HA-kkt-kolbe-integration#-tuya-api-setup---vollstaendige-anleitung) | [Tuya IoT Platform](https://iot.tuya.com)",
         "data": {
           "host": "IP Address",
           "local_key": "Local Key"
         },
         "data_description": {
           "host": "IP address for local communication",
-          "local_key": "Local encryption key for direct communication"
+          "local_key": "16-character local encryption key from Tuya IoT Platform"
         }
       },
       "reauth_confirm": {
         "title": "Update Credentials",
-        "description": "Update authentication credentials for {device_name}.",
+        "description": "Update authentication credentials for {device_name}.\n\n**Local Key:** Retrieved from Tuya IoT Platform after linking your Smart Life account.\n**API Credentials:** Access ID and Secret from your Tuya Cloud Project.\n\n[Setup Guide](https://github.com/moag1000/HA-kkt-kolbe-integration#-tuya-api-setup---vollstaendige-anleitung) | [Tuya IoT Platform](https://iot.tuya.com)",
         "data": {
           "local_key": "New Local Key",
           "api_client_id": "API Client ID",
@@ -201,7 +246,7 @@
       },
       "init": {
         "title": "KKT Kolbe Options",
-        "description": "Configure options for your KKT Kolbe device.",
+        "description": "Configure options for your KKT Kolbe device.\n\n[Documentation](https://github.com/moag1000/HA-kkt-kolbe-integration)",
         "data": {
           "scan_interval": "Update Interval",
           "new_local_key": "New Local Key",
@@ -222,36 +267,40 @@
           "api_client_secret": "Access Secret from Tuya IoT Platform project",
           "api_endpoint": "Select your regional API endpoint",
           "enable_debug_logging": "Enable detailed logging for troubleshooting",
-          "enable_advanced_entities": "Show additional diagnostic entities",
+          "enable_advanced_entities": "Show all entities (Fan Speed, RGB Mode, Filter Status, etc.)",
           "zone_naming_scheme": "How to name multi-zone entities",
           "test_connection": "Test device connection after changes"
         }
       }
     },
     "error": {
-      "cannot_connect": "Failed to connect to device",
-      "invalid_auth": "Invalid Local Key or authentication failed",
-      "discovery_failed": "Device discovery failed",
+      "cannot_connect": "Failed to connect to device. Check IP address and network.",
+      "invalid_auth": "Invalid Local Key or authentication failed. Verify the 16-character key.",
+      "discovery_failed": "Device discovery failed. Ensure device is online.",
       "device_not_found": "Selected device not found",
-      "invalid_ip": "Invalid IP address format",
+      "invalid_ip": "Invalid IP address format (e.g., 192.168.1.100)",
       "invalid_device_id": "Invalid device ID format (must be 20+ characters)",
-      "invalid_local_key": "Invalid local key format (must be 16+ characters)",
-      "connection_test_failed": "Connection test failed",
-      "unknown": "Unexpected error",
+      "invalid_local_key": "Invalid local key format (must be exactly 16 characters)",
+      "connection_test_failed": "Connection test failed. Check device availability.",
+      "unknown": "Unexpected error occurred",
       "missing_required_fields": "Please fill in all required fields",
-      "api_connection_failed": "Could not connect to Tuya Cloud API",
-      "api_auth_failed": "API authentication failed. Check your credentials",
+      "api_connection_failed": "Could not connect to Tuya Cloud API. Check internet connection.",
+      "api_auth_failed": "API authentication failed. Verify Access ID and Secret.",
+      "api_test_failed": "API connection test failed. Check credentials and region.",
       "api_error": "API error occurred",
       "unknown_api_error": "Unknown API error occurred",
       "analysis_failed": "Device analysis failed",
-      "no_kkt_devices_found": "No KKT Kolbe devices found",
-      "missing_local_details": "Please provide local connection details"
+      "no_kkt_devices_found": "No KKT Kolbe devices found in your Tuya account",
+      "missing_local_details": "Please provide local connection details",
+      "no_devices_found": "No devices found on network. Ensure device is powered on.",
+      "api_client_id_invalid": "Access ID must be at least 10 characters",
+      "api_client_secret_invalid": "Access Secret must be at least 20 characters"
     },
     "abort": {
       "already_configured": "Device is already configured",
       "already_in_progress": "Configuration is already in progress for this device",
       "no_device_id": "Could not determine device ID from discovery",
-      "no_local_key": "No local key available. Use Smart Discovery or manual setup with API credentials.",
+      "no_local_key": "No local key available. Use Smart Discovery with API credentials to automatically retrieve it.",
       "reauth_successful": "Re-authentication was successful",
       "reauth_failed": "Re-authentication failed"
     }
@@ -260,7 +309,7 @@
     "step": {
       "init": {
         "title": "KKT Kolbe Options",
-        "description": "Configure options for {device_name}.\n\nCurrent Update Interval: {current_interval} seconds",
+        "description": "Configure options for {device_name}.\n\nCurrent Update Interval: {current_interval} seconds\n\n[Documentation](https://github.com/moag1000/HA-kkt-kolbe-integration)",
         "data": {
           "scan_interval": "Update Interval",
           "new_local_key": "New Local Key",
@@ -274,13 +323,13 @@
           "test_connection": "Test Connection"
         },
         "data_description": {
-          "new_local_key": "Enter new local key if device was reset (16 characters, any format)",
-          "api_enabled": "Enable TinyTuya Cloud API for hybrid mode and device discovery",
-          "api_client_id": "Access ID from Tuya IoT Platform project",
-          "api_client_secret": "Access Secret from Tuya IoT Platform project",
+          "new_local_key": "Enter new local key if device was reset (16 characters)",
+          "api_enabled": "Enable TinyTuya Cloud API for hybrid mode",
+          "api_client_id": "Access ID from Tuya IoT Platform",
+          "api_client_secret": "Access Secret from Tuya IoT Platform",
           "api_endpoint": "Select your regional API endpoint",
           "enable_debug_logging": "Enable detailed logging for troubleshooting",
-          "enable_advanced_entities": "Show additional diagnostic entities",
+          "enable_advanced_entities": "Show all entities (Fan Speed, RGB Mode, Filter Status)",
           "zone_naming_scheme": "How to name multi-zone entities",
           "test_connection": "Test device connection after changes"
         }
@@ -289,13 +338,13 @@
     "error": {
       "connection_test_failed": "Connection test failed - check device availability",
       "invalid_local_key_length": "Local key must be exactly 16 characters",
-      "local_key_test_failed": "Failed to connect with new local key. Please verify the key is correct",
+      "local_key_test_failed": "Failed to connect with new local key. Verify the key is correct.",
       "missing_device_info": "Device information missing from configuration",
       "api_client_id_required": "API Client ID is required when API is enabled",
       "api_client_id_invalid": "API Client ID must be at least 10 characters",
       "api_client_secret_required": "API Client Secret is required when API is enabled",
       "api_client_secret_invalid": "API Client Secret must be at least 20 characters",
-      "api_test_failed": "Failed to connect to TinyTuya Cloud API. Please verify your credentials",
+      "api_test_failed": "Failed to connect to TinyTuya Cloud API. Verify credentials.",
       "invalid_region": "Invalid region selected",
       "invalid_local_key": "Local key must be exactly 16 characters"
     }
@@ -319,6 +368,7 @@
         "hermes_style_hood": "KKT Kolbe HERMES & STYLE (Range Hood)",
         "hermes_hood": "KKT Kolbe HERMES (Range Hood)",
         "ecco_hcm_hood": "KKT Kolbe ECCO HCM (Range Hood)",
+        "solo_hcm_hood": "KKT Kolbe SOLO HCM (Range Hood)",
         "flat_hood": "KKT Kolbe FLAT (Range Hood)",
         "ind7705hc_cooktop": "KKT IND7705HC (Induction Cooktop)",
         "default_hood": "Default Hood - Generic Range Hood"
