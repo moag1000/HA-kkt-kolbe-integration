@@ -5,6 +5,27 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.1] - 2025-12-23
+
+### Feature - API Command Sending
+
+**Problem**: Geräte, die über API-Only Setup hinzugefügt wurden (ohne lokale Verbindung), konnten nicht gesteuert werden. Der Fehler war: `Failed to set DP 1 to True`.
+
+### Added
+- **`send_commands`**: Neue Methode im TuyaCloudClient zum Senden von Befehlen via `/v1.0/devices/{id}/commands`
+- **`send_dp_commands`**: Neue Methode zum Senden von DP-Befehlen via `/v1.0/iot-03/devices/{id}/commands` mit Fallback zur Standard-API
+
+### Fixed
+- **Hybrid Coordinator**: Nutzt jetzt `api_client.send_dp_commands()` wenn lokale Verbindung fehlschlägt
+- **API-Only Geräte**: Können jetzt vollständig über die Cloud API gesteuert werden
+
+### Technische Details:
+- Erst wird `/v1.0/iot-03/devices/{id}/commands` versucht (unterstützt DPs direkt)
+- Bei Fehler Fallback auf `/v1.0/devices/{id}/commands`
+- Nach erfolgreichem Befehl wird automatisch ein Refresh getriggert
+
+---
+
 ## [2.9.0] - 2025-12-23
 
 ### Fix - API Credentials Persistence

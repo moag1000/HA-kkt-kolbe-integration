@@ -514,6 +514,93 @@ class TuyaCloudClient:
                     raise TuyaDeviceNotFoundError(device_id)
                 raise
 
+    async def send_commands(self, device_id: str, commands: list[dict[str, Any]]) -> bool:
+        """Send commands to a device via Tuya Cloud API.
+
+        Args:
+            device_id: The device ID
+            commands: List of commands, each with 'code' and 'value' keys
+                     Example: [{"code": "switch_1", "value": True}]
+
+        Returns:
+            True if command was sent successfully, False otherwise
+        """
+        await self._ensure_authenticated()
+
+        _LOGGER.debug(f"Sending commands to device {device_id}: {commands}")
+
+        try:
+            response = await self._make_request(
+                "POST",
+                f"/v1.0/devices/{device_id}/commands",
+                data={"commands": commands}
+            )
+
+            success = response.get("success", False)
+            if success:
+                _LOGGER.info(f"Commands sent successfully to device {device_id}")
+            else:
+                _LOGGER.warning(f"Command response indicates failure: {response}")
+
+            return success
+
+        except TuyaAPIError as err:
+            _LOGGER.error(f"Failed to send commands to device {device_id}: {err}")
+            return False
+
+    async def send_dp_commands(self, device_id: str, dps: dict[str, Any]) -> bool:
+        """Send DP (Data Point) commands to a device via Tuya Cloud API.
+
+        Uses the iot-03 API which accepts DPs directly.
+
+        Args:
+            device_id: The device ID
+            dps: Dictionary of DP ID to value, e.g., {"1": True, "2": 50}
+
+        Returns:
+            True if command was sent successfully, False otherwise
+        """
+        await self._ensure_authenticated()
+
+        _LOGGER.debug(f"Sending DP commands to device {device_id}: {dps}")
+
+        # Convert DP dict to commands format
+        # The iot-03 API uses "commands" with "code" being the DP ID as string
+        commands = [{"code": str(dp_id), "value": value} for dp_id, value in dps.items()]
+
+        try:
+            # Try iot-03 API first (supports DPs directly)
+            response = await self._make_request(
+                "POST",
+                f"/v1.0/iot-03/devices/{device_id}/commands",
+                data={"commands": commands}
+            )
+
+            success = response.get("success", False)
+            if success:
+                _LOGGER.info(f"DP commands sent successfully to device {device_id}")
+                return True
+
+        except TuyaAPIError as err:
+            _LOGGER.debug(f"iot-03 commands failed, trying standard API: {err}")
+
+        # Fallback to standard commands API
+        try:
+            response = await self._make_request(
+                "POST",
+                f"/v1.0/devices/{device_id}/commands",
+                data={"commands": commands}
+            )
+
+            success = response.get("success", False)
+            if success:
+                _LOGGER.info(f"DP commands sent via standard API to device {device_id}")
+            return success
+
+        except TuyaAPIError as err:
+            _LOGGER.error(f"Failed to send DP commands to device {device_id}: {err}")
+            return False
+
     async def test_connection(self) -> bool:
         """Test API connection and authentication."""
         try:

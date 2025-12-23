@@ -275,12 +275,21 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
                 _LOGGER.warning(f"Local command failed: {err}")
 
         # Try API if local failed or not preferred
-        if self.api_available:
+        if self.api_available and self.api_client:
             try:
-                # API command sending would need to be implemented
-                # This is a placeholder for the actual API command implementation
-                _LOGGER.warning("API command sending not yet implemented")
-                return False
+                # Send command via Tuya Cloud API
+                _LOGGER.debug(f"Attempting API command for DP {dp_id}: {value}")
+                result = await self.api_client.send_dp_commands(
+                    self.device_id,
+                    {dp_id: value}
+                )
+                if result:
+                    _LOGGER.info(f"Command sent successfully via API for DP {dp_id}")
+                    # Trigger update to reflect change
+                    await self.async_request_refresh()
+                    return True
+                else:
+                    _LOGGER.warning(f"API command returned failure for DP {dp_id}")
             except Exception as err:
                 _LOGGER.warning(f"API command failed: {err}")
 
