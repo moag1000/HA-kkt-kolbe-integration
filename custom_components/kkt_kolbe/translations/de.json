@@ -249,6 +249,9 @@
     },
     "abort": {
       "already_configured": "Gerät ist bereits konfiguriert",
+      "already_in_progress": "Konfiguration für dieses Gerät läuft bereits",
+      "no_device_id": "Geräte-ID konnte nicht aus der Erkennung ermittelt werden",
+      "no_local_key": "Kein Local Key verfügbar. Verwenden Sie Smart Discovery oder manuelle Einrichtung mit API-Zugangsdaten.",
       "reauth_successful": "Erneute Authentifizierung erfolgreich",
       "reauth_failed": "Erneute Authentifizierung fehlgeschlagen"
     }

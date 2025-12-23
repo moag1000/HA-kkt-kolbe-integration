@@ -417,6 +417,9 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         """Handle zeroconf discovery of KKT Kolbe devices.
 
         Called automatically by Home Assistant when a matching mDNS service is found.
+
+        IMPORTANT: We only set unique_id AFTER confirming we have local_key,
+        to avoid blocking user-initiated Smart Discovery flows.
         """
         _LOGGER.info(f"Zeroconf discovery triggered: {discovery_info}")
 
@@ -434,16 +437,26 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             _LOGGER.debug("Zeroconf discovery: No device ID found, ignoring")
             return self.async_abort(reason="no_device_id")
 
-        # Check if another flow is already in progress for this device
-        # This prevents zeroconf from blocking user-initiated flows
-        for flow in self._async_in_progress():
-            if flow["context"].get("unique_id") == device_id:
-                _LOGGER.debug(f"Zeroconf: Flow already in progress for {device_id[:8]}, aborting")
-                return self.async_abort(reason="already_in_progress")
+        # Check if device is already configured (without setting unique_id yet)
+        configured_ids = await async_get_configured_device_ids(self.hass)
+        if device_id in configured_ids:
+            _LOGGER.debug(f"Zeroconf: Device {device_id[:8]} already configured, updating IP")
+            # Update IP address for existing entry
+            for entry in self.hass.config_entries.async_entries(DOMAIN):
+                if entry.data.get("device_id") == device_id:
+                    self.hass.config_entries.async_update_entry(
+                        entry, data={**entry.data, CONF_IP_ADDRESS: host}
+                    )
+                    break
+            return self.async_abort(reason="already_configured")
 
-        # Check if device is already configured
-        await self.async_set_unique_id(device_id)
-        self._abort_if_unique_id_configured(updates={CONF_IP_ADDRESS: host} if host else None)
+        # Check if we have API credentials to get local_key
+        # If not, abort early WITHOUT setting unique_id (so Smart Discovery isn't blocked)
+        api_manager = GlobalAPIManager(self.hass)
+        if not api_manager.has_stored_credentials():
+            _LOGGER.debug(f"Zeroconf: No API credentials, aborting early for {device_id[:8]} "
+                         f"(Smart Discovery will handle this device)")
+            return self.async_abort(reason="no_local_key")
 
         # Store discovery info for later steps
         self._device_info = {
@@ -451,83 +464,73 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             "ip": host,
             "name": discovery_info.get("name", f"KKT Device {device_id[:8]}"),
             "discovered_via": "zeroconf",
-            "friendly_type": "KKT Kolbe Device",  # Default, will be updated if API available
+            "friendly_type": "KKT Kolbe Device",
         }
 
-        # Set initial title placeholder (will be updated after API enrichment)
+        # Set initial title placeholder
         self.context["title_placeholders"] = {"name": "KKT Kolbe Device"}
 
-        # Check if we have API credentials to auto-fetch local key and device details
-        api_manager = GlobalAPIManager(self.hass)
-        if api_manager.has_stored_credentials():
-            _LOGGER.info(f"Zeroconf: API credentials available, enriching device {device_id[:8]}")
-            try:
-                api_devices = await api_manager.get_kkt_devices_from_api()
-                _LOGGER.info(f"Zeroconf: API returned {len(api_devices)} KKT devices")
+        # We have API credentials (checked above), try to get local_key
+        _LOGGER.info(f"Zeroconf: API credentials available, enriching device {device_id[:8]}")
+        try:
+            api_devices = await api_manager.get_kkt_devices_from_api()
+            _LOGGER.info(f"Zeroconf: API returned {len(api_devices)} KKT devices")
 
-                device_found = False
-                for api_device in api_devices:
-                    if api_device.get("id") == device_id:
-                        device_found = True
-                        # Found matching device in API - store ALL useful info
-                        self._device_info["local_key"] = api_device.get("local_key")
-                        self._device_info["product_id"] = api_device.get("product_id")
-                        self._device_info["tuya_category"] = api_device.get("category")
+            device_found = False
+            for api_device in api_devices:
+                if api_device.get("id") == device_id:
+                    device_found = True
+                    # Found matching device in API - store ALL useful info
+                    self._device_info["local_key"] = api_device.get("local_key")
+                    self._device_info["product_id"] = api_device.get("product_id")
+                    self._device_info["tuya_category"] = api_device.get("category")
 
-                        # Use API name (user-configured name) or product_name
-                        api_name = api_device.get("name") or api_device.get("product_name")
-                        if api_name:
-                            self._device_info["name"] = api_name
+                    # Use API name (user-configured name) or product_name
+                    api_name = api_device.get("name") or api_device.get("product_name")
+                    if api_name:
+                        self._device_info["name"] = api_name
 
-                        # Detect device type for proper entity setup
-                        device_type, internal_product_name = _detect_device_type_from_api(api_device)
-                        self._device_info["device_type"] = device_type
-                        self._device_info["product_name"] = internal_product_name
+                    # Detect device type for proper entity setup
+                    device_type, internal_product_name = _detect_device_type_from_api(api_device)
+                    self._device_info["device_type"] = device_type
+                    self._device_info["product_name"] = internal_product_name
 
-                        # Create friendly display name based on detected type
-                        from .device_types import KNOWN_DEVICES
-                        if device_type in KNOWN_DEVICES:
-                            device_info = KNOWN_DEVICES[device_type]
-                            self._device_info["friendly_type"] = device_info.get("name", device_type)
-                        else:
-                            self._device_info["friendly_type"] = api_device.get("product_name", "KKT Device")
+                    # Create friendly display name based on detected type
+                    from .device_types import KNOWN_DEVICES
+                    if device_type in KNOWN_DEVICES:
+                        device_info = KNOWN_DEVICES[device_type]
+                        self._device_info["friendly_type"] = device_info.get("name", device_type)
+                    else:
+                        self._device_info["friendly_type"] = api_device.get("product_name", "KKT Device")
 
-                        # Update title placeholder for discovery notification
-                        self.context["title_placeholders"] = {"name": self._device_info["friendly_type"]}
+                    # Update title placeholder for discovery notification
+                    self.context["title_placeholders"] = {"name": self._device_info["friendly_type"]}
 
-                        has_local_key = bool(self._device_info.get("local_key"))
-                        _LOGGER.info(f"Zeroconf: Enriched device {device_id[:8]}: "
-                                    f"friendly_type={self._device_info['friendly_type']}, "
-                                    f"local_key={'PRESENT' if has_local_key else 'MISSING'}, "
-                                    f"product_id={api_device.get('product_id', 'N/A')}")
-                        break
+                    has_local_key = bool(self._device_info.get("local_key"))
+                    _LOGGER.info(f"Zeroconf: Enriched device {device_id[:8]}: "
+                                f"friendly_type={self._device_info['friendly_type']}, "
+                                f"local_key={'PRESENT' if has_local_key else 'MISSING'}, "
+                                f"product_id={api_device.get('product_id', 'N/A')}")
+                    break
 
-                if not device_found:
-                    _LOGGER.warning(f"Zeroconf: Device {device_id[:8]} NOT FOUND in API response! "
-                                   f"API returned IDs: {[d.get('id', '')[:8] for d in api_devices]}")
+            if not device_found:
+                _LOGGER.warning(f"Zeroconf: Device {device_id[:8]} NOT FOUND in API response! "
+                               f"API returned IDs: {[d.get('id', '')[:8] for d in api_devices]}")
 
-            except Exception as err:
-                _LOGGER.warning(f"Zeroconf: Failed to enrich with API data: {err}")
-        else:
-            _LOGGER.warning(f"Zeroconf: NO API credentials stored! Device {device_id[:8]} cannot get local_key automatically. "
-                           f"Trying device_id pattern matching for device type detection...")
+        except Exception as err:
+            _LOGGER.warning(f"Zeroconf: Failed to enrich with API data: {err}")
 
-            # Try to detect device type from device_id patterns (works without API)
-            device_type, product_name, friendly_type = _detect_device_type_from_device_id(device_id)
-            if device_type != "auto":
-                self._device_info["device_type"] = device_type
-                self._device_info["product_name"] = product_name
-                self._device_info["friendly_type"] = friendly_type
-                self.context["title_placeholders"] = {"name": friendly_type}
-                _LOGGER.info(f"Zeroconf: Detected device type from device_id: {friendly_type}")
-
-        # If we have all required info (including local_key), show confirmation
+        # If we have local_key, NOW set unique_id and show confirmation
+        # This is the key change: unique_id is only set when we can actually proceed
         if self._device_info.get("local_key") and self._device_info.get("ip"):
+            # Now it's safe to set unique_id since we will proceed with this flow
+            await self.async_set_unique_id(device_id)
+            self._abort_if_unique_id_configured(updates={CONF_IP_ADDRESS: host} if host else None)
             return await self.async_step_zeroconf_confirm()
 
-        # No local_key available - abort silently to avoid blocking Smart Discovery
-        # The user can use Smart Discovery or manual setup instead
-        _LOGGER.info(f"Zeroconf: Device {device_id[:8]} found but no local_key available. "
+        # No local_key available - abort WITHOUT setting unique_id
+        # This allows Smart Discovery to handle this device instead
+        _LOGGER.info(f"Zeroconf: Device {device_id[:8]} found but no local_key from API. "
                     f"Use Smart Discovery or manual setup. Aborting zeroconf flow.")
         return self.async_abort(reason="no_local_key")
 

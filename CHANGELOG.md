@@ -5,6 +5,32 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.2] - 2025-12-23
+
+### Fix - Zeroconf blockiert Smart Discovery nicht mehr
+
+**Problem 1**: Bei Smart Discovery erschien häufig "already_in_progress", weil Zeroconf bereits einen Flow gestartet hatte.
+
+**Problem 2**: Fehlende Übersetzungen für Abort-Meldungen (z.B. "already_in_progress", "no_local_key").
+
+### Fixed
+- **Zeroconf Flow umstrukturiert**: `async_set_unique_id` wird jetzt erst gesetzt NACHDEM local_key verfügbar ist
+- Wenn kein local_key: Zeroconf bricht ab OHNE unique_id zu setzen → Smart Discovery wird nicht blockiert
+- Frühzeitiger Abort wenn keine API credentials vorhanden sind
+- IP-Update für bereits konfigurierte Geräte ohne unique_id-Konflikt
+
+### Translations
+- **Englisch + Deutsch**: Neue Abort-Übersetzungen hinzugefügt:
+  - `already_in_progress`: "Konfiguration für dieses Gerät läuft bereits"
+  - `no_device_id`: "Geräte-ID konnte nicht ermittelt werden"
+  - `no_local_key`: "Kein Local Key verfügbar. Verwenden Sie Smart Discovery."
+
+### Ergebnis
+- Smart Discovery funktioniert jetzt zuverlässig ohne "already_in_progress" Fehler
+- Bessere Benutzerfreundlichkeit durch übersetzte Fehlermeldungen
+
+---
+
 ## [2.9.1] - 2025-12-23
 
 ### Feature - API Command Sending
