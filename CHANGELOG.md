@@ -5,6 +5,55 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.5] - 2025-12-25
+
+### Fix - Default Hoods überarbeitet + Zeroconf API Fix
+
+**Problem 1**: Die `default_hood` Konfiguration verwendete DP 3 für den Lüfter, aber **keine** der bekannten KKT Kolbe Hauben verwendet DP 3:
+- HERMES-Familie: DP 10
+- HCM-Familie (SOLO/ECCO): DP 102
+
+**Problem 2**: In `zeroconf_api_credentials` wurde der bereits korrekt erkannte `device_type` immer überschrieben.
+
+### Added
+
+**Neue Default-Konfiguration: `default_hood_hermes`**
+- Basiert auf HERMES-Familie (DP 10, enum fan speeds)
+- Für manuelle Auswahl wenn Gerät HERMES-ähnlich ist
+- Fan: DP 10 (off/low/middle/high/strong)
+- Timer: DP 13
+- RGB: DP 101 (0-8 numeric)
+
+### Changed
+
+**`default_hood` jetzt basierend auf HCM-Familie:**
+- Fan: DP 102 (0-9 numeric) statt DP 3
+- Timer: DP 105 statt DP 6
+- RGB Light: DP 6
+- Wash Mode: DP 7
+- LED Light: DP 104
+- RGB Mode: DP 108 (white/colour/scene/music)
+- Carbon Filter: DP 103 (0-250 days)
+- Metal Filter: DP 109 (0-40 days)
+
+### Fixed
+
+**Zeroconf API Credentials Flow:**
+- `device_type` wird nur noch überschrieben wenn aktueller Wert `"auto"` ist
+- Gleiche Logik wie in Smart Discovery und Zeroconf Main Flow
+
+**Zeroconf blockiert Smart Discovery nicht mehr:**
+- `unique_id` wird erst beim tatsächlichen Entry-Erstellen gesetzt
+- Vorher: unique_id wurde gesetzt bevor User bestätigt → blockierte andere Flows
+- Jetzt: User kann Zeroconf-Dialog ignorieren und Smart Discovery nutzen
+
+### Ergebnis
+- 2 Default-Optionen für manuelle Auswahl (HCM-based, HERMES-based)
+- Konsistente device_type Behandlung in allen Flows
+- Zeroconf und Smart Discovery können parallel laufen ohne Blockade
+
+---
+
 ## [2.9.4] - 2025-12-25
 
 ### Fix - Device Type Overwrite Bug bei Smart Discovery und Zeroconf

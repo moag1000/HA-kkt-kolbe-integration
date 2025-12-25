@@ -540,12 +540,20 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         except Exception as err:
             _LOGGER.warning(f"Zeroconf: Failed to enrich with API data: {err}")
 
-        # If we have local_key, NOW set unique_id and show confirmation
-        # This is the key change: unique_id is only set when we can actually proceed
+        # If we have local_key, show confirmation (but DON'T set unique_id yet!)
+        # unique_id will be set when actually creating the entry to avoid blocking Smart Discovery
         if self._device_info.get("local_key") and self._device_info.get("ip"):
-            # Now it's safe to set unique_id since we will proceed with this flow
-            await self.async_set_unique_id(device_id)
-            self._abort_if_unique_id_configured(updates={CONF_IP_ADDRESS: host} if host else None)
+            # Check if already configured without blocking the flow
+            configured_ids = await async_get_configured_device_ids(self.hass)
+            if device_id in configured_ids:
+                # Update IP and abort
+                for entry in self.hass.config_entries.async_entries(DOMAIN):
+                    if entry.data.get("device_id") == device_id:
+                        self.hass.config_entries.async_update_entry(
+                            entry, data={**entry.data, CONF_IP_ADDRESS: host}
+                        )
+                        break
+                return self.async_abort(reason="already_configured")
             return await self.async_step_zeroconf_confirm()
 
         # No local_key available - abort WITHOUT setting unique_id
@@ -778,14 +786,21 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                                     if api_name:
                                         self._device_info["name"] = api_name
 
-                                    # Detect device type
-                                    device_type, internal_product_name = _detect_device_type_from_api(api_device)
-                                    self._device_info["device_type"] = device_type
-                                    self._device_info["product_name"] = internal_product_name
+                                    # Detect device type - but only update if not already correctly detected
+                                    api_device_type, internal_product_name = _detect_device_type_from_api(api_device)
+                                    current_type = self._device_info.get("device_type", "auto")
 
                                     from .device_types import KNOWN_DEVICES
-                                    if device_type in KNOWN_DEVICES:
-                                        self._device_info["friendly_type"] = KNOWN_DEVICES[device_type].get("name", device_type)
+                                    if api_device_type != "auto" and (current_type == "auto" or current_type not in KNOWN_DEVICES):
+                                        self._device_info["device_type"] = api_device_type
+                                        self._device_info["product_name"] = internal_product_name
+                                        _LOGGER.debug(f"Zeroconf API: Updated device_type from API: {api_device_type}")
+                                    else:
+                                        _LOGGER.debug(f"Zeroconf API: Keeping pre-detected device_type: {current_type}")
+
+                                    effective_device_type = self._device_info.get("device_type", "auto")
+                                    if effective_device_type in KNOWN_DEVICES:
+                                        self._device_info["friendly_type"] = KNOWN_DEVICES[effective_device_type].get("name", effective_device_type)
                                     else:
                                         self._device_info["friendly_type"] = api_device.get("product_name", "KKT Device")
 
