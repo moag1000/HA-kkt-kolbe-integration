@@ -93,7 +93,24 @@ class KKTKolbeSensor(KKTBaseEntity, SensorEntity):
         self._attr_native_unit_of_measurement = config.get("unit_of_measurement")
         self._attr_icon = self._get_icon()
 
+        # Set display precision based on sensor type (HA 2025.1+)
+        self._attr_suggested_display_precision = self._get_display_precision()
+
         # Note: entity_category is now handled in base_entity.py from device_types.py config
+
+    def _get_display_precision(self) -> int:
+        """Determine display precision based on sensor type."""
+        name_lower = self._name.lower()
+        device_class = self._attr_device_class
+
+        # Temperature sensors: 1 decimal
+        if device_class == SensorDeviceClass.TEMPERATURE:
+            return 1
+        # Timer, filter, level: whole numbers
+        if any(kw in name_lower for kw in ["timer", "filter", "level", "hours", "days"]):
+            return 0
+        # Default: no decimals
+        return 0
 
     def _get_icon(self) -> str:
         """Get appropriate icon for the sensor."""
@@ -153,6 +170,9 @@ class KKTKolbeZoneSensor(KKTZoneBaseEntity, SensorEntity):
         self._attr_native_unit_of_measurement = config.get("unit_of_measurement")
         self._attr_icon = self._get_icon()
         self._cached_value = None
+
+        # Zone sensors are typically integers (HA 2025.1+)
+        self._attr_suggested_display_precision = 0
 
         # Note: entity_category is now handled in base_entity.py from device_types.py config
         # No need to check DIAGNOSTIC_DPS here
@@ -228,6 +248,7 @@ class KKTKolbeCalculatedPowerSensor(KKTBaseEntity, SensorEntity):
         self._attr_state_class = SensorStateClass.MEASUREMENT
         self._attr_native_unit_of_measurement = UnitOfPower.WATT
         self._attr_icon = "mdi:lightning-bolt"
+        self._attr_suggested_display_precision = 0  # Whole watts (HA 2025.1+)
 
         self._update_cached_state()
 
@@ -270,6 +291,7 @@ class KKTKolbeTotalLevelSensor(KKTBaseEntity, SensorEntity):
         # Set sensor attributes
         self._attr_state_class = SensorStateClass.MEASUREMENT
         self._attr_icon = "mdi:gauge"
+        self._attr_suggested_display_precision = 0  # Whole numbers (HA 2025.1+)
 
         self._update_cached_state()
 
@@ -310,6 +332,7 @@ class KKTKolbeActiveZonesSensor(KKTBaseEntity, SensorEntity):
         # Set sensor attributes
         self._attr_state_class = SensorStateClass.MEASUREMENT
         self._attr_icon = "mdi:stove"
+        self._attr_suggested_display_precision = 0  # Whole numbers (HA 2025.1+)
 
         self._update_cached_state()
 
