@@ -2122,7 +2122,9 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
 
         # Create schema with pre-filled local key and back option
         auth_schema = vol.Schema({
-            vol.Required("local_key", default=default_local_key): str,
+            vol.Required("local_key", default=default_local_key): selector.selector({
+                "text": {"type": "password"}
+            }),
             vol.Optional("test_connection", default=True): bool,
             vol.Optional("back_to_previous", default=False): bool,
         })
