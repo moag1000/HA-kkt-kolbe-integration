@@ -352,7 +352,7 @@ def _get_device_selection_schema(discovered_devices: dict[str, dict[str, Any]]) 
     })
 
 STEP_AUTHENTICATION_DATA_SCHEMA = vol.Schema({
-    vol.Required("local_key"): str,
+    vol.Required("local_key"): selector.selector({"text": {"type": "password"}}),
     vol.Optional("test_connection", default=True): bool,
     vol.Optional("back_to_previous", default=False): bool,
 })
@@ -720,13 +720,13 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         if has_api:
             # API is already configured, just show local key field
             schema = vol.Schema({
-                vol.Required("local_key"): str,
+                vol.Required("local_key"): selector.selector({"text": {"type": "password"}}),
             })
             api_hint = "API credentials are configured but local_key was not found for this device."
         else:
             # No API configured - offer both options
             schema = vol.Schema({
-                vol.Optional("local_key"): str,
+                vol.Optional("local_key"): selector.selector({"text": {"type": "password"}}),
                 vol.Optional("configure_api", default=False): bool,
             })
             api_hint = "You can enter the local key manually, or configure API credentials to fetch it automatically."
@@ -1137,7 +1137,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         else:
             # Local key reauth
             reauth_schema = vol.Schema({
-                vol.Required("local_key"): str,
+                vol.Required("local_key"): selector.selector({"text": {"type": "password"}}),
             })
             description_key = "reauth_local"
 
