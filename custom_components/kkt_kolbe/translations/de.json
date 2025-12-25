@@ -244,6 +244,77 @@
           "api_endpoint": "Regionaler API-Endpunkt für Ihr Konto"
         }
       },
+      "reconfigure_menu": {
+        "title": "{device_name} neu konfigurieren",
+        "description": "Aktuelle Konfiguration:\n- IP: {current_ip}\n- Gerätetyp: {current_device_type}\n- API: {api_status}\n- Modus: {integration_mode}\n\nWählen Sie, was Sie ändern möchten:",
+        "data": {
+          "reconfigure_option": "Konfigurationsoption"
+        }
+      },
+      "reconfigure_connection": {
+        "title": "Verbindungseinstellungen",
+        "description": "Verbindungseinstellungen für {device_name} aktualisieren.\nAktuelle IP: {current_ip}\n\n{local_key_hint}",
+        "data": {
+          "ip_address": "IP-Adresse",
+          "local_key": "Local Key",
+          "test_connection": "Verbindung testen"
+        },
+        "data_description": {
+          "ip_address": "IP-Adresse des Geräts in Ihrem Netzwerk",
+          "local_key": "16-stelliger Verschlüsselungsschlüssel (leer lassen um aktuellen zu behalten)",
+          "test_connection": "Verbindung zum Gerät vor dem Speichern prüfen"
+        }
+      },
+      "reconfigure_device_type": {
+        "title": "Gerätetyp",
+        "description": "Gerätetyp für {device_name} ändern.\nAktueller Typ: {current_device_type}\n\nDas Ändern des Gerätetyps lädt die Integration mit der neuen Entity-Konfiguration neu.",
+        "data": {
+          "device_type": "Gerätetyp"
+        },
+        "data_description": {
+          "device_type": "Wählen Sie das korrekte Modell für Ihr Gerät"
+        }
+      },
+      "reconfigure_api": {
+        "title": "API-Einstellungen",
+        "description": "Tuya Cloud API-Einstellungen für {device_name} konfigurieren.\nAktueller Status: {api_status}\n\n{secret_hint}",
+        "data": {
+          "api_enabled": "Tuya Cloud API aktivieren",
+          "api_client_id": "API Client ID",
+          "api_client_secret": "API Client Secret",
+          "api_endpoint": "API-Region"
+        },
+        "data_description": {
+          "api_enabled": "Hybrid-Modus mit Cloud API-Fallback aktivieren",
+          "api_client_id": "Access ID von der Tuya IoT Platform",
+          "api_client_secret": "Access Secret (leer lassen um aktuelles zu behalten)",
+          "api_endpoint": "Regionaler API-Endpunkt für Ihr Konto"
+        }
+      },
+      "reconfigure_all": {
+        "title": "Vollständige Neukonfiguration",
+        "description": "Alle Einstellungen für {device_name} aktualisieren.\n\n{hint}",
+        "data": {
+          "ip_address": "IP-Adresse",
+          "local_key": "Local Key",
+          "device_type": "Gerätetyp",
+          "api_enabled": "Tuya Cloud API aktivieren",
+          "api_client_id": "API Client ID",
+          "api_client_secret": "API Client Secret",
+          "api_endpoint": "API-Region",
+          "test_connection": "Verbindung testen"
+        },
+        "data_description": {
+          "ip_address": "IP-Adresse des Geräts",
+          "local_key": "Local Key (leer lassen um aktuellen zu behalten)",
+          "device_type": "Gerätemodell",
+          "api_enabled": "Cloud API aktivieren",
+          "api_client_id": "Tuya API Client ID",
+          "api_client_secret": "Tuya API Secret (leer lassen um aktuelles zu behalten)",
+          "api_endpoint": "API-Region",
+          "test_connection": "Verbindung vor dem Speichern testen"
+        }
+      },
       "init": {
         "title": "KKT Kolbe Optionen",
         "description": "Konfigurieren Sie Optionen für Ihr KKT Kolbe Gerät.\n\n[Dokumentation](https://github.com/moag1000/HA-kkt-kolbe-integration)",
@@ -301,8 +372,10 @@
       "already_in_progress": "Konfiguration für dieses Gerät läuft bereits",
       "no_device_id": "Geräte-ID konnte nicht aus der Erkennung ermittelt werden",
       "no_local_key": "Kein Local Key verfügbar. Verwenden Sie Smart Discovery mit API-Zugangsdaten, um ihn automatisch abzurufen.",
-      "reauth_successful": "Erneute Authentifizierung erfolgreich",
-      "reauth_failed": "Erneute Authentifizierung fehlgeschlagen"
+      "reauth_successful": "Erneute Authentifizierung erfolgreich. Die Integration wurde neu geladen.",
+      "reauth_failed": "Erneute Authentifizierung fehlgeschlagen",
+      "reconfigure_failed": "Neukonfiguration fehlgeschlagen. Eintrag nicht gefunden.",
+      "reconfigure_successful": "Konfiguration erfolgreich aktualisiert. Die Integration wurde neu geladen."
     }
   },
   "options": {

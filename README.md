@@ -92,69 +92,60 @@ Mit deiner Hilfe können wir diese Modelle zur Integration hinzufügen! 🙏
 
 ## ✨ Integration Features
 
-### 🆕 **Neu in v2.5.0: Connection Stability Overhaul** 🔄
+### 🆕 **Neu in v3.0.0: Home Assistant 2025.1+ Optimierungen** 🚀
 
-#### **Robuste Verbindungsstabilität**
+> ⚠️ **Breaking Change:** Erfordert Home Assistant 2025.1.0 oder höher
+
+#### **Moderne HA 2025 Features**
+- ✅ **`suggested_display_precision`**: Saubere Anzeige ohne unnötige Dezimalstellen
+- ✅ **`_unrecorded_attributes`**: Reduzierte Datenbankgröße durch Ausschluss nicht-historischer Attribute
+- ✅ **`ConfigFlowResult`**: Modernisierte Type-Annotations für Config Flow
+- ✅ **Model ID aus KNOWN_DEVICES**: Bessere Geräteidentifikation in der UI
+
+#### **Verbesserungen**
+- 🔧 Timer, Filter-Tage, Power-Level werden als ganze Zahlen angezeigt
+- 🌡️ Temperatur-Sensoren zeigen 1 Dezimalstelle
+- 💾 Weniger Datenbank-Einträge für diagnostische Attribute
+
+#### **Reconfigure Flow** 🔧
+Bestehende Geräte können jetzt über die UI neu konfiguriert werden:
+- 🔌 **Connection**: IP-Adresse und Local Key ändern
+- 📱 **Device Type**: Gerätetyp korrigieren
+- ☁️ **API Settings**: Cloud API aktivieren/deaktivieren
+- 🔧 **All Settings**: Alle Einstellungen auf einmal
+
+---
+
+### 🔌 **Konnektivität & Stabilität**
+
+- ✅ **Tuya Local Protocol**: Direkte Verbindung ohne Cloud (Protocol 3.1 - 3.5)
 - ✅ **TCP Keep-Alive**: Socket-Level Keepalive-Probes verhindern stille Verbindungsabbrüche
-- ✅ **Circuit Breaker Pattern**: Nach 10 Fehlversuchen 1h Sleep-Modus, dann Retry
-- ✅ **Adaptive Update-Intervalle**: Automatische Anpassung bei Offline/Reconnecting
-- ✅ **Bounded Exponential Backoff**: Verhindert "Thundering Herd" bei Wiederverbindung
-- ✅ **Quick Pre-Check**: Schnelle TCP-Prüfung vor teurer Protokollerkennung
+- ✅ **Circuit Breaker Pattern**: Intelligente Wiederverbindung nach Fehlern
+- ✅ **Adaptive Update-Intervalle**: Automatische Anpassung bei Verbindungsproblemen
+- ✅ **Quick Pre-Check**: Schnelle TCP-Prüfung vor Protokollerkennung
 
-#### **Verbesserte Diagnostics**
-- 📊 Connection State Tracking (ONLINE/OFFLINE/RECONNECTING/UNREACHABLE)
-- 📈 Connection Statistics (Connects, Disconnects, Timeouts, Errors)
-- 🔧 Circuit Breaker Status in HA Diagnostics
-- ⏱️ Konfigurierbare Timeouts über const.py
+### ☁️ **Tuya Cloud API**
 
-### **Neu in v2.2.4: Smart Home Industry Support**
+- ✅ **Smart Home Industry Support**: Free Tier & Paid Tier kompatibel
+- ✅ **Nonce-basierte Authentifizierung**: Moderne API-Versionen
+- ✅ **Global API Key Management**: Credentials einmal eingeben, für alle Geräte nutzen
+- ✅ **Automatische Fallbacks**: Local → Cloud bei Verbindungsproblemen
 
-#### **Tuya Smart Home Industry Kompatibilität**
-- ✅ Volle Unterstützung für Tuya Smart Home Industry Projekte
-- ✅ Nonce-basierte Authentifizierung für moderne API-Versionen
-- ✅ Free Tier kompatibel (mit API-Limits)
-- ✅ Automatische Fallbacks für maximale Kompatibilität
+### 🔧 **Automatische Wartung**
 
-#### **Verbesserte Dokumentation**
-- 📚 Komplette Schritt-für-Schritt API Setup Anleitung
-- 🔗 Direkte Links zu Tuya IoT Platform im Setup-Flow
-- 📖 Free Tier vs Paid Tier Vergleichstabelle
-- 🌍 Regionsauswahl-Guide für Data Centers
-
-### **Features (v2.2.0+)**
-
-#### **Automatische Wartung & Repair Flows**
-- **Repair Flows**: 3 automatisierte Reparatur-Workflows
-  - Tuya API Authentifizierung fehlgeschlagen → Reauth Flow
-  - Falsche Tuya Region → Regionsauswahl
-  - Local Key abgelaufen → Key Update
+- **Repair Flows**: Automatisierte Reparatur-Workflows für Auth-Fehler
 - **Stale Device Cleanup**: Automatisches Entfernen inaktiver Geräte (30+ Tage)
 - **IP-Updates via Discovery**: Automatische IP-Aktualisierung bei Netzwerkänderungen
 
-#### **3-Wege Setup-Architektur**
-- **🔍 Automatic Discovery**: Automatische mDNS/Zeroconf Netzwerk-Erkennung
-- **🔧 Manual Local Setup**: Manuelle lokale Konfiguration (IP + Local Key)
-- **☁️ API-Only Setup**: Cloud-basierte Einrichtung mit globalem Credential Management
+### 🎨 **Light Effects & HomeKit**
 
-#### **Global API Key Management**
-- API Credentials werden sicher gespeichert und wiederverwendet
-- "Use Stored Credentials" Option bei weiteren Geräten
-- Optimiert für Haushalte mit mehreren KKT Geräten
+**RGB-Effekte für Dunstabzugshauben:**
+- HERMES/STYLE: Weiß, Rot, Grün, Blau, Gelb, Lila, Orange, Cyan, Grasgrün
+- SOLO/ECCO HCM: white, colour, scene, music
 
-## 🎨 Neu in v2.7.x: Light Effects & HomeKit
-
-### Light mit RGB-Effekten
-Das Licht der Dunstabzugshaube unterstützt jetzt **Effekte** direkt in Home Assistant:
-
-**HERMES & STYLE / HERMES Hood:**
-- Weiß, Rot, Grün, Blau, Gelb, Lila, Orange, Cyan, Grasgrün
-
-**SOLO HCM / ECCO HCM Hood:**
-- white, colour, scene, music
-
-### HomeKit/Siri Integration
-- **Fan**: Vollständige Geschwindigkeitssteuerung mit Slider
-- **Light**: An/Aus + Effekte in Home Assistant App
+**HomeKit/Siri Integration:**
+- Fan: Vollständige Geschwindigkeitssteuerung
+- Light: An/Aus + Effekte
 
 ## 📘 Blueprints
 
@@ -178,35 +169,32 @@ Fertige Automations-Vorlagen zum Importieren:
 - **[Contributing](docs/CONTRIBUTING.md)** - How to contribute to this project
 - **[Security](docs/SECURITY.md)** - Security policy and vulnerability reporting
 
-### 🏠 **Bewährte Integration Features**
+### 🏠 **Home Assistant Integration**
 
-#### **Automatische Erkennung**
-- **mDNS Discovery**: Automatisches Auffinden von KKT Geräten im Netzwerk
-- **Device Type Detection**: Intelligente Erkennung basierend auf Device ID und Product Name
-- **Smart Configuration**: Automatische Entity-Konfiguration je nach Gerät
-
-#### **Robuste Konnektivität** (v2.5.0 Enhanced)
-- **Tuya Local Protocol**: Direkte Verbindung ohne Cloud
-- **Auto-Reconnect**: Automatische Wiederverbindung mit Circuit Breaker Pattern
-- **TCP Keep-Alive**: Socket-Level Verbindungsüberwachung
-- **Adaptive Polling**: Automatische Intervall-Anpassung bei Verbindungsproblemen
-- **Version Auto-Detection**: Unterstützt Tuya Protocol 3.1, 3.3, 3.4, 3.5
-- **Enhanced Timeouts**: Konfigurierbare Timeouts für alle Operationen
-
-#### **Home Assistant Integration**
-- **Native HA Entities**: Switch, Number, Select, Binary Sensor, Fan
-- **Device Registry**: Proper Device Information mit Modell und Firmware
+- **Native HA Entities**: Fan, Light, Switch, Number, Select, Binary Sensor
+- **Device Registry**: Device Information mit Modell und Firmware
 - **Entity Categories**: Konfiguration und Diagnostik richtig kategorisiert
 - **Lokalisierung**: Deutsche und englische Übersetzungen
-
-#### **Quality & Reliability**
+- **mDNS Discovery**: Automatisches Auffinden von KKT Geräten
 - **Options Flow**: Einstellungen nach Setup über UI änderbar
-- **Diagnostics Download**: Debug-Informationen für Support exportierbar
-- **Advanced Error Handling**: ConfigEntryAuthFailed & ConfigEntryNotReady mit automatischen Repair Flows
-- **Entity Categories**: Diagnostic/Configuration Entities korrekt kategorisiert
-- **Disabled by Default**: 46 Advanced/Diagnostic Entities optional aktivierbar
-- **Test Coverage**: Umfangreiche automatisierte Tests (21 Test Cases)
-- **Best Practices**: 100% Home Assistant Development Best Practices Compliance
+- **Diagnostics Download**: Debug-Informationen für Support
+
+### ✅ **Qualität**
+
+- **Gold Tier Compliance**: 100% Home Assistant Best Practices
+- **Test Coverage**: Umfangreiche automatisierte Tests
+- **Advanced Error Handling**: Automatische Repair Flows
+- **46 Entities**: Davon viele optional aktivierbar
+
+## ⚙️ Voraussetzungen
+
+| Komponente | Mindestversion |
+|------------|----------------|
+| **Home Assistant** | 2025.1.0 |
+| **Python** | 3.12 |
+| **HACS** | Empfohlen (nicht zwingend) |
+
+> **Hinweis:** Version 3.0.0 erfordert Home Assistant 2025.1.0 oder höher. Für ältere HA-Versionen bitte Version 2.9.x verwenden.
 
 ## 📦 Installation
 
@@ -581,10 +569,10 @@ Für Support-Anfragen bitte folgende Infos bereitstellen:
 
 **1. System-Info:**
 ```yaml
-Home Assistant Version: 2025.1.0
-KKT Kolbe Integration Version: 2.2.0
+Home Assistant Version: 2025.x.x  # Mindestens 2025.1.0
+KKT Kolbe Integration Version: 3.0.0
 Installation Method: HACS / Manual
-Python Version: 3.13
+Python Version: 3.12+
 ```
 
 **2. Gerät-Info:**
@@ -639,35 +627,12 @@ cat home-assistant.log | grep "kkt_kolbe"
 
 ## 📝 Changelog
 
-### v2.5.0 (Current) 🔄
-- **Connection Stability Overhaul**: TCP Keep-Alive, Circuit Breaker, Adaptive Intervals
-- Bounded Exponential Backoff mit Jitter
-- Quick Pre-Check vor Protokollerkennung
-- Connection Statistics in Diagnostics
-- Konfigurierbare Timeouts
+### v3.0.0 (Aktuell) 🚀
+- ⚠️ **Breaking**: Mindestversion Home Assistant 2025.1.0
+- Neue HA 2025 Features: `suggested_display_precision`, `_unrecorded_attributes`
+- Modernisierte Type-Annotations
 
-### v2.4.x
-- CI/CD Validierung und Test-Suite Fixes
-- Hassfest und HACS Kompatibilität
-
-### v2.3.0
-- SOLO HCM Unterstützung
-- Dokumentation überarbeitet
-
-### v2.2.x
-- Tuya Smart Home Industry Support
-- Verbesserte API-Kompatibilität (Free Tier)
-
-### v2.1.0
-- Options Flow für Post-Setup Konfiguration
-- Diagnostics Download
-
-### v2.0.0
-- 3-Wege Setup: Discovery / Manual / API-Only
-- Global API Key Management
-- TinyTuya Cloud API Integration
-
-[Vollständiges Changelog](./CHANGELOG.md)
+**[→ Vollständiges Changelog](./CHANGELOG.md)**
 
 ## 🤝 Contributing
 
