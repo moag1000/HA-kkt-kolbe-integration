@@ -70,8 +70,24 @@ class KKTKolbeNumber(KKTBaseEntity, NumberEntity):
         self._attr_icon = self._get_icon()
         self._cached_value = None
 
+        # Set display precision based on entity type (HA 2025.1+)
+        # Timers, filter days, power levels, fan speeds: no decimals
+        self._attr_suggested_display_precision = self._get_display_precision()
+
         # Initialize state from coordinator data
         self._update_cached_state()
+
+    def _get_display_precision(self) -> int:
+        """Determine display precision based on entity type."""
+        name_lower = self._name.lower()
+        # Entities that should show whole numbers only
+        if any(kw in name_lower for kw in ["timer", "filter", "speed", "level", "mode", "rgb", "brightness"]):
+            return 0
+        # Temperature might need 1 decimal
+        if "temperature" in name_lower:
+            return 1
+        # Default: no decimals for most KKT entities
+        return 0
 
     def _get_icon(self) -> str:
         """Get appropriate icon for the number entity."""
@@ -124,6 +140,9 @@ class KKTKolbeZoneNumber(KKTZoneBaseEntity, NumberEntity):
         self._attr_native_unit_of_measurement = config.get("unit_of_measurement")
         self._attr_icon = self._get_icon()
         self._cached_value = None
+
+        # Zone values are typically integers (power level 0-9, etc.) - no decimals
+        self._attr_suggested_display_precision = 0
 
         # Initialize state from coordinator data
         self._update_cached_state()

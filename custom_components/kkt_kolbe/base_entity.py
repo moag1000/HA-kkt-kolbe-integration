@@ -19,6 +19,17 @@ class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
 
     _attr_has_entity_name = True
 
+    # Exclude non-historical attributes from database recording (HA 2024.6+)
+    # This reduces database size by not recording frequently changing diagnostic data
+    _unrecorded_attributes = frozenset({
+        "raw_dp_data",
+        "last_update",
+        "data_point",
+        "device_id",
+        "zone",
+        "connection_status",
+    })
+
     def __init__(
         self,
         coordinator: DataUpdateCoordinator[dict[str, Any]],
@@ -87,43 +98,47 @@ class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
             self._attr_entity_registry_enabled_default = False
 
     def _build_device_info(self) -> DeviceInfo:
-        """Build standardized device info."""
+        """Build standardized device info using KNOWN_DEVICES."""
+        from .device_types import KNOWN_DEVICES, CATEGORY_HOOD, CATEGORY_COOKTOP
+
         # Get device data from hass.data (now available via property access)
         if not self.hass:
-            # Fallback for cases where hass is not yet available
             device_data = {}
-            product_name = "KKT Kolbe Device"
+            device_type_key = "auto"
         else:
             device_data = self.hass.data.get(DOMAIN, {}).get(self._entry.entry_id, {})
-            product_name = device_data.get("product_name", "KKT Kolbe Device")
+            device_type_key = device_data.get("device_type", "auto")
 
         # Extract device information
         device_id = self._entry.data.get("device_id", "unknown")
         ip_address = self._entry.data.get("ip_address", "unknown")
 
-        # Determine device type and model info
-        if "IND7705HC" in product_name:
-            device_type = "Induction Cooktop"
-            model = "IND7705HC"
-            manufacturer = "KKT Kolbe"
-        elif "HERMES" in product_name and "STYLE" in product_name:
-            device_type = "Range Hood"
-            model = "HERMES & STYLE"
-            manufacturer = "KKT Kolbe"
+        # Get device info from KNOWN_DEVICES (HA 2024.6+ model ID support)
+        if device_type_key in KNOWN_DEVICES:
+            device_info = KNOWN_DEVICES[device_type_key]
+            model_id = device_info.get("model_id", device_type_key)
+            device_name = device_info.get("name", "KKT Kolbe Device")
+            category = device_info.get("category", CATEGORY_HOOD)
+
+            if category == CATEGORY_COOKTOP:
+                device_type = "Induction Cooktop"
+            else:
+                device_type = "Range Hood"
         else:
+            # Fallback for unknown devices
+            model_id = "unknown"
+            device_name = "KKT Kolbe Device"
             device_type = "Kitchen Appliance"
-            model = product_name
-            manufacturer = "KKT Kolbe"
 
         return DeviceInfo(
             identifiers={(DOMAIN, device_id)},
-            name=f"KKT Kolbe {device_type}",
-            manufacturer=manufacturer,
-            model=model,
+            name=device_name,
+            manufacturer="KKT Kolbe",
+            model=model_id,  # Use model_id from KNOWN_DEVICES
             sw_version=self._get_software_version(),
             hw_version=self._get_hardware_version(),
             configuration_url=f"http://{ip_address}",
-            suggested_area=self._get_suggested_area(),
+            suggested_area="Kitchen",
         )
 
     def _get_software_version(self) -> str:

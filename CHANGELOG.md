@@ -5,6 +5,52 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2025-12-25
+
+### BREAKING CHANGE - Mindestversion Home Assistant 2025.1.0
+
+Diese Version erfordert **Home Assistant 2025.1.0** oder höher.
+
+### Neue Features (HA 2024.6 - 2025.1)
+
+**`_unrecorded_attributes` (HA 2024.6+)**
+- Reduziert Datenbankgröße durch Ausschluss nicht-historischer Attribute
+- Ausgeschlossen: `raw_dp_data`, `last_update`, `data_point`, `device_id`, `zone`, `connection_status`
+
+**`suggested_display_precision` (HA 2025.1+)**
+- Saubere Anzeige ohne unnötige Dezimalstellen
+- Timer, Filter-Tage, Power-Level: 0 Dezimalen
+- Temperatur: 1 Dezimale
+
+**Model ID aus KNOWN_DEVICES (HA 2024.6+)**
+- Device Info verwendet jetzt `model_id` aus der Gerätedatenbank
+- Bessere Geräteidentifikation in der UI
+
+### Changed
+
+**manifest.json**
+```json
+{
+  "homeassistant": "2025.1.0",
+  "version": "3.0.0"
+}
+```
+
+**base_entity.py**
+- `_unrecorded_attributes` hinzugefügt
+- `_build_device_info()` nutzt KNOWN_DEVICES für model_id
+- `has_entity_name = True` bereits vorhanden
+
+**number.py / sensor.py**
+- `suggested_display_precision` für alle Entity-Typen
+- Automatische Präzisionsbestimmung basierend auf Entity-Typ
+
+### Upgrade-Hinweis
+
+Benutzer mit Home Assistant < 2025.1.0 müssen erst HA aktualisieren, bevor diese Version installiert werden kann.
+
+---
+
 ## [2.9.5] - 2025-12-25
 
 ### Fix - Default Hoods überarbeitet + Zeroconf API Fix
