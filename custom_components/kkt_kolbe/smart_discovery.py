@@ -224,11 +224,19 @@ class SmartDiscovery:
                     result.api_enriched = True
 
                     # Update device type if we can detect it from API
+                    # BUT only if not already correctly detected from device_id pattern
                     device_type, product_name, friendly_type = self._detect_device_type(api_device)
                     if device_type != "auto":
-                        result.device_type = device_type
-                        result.product_name = product_name
-                        result.friendly_type = friendly_type
+                        # Only overwrite if current device_type is "auto" or not in KNOWN_DEVICES
+                        from .device_types import KNOWN_DEVICES
+                        current_type = result.device_type
+                        if current_type == "auto" or current_type not in KNOWN_DEVICES:
+                            result.device_type = device_type
+                            result.product_name = product_name
+                            result.friendly_type = friendly_type
+                            _LOGGER.debug(f"Updated device_type from API: {device_type}")
+                        else:
+                            _LOGGER.debug(f"Keeping existing device_type: {current_type} (API suggested: {device_type})")
 
                     # Prefer API name if more descriptive
                     api_name = api_device.get("name", "")
