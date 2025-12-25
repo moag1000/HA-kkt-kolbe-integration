@@ -1,7 +1,6 @@
 {
   "domain": "kkt_kolbe",
   "name": "KKT Kolbe Integration",
-  "homeassistant": "2025.1.0",
   "after_dependencies": ["tuya"],
   "codeowners": ["@moag1000"],
   "config_flow": true,
