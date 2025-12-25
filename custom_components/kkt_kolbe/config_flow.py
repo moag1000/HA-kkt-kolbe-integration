@@ -465,10 +465,22 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             "name": discovery_info.get("name", f"KKT Device {device_id[:8]}"),
             "discovered_via": "zeroconf",
             "friendly_type": "KKT Kolbe Device",
+            "device_type": "auto",
+            "product_name": "auto",
         }
 
+        # Try to detect device type from device_id pattern BEFORE API enrichment
+        # This ensures we have a baseline detection even if API returns wrong type
+        if device_id:
+            dev_type, prod_name, friendly = _detect_device_type_from_device_id(device_id)
+            if dev_type != "auto":
+                self._device_info["device_type"] = dev_type
+                self._device_info["product_name"] = prod_name
+                self._device_info["friendly_type"] = friendly
+                _LOGGER.info(f"Zeroconf: Pre-detected device type from device_id pattern: {dev_type} -> {friendly}")
+
         # Set initial title placeholder
-        self.context["title_placeholders"] = {"name": "KKT Kolbe Device"}
+        self.context["title_placeholders"] = {"name": self._device_info.get("friendly_type", "KKT Kolbe Device")}
 
         # We have API credentials (checked above), try to get local_key
         _LOGGER.info(f"Zeroconf: API credentials available, enriching device {device_id[:8]}")
@@ -491,15 +503,23 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                         self._device_info["name"] = api_name
 
                     # Detect device type for proper entity setup
-                    device_type, internal_product_name = _detect_device_type_from_api(api_device)
-                    self._device_info["device_type"] = device_type
-                    self._device_info["product_name"] = internal_product_name
+                    # BUT only update if not already correctly detected from device_id pattern
+                    api_device_type, internal_product_name = _detect_device_type_from_api(api_device)
+                    current_type = self._device_info.get("device_type", "auto")
+
+                    if api_device_type != "auto" and (current_type == "auto" or current_type not in KNOWN_DEVICES):
+                        self._device_info["device_type"] = api_device_type
+                        self._device_info["product_name"] = internal_product_name
+                        _LOGGER.debug(f"Zeroconf: Updated device_type from API: {api_device_type}")
+                    else:
+                        _LOGGER.debug(f"Zeroconf: Keeping pre-detected device_type: {current_type} (API suggested: {api_device_type})")
 
                     # Create friendly display name based on detected type
                     from .device_types import KNOWN_DEVICES
-                    if device_type in KNOWN_DEVICES:
-                        device_info = KNOWN_DEVICES[device_type]
-                        self._device_info["friendly_type"] = device_info.get("name", device_type)
+                    effective_device_type = self._device_info.get("device_type", "auto")
+                    if effective_device_type in KNOWN_DEVICES:
+                        kkt_device_info = KNOWN_DEVICES[effective_device_type]
+                        self._device_info["friendly_type"] = kkt_device_info.get("name", effective_device_type)
                     else:
                         self._device_info["friendly_type"] = api_device.get("product_name", "KKT Device")
 

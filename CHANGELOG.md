@@ -5,6 +5,37 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.4] - 2025-12-25
+
+### Fix - Device Type Overwrite Bug bei Smart Discovery und Zeroconf
+
+**Problem**: Geräte wurden als "HERMES & STYLE Hood" erkannt und angezeigt, aber die falschen DPs (Data Points) wurden verwendet, z.B. DP 3 statt DP 10 für die Lüftersteuerung.
+
+**Ursache**: Bei der API-Anreicherung wurde der bereits korrekt erkannte `device_type` überschrieben:
+1. Lokale Discovery erkennt Gerät per `device_id` Pattern → `hermes_style_hood`
+2. API-Enrichment läuft → `_detect_device_type` gibt `default_hood` zurück (weil "hermes" nicht im Gerätenamen)
+3. Korrekter `device_type` wird überschrieben → falsche Entity-Konfiguration
+
+### Fixed
+
+**Smart Discovery (`smart_discovery.py`):**
+- API-Enrichment überschreibt `device_type` nur noch wenn:
+  - Aktueller Typ ist `"auto"`
+  - ODER aktueller Typ ist nicht in `KNOWN_DEVICES`
+- Korrekt erkannte Gerätetypen aus device_id Pattern bleiben erhalten
+
+**Zeroconf Flow (`config_flow.py`):**
+- Device_id Pattern-Erkennung VOR API-Enrichment hinzugefügt
+- Gleiche Logik: API überschreibt nur wenn aktueller Typ `"auto"` ist
+- Besseres Logging für Debugging
+
+### Ergebnis
+- HERMES & STYLE Hood verwendet jetzt korrekt DP 10 (fan_speed_enum)
+- Alle erkannten Geräte behalten ihre korrekte Entity-Konfiguration
+- Robustere Geräteerkennung auch bei nicht-standardmäßigen Gerätenamen
+
+---
+
 ## [2.9.3] - 2025-12-23
 
 ### Feature - Hilfe-Links und vollständige Übersetzungen
