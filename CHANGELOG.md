@@ -45,6 +45,28 @@ Diese Version erfordert **Home Assistant 2025.1.0** oder höher.
 - `suggested_display_precision` für alle Entity-Typen
 - Automatische Präzisionsbestimmung basierend auf Entity-Typ
 
+**config_flow.py**
+- Modernisierte Type-Annotations: `ConfigFlowResult` statt deprecated `FlowResult`
+- Zukunftssicher für HA 2025+ APIs
+
+### Added
+
+**Reconfigure Flow** 🔧
+- Neue Möglichkeit bestehende Geräte über die UI neu zu konfigurieren
+- Menü mit 4 Optionen:
+  - 🔌 **Connection**: IP-Adresse und Local Key ändern
+  - 📱 **Device Type**: Gerätetyp korrigieren (z.B. wenn falsch erkannt)
+  - ☁️ **API Settings**: Cloud API aktivieren/deaktivieren
+  - 🔧 **All Settings**: Alle Einstellungen auf einmal ändern
+- Verbindungstest vor dem Speichern optional
+- Vollständige EN/DE Übersetzungen
+
+**Anwendungsfälle:**
+- Local Key wurde nach Geräte-Reset erneuert
+- Geräte-IP hat sich geändert (DHCP)
+- Falscher Gerätetyp bei Auto-Discovery erkannt
+- Nachträgliches Aktivieren der Cloud API
+
 ### Upgrade-Hinweis
 
 Benutzer mit Home Assistant < 2025.1.0 müssen erst HA aktualisieren, bevor diese Version installiert werden kann.

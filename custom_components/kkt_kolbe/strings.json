@@ -227,6 +227,77 @@
           "api_endpoint": "Regional API endpoint for your account"
         }
       },
+      "reconfigure_menu": {
+        "title": "Reconfigure {device_name}",
+        "description": "Current configuration:\n- IP: {current_ip}\n- Device Type: {current_device_type}\n- API: {api_status}\n- Mode: {integration_mode}\n\nSelect what you want to change:",
+        "data": {
+          "reconfigure_option": "Configuration Option"
+        }
+      },
+      "reconfigure_connection": {
+        "title": "Connection Settings",
+        "description": "Update connection settings for {device_name}.\nCurrent IP: {current_ip}\n\n{local_key_hint}",
+        "data": {
+          "ip_address": "IP Address",
+          "local_key": "Local Key",
+          "test_connection": "Test Connection"
+        },
+        "data_description": {
+          "ip_address": "Device IP address on your network",
+          "local_key": "16-character encryption key (leave empty to keep current)",
+          "test_connection": "Verify connection with device before saving"
+        }
+      },
+      "reconfigure_device_type": {
+        "title": "Device Type",
+        "description": "Change the device type for {device_name}.\nCurrent type: {current_device_type}\n\nChanging the device type will reload the integration with the new entity configuration.",
+        "data": {
+          "device_type": "Device Type"
+        },
+        "data_description": {
+          "device_type": "Select the correct model for your device"
+        }
+      },
+      "reconfigure_api": {
+        "title": "API Settings",
+        "description": "Configure Tuya Cloud API settings for {device_name}.\nCurrent status: {api_status}\n\n{secret_hint}",
+        "data": {
+          "api_enabled": "Enable Tuya Cloud API",
+          "api_client_id": "API Client ID",
+          "api_client_secret": "API Client Secret",
+          "api_endpoint": "API Region"
+        },
+        "data_description": {
+          "api_enabled": "Enable hybrid mode with cloud API fallback",
+          "api_client_id": "Access ID from Tuya IoT Platform",
+          "api_client_secret": "Access Secret (leave empty to keep current)",
+          "api_endpoint": "Regional API endpoint for your account"
+        }
+      },
+      "reconfigure_all": {
+        "title": "Full Reconfiguration",
+        "description": "Update all settings for {device_name}.\n\n{hint}",
+        "data": {
+          "ip_address": "IP Address",
+          "local_key": "Local Key",
+          "device_type": "Device Type",
+          "api_enabled": "Enable Tuya Cloud API",
+          "api_client_id": "API Client ID",
+          "api_client_secret": "API Client Secret",
+          "api_endpoint": "API Region",
+          "test_connection": "Test Connection"
+        },
+        "data_description": {
+          "ip_address": "Device IP address",
+          "local_key": "Local key (leave empty to keep current)",
+          "device_type": "Device model",
+          "api_enabled": "Enable cloud API",
+          "api_client_id": "Tuya API Client ID",
+          "api_client_secret": "Tuya API Secret (leave empty to keep current)",
+          "api_endpoint": "API Region",
+          "test_connection": "Test connection before saving"
+        }
+      },
       "settings": {
         "title": "Device Settings",
         "description": "Configure advanced settings for your KKT Kolbe device.",
@@ -289,7 +360,10 @@
       "already_configured": "Device is already configured",
       "already_in_progress": "A setup flow for this device is already running. Please complete or dismiss the existing flow first.",
       "no_device_id": "Could not identify device. No device ID found.",
-      "reauth_failed": "Reauthentication failed. Entry not found."
+      "reauth_failed": "Reauthentication failed. Entry not found.",
+      "reauth_successful": "Reauthentication successful. The integration has been reloaded.",
+      "reconfigure_failed": "Reconfiguration failed. Entry not found.",
+      "reconfigure_successful": "Configuration updated successfully. The integration has been reloaded."
     }
   },
   "options": {

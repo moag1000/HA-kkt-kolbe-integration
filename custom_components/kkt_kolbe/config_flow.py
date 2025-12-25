@@ -8,10 +8,14 @@ import re
 from typing import Any
 
 import voluptuous as vol
-from homeassistant.config_entries import ConfigFlow, OptionsFlow, ConfigEntry
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlow,
+    ConfigFlowResult,
+    OptionsFlow,
+)
 from homeassistant.const import CONF_IP_ADDRESS, CONF_SCAN_INTERVAL, CONF_DEVICE_ID, CONF_ACCESS_TOKEN
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import homeassistant.helpers.config_validation as cv
@@ -413,7 +417,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_zeroconf(
         self, discovery_info: dict[str, Any]
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle zeroconf discovery of KKT Kolbe devices.
 
         Called automatically by Home Assistant when a matching mDNS service is found.
@@ -564,7 +568,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_zeroconf_confirm(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Confirm zeroconf discovered device with all data available (one-click setup)."""
         if user_input is not None:
             # User confirmed, create entry
@@ -631,7 +635,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_zeroconf_authenticate(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle zeroconf discovered device that needs local key or API config."""
         errors: dict[str, str] = {}
 
@@ -741,7 +745,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_zeroconf_api_credentials(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Configure API credentials from zeroconf discovery flow."""
         errors: dict[str, str] = {}
 
@@ -853,7 +857,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_smart_discovery(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle smart discovery - combines local scan with API data."""
         errors: dict[str, str] = {}
 
@@ -991,7 +995,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(
         self, user_input: dict[str, Any | None] = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle the initial step - setup method selection."""
         errors: dict[str, str] = {}
 
@@ -1041,7 +1045,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             }
         )
 
-    async def async_step_reauth(self, user_input: dict[str, Any | None] = None) -> FlowResult:
+    async def async_step_reauth(self, user_input: dict[str, Any | None] = None) -> ConfigFlowResult:
         """Handle reauthentication for API credentials."""
         self._reauth_entry = self.hass.config_entries.async_get_entry(
             self.context["entry_id"]
@@ -1054,7 +1058,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_reauth_confirm(
         self, user_input: dict[str, Any | None] = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle reauthentication confirmation."""
         errors: dict[str, str] = {}
 
@@ -1153,9 +1157,432 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             description_placeholders=placeholders
         )
 
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle reconfiguration of an existing entry."""
+        reconfigure_entry = self._get_reconfigure_entry()
+
+        if not reconfigure_entry:
+            return self.async_abort(reason="reconfigure_failed")
+
+        # Store entry for use in subsequent steps
+        self._reconfigure_entry = reconfigure_entry
+
+        return await self.async_step_reconfigure_menu()
+
+    async def async_step_reconfigure_menu(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Show reconfiguration menu with options."""
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            selected_option = user_input.get("reconfigure_option")
+
+            if selected_option == "connection":
+                return await self.async_step_reconfigure_connection()
+            elif selected_option == "device_type":
+                return await self.async_step_reconfigure_device_type()
+            elif selected_option == "api":
+                return await self.async_step_reconfigure_api()
+            elif selected_option == "all":
+                return await self.async_step_reconfigure_all()
+
+        # Get current configuration summary
+        entry = self._reconfigure_entry
+        current_ip = entry.data.get(CONF_IP_ADDRESS, "Not configured")
+        current_device_type = entry.data.get("device_type", "auto")
+        api_enabled = entry.data.get("api_enabled", False)
+        integration_mode = entry.data.get("integration_mode", "manual")
+
+        # Get friendly device type name
+        if current_device_type in KNOWN_DEVICES:
+            device_type_display = KNOWN_DEVICES[current_device_type].get("name", current_device_type)
+        else:
+            device_type_display = current_device_type
+
+        schema = vol.Schema({
+            vol.Required("reconfigure_option"): selector.selector({
+                "select": {
+                    "options": [
+                        {"value": "connection", "label": "🔌 Connection (IP & Local Key)"},
+                        {"value": "device_type", "label": "📱 Device Type"},
+                        {"value": "api", "label": "☁️ API Settings"},
+                        {"value": "all", "label": "🔧 All Settings"},
+                    ],
+                    "mode": "list",
+                }
+            }),
+        })
+
+        return self.async_show_form(
+            step_id="reconfigure_menu",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders={
+                "device_name": entry.title,
+                "current_ip": current_ip,
+                "current_device_type": device_type_display,
+                "api_status": "Enabled" if api_enabled else "Disabled",
+                "integration_mode": integration_mode,
+            },
+        )
+
+    async def async_step_reconfigure_connection(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Reconfigure connection settings (IP and Local Key)."""
+        errors: dict[str, str] = {}
+        entry = self._reconfigure_entry
+
+        if user_input is not None:
+            new_ip = user_input.get("ip_address", "").strip()
+            new_local_key = user_input.get("local_key", "").strip()
+            test_connection = user_input.get("test_connection", True)
+
+            # Validate IP if provided
+            if new_ip and not self._is_valid_ip(new_ip):
+                errors["ip_address"] = "invalid_ip"
+
+            # Validate local key if provided
+            if new_local_key and not self._is_valid_local_key(new_local_key):
+                errors["local_key"] = "invalid_local_key"
+
+            if not errors:
+                # Build updated data
+                new_data = dict(entry.data)
+
+                if new_ip:
+                    new_data[CONF_IP_ADDRESS] = new_ip
+                if new_local_key:
+                    new_data["local_key"] = new_local_key
+                    new_data[CONF_ACCESS_TOKEN] = new_local_key
+
+                # Test connection if requested and we have all required info
+                if test_connection and new_data.get(CONF_IP_ADDRESS) and new_data.get("local_key"):
+                    connection_valid = await self._test_device_connection(
+                        new_data[CONF_IP_ADDRESS],
+                        new_data.get("device_id", entry.data.get("device_id")),
+                        new_data["local_key"]
+                    )
+                    if not connection_valid:
+                        errors["base"] = "cannot_connect"
+
+                if not errors:
+                    # Update the config entry
+                    return self.async_update_reload_and_abort(
+                        entry,
+                        data=new_data,
+                        reason="reconfigure_successful",
+                    )
+
+        # Current values
+        current_ip = entry.data.get(CONF_IP_ADDRESS, "")
+
+        schema = vol.Schema({
+            vol.Optional("ip_address", default=current_ip): str,
+            vol.Optional("local_key", default=""): selector.selector({
+                "text": {"type": "password"}
+            }),
+            vol.Optional("test_connection", default=True): bool,
+        })
+
+        return self.async_show_form(
+            step_id="reconfigure_connection",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders={
+                "device_name": entry.title,
+                "current_ip": current_ip,
+                "local_key_hint": "Leave empty to keep current key",
+            },
+        )
+
+    async def async_step_reconfigure_device_type(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Reconfigure device type."""
+        errors: dict[str, str] = {}
+        entry = self._reconfigure_entry
+
+        if user_input is not None:
+            new_device_type = user_input.get("device_type")
+
+            if new_device_type:
+                new_data = dict(entry.data)
+                new_data["device_type"] = new_device_type
+
+                # Update product_name based on device type
+                if new_device_type in KNOWN_DEVICES:
+                    product_names = KNOWN_DEVICES[new_device_type].get("product_names", [])
+                    if product_names:
+                        new_data["product_name"] = product_names[0]
+
+                # Update the config entry and reload
+                return self.async_update_reload_and_abort(
+                    entry,
+                    data=new_data,
+                    reason="reconfigure_successful",
+                )
+
+        current_device_type = entry.data.get("device_type", "auto")
+
+        schema = vol.Schema({
+            vol.Required("device_type", default=current_device_type): selector.selector({
+                "select": {
+                    "options": _get_device_type_options(),
+                    "mode": "dropdown",
+                }
+            }),
+        })
+
+        return self.async_show_form(
+            step_id="reconfigure_device_type",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders={
+                "device_name": entry.title,
+                "current_device_type": current_device_type,
+            },
+        )
+
+    async def async_step_reconfigure_api(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Reconfigure API settings."""
+        errors: dict[str, str] = {}
+        entry = self._reconfigure_entry
+
+        if user_input is not None:
+            api_enabled = user_input.get("api_enabled", False)
+
+            new_data = dict(entry.data)
+            new_data["api_enabled"] = api_enabled
+
+            if api_enabled:
+                client_id = user_input.get("api_client_id", "").strip()
+                client_secret = user_input.get("api_client_secret", "").strip()
+                endpoint = user_input.get("api_endpoint", "https://openapi.tuyaeu.com")
+
+                # Validate credentials if enabling API
+                if not client_id or len(client_id) < 10:
+                    errors["api_client_id"] = "api_client_id_invalid"
+                elif not client_secret or len(client_secret) < 20:
+                    errors["api_client_secret"] = "api_client_secret_invalid"
+                else:
+                    # Test API connection
+                    from .api import TuyaCloudClient
+
+                    try:
+                        api_client = TuyaCloudClient(
+                            client_id=client_id,
+                            client_secret=client_secret,
+                            endpoint=endpoint,
+                        )
+                        async with api_client:
+                            if await api_client.test_connection():
+                                new_data["api_client_id"] = client_id
+                                new_data["api_client_secret"] = client_secret
+                                new_data["api_endpoint"] = endpoint
+                                new_data["integration_mode"] = "hybrid"
+
+                                # Store credentials globally
+                                api_manager = GlobalAPIManager(self.hass)
+                                api_manager.store_api_credentials(client_id, client_secret, endpoint)
+                            else:
+                                errors["base"] = "api_connection_failed"
+                    except Exception as err:
+                        _LOGGER.error(f"API test failed: {err}")
+                        errors["base"] = "api_connection_failed"
+            else:
+                # Disable API
+                new_data["api_enabled"] = False
+                new_data["integration_mode"] = "manual"
+                # Keep credentials in case user re-enables later
+
+            if not errors:
+                return self.async_update_reload_and_abort(
+                    entry,
+                    data=new_data,
+                    reason="reconfigure_successful",
+                )
+
+        # Current values
+        current_api_enabled = entry.data.get("api_enabled", False)
+        current_client_id = entry.data.get("api_client_id", "")
+        current_endpoint = entry.data.get("api_endpoint", "https://openapi.tuyaeu.com")
+
+        schema = vol.Schema({
+            vol.Required("api_enabled", default=current_api_enabled): bool,
+            vol.Optional("api_client_id", default=current_client_id): str,
+            vol.Optional("api_client_secret", default=""): selector.selector({
+                "text": {"type": "password"}
+            }),
+            vol.Optional("api_endpoint", default=current_endpoint): selector.selector({
+                "select": {
+                    "options": [
+                        {"value": "https://openapi.tuyaeu.com", "label": "Europe (EU)"},
+                        {"value": "https://openapi.tuyaus.com", "label": "United States (US)"},
+                        {"value": "https://openapi.tuyacn.com", "label": "China (CN)"},
+                        {"value": "https://openapi.tuyain.com", "label": "India (IN)"},
+                    ],
+                    "mode": "dropdown",
+                }
+            }),
+        })
+
+        return self.async_show_form(
+            step_id="reconfigure_api",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders={
+                "device_name": entry.title,
+                "api_status": "Enabled" if current_api_enabled else "Disabled",
+                "secret_hint": "Leave empty to keep current secret",
+            },
+        )
+
+    async def async_step_reconfigure_all(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Reconfigure all settings at once."""
+        errors: dict[str, str] = {}
+        entry = self._reconfigure_entry
+
+        if user_input is not None:
+            new_ip = user_input.get("ip_address", "").strip()
+            new_local_key = user_input.get("local_key", "").strip()
+            new_device_type = user_input.get("device_type")
+            api_enabled = user_input.get("api_enabled", False)
+            test_connection = user_input.get("test_connection", True)
+
+            # Validate IP if provided
+            if new_ip and not self._is_valid_ip(new_ip):
+                errors["ip_address"] = "invalid_ip"
+
+            # Validate local key if provided
+            if new_local_key and not self._is_valid_local_key(new_local_key):
+                errors["local_key"] = "invalid_local_key"
+
+            if not errors:
+                new_data = dict(entry.data)
+
+                # Update connection settings
+                if new_ip:
+                    new_data[CONF_IP_ADDRESS] = new_ip
+                if new_local_key:
+                    new_data["local_key"] = new_local_key
+                    new_data[CONF_ACCESS_TOKEN] = new_local_key
+
+                # Update device type
+                if new_device_type:
+                    new_data["device_type"] = new_device_type
+                    if new_device_type in KNOWN_DEVICES:
+                        product_names = KNOWN_DEVICES[new_device_type].get("product_names", [])
+                        if product_names:
+                            new_data["product_name"] = product_names[0]
+
+                # Update API settings
+                new_data["api_enabled"] = api_enabled
+                if api_enabled:
+                    client_id = user_input.get("api_client_id", "").strip()
+                    client_secret = user_input.get("api_client_secret", "").strip()
+                    endpoint = user_input.get("api_endpoint", "https://openapi.tuyaeu.com")
+
+                    if client_id and client_secret:
+                        # Test API
+                        from .api import TuyaCloudClient
+
+                        try:
+                            api_client = TuyaCloudClient(
+                                client_id=client_id,
+                                client_secret=client_secret,
+                                endpoint=endpoint,
+                            )
+                            async with api_client:
+                                if await api_client.test_connection():
+                                    new_data["api_client_id"] = client_id
+                                    new_data["api_client_secret"] = client_secret
+                                    new_data["api_endpoint"] = endpoint
+                                    new_data["integration_mode"] = "hybrid"
+                                else:
+                                    errors["base"] = "api_connection_failed"
+                        except Exception:
+                            errors["base"] = "api_connection_failed"
+                else:
+                    new_data["integration_mode"] = "manual"
+
+                # Test local connection if requested
+                if test_connection and not errors:
+                    final_ip = new_data.get(CONF_IP_ADDRESS, entry.data.get(CONF_IP_ADDRESS))
+                    final_key = new_data.get("local_key", entry.data.get("local_key"))
+                    device_id = new_data.get("device_id", entry.data.get("device_id"))
+
+                    if final_ip and final_key and device_id:
+                        connection_valid = await self._test_device_connection(
+                            final_ip, device_id, final_key
+                        )
+                        if not connection_valid:
+                            errors["base"] = "cannot_connect"
+
+                if not errors:
+                    return self.async_update_reload_and_abort(
+                        entry,
+                        data=new_data,
+                        reason="reconfigure_successful",
+                    )
+
+        # Current values
+        current_ip = entry.data.get(CONF_IP_ADDRESS, "")
+        current_device_type = entry.data.get("device_type", "auto")
+        current_api_enabled = entry.data.get("api_enabled", False)
+        current_client_id = entry.data.get("api_client_id", "")
+        current_endpoint = entry.data.get("api_endpoint", "https://openapi.tuyaeu.com")
+
+        schema = vol.Schema({
+            vol.Optional("ip_address", default=current_ip): str,
+            vol.Optional("local_key", default=""): selector.selector({
+                "text": {"type": "password"}
+            }),
+            vol.Required("device_type", default=current_device_type): selector.selector({
+                "select": {
+                    "options": _get_device_type_options(),
+                    "mode": "dropdown",
+                }
+            }),
+            vol.Required("api_enabled", default=current_api_enabled): bool,
+            vol.Optional("api_client_id", default=current_client_id): str,
+            vol.Optional("api_client_secret", default=""): selector.selector({
+                "text": {"type": "password"}
+            }),
+            vol.Optional("api_endpoint", default=current_endpoint): selector.selector({
+                "select": {
+                    "options": [
+                        {"value": "https://openapi.tuyaeu.com", "label": "Europe (EU)"},
+                        {"value": "https://openapi.tuyaus.com", "label": "United States (US)"},
+                        {"value": "https://openapi.tuyacn.com", "label": "China (CN)"},
+                        {"value": "https://openapi.tuyain.com", "label": "India (IN)"},
+                    ],
+                    "mode": "dropdown",
+                }
+            }),
+            vol.Optional("test_connection", default=True): bool,
+        })
+
+        return self.async_show_form(
+            step_id="reconfigure_all",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders={
+                "device_name": entry.title,
+                "hint": "Leave password fields empty to keep current values",
+            },
+        )
+
     async def async_step_discovery(
         self, user_input: dict[str, Any | None] = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle device discovery step."""
         errors: dict[str, str] = {}
 
@@ -1228,7 +1655,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_manual(
         self, user_input: dict[str, Any | None] = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle manual configuration step."""
         errors: dict[str, str] = {}
 
@@ -1290,7 +1717,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_api_only(
         self, user_input: dict[str, Any | None] = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle API-only setup step."""
         errors: dict[str, str] = {}
 
@@ -1395,7 +1822,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_api_device_selection(
         self, user_input: dict[str, Any | None] = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle device selection from API discovery."""
         errors: dict[str, str] = {}
 
@@ -1484,7 +1911,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_api_choice(
         self, user_input: dict[str, Any | None] = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle choice between using stored API credentials or entering new ones."""
         api_manager = GlobalAPIManager(self.hass)
 
@@ -1562,7 +1989,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_api_credentials(
         self, user_input: dict[str, Any | None] = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle entering new API credentials."""
         # This is essentially the same as the original api_only step
         # but without the stored credentials check
@@ -1651,7 +2078,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_authentication(
         self, user_input: dict[str, Any | None] = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle authentication step - local key input and validation."""
         errors: dict[str, str] = {}
 
@@ -1713,7 +2140,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_settings(
         self, user_input: dict[str, Any | None] = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle advanced settings step."""
         if user_input is not None:
             # Check if user wants to go back
@@ -1742,7 +2169,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_confirmation(
         self, user_input: dict[str, Any | None] = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle confirmation and create config entry."""
         if user_input is not None:
             # Check if user wants to go back to settings
@@ -1903,7 +2330,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
 
     async def async_step_init(
         self, user_input: dict[str, Any | None] = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Manage the options."""
         errors: dict[str, str] = {}
 
