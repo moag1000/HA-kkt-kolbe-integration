@@ -368,45 +368,122 @@ KNOWN_DEVICES = {
         }
     },
 
-    # DEFAULT HOOD - Generic range hood with standard YYJ category DPs
-    # Use this when the specific device model is unknown or not fully supported
-    "default_hood": {
-        "model_id": "default_hood",
+    # DEFAULT HOOD HERMES - Based on HERMES family for manual selection
+    # Uses HERMES DPs with enum fan speed (off/low/middle/high/strong)
+    "default_hood_hermes": {
+        "model_id": "default_hood_hermes",
         "category": CATEGORY_HOOD,
-        "name": "Default Hood (Generic)",
-        "product_names": ["default_hood"],
-        "device_ids": [],  # Matches any device when selected manually
+        "name": "Default Hood (HERMES-based)",
+        "product_names": ["default_hood_hermes"],
+        "device_ids": [],
         "device_id_patterns": [],
         "platforms": ["fan", "light", "switch", "sensor", "select", "number"],
         "data_points": {
             1: "switch",              # Main power
-            3: "fan_speed_enum",      # Fan speed (standard YYJ DP)
-            101: "light",             # Main light (common alternate DP)
-            4: "light",               # Main light (standard YYJ DP)
-            6: "countdown",           # Timer
-            7: "countdown_left",      # Timer remaining
+            4: "light",               # Light on/off
+            6: "switch_lamp",         # Filter cleaning reminder
+            10: "fan_speed_enum",     # Fan speed (enum)
+            13: "countdown",          # Timer
+            101: "RGB",               # RGB lighting modes (0-8)
+            2: "delay_switch",        # Delayed shutdown
+            5: "light_brightness",    # Light brightness (0-255)
+            14: "filter_hours",       # Filter usage hours
+            17: "eco_mode",           # Eco mode
         },
         "entities": {
             "fan": {
-                "dp": 3,  # fan_speed_enum - standard YYJ DP for fan speed
-                "speeds": ["off", "low", "middle", "high"]
+                "dp": 10,  # fan_speed_enum
+                "speeds": ["off", "low", "middle", "high", "strong"]
             },
             "light": [
-                # Main light as light entity for HomeKit/Siri ("Hey Siri, turn on the light")
-                {"dp": 4, "name": "Light", "icon": "mdi:lightbulb"}
+                {
+                    "dp": 4,
+                    "name": "Light",
+                    "icon": "mdi:lightbulb",
+                    "effect_dp": 101,
+                    "effect_numeric": True,
+                    "effects": ["Weiß", "Rot", "Grün", "Blau", "Gelb", "Lila", "Orange", "Cyan", "Grasgrün"]
+                }
             ],
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
-            ],
-            "select": [
-                # Fan Speed select marked as advanced to avoid HomeKit showing both fan and select
-                {"dp": 3, "name": "Fan Speed", "options": ["off", "low", "middle", "high"], "icon": "mdi:fan", "advanced": True, "entity_category": "config"}
+                {"dp": 6, "name": "Filter Cleaning Reminder", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"},
+                {"dp": 2, "name": "Delayed Shutdown", "icon": "mdi:timer-off", "advanced": True, "entity_category": "config"},
+                {"dp": 17, "name": "Eco Mode", "icon": "mdi:leaf", "advanced": True, "entity_category": "config"}
             ],
             "number": [
-                {"dp": 6, "name": "Timer", "min": 0, "max": 100, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"}
+                {"dp": 101, "name": "RGB Mode", "min": 0, "max": 8, "step": 1, "icon": "mdi:palette", "advanced": True, "entity_category": "config"},
+                {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"},
+                {"dp": 5, "name": "Light Brightness", "min": 0, "max": 255, "step": 1, "icon": "mdi:brightness-6", "advanced": True}
             ],
             "sensor": [
-                {"dp": 7, "name": "Timer Remaining", "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer-sand", "entity_category": "diagnostic"}
+                {"dp": 6, "name": "Filter Status", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"},
+                {"dp": 14, "name": "Filter Hours", "unit": "h", "device_class": "duration", "icon": "mdi:clock-outline", "advanced": True, "entity_category": "diagnostic"}
+            ],
+            "select": [
+                {"dp": 10, "name": "Fan Speed", "options": ["off", "low", "middle", "high", "strong"], "icon": "mdi:fan", "advanced": True, "entity_category": "config"}
+            ]
+        }
+    },
+
+    # DEFAULT HOOD HCM - Based on HCM family (SOLO/ECCO) as fallback
+    # Uses HCM DPs which are the most complete configuration
+    "default_hood": {
+        "model_id": "default_hood",
+        "category": CATEGORY_HOOD,
+        "name": "Default Hood (HCM-based)",
+        "product_names": ["default_hood"],
+        "device_ids": [],  # Matches any device when selected manually
+        "device_id_patterns": [],
+        "platforms": ["fan", "light", "switch", "select", "number"],
+        "data_points": {
+            1: "switch",              # Main power (ON/OFF)
+            4: "light",               # Main light on/off
+            6: "switch_lamp",         # RGB switch trigger
+            7: "switch_wash",         # Setting/Wash mode
+            102: "fan_speed",         # Fan speed (0-9)
+            103: "day",               # Carbon filter days remaining (0-250)
+            104: "switch_led_1",      # LED light
+            105: "countdown_1",       # Countdown timer (0-60 min)
+            106: "switch_led",        # Confirm
+            107: "colour_data",       # RGB color data (string, max 255)
+            108: "work_mode",         # RGB work mode (white/colour/scene/music)
+            109: "day_1",             # Metal filter days remaining (0-40)
+        },
+        "entities": {
+            "fan": {
+                "dp": 102,  # fan_speed numeric (0-9) - for HomeKit/Siri
+                "speeds": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
+                "numeric": True,  # Use numeric mode instead of enum
+                "min": 0,
+                "max": 9
+            },
+            "light": [
+                # Main light with RGB mode effects for HomeKit/Siri
+                {
+                    "dp": 4,
+                    "name": "Light",
+                    "icon": "mdi:lightbulb",
+                    "effect_dp": 108,
+                    "effect_numeric": False,
+                    "effects": ["white", "colour", "scene", "music"]
+                }
+            ],
+            "switch": [
+                {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
+                {"dp": 6, "name": "RGB Light", "device_class": "switch", "icon": "mdi:palette", "advanced": True, "entity_category": "config"},
+                {"dp": 7, "name": "Wash Mode", "device_class": "switch", "icon": "mdi:spray-bottle", "advanced": True, "entity_category": "config"},
+                {"dp": 104, "name": "LED Light", "device_class": "switch", "icon": "mdi:led-strip", "advanced": True, "entity_category": "config"},
+                {"dp": 106, "name": "Confirm", "device_class": "switch", "icon": "mdi:check", "entity_category": "config", "advanced": True}
+            ],
+            "select": [
+                {"dp": 108, "name": "RGB Mode", "options": ["white", "colour", "scene", "music"], "icon": "mdi:palette", "advanced": True, "entity_category": "config"}
+            ],
+            "number": [
+                {"dp": 102, "name": "Fan Speed", "min": 0, "max": 9, "step": 1, "icon": "mdi:fan", "advanced": True, "entity_category": "config"},
+                {"dp": 105, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"},
+                {"dp": 103, "name": "Carbon Filter Remaining", "min": 0, "max": 250, "unit": "days", "icon": "mdi:air-filter", "entity_category": "diagnostic"},
+                {"dp": 109, "name": "Metal Filter Remaining", "min": 0, "max": 40, "unit": "days", "icon": "mdi:air-filter", "entity_category": "diagnostic"}
             ]
         }
     },
