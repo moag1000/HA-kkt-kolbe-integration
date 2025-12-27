@@ -6,6 +6,7 @@ import logging
 from datetime import timedelta
 from typing import Any
 
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
@@ -27,12 +28,14 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
         api_client: TuyaCloudClient | None = None,
         update_interval: timedelta = timedelta(seconds=30),
         prefer_local: bool = True,
+        entry: ConfigEntry | None = None,
     ):
         """Initialize the hybrid coordinator."""
         self.device_id = device_id
         self.local_device = local_device
         self.api_client = api_client
         self.prefer_local = prefer_local
+        self.config_entry = entry
 
         # Communication mode tracking
         self.local_available = local_device is not None
