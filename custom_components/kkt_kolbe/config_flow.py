@@ -4,29 +4,33 @@ from __future__ import annotations
 import asyncio
 import ipaddress
 import logging
-import re
 from typing import Any
 
 import voluptuous as vol
-from homeassistant.config_entries import (
-    ConfigEntry,
-    ConfigFlow,
-    ConfigFlowResult,
-    OptionsFlow,
-)
-from homeassistant.const import CONF_IP_ADDRESS, CONF_SCAN_INTERVAL, CONF_DEVICE_ID, CONF_ACCESS_TOKEN
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigFlow
+from homeassistant.config_entries import ConfigFlowResult
+from homeassistant.config_entries import OptionsFlow
+from homeassistant.const import CONF_ACCESS_TOKEN
+from homeassistant.const import CONF_DEVICE_ID
+from homeassistant.const import CONF_IP_ADDRESS
+from homeassistant.const import CONF_SCAN_INTERVAL
+from homeassistant.core import HomeAssistant
+from homeassistant.core import callback
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-import homeassistant.helpers.config_validation as cv
 
-from .const import DOMAIN
-from .discovery import async_start_discovery, async_stop_discovery, get_discovered_devices
-from .tuya_device import KKTKolbeTuyaDevice
 from .api_manager import GlobalAPIManager
-from .api.real_device_mappings import RealDeviceMappings
-from .device_types import KNOWN_DEVICES, CATEGORY_HOOD, CATEGORY_COOKTOP
-from .smart_discovery import SmartDiscovery, SmartDiscoveryResult, async_get_configured_device_ids
+from .const import DOMAIN
+from .device_types import CATEGORY_COOKTOP
+from .device_types import CATEGORY_HOOD
+from .device_types import KNOWN_DEVICES
+from .discovery import async_start_discovery
+from .discovery import get_discovered_devices
+from .smart_discovery import SmartDiscovery
+from .smart_discovery import SmartDiscoveryResult
+from .smart_discovery import async_get_configured_device_ids
+from .tuya_device import KKTKolbeTuyaDevice
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -62,7 +66,9 @@ def _detect_device_type_from_api(device: dict[str, Any]) -> tuple[str, str]:
         - device_type: Internal device key for UI display
         - internal_product_name: Product name for entity lookup in KNOWN_DEVICES
     """
-    from .device_types import find_device_by_product_name, find_device_by_device_id, KNOWN_DEVICES
+    from .device_types import KNOWN_DEVICES
+    from .device_types import find_device_by_device_id
+    from .device_types import find_device_by_product_name
 
     tuya_category = device.get("category", "").lower()
     api_product_name = device.get("product_name", "Unknown Device")
@@ -508,6 +514,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
 
                     # Detect device type for proper entity setup
                     # BUT only update if not already correctly detected from device_id pattern
+                    from .device_types import KNOWN_DEVICES
                     api_device_type, internal_product_name = _detect_device_type_from_api(api_device)
                     current_type = self._device_info.get("device_type", "auto")
 
@@ -519,7 +526,6 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                         _LOGGER.debug(f"Zeroconf: Keeping pre-detected device_type: {current_type} (API suggested: {api_device_type})")
 
                     # Create friendly display name based on detected type
-                    from .device_types import KNOWN_DEVICES
                     effective_device_type = self._device_info.get("device_type", "auto")
                     if effective_device_type in KNOWN_DEVICES:
                         kkt_device_info = KNOWN_DEVICES[effective_device_type]
@@ -1133,13 +1139,11 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                 vol.Required("api_client_secret"): str,
                 vol.Optional("api_endpoint", default=self._reauth_entry.data.get("api_endpoint", "https://openapi.tuyaeu.com")): str,
             })
-            description_key = "reauth_api"
         else:
             # Local key reauth
             reauth_schema = vol.Schema({
                 vol.Required("local_key"): selector.selector({"text": {"type": "password"}}),
             })
-            description_key = "reauth_local"
 
         placeholders = {
             "device_name": self._reauth_entry.title,
@@ -2349,12 +2353,12 @@ class KKTKolbeOptionsFlow(OptionsFlow):
         current_debug = self.config_entry.options.get("enable_debug_logging", False)
         current_advanced = self.config_entry.options.get("enable_advanced_entities", True)
         current_naming = self.config_entry.options.get("zone_naming_scheme", "zone")
-        current_local_key = self.config_entry.data.get(CONF_ACCESS_TOKEN, self.config_entry.data.get("local_key", ""))
+        self.config_entry.data.get(CONF_ACCESS_TOKEN, self.config_entry.data.get("local_key", ""))
 
         # Get current API settings
         current_api_enabled = self.config_entry.data.get("api_enabled", False)
         current_client_id = self.config_entry.data.get("api_client_id", "")
-        current_client_secret = self.config_entry.data.get("api_client_secret", "")
+        self.config_entry.data.get("api_client_secret", "")
         current_endpoint = self.config_entry.data.get("api_endpoint", "https://openapi.tuyaeu.com")
 
         options_schema = vol.Schema({

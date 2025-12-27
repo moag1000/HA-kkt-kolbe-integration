@@ -1,15 +1,11 @@
 """Device type specific configurations for KKT Kolbe devices."""
 from __future__ import annotations
 
-from homeassistant.const import (
-    PERCENTAGE,
-    UnitOfTemperature,
-    UnitOfTime,
-    UnitOfSoundPressure,
-)
+from homeassistant.const import UnitOfTemperature
+from homeassistant.const import UnitOfTime
 
-from .const import CATEGORY_HOOD, CATEGORY_COOKTOP
-
+from .const import CATEGORY_COOKTOP
+from .const import CATEGORY_HOOD
 
 # Hood (Dunstabzugshaube) Data Points
 HOOD_DPS = {

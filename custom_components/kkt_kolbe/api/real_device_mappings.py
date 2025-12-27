@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -17,7 +16,7 @@ class RealDeviceMappings:
         """Initialize with real device mappings."""
         self._device_mappings = self._load_real_mappings()
 
-    def _load_real_mappings(self) -> dict[str, Dict]:
+    def _load_real_mappings(self) -> dict[str, dict]:
         """Load real device mappings from actual API responses."""
         return {
             # DEFAULT HOOD - Standard YYJ category DPs that work with most range hoods
@@ -318,7 +317,7 @@ class RealDeviceMappings:
         mapping = self._device_mappings.get(device_type)
         return mapping.get("codes") if mapping else None
 
-    def get_device_entities(self, device_type: str) -> Dict | None:
+    def get_device_entities(self, device_type: str) -> dict | None:
         """Get device entity mappings."""
         mapping = self._device_mappings.get(device_type)
         return mapping.get("entities") if mapping else None
@@ -364,7 +363,7 @@ class RealDeviceMappings:
 
         return writable_codes
 
-    def get_device_display_info(self, device_type: str) -> Dict | None:
+    def get_device_display_info(self, device_type: str) -> dict | None:
         """Get display info for a device type (for UI selection)."""
         mapping = self._device_mappings.get(device_type)
         if not mapping:
@@ -378,7 +377,7 @@ class RealDeviceMappings:
             "category": mapping.get("category", "unknown"),
         }
 
-    def get_hood_devices_for_selection(self) -> list[Dict]:
+    def get_hood_devices_for_selection(self) -> list[dict]:
         """Get all hood device types formatted for UI selection.
 
         Returns devices in order: specific models first, then default hood last.
@@ -402,7 +401,7 @@ class RealDeviceMappings:
 
         return hoods
 
-    def get_all_devices_for_selection(self) -> list[Dict]:
+    def get_all_devices_for_selection(self) -> list[dict]:
         """Get all device types formatted for UI selection.
 
         Returns devices grouped by type: specific hoods first, then cooktops,

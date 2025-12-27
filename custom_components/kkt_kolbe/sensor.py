@@ -2,23 +2,23 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING
+from typing import Any
 
-from homeassistant.components.sensor import (
-    SensorEntity,
-    SensorDeviceClass,
-    SensorStateClass,
-)
+from homeassistant.components.sensor import SensorDeviceClass
+from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import SensorStateClass
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfTemperature, UnitOfPower
+from homeassistant.const import UnitOfPower
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .base_entity import KKTBaseEntity, KKTZoneBaseEntity
+from .base_entity import KKTBaseEntity
+from .base_entity import KKTZoneBaseEntity
+from .bitfield_utils import BITFIELD_CONFIG
+from .bitfield_utils import get_zone_value_from_coordinator
 from .device_types import get_device_entities
-from .bitfield_utils import get_zone_value_from_coordinator, BITFIELD_CONFIG
 
 if TYPE_CHECKING:
     from . import KKTKolbeConfigEntry

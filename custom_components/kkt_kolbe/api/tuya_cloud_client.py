@@ -2,24 +2,22 @@
 from __future__ import annotations
 
 import asyncio
-from collections import deque
 import hashlib
 import hmac
 import json
 import logging
 import time
 import uuid
+from collections import deque
 from typing import Any
 
 import aiohttp
 from aiohttp import ClientSession
 
-from .api_exceptions import (
-    TuyaAPIError,
-    TuyaAuthenticationError,
-    TuyaRateLimitError,
-    TuyaDeviceNotFoundError,
-)
+from .api_exceptions import TuyaAPIError
+from .api_exceptions import TuyaAuthenticationError
+from .api_exceptions import TuyaDeviceNotFoundError
+from .api_exceptions import TuyaRateLimitError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -355,8 +353,8 @@ class TuyaCloudClient:
                 devices = response.get("result", [])
                 _LOGGER.info(f"Retrieved {len(devices)} devices from API v1.0")
                 return devices  # v1.0 already in correct format
-            except TuyaAPIError as fallback_error:
-                _LOGGER.error(f"Both v2.0 and v1.0 device list APIs failed")
+            except TuyaAPIError:
+                _LOGGER.error("Both v2.0 and v1.0 device list APIs failed")
                 raise
 
     async def get_device_details(self, device_id: str) -> dict[str, Any]:
@@ -518,7 +516,7 @@ class TuyaCloudClient:
                 )
 
                 result = response.get("result", {})
-                _LOGGER.debug(f"Retrieved properties from v1.0 iot-03 API")
+                _LOGGER.debug("Retrieved properties from v1.0 iot-03 API")
                 return result
 
             except TuyaAPIError as iot03_error:

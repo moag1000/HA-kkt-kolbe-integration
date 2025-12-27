@@ -2,15 +2,18 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
+from datetime import timedelta
 from enum import Enum
 from typing import Any
 
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import UpdateFailed
 
-from .const import DOMAIN, DEFAULT_CONSECUTIVE_FAILURES_THRESHOLD
+from .const import DEFAULT_CONSECUTIVE_FAILURES_THRESHOLD
+from .const import DOMAIN
 from .tuya_device import KKTKolbeTuyaDevice
 
 _LOGGER = logging.getLogger(__name__)
@@ -111,7 +114,8 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from the device."""
-        from .exceptions import KKTTimeoutError, KKTConnectionError
+        from .exceptions import KKTConnectionError
+        from .exceptions import KKTTimeoutError
 
         try:
             # Ensure device is connected

@@ -14,7 +14,7 @@ class TuyaCategorySpecs:
 
     def __init__(self):
         """Initialize with known category specifications."""
-        self._specs: dict[str, Dict] = {}
+        self._specs: dict[str, dict] = {}
         self._load_known_specs()
 
     def _load_known_specs(self) -> None:
@@ -321,7 +321,7 @@ class TuyaCategorySpecs:
         }
         _LOGGER.info("Loaded embedded XFJ category specification")
 
-    def get_category_spec(self, category: str) -> Dict | None:
+    def get_category_spec(self, category: str) -> dict | None:
         """Get specification for a category."""
         return self._specs.get(category)
 
@@ -333,7 +333,7 @@ class TuyaCategorySpecs:
         """Get list of supported categories."""
         return list(self._specs.keys())
 
-    def map_status_to_entity_config(self, status_item: dict[str, Any], dp_id: int | None = None) -> Dict | None:
+    def map_status_to_entity_config(self, status_item: dict[str, Any], dp_id: int | None = None) -> dict | None:
         """Map a Tuya status item to entity configuration."""
         try:
             code = status_item.get("code")
@@ -570,7 +570,7 @@ class TuyaCategorySpecs:
         category: str,
         device_name: str = None,
         model_id: str = None
-    ) -> list[Dict | None]:
+    ) -> list[dict | None]:
         """Generate complete device configuration from category specification."""
         spec = self.get_category_spec(category)
         if not spec:

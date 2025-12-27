@@ -9,7 +9,6 @@ from homeassistant.const import CONF_IP_ADDRESS
 from homeassistant.core import HomeAssistant
 
 # Import is_private_ip from helpers to avoid duplication
-from ..helpers.validation import is_private_ip
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -59,7 +58,8 @@ async def try_discover_local_ip(
     Returns:
         Local IP address if found, None otherwise.
     """
-    from ..discovery import async_start_discovery, get_discovered_devices
+    from ..discovery import async_start_discovery
+    from ..discovery import get_discovered_devices
 
     _LOGGER.debug(f"Trying to discover local IP for device {device_id[:8]}...")
 

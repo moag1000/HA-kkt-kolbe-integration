@@ -5,23 +5,18 @@ import asyncio
 import logging
 from typing import Any
 
-from homeassistant.core import HomeAssistant, ServiceCall, callback
+from homeassistant.const import ATTR_ENTITY_ID
+from homeassistant.const import STATE_UNAVAILABLE
+from homeassistant.const import STATE_UNKNOWN
+from homeassistant.core import HomeAssistant
+from homeassistant.core import ServiceCall
+from homeassistant.core import callback
 from homeassistant.exceptions import ServiceValidationError
-from homeassistant.helpers import entity_registry as er, device_registry as dr
-from homeassistant.helpers.entity_component import EntityComponent
-from homeassistant.const import (
-    ATTR_ENTITY_ID,
-    STATE_UNAVAILABLE,
-    STATE_UNKNOWN,
-)
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 
 from .const import DOMAIN
-from .exceptions import (
-    KKTServiceError,
-    KKTDeviceError,
-    KKTTimeoutError,
-    KKTConnectionError,
-)
+from .exceptions import KKTServiceError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -699,12 +694,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         timeout = service.data.get("timeout", 6)
 
         try:
-            from .discovery import get_discovered_devices, simple_tuya_discover
+            from .discovery import get_discovered_devices
+            from .discovery import simple_tuya_discover
 
             _LOGGER.info(f"Starting device rescan with timeout {timeout}s...")
 
             # Run UDP discovery
-            discovered = await simple_tuya_discover(timeout=timeout)
+            await simple_tuya_discover(timeout=timeout)
 
             # Get all discovered devices (including mDNS)
             all_devices = get_discovered_devices()

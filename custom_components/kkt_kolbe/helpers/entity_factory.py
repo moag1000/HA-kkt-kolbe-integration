@@ -7,14 +7,17 @@ centralized here.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Callable, TypeVar
+from typing import TYPE_CHECKING
+from typing import Any
+from typing import TypeVar
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from ..device_types import get_device_entities, get_device_entity_config
+from ..device_types import get_device_entities
+from ..device_types import get_device_entity_config
 
 if TYPE_CHECKING:
     from .. import KKTKolbeConfigEntry
@@ -156,7 +159,6 @@ async def async_setup_platform_entities(
         zone_entity_class: Optional zone-specific class
         extra_entities: Additional entities to add (like status sensors)
     """
-    runtime_data = entry.runtime_data
     lookup_key = get_entity_lookup_key(entry)
 
     entities: list[EntityT] = []

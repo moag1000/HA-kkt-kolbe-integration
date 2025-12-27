@@ -8,11 +8,15 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import UpdateFailed
 
-from .api import TuyaCloudClient, TuyaAPIError, TuyaDeviceNotFoundError
+from .api import TuyaAPIError
+from .api import TuyaCloudClient
+from .api import TuyaDeviceNotFoundError
+from .exceptions import KKTConnectionError
+from .exceptions import KKTTimeoutError
 from .tuya_device import KKTKolbeTuyaDevice
-from .exceptions import KKTConnectionError, KKTTimeoutError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -204,7 +208,7 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
         else:
             raise UpdateFailed("Both local and API communication failed")
 
-    def _merge_hybrid_data(self, local_data: Dict, api_data: Dict) -> Dict:
+    def _merge_hybrid_data(self, local_data: dict, api_data: dict) -> dict:
         """Merge local and API data intelligently."""
         # Start with local data as base
         merged_data = local_data.copy()

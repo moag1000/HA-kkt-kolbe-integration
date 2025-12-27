@@ -7,7 +7,8 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import callback
 from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers.update_coordinator import CoordinatorEntity, DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import DOMAIN
 
@@ -110,7 +111,9 @@ class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
 
     def _build_device_info(self) -> DeviceInfo:
         """Build standardized device info using KNOWN_DEVICES."""
-        from .device_types import KNOWN_DEVICES, CATEGORY_HOOD, CATEGORY_COOKTOP
+        from .device_types import CATEGORY_COOKTOP
+        from .device_types import CATEGORY_HOOD
+        from .device_types import KNOWN_DEVICES
 
         # Get device data from hass.data (now available via property access)
         if not self.hass:
@@ -132,14 +135,13 @@ class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
             category = device_info.get("category", CATEGORY_HOOD)
 
             if category == CATEGORY_COOKTOP:
-                device_type = "Induction Cooktop"
+                pass
             else:
-                device_type = "Range Hood"
+                pass
         else:
             # Fallback for unknown devices
             model_id = "unknown"
             device_name = "KKT Kolbe Device"
-            device_type = "Kitchen Appliance"
 
         return DeviceInfo(
             identifiers={(DOMAIN, device_id)},
