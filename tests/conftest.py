@@ -23,19 +23,18 @@ def auto_enable_custom_integrations(enable_custom_integrations):
 
 
 @pytest.fixture(autouse=True)
-async def mock_integration_deps(hass: HomeAssistant):
-    """Mock integration dependencies to avoid setup issues in tests."""
-    # Mark zeroconf as already processed to skip setup
-    # Handle different HA versions (internal constant may vary)
-    try:
-        from homeassistant.setup import _DATA_DEPS_REQS
-        if _DATA_DEPS_REQS not in hass.data:
-            hass.data[_DATA_DEPS_REQS] = set()
-        hass.data[_DATA_DEPS_REQS].add("zeroconf")
-        hass.data[_DATA_DEPS_REQS].add("kkt_kolbe")
-    except ImportError:
-        # Older HA versions don't have this constant - skip dependency marking
-        pass
+def mock_zeroconf_setup():
+    """Mock zeroconf component setup to avoid socket issues in tests."""
+    async def mock_async_setup(hass, config):
+        """Mock zeroconf async_setup."""
+        hass.data["zeroconf"] = MagicMock()
+        return True
+
+    with patch(
+        "homeassistant.components.zeroconf.async_setup",
+        side_effect=mock_async_setup,
+    ):
+        yield
 
 
 @pytest.fixture
