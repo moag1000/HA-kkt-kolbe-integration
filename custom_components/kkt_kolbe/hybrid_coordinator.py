@@ -314,3 +314,7 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
         if not self.local_available:
             self.current_mode = "api"
             self.api_consecutive_errors = 0
+
+
+# Backwards compatibility alias for tests
+HybridCoordinator = KKTKolbeHybridCoordinator

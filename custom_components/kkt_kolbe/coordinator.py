@@ -226,3 +226,7 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
             "hw_version": self.device.device_id[:8],  # Use first 8 chars of device ID
             "configuration_url": f"http://{self.device.ip_address}",
         }
+
+
+# Backwards compatibility alias for tests
+KKTKolbeDataUpdateCoordinator = KKTKolbeUpdateCoordinator
