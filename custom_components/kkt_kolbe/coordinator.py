@@ -203,8 +203,8 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
         """Set a data point on the device and refresh data."""
         try:
             await self.device.async_set_dp(dp, value)
-            # Immediately refresh data after command
-            await self.async_request_refresh()
+            # Immediately refresh data after command (use async_refresh for immediate update)
+            await self.async_refresh()
         except Exception as err:
             _LOGGER.error(f"Failed to set DP {dp} to {value}: {err}")
             raise UpdateFailed(f"Failed to set DP {dp}: {err}") from err
