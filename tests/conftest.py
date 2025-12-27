@@ -37,6 +37,20 @@ def mock_zeroconf_setup():
         yield
 
 
+@pytest.fixture(autouse=True)
+def mock_device_tracker():
+    """Mock device tracker to avoid lingering timer issues in tests."""
+    with patch(
+        "custom_components.kkt_kolbe.device_tracker.async_start_tracker",
+        new_callable=AsyncMock,
+    ):
+        with patch(
+            "custom_components.kkt_kolbe.device_tracker.async_stop_tracker",
+            new_callable=AsyncMock,
+        ):
+            yield
+
+
 @pytest.fixture
 def mock_config_entry() -> MockConfigEntry:
     """Create a mock config entry for testing."""
