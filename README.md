@@ -161,8 +161,6 @@ Fertige Automations-Vorlagen zum Importieren:
 
 ## 📚 Documentation & Examples
 
-- **[Troubleshooting](TROUBLESHOOTING.md)** - Comprehensive troubleshooting guide
-- **[Quality Scale](QUALITY_SCALE_ANALYSIS.md)** - Integration quality analysis (Gold 90%)
 - **[Blueprints](blueprints/README.md)** - One-click automation templates
 - **[Automation Examples](docs/AUTOMATION_EXAMPLES.md)** - 15+ ready-to-use automation examples
 - **[Use Cases](docs/USE_CASES.md)** - Practical scenarios and implementation guides
@@ -415,45 +413,221 @@ logger:
 
 ## 🐛 Troubleshooting
 
-Für ausführliche Troubleshooting-Anleitungen siehe **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)**.
+### ⚠️ Häufige Probleme & Lösungen
 
-### Quick Reference
+#### **Problem: "Failed to connect" / "Device not responding"**
 
-| Problem | Lösung |
-|---------|--------|
-| "Failed to connect" | Netzwerk/IP prüfen, Port 6668 freigeben |
-| "Invalid local key" | Key neu extrahieren via TinyTuya |
-| Entities "unavailable" | Integration neu laden, Debug-Logs prüfen |
-| Discovery fehlgeschlagen | Manuelles Setup oder API-Only nutzen |
-| API Setup fehlgeschlagen | Credentials und Region prüfen |
+**Mögliche Ursachen:**
+- Gerät ist offline oder nicht im Netzwerk erreichbar
+- Falsche IP-Adresse
+- Firewall blockiert Port 6668
+- Device ID oder Local Key falsch
 
-### Debug Logging aktivieren
+**Lösungen:**
+1. **Netzwerk prüfen:**
+   ```bash
+   ping 192.168.1.100  # Deine Gerät-IP
+   ```
+2. **Port-Erreichbarkeit testen:**
+   ```bash
+   telnet 192.168.1.100 6668
+   ```
+3. **Firewall-Regel hinzufügen** (falls nötig):
+   - Erlaube ausgehende Verbindungen auf Port 6668
+   - Für Docker/VM: Bridge-Netzwerk prüfen
+
+4. **IP-Adresse validieren:**
+   - Router-Admin-Interface → DHCP-Clients
+   - Smart Life App → Geräteinfo
+   - DHCP-Reservation empfohlen!
+
+5. **Device ID/Local Key neu extrahieren:**
+   - Siehe [Local Key Extraktion](#local-key-extraktion-nur-für-manual-local-setup)
+   - Bei Fehlern: Gerät in Smart Life App neu einrichten
+
+---
+
+#### **Problem: "Authentication failed" / "Invalid local key"**
+
+**Symptom:** Integration startet Reauth-Flow automatisch
+
+**Ursache:** Local Key ist falsch oder wurde geändert
+
+**Lösung:**
+1. **Neuen Local Key extrahieren:**
+   - TinyTuya Wizard erneut ausführen
+   - Oder Tuya IoT Platform nutzen
+
+2. **Reauth-Flow nutzen:**
+   - Benachrichtigung in Home Assistant klicken
+   - Neuen Local Key eingeben
+   - Integration wird automatisch neu verbunden
+
+3. **Häufige Fehler:**
+   - ❌ Local Key enthält Leerzeichen → Entfernen
+   - ❌ Groß-/Kleinschreibung → Exakt kopieren
+   - ❌ Unvollständiger Key → Muss 16+ Zeichen sein
+
+---
+
+#### **Problem: Entities zeigen "unavailable" / "unknown"**
+
+**Temporäre Unavailable (< 5 Minuten):**
+- Normal beim Home Assistant Neustart
+- Gerät neu hochgefahren
+- → Keine Aktion nötig, wartet auf Reconnect
+
+**Dauerhafte Unavailable (> 5 Minuten):**
+
+**Lösungen:**
+1. **Integration neu laden:**
+   - Einstellungen → Geräte & Dienste
+   - KKT Kolbe → ⋮ → Integration neu laden
+
+2. **Coordinator Status prüfen:**
+   - Entwicklerwerkzeuge → Zustände
+   - Suche nach `sensor.*.last_update`
+   - Wenn Timestamp alt: Connection Problem
+
+3. **Debug Logging aktivieren:**
+   ```yaml
+   # configuration.yaml
+   logger:
+     default: info
+     logs:
+       custom_components.kkt_kolbe: debug
+   ```
+   Home Assistant neustarten → Log prüfen
+
+4. **Gerät in Tuya App prüfen:**
+   - Ist es dort online?
+   - Funktioniert manuelle Steuerung?
+   - Falls nein: Gerät neu starten
+
+---
+
+#### **Problem: "Device discovery failed" / Gerät wird nicht gefunden**
+
+**Bei Automatic Discovery:**
+
+**Lösungen:**
+1. **Zeroconf/mDNS prüfen:**
+   - Einige Router blockieren mDNS
+   - Multicast-Support aktivieren
+   - Alternative: Manuelles Setup nutzen
+
+2. **Gleiches Netzwerk:**
+   - Home Assistant und Gerät im selben VLAN
+   - Keine Netzwerk-Isolation (IoT-VLAN trennen)
+
+3. **Gerät neu starten:**
+   - Power-Cycle des Geräts
+   - 30 Sekunden warten
+   - Discovery erneut versuchen
+
+**Workaround:** Nutze **Manual Local Setup** oder **API-Only Setup**
+
+---
+
+#### **Problem: API-Only Setup schlägt fehl**
+
+**Error: "API authentication failed"**
+
+**Lösungen:**
+1. **Credentials prüfen:**
+   - Access ID (Client ID) korrekt?
+   - Access Secret korrekt kopiert?
+   - Richtige Region gewählt? (EU/US/CN/IN)
+
+2. **API Services aktiviert?**
+   - [Tuya IoT Platform](https://iot.tuya.com)
+   - Cloud Project → Service API
+   - Alle erforderlichen APIs aktivieren
+
+3. **App Account verknüpft?**
+   - Smart Life App mit Cloud Project verbunden?
+   - QR-Code gescannt?
+   - Geräte sichtbar in Tuya IoT Platform?
+
+**Error: "No devices found"**
+
+**Lösungen:**
+1. **App Account Link prüfen:**
+   - Tuya IoT Platform → Cloud → Devices
+   - Sind deine Geräte gelistet?
+   - Falls nein: App Account erneut verknüpfen
+
+2. **Geräte-Region:**
+   - Stelle sicher, Projekt und Geräte in gleicher Region
+   - EU-Geräte brauchen EU Data Center
+
+---
+
+### 🔍 Debug-Informationen sammeln
+
+Für Support-Anfragen bitte folgende Infos bereitstellen:
+
+**1. System-Info:**
 ```yaml
-logger:
-  logs:
-    custom_components.kkt_kolbe: debug
+Home Assistant Version: 2025.x.x  # Mindestens 2025.1.0
+KKT Kolbe Integration Version: 3.0.0
+Installation Method: HACS / Manual
+Python Version: 3.12+
 ```
 
-### Support erhalten
+**2. Gerät-Info:**
+```yaml
+Device Model: DH9509NP / IND7705HC / etc.
+Firmware Version: (aus Smart Life App)
+Setup Method: Discovery / Manual / API-Only
+IP Address: 192.168.1.100
+```
 
-- **[Troubleshooting Guide](./TROUBLESHOOTING.md)** - Ausführliche Anleitungen
-- **[GitHub Issues](https://github.com/moag1000/HA-kkt-kolbe-integration/issues)** - Bug Reports
-- **[Discussions](https://github.com/moag1000/HA-kkt-kolbe-integration/discussions)** - Fragen & Hilfe
+**3. Debug Log:**
+```bash
+# configuration.yaml aktivieren, dann:
+cat home-assistant.log | grep "kkt_kolbe"
+```
+
+**4. Diagnostics Download:**
+- Einstellungen → Geräte & Dienste
+- KKT Kolbe Device → ⋮ → Download diagnostics
+- Datei an GitHub Issue anhängen
+
+---
+
+### 📞 Support erhalten
+
+**GitHub Issues:** [Issue erstellen](https://github.com/moag1000/HA-kkt-kolbe-integration/issues)
+**Discussions:** [Community Diskussionen](https://github.com/moag1000/HA-kkt-kolbe-integration/discussions)
+
+**Template für Issue:**
+```markdown
+## Problem Description
+[Beschreibe das Problem]
+
+## Steps to Reproduce
+1. ...
+2. ...
+
+## Expected Behavior
+[Was sollte passieren]
+
+## Actual Behavior
+[Was passiert tatsächlich]
+
+## Environment
+- HA Version:
+- Integration Version:
+- Device Model:
+
+## Logs
+[Debug logs hier einfügen]
+```
 
 ## 📝 Changelog
 
-### v3.0.2 (Aktuell) 🚀
-- 🔧 **RGB Mode Select**: Farbnamen statt Zahlen (Weiß, Rot, Grün, Blau, etc.)
-- 🔧 **Verbesserte Verfügbarkeit**: Entities bleiben während temporärer Verbindungsprobleme verfügbar
-- 🔧 **Auto-Recovery**: Automatische Wiederherstellung bei Verbindungsverlust
-- 🔧 **Dynamisches Polling**: Schnelleres Polling beim Reconnect, langsameres bei Offline
-- 🔧 **Config Flow Fixes**: Keine "Flow already in progress" Fehler mehr bei Smart Discovery
-
-### v3.0.1
-- 🔧 Zeroconf Discovery Verbesserungen
-- 🔧 Config Flow Konflikt-Handling
-
-### v3.0.0
+### v3.0.0 (Aktuell) 🚀
 - ⚠️ **Breaking**: Mindestversion Home Assistant 2025.1.0
 - Neue HA 2025 Features: `suggested_display_precision`, `_unrecorded_attributes`
 - Modernisierte Type-Annotations

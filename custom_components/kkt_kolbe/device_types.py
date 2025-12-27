@@ -83,7 +83,7 @@ KNOWN_DEVICES = {
         "model_id": "e1k6i0zo",
         "category": CATEGORY_HOOD,
         "name": "HERMES & STYLE Hood",
-        "product_names": ["ypaixllljc2dcpae", "KKT Kolbe HERMES STYLE", "HERMES STYLE", "hermes_style"],
+        "product_names": ["ypaixllljc2dcpae"],
         "device_ids": ["bf735dfe2ad64fba7cpyhn"],
         "device_id_patterns": ["bf735dfe2ad64fba7c"],
         "platforms": ["fan", "light", "switch", "sensor", "select", "number"],
@@ -129,7 +129,7 @@ KNOWN_DEVICES = {
             ],
             "number": [
                 # RGB Mode as number (backup, advanced) - use Light effects instead
-                {"dp": 101, "name": "RGB Mode", "min": 0, "max": 9, "step": 1, "icon": "mdi:palette", "advanced": True, "entity_category": "config"},
+                {"dp": 101, "name": "RGB Mode", "min": 0, "max": 8, "step": 1, "icon": "mdi:palette", "advanced": True, "entity_category": "config"},
                 {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"},
                 # Experimental numbers
                 {"dp": 5, "name": "Light Brightness", "min": 0, "max": 255, "step": 1, "icon": "mdi:brightness-6", "advanced": True},
@@ -143,16 +143,6 @@ KNOWN_DEVICES = {
             "select": [
                 # Fan Speed select marked as advanced to avoid HomeKit showing both fan and select
                 {"dp": 10, "name": "Fan Speed", "options": ["off", "low", "middle", "high", "strong"], "icon": "mdi:fan", "advanced": True, "entity_category": "config"},
-                # RGB Mode as select with color names (user-friendly version)
-                # Mapping from HERMES manual: weiß > rot > grün > blau > gelb > lila > orange > cyan > grasgrün
-                # Device uses 1-based indexing: 0=Aus, 1=Weiß, 2=Rot, 3=Grün, etc.
-                {
-                    "dp": 101,
-                    "name": "RGB Mode",
-                    "options": ["Aus", "Weiß", "Rot", "Grün", "Blau", "Gelb", "Lila", "Orange", "Cyan", "Grasgrün"],
-                    "options_map": {"Aus": 0, "Weiß": 1, "Rot": 2, "Grün": 3, "Blau": 4, "Gelb": 5, "Lila": 6, "Orange": 7, "Cyan": 8, "Grasgrün": 9},
-                    "icon": "mdi:palette"
-                },
                 # Experimental select
                 {"dp": 103, "name": "Color Temperature", "options": ["warm", "neutral", "cold"], "icon": "mdi:thermometer", "advanced": True}
             ]
@@ -164,7 +154,7 @@ KNOWN_DEVICES = {
         "model_id": "luoxakxm2vm9azwu",
         "category": CATEGORY_HOOD,
         "name": "KKT Kolbe FLAT Hood",
-        "product_names": ["luoxakxm2vm9azwu", "KKT Kolbe FLAT", "FLAT Hood", "flat_hood"],
+        "product_names": ["luoxakxm2vm9azwu", "KKT Kolbe FLAT"],
         "device_ids": ["bff904d332b57484da1twc"],
         "device_id_patterns": ["bff904d332b57484da"],
         "platforms": ["fan", "light", "switch", "sensor", "select", "number"],
@@ -206,7 +196,7 @@ KNOWN_DEVICES = {
         "model_id": "0fcj8kha86svfmve",
         "category": CATEGORY_HOOD,
         "name": "KKT HERMES Hood",
-        "product_names": ["0fcj8kha86svfmve", "KKT Kolbe HERMES", "HERMES Hood", "hermes_hood"],
+        "product_names": ["0fcj8kha86svfmve", "KKT Kolbe HERMES"],
         "device_ids": [],  # Will be filled when users report
         "device_id_patterns": [],
         "platforms": ["fan", "light", "switch", "sensor", "select", "number"],
@@ -233,21 +223,11 @@ KNOWN_DEVICES = {
             ],
             "select": [
                 # Fan Speed select marked as advanced to avoid HomeKit showing both fan and select
-                {"dp": 10, "name": "Fan Speed", "options": ["off", "low", "middle", "high", "strong"], "advanced": True, "entity_category": "config"},
-                # RGB Mode as select with color names (user-friendly version)
-                # Mapping from HERMES manual: weiß > rot > grün > blau > gelb > lila > orange > cyan > grasgrün
-                # Device uses 1-based indexing: 0=Aus, 1=Weiß, 2=Rot, 3=Grün, etc.
-                {
-                    "dp": 101,
-                    "name": "RGB Mode",
-                    "options": ["Aus", "Weiß", "Rot", "Grün", "Blau", "Gelb", "Lila", "Orange", "Cyan", "Grasgrün"],
-                    "options_map": {"Aus": 0, "Weiß": 1, "Rot": 2, "Grün": 3, "Blau": 4, "Gelb": 5, "Lila": 6, "Orange": 7, "Cyan": 8, "Grasgrün": 9},
-                    "icon": "mdi:palette"
-                }
+                {"dp": 10, "name": "Fan Speed", "options": ["off", "low", "middle", "high", "strong"], "advanced": True, "entity_category": "config"}
             ],
             "number": [
                 # RGB Mode as number (backup, advanced) - use Light effects instead
-                {"dp": 101, "name": "RGB Mode", "min": 0, "max": 9, "step": 1, "icon": "mdi:palette", "advanced": True, "entity_category": "config"},
+                {"dp": 101, "name": "RGB Mode", "min": 0, "max": 8, "step": 1, "icon": "mdi:palette", "advanced": True, "entity_category": "config"},
                 {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"}
             ],
             "sensor": [
@@ -263,7 +243,7 @@ KNOWN_DEVICES = {
         "model_id": "edjszs",
         "category": CATEGORY_HOOD,
         "name": "KKT Kolbe SOLO HCM Hood",
-        "product_names": ["bgvbvjwomgbisd8x", "KKT Kolbe SOLO HCM", "SOLO HCM", "solo_hcm"],
+        "product_names": ["bgvbvjwomgbisd8x", "KKT Kolbe SOLO HCM"],
         "device_ids": ["bf34515c4ab6ec7f9axqy8"],
         "device_id_patterns": ["bf34515c4ab6ec7f9a"],
         "platforms": ["fan", "light", "switch", "select", "number"],
@@ -327,7 +307,7 @@ KNOWN_DEVICES = {
         "model_id": "edjsx0",
         "category": CATEGORY_HOOD,
         "name": "KKT Kolbe ECCO HCM Hood",
-        "product_names": ["gwdgkteknzvsattn", "KKT Kolbe ECCO HCM", "ECCO HCM", "ecco_hcm"],
+        "product_names": ["gwdgkteknzvsattn"],
         "device_ids": ["bfd0c94cb36bf4f28epxcf"],
         "device_id_patterns": ["bfd0c94cb36bf4f28e"],
         "platforms": ["fan", "light", "switch", "sensor", "select", "number"],
@@ -432,7 +412,7 @@ KNOWN_DEVICES = {
                 {"dp": 17, "name": "Eco Mode", "icon": "mdi:leaf", "advanced": True, "entity_category": "config"}
             ],
             "number": [
-                {"dp": 101, "name": "RGB Mode", "min": 0, "max": 9, "step": 1, "icon": "mdi:palette", "advanced": True, "entity_category": "config"},
+                {"dp": 101, "name": "RGB Mode", "min": 0, "max": 8, "step": 1, "icon": "mdi:palette", "advanced": True, "entity_category": "config"},
                 {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"},
                 {"dp": 5, "name": "Light Brightness", "min": 0, "max": 255, "step": 1, "icon": "mdi:brightness-6", "advanced": True}
             ],
@@ -441,17 +421,7 @@ KNOWN_DEVICES = {
                 {"dp": 14, "name": "Filter Hours", "unit": "h", "device_class": "duration", "icon": "mdi:clock-outline", "advanced": True, "entity_category": "diagnostic"}
             ],
             "select": [
-                {"dp": 10, "name": "Fan Speed", "options": ["off", "low", "middle", "high", "strong"], "icon": "mdi:fan", "advanced": True, "entity_category": "config"},
-                # RGB Mode as select with color names (user-friendly version)
-                # Mapping from HERMES manual: weiß > rot > grün > blau > gelb > lila > orange > cyan > grasgrün
-                # Device uses 1-based indexing: 0=Aus, 1=Weiß, 2=Rot, 3=Grün, etc.
-                {
-                    "dp": 101,
-                    "name": "RGB Mode",
-                    "options": ["Aus", "Weiß", "Rot", "Grün", "Blau", "Gelb", "Lila", "Orange", "Cyan", "Grasgrün"],
-                    "options_map": {"Aus": 0, "Weiß": 1, "Rot": 2, "Grün": 3, "Blau": 4, "Gelb": 5, "Lila": 6, "Orange": 7, "Cyan": 8, "Grasgrün": 9},
-                    "icon": "mdi:palette"
-                }
+                {"dp": 10, "name": "Fan Speed", "options": ["off", "low", "middle", "high", "strong"], "icon": "mdi:fan", "advanced": True, "entity_category": "config"}
             ]
         }
     },
@@ -523,7 +493,7 @@ KNOWN_DEVICES = {
         "model_id": "e1kc5q64",
         "category": CATEGORY_COOKTOP,
         "name": "IND7705HC Induction Cooktop",
-        "product_names": ["p8volecsgzdyun29", "KKT Kolbe IND7705HC", "IND7705HC", "ind7705hc", "induction_cooktop"],
+        "product_names": ["p8volecsgzdyun29"],
         "device_ids": ["bf5592b47738c5b46evzff"],
         "device_id_patterns": ["bf5592b47738c5b46e"],
         "platforms": ["switch", "number", "sensor", "binary_sensor", "select"],
@@ -668,6 +638,62 @@ def find_device_by_device_id(device_id: str) -> dict:
                 return device_info
     return None
 
+def get_device_dps(category: str) -> dict:
+    """Get data points for device category."""
+    if category == CATEGORY_HOOD:
+        return HOOD_DPS
+    elif category == CATEGORY_COOKTOP:
+        return COOKTOP_DPS
+    else:
+        return {}
+
+def get_device_info_by_device_id(device_id: str) -> dict:
+    """Get device information based on device ID (for manual setup)."""
+    device_info = find_device_by_device_id(device_id)
+    if device_info:
+        return {
+            "model_id": device_info["model_id"],
+            "category": device_info["category"],
+            "name": device_info["name"],
+            "product_name": device_info["product_names"][0]  # Use first product name
+        }
+    return None
+
+def get_product_name_by_device_id(device_id: str) -> str:
+    """Get product name by device ID - for automatic device type detection."""
+    device_info = find_device_by_device_id(device_id)
+    if device_info:
+        return device_info["product_names"][0]  # Return the primary product name
+    return None
+
+def auto_detect_device_config(device_id: str = None, provided_product_name: str = None) -> dict:
+    """Auto-detect device configuration from available information."""
+    detected_product_name = None
+
+    # Method 1: Use provided product name if available
+    if provided_product_name and provided_product_name.strip():
+        device_info = find_device_by_product_name(provided_product_name.strip())
+        if device_info:
+            detected_product_name = provided_product_name.strip()
+
+    # Method 2: Look up product name by device ID
+    if not detected_product_name and device_id:
+        detected_product_name = get_product_name_by_device_id(device_id)
+
+    # Return configuration
+    if detected_product_name:
+        device_info = find_device_by_product_name(detected_product_name)
+        if device_info:
+            return {
+                "product_name": detected_product_name,
+                "category": device_info["category"],
+                "name": device_info["name"],
+                "platforms": device_info["platforms"],
+                "detected_method": "product_name" if provided_product_name else "device_id"
+            }
+
+    return None
+
 def get_device_info_by_product_name(product_name: str) -> dict:
     """Get device information based on product name from discovery.
 
@@ -752,6 +778,26 @@ def get_device_platforms(category: str) -> list:
         # Generic fallback: Load all platforms for unknown devices
         # This ensures manual setup always works
         return ["fan", "light", "switch", "sensor", "select", "number", "binary_sensor"]
+
+def get_device_platforms_by_product_name(product_name: str) -> list:
+    """Get platforms directly by product name (most efficient).
+
+    Supports:
+    1. Device key lookup (e.g., "ind7705hc_cooktop")
+    2. Tuya product ID lookup (e.g., "p8volecsgzdyun29")
+    """
+    # Method 1: Check if product_name is a device key
+    if product_name in KNOWN_DEVICES:
+        return KNOWN_DEVICES[product_name]["platforms"]
+
+    # Method 2: Try Tuya product ID lookup
+    device_info = find_device_by_product_name(product_name)
+    if device_info:
+        return device_info["platforms"]
+
+    # Fallback to category-based lookup
+    device_type_info = get_device_info_by_product_name(product_name)
+    return get_device_platforms(device_type_info["category"])
 
 def get_device_entities(product_name: str, platform: str) -> list:
     """Get entity configurations for a specific product and platform.

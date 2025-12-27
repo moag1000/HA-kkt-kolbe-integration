@@ -5,67 +5,6 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.0.1] - 2025-12-26
-
-### Refactored
-
-**Modularisierung des Config Flows** 📦
-- Neue `helpers/` Modul-Struktur mit zentralisierten Hilfsfunktionen:
-  - `validation.py`: IP-Validierung, Device-ID-Validierung, API-Credentials-Validierung
-  - `device_detection.py`: Gerätetyp-Erkennung aus API und Device-ID-Mustern
-  - `schemas.py`: Zentralisierte Voluptuous-Schema-Definitionen für alle Flows
-- Neue `flows/` Modul-Struktur:
-  - `base.py`: Basis-Utilities (Connection Test, IP Discovery, Entry Data Creation)
-  - `options.py`: KKTKolbeOptionsFlow Klasse für Options-Flow
-- `config_flow.py` von ~2600 auf ~2200 Zeilen reduziert
-- Redundanter Code eliminiert durch Import von Helper-Funktionen
-- Legacy-Aliase für Abwärtskompatibilität beibehalten
-- Verbesserte Wartbarkeit und Testbarkeit des Codes
-
-### Fixed
-
-**Options Update Listener** 🔄
-- Änderungen an Optionen (z.B. "Erweiterte Entitäten aktivieren") lösen jetzt automatisch einen Reload der Integration aus
-- Vorher: Optionsänderungen wurden gespeichert, aber erst nach manuellem Neustart wirksam
-- Jetzt: Änderung von `enable_advanced_entities` entfernt/fügt sofort die entsprechenden Entitäten hinzu
-
-**Manifest Version korrigiert**
-- Version in manifest.json auf 3.0.1 aktualisiert (war noch 2.8.9)
-
-**Bessere Fehlerbehandlung bei Kommandos** 🔧
-- `hybrid_coordinator.py`: Verbesserte Fehlermeldungen bei fehlgeschlagenen Kommandos
-- Statt generischem "Failed to set DP X" jetzt detaillierte Ursache im Fehler
-- Mögliche Ursachen werden geloggt: "Local device not initialized", "Local device returned False", "Local communication error", etc.
-
-### Added
-
-**API-Konfiguration im Authentifizierungs-Step** ☁️
-- Neuer "API konfigurieren (empfohlen)" Button im Geräte-Authentifizierung Dialog
-- Ermöglicht direktes Einrichten der Tuya Cloud API ohne manuelles Local Key eingeben
-- Automatischer Abruf des Local Keys nach API-Konfiguration
-- Nahtloser Übergang zu den Geräteeinstellungen nach erfolgreichem Key-Abruf
-- Vollständige EN/DE Übersetzungen für den neuen Flow
-
-**`get_local_key` API-Methode** 🔑
-- Neue dedizierte Methode in `TuyaCloudClient` für Local Key Abruf
-- Unterstützt sowohl v1.0 als auch v2.0 API (automatischer Fallback)
-- Verbesserte Fehlerbehandlung mit detaillierten Warnungen bei fehlendem Key
-
-**Robustere Config Flow Daten-Validierung** 🔒
-- **Discovery Flow**: device_type wird jetzt immer aus device_id-Mustern erkannt
-- **Smart Discovery**: local_key wird validiert bevor Eintrag erstellt wird (Fallback zu Authentication)
-- **Auth API Credentials**: device_type wird nach API-Konfiguration angereichert
-- **Confirmation Step**: Validierung dass local_key vorhanden ist, Late-Detection für device_type
-- Alle Flows prüfen jetzt explizit auf "auto" und leere device_type Werte
-
-**Reconfigure Flows** 🔧
-- Vollständige Reconfigure-Funktionalität wiederhergestellt (war verloren gegangen)
-- 5 Rekonfigurations-Steps: Menu, Connection, Device Type, API, All Settings
-- Übersetzungen für EN und DE hinzugefügt
-- Ermöglicht Änderung von IP, Local Key, Gerätetyp und API-Einstellungen nach Ersteinrichtung
-
----
-
 ## [3.0.0] - 2025-12-25
 
 ### BREAKING CHANGE - Mindestversion Home Assistant 2025.1.0
