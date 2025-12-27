@@ -5,6 +5,327 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.1] - 2025-12-26
+
+### Refactored
+
+**Modularisierung des Config Flows** 📦
+- Neue `helpers/` Modul-Struktur mit zentralisierten Hilfsfunktionen:
+  - `validation.py`: IP-Validierung, Device-ID-Validierung, API-Credentials-Validierung
+  - `device_detection.py`: Gerätetyp-Erkennung aus API und Device-ID-Mustern
+  - `schemas.py`: Zentralisierte Voluptuous-Schema-Definitionen für alle Flows
+- Neue `flows/` Modul-Struktur:
+  - `base.py`: Basis-Utilities (Connection Test, IP Discovery, Entry Data Creation)
+  - `options.py`: KKTKolbeOptionsFlow Klasse für Options-Flow
+- `config_flow.py` von ~2600 auf ~2200 Zeilen reduziert
+- Redundanter Code eliminiert durch Import von Helper-Funktionen
+- Legacy-Aliase für Abwärtskompatibilität beibehalten
+- Verbesserte Wartbarkeit und Testbarkeit des Codes
+
+### Fixed
+
+**Options Update Listener** 🔄
+- Änderungen an Optionen (z.B. "Erweiterte Entitäten aktivieren") lösen jetzt automatisch einen Reload der Integration aus
+- Vorher: Optionsänderungen wurden gespeichert, aber erst nach manuellem Neustart wirksam
+- Jetzt: Änderung von `enable_advanced_entities` entfernt/fügt sofort die entsprechenden Entitäten hinzu
+
+**Manifest Version korrigiert**
+- Version in manifest.json auf 3.0.1 aktualisiert (war noch 2.8.9)
+
+**Bessere Fehlerbehandlung bei Kommandos** 🔧
+- `hybrid_coordinator.py`: Verbesserte Fehlermeldungen bei fehlgeschlagenen Kommandos
+- Statt generischem "Failed to set DP X" jetzt detaillierte Ursache im Fehler
+- Mögliche Ursachen werden geloggt: "Local device not initialized", "Local device returned False", "Local communication error", etc.
+
+### Added
+
+**API-Konfiguration im Authentifizierungs-Step** ☁️
+- Neuer "API konfigurieren (empfohlen)" Button im Geräte-Authentifizierung Dialog
+- Ermöglicht direktes Einrichten der Tuya Cloud API ohne manuelles Local Key eingeben
+- Automatischer Abruf des Local Keys nach API-Konfiguration
+- Nahtloser Übergang zu den Geräteeinstellungen nach erfolgreichem Key-Abruf
+- Vollständige EN/DE Übersetzungen für den neuen Flow
+
+**`get_local_key` API-Methode** 🔑
+- Neue dedizierte Methode in `TuyaCloudClient` für Local Key Abruf
+- Unterstützt sowohl v1.0 als auch v2.0 API (automatischer Fallback)
+- Verbesserte Fehlerbehandlung mit detaillierten Warnungen bei fehlendem Key
+
+**Robustere Config Flow Daten-Validierung** 🔒
+- **Discovery Flow**: device_type wird jetzt immer aus device_id-Mustern erkannt
+- **Smart Discovery**: local_key wird validiert bevor Eintrag erstellt wird (Fallback zu Authentication)
+- **Auth API Credentials**: device_type wird nach API-Konfiguration angereichert
+- **Confirmation Step**: Validierung dass local_key vorhanden ist, Late-Detection für device_type
+- Alle Flows prüfen jetzt explizit auf "auto" und leere device_type Werte
+
+**Reconfigure Flows** 🔧
+- Vollständige Reconfigure-Funktionalität wiederhergestellt (war verloren gegangen)
+- 5 Rekonfigurations-Steps: Menu, Connection, Device Type, API, All Settings
+- Übersetzungen für EN und DE hinzugefügt
+- Ermöglicht Änderung von IP, Local Key, Gerätetyp und API-Einstellungen nach Ersteinrichtung
+
+---
+
+## [3.0.0] - 2025-12-25
+
+### BREAKING CHANGE - Mindestversion Home Assistant 2025.1.0
+
+Diese Version erfordert **Home Assistant 2025.1.0** oder höher.
+
+### Neue Features (HA 2024.6 - 2025.1)
+
+**`_unrecorded_attributes` (HA 2024.6+)**
+- Reduziert Datenbankgröße durch Ausschluss nicht-historischer Attribute
+- Ausgeschlossen: `raw_dp_data`, `last_update`, `data_point`, `device_id`, `zone`, `connection_status`
+
+**`suggested_display_precision` (HA 2025.1+)**
+- Saubere Anzeige ohne unnötige Dezimalstellen
+- Timer, Filter-Tage, Power-Level: 0 Dezimalen
+- Temperatur: 1 Dezimale
+
+**Model ID aus KNOWN_DEVICES (HA 2024.6+)**
+- Device Info verwendet jetzt `model_id` aus der Gerätedatenbank
+- Bessere Geräteidentifikation in der UI
+
+### Changed
+
+**manifest.json**
+```json
+{
+  "homeassistant": "2025.1.0",
+  "version": "3.0.0"
+}
+```
+
+**base_entity.py**
+- `_unrecorded_attributes` hinzugefügt
+- `_build_device_info()` nutzt KNOWN_DEVICES für model_id
+- `has_entity_name = True` bereits vorhanden
+
+**number.py / sensor.py**
+- `suggested_display_precision` für alle Entity-Typen
+- Automatische Präzisionsbestimmung basierend auf Entity-Typ
+
+**config_flow.py**
+- Modernisierte Type-Annotations: `ConfigFlowResult` statt deprecated `FlowResult`
+- Zukunftssicher für HA 2025+ APIs
+
+### Added
+
+**Reconfigure Flow** 🔧
+- Neue Möglichkeit bestehende Geräte über die UI neu zu konfigurieren
+- Menü mit 4 Optionen:
+  - 🔌 **Connection**: IP-Adresse und Local Key ändern
+  - 📱 **Device Type**: Gerätetyp korrigieren (z.B. wenn falsch erkannt)
+  - ☁️ **API Settings**: Cloud API aktivieren/deaktivieren
+  - 🔧 **All Settings**: Alle Einstellungen auf einmal ändern
+- Verbindungstest vor dem Speichern optional
+- Vollständige EN/DE Übersetzungen
+
+**Anwendungsfälle:**
+- Local Key wurde nach Geräte-Reset erneuert
+- Geräte-IP hat sich geändert (DHCP)
+- Falscher Gerätetyp bei Auto-Discovery erkannt
+- Nachträgliches Aktivieren der Cloud API
+
+### Upgrade-Hinweis
+
+Benutzer mit Home Assistant < 2025.1.0 müssen erst HA aktualisieren, bevor diese Version installiert werden kann.
+
+---
+
+## [2.9.5] - 2025-12-25
+
+### Fix - Default Hoods überarbeitet + Zeroconf API Fix
+
+**Problem 1**: Die `default_hood` Konfiguration verwendete DP 3 für den Lüfter, aber **keine** der bekannten KKT Kolbe Hauben verwendet DP 3:
+- HERMES-Familie: DP 10
+- HCM-Familie (SOLO/ECCO): DP 102
+
+**Problem 2**: In `zeroconf_api_credentials` wurde der bereits korrekt erkannte `device_type` immer überschrieben.
+
+### Added
+
+**Neue Default-Konfiguration: `default_hood_hermes`**
+- Basiert auf HERMES-Familie (DP 10, enum fan speeds)
+- Für manuelle Auswahl wenn Gerät HERMES-ähnlich ist
+- Fan: DP 10 (off/low/middle/high/strong)
+- Timer: DP 13
+- RGB: DP 101 (0-8 numeric)
+
+### Changed
+
+**`default_hood` jetzt basierend auf HCM-Familie:**
+- Fan: DP 102 (0-9 numeric) statt DP 3
+- Timer: DP 105 statt DP 6
+- RGB Light: DP 6
+- Wash Mode: DP 7
+- LED Light: DP 104
+- RGB Mode: DP 108 (white/colour/scene/music)
+- Carbon Filter: DP 103 (0-250 days)
+- Metal Filter: DP 109 (0-40 days)
+
+### Fixed
+
+**Zeroconf API Credentials Flow:**
+- `device_type` wird nur noch überschrieben wenn aktueller Wert `"auto"` ist
+- Gleiche Logik wie in Smart Discovery und Zeroconf Main Flow
+
+**Zeroconf blockiert Smart Discovery nicht mehr:**
+- `unique_id` wird erst beim tatsächlichen Entry-Erstellen gesetzt
+- Vorher: unique_id wurde gesetzt bevor User bestätigt → blockierte andere Flows
+- Jetzt: User kann Zeroconf-Dialog ignorieren und Smart Discovery nutzen
+
+### Ergebnis
+- 2 Default-Optionen für manuelle Auswahl (HCM-based, HERMES-based)
+- Konsistente device_type Behandlung in allen Flows
+- Zeroconf und Smart Discovery können parallel laufen ohne Blockade
+
+---
+
+## [2.9.4] - 2025-12-25
+
+### Fix - Device Type Overwrite Bug bei Smart Discovery und Zeroconf
+
+**Problem**: Geräte wurden als "HERMES & STYLE Hood" erkannt und angezeigt, aber die falschen DPs (Data Points) wurden verwendet, z.B. DP 3 statt DP 10 für die Lüftersteuerung.
+
+**Ursache**: Bei der API-Anreicherung wurde der bereits korrekt erkannte `device_type` überschrieben:
+1. Lokale Discovery erkennt Gerät per `device_id` Pattern → `hermes_style_hood`
+2. API-Enrichment läuft → `_detect_device_type` gibt `default_hood` zurück (weil "hermes" nicht im Gerätenamen)
+3. Korrekter `device_type` wird überschrieben → falsche Entity-Konfiguration
+
+### Fixed
+
+**Smart Discovery (`smart_discovery.py`):**
+- API-Enrichment überschreibt `device_type` nur noch wenn:
+  - Aktueller Typ ist `"auto"`
+  - ODER aktueller Typ ist nicht in `KNOWN_DEVICES`
+- Korrekt erkannte Gerätetypen aus device_id Pattern bleiben erhalten
+
+**Zeroconf Flow (`config_flow.py`):**
+- Device_id Pattern-Erkennung VOR API-Enrichment hinzugefügt
+- Gleiche Logik: API überschreibt nur wenn aktueller Typ `"auto"` ist
+- Besseres Logging für Debugging
+
+### Ergebnis
+- HERMES & STYLE Hood verwendet jetzt korrekt DP 10 (fan_speed_enum)
+- Alle erkannten Geräte behalten ihre korrekte Entity-Konfiguration
+- Robustere Geräteerkennung auch bei nicht-standardmäßigen Gerätenamen
+
+---
+
+## [2.9.3] - 2025-12-23
+
+### Feature - Hilfe-Links und vollständige Übersetzungen
+
+**Verbesserung**: Alle Config Flow Steps die Local Key oder API Credentials benötigen haben jetzt Hilfetexte mit Links zur Dokumentation.
+
+### Added
+- **Hilfe-Links in allen relevanten Steps**:
+  - Links zu [Setup Guide](https://github.com/moag1000/HA-kkt-kolbe-integration#-tuya-api-setup---vollstaendige-anleitung)
+  - Links zur [Tuya IoT Platform](https://iot.tuya.com)
+  - Schritt-für-Schritt Anleitungen für API-Zugangsdaten
+
+### Steps mit Hilfe-Links:
+**Local Key Eingabe:**
+- `manual_config` - Manuelle Konfiguration
+- `authentication` - Geräte-Authentifizierung
+- `zeroconf_authenticate` - Zeroconf Authentifizierung
+- `hybrid_manual_details` - Hybrid-Modus Details
+- `reauth_confirm` - Erneute Authentifizierung
+
+**API Credentials Eingabe:**
+- `zeroconf_api_credentials` - Zeroconf API Setup
+- `api_only` - API-Only Setup
+- `api_config` - API Konfiguration
+- `api_credentials` - API Zugangsdaten
+
+### Translations
+- **Vollständige Übersetzung aller 18 Config Flow Steps** (EN + DE)
+- Alle `data`, `data_description`, `error`, `abort` Schlüssel übersetzt
+- Options Flow vollständig übersetzt
+- Entity-Übersetzungen für alle Plattformen
+
+### Ergebnis
+- Benutzer finden direkt im Config Flow Links zur Dokumentation
+- Keine Suche nach Setup-Anleitungen mehr nötig
+- Konsistente Übersetzungen in Englisch und Deutsch
+
+---
+
+## [2.9.2] - 2025-12-23
+
+### Fix - Zeroconf blockiert Smart Discovery nicht mehr
+
+**Problem 1**: Bei Smart Discovery erschien häufig "already_in_progress", weil Zeroconf bereits einen Flow gestartet hatte.
+
+**Problem 2**: Fehlende Übersetzungen für Abort-Meldungen (z.B. "already_in_progress", "no_local_key").
+
+### Fixed
+- **Zeroconf Flow umstrukturiert**: `async_set_unique_id` wird jetzt erst gesetzt NACHDEM local_key verfügbar ist
+- Wenn kein local_key: Zeroconf bricht ab OHNE unique_id zu setzen → Smart Discovery wird nicht blockiert
+- Frühzeitiger Abort wenn keine API credentials vorhanden sind
+- IP-Update für bereits konfigurierte Geräte ohne unique_id-Konflikt
+
+### Translations
+- **Englisch + Deutsch**: Neue Abort-Übersetzungen hinzugefügt:
+  - `already_in_progress`: "Konfiguration für dieses Gerät läuft bereits"
+  - `no_device_id`: "Geräte-ID konnte nicht ermittelt werden"
+  - `no_local_key`: "Kein Local Key verfügbar. Verwenden Sie Smart Discovery."
+
+### Ergebnis
+- Smart Discovery funktioniert jetzt zuverlässig ohne "already_in_progress" Fehler
+- Bessere Benutzerfreundlichkeit durch übersetzte Fehlermeldungen
+
+---
+
+## [2.9.1] - 2025-12-23
+
+### Feature - API Command Sending
+
+**Problem**: Geräte, die über API-Only Setup hinzugefügt wurden (ohne lokale Verbindung), konnten nicht gesteuert werden. Der Fehler war: `Failed to set DP 1 to True`.
+
+### Added
+- **`send_commands`**: Neue Methode im TuyaCloudClient zum Senden von Befehlen via `/v1.0/devices/{id}/commands`
+- **`send_dp_commands`**: Neue Methode zum Senden von DP-Befehlen via `/v1.0/iot-03/devices/{id}/commands` mit Fallback zur Standard-API
+
+### Fixed
+- **Hybrid Coordinator**: Nutzt jetzt `api_client.send_dp_commands()` wenn lokale Verbindung fehlschlägt
+- **API-Only Geräte**: Können jetzt vollständig über die Cloud API gesteuert werden
+
+### Technische Details:
+- Erst wird `/v1.0/iot-03/devices/{id}/commands` versucht (unterstützt DPs direkt)
+- Bei Fehler Fallback auf `/v1.0/devices/{id}/commands`
+- Nach erfolgreichem Befehl wird automatisch ein Refresh getriggert
+
+---
+
+## [2.9.0] - 2025-12-23
+
+### Fix - API Credentials Persistence
+
+**Problem**: API Credentials wurden bei Smart Discovery, Zeroconf und dem manuellen Flow nicht persistent in der Config Entry gespeichert. Nach einem Home Assistant Neustart waren die Credentials verloren und mussten neu eingegeben werden.
+
+### Fixed
+- **Smart Discovery**: API Credentials werden jetzt in `config_data` gespeichert wenn `result.api_enriched` ist
+- **Zeroconf Confirm**: API Credentials werden gespeichert falls verfügbar
+- **Zeroconf Authenticate**: API Credentials werden gespeichert falls verfügbar
+- **Confirmation Flow**: API Credentials werden gespeichert wenn der GlobalAPIManager Credentials hat
+- **Integration Mode**: Alle Flows setzen jetzt korrekt `integration_mode: "hybrid"` oder `"manual"`
+
+### Betroffene Flows:
+- `async_step_smart_discovery` - One-Click Setup
+- `async_step_zeroconf_confirm` - Automatische Erkennung
+- `async_step_zeroconf_authenticate` - Manuelle Local Key Eingabe
+- `async_step_confirmation` - Manueller Setup Flow
+
+### Ergebnis:
+- API Credentials bleiben nach HA Neustart erhalten
+- Smart Discovery findet Geräte auch nach Neustart automatisch
+- Local Key kann weiterhin via API abgerufen werden
+
+---
+
 ## [2.8.9] - 2025-12-22
 
 ### Fix - Advanced Entities Default + Zeroconf Blocking

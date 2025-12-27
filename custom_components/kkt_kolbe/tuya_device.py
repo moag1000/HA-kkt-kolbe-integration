@@ -266,16 +266,16 @@ class KKTKolbeTuyaDevice:
                         if test_device:
                             try:
                                 test_device.close()
-                            except:
-                                pass
+                            except Exception:
+                                pass  # Ignore cleanup errors
 
                 except asyncio.CancelledError:
                     # Cleanup on cancellation
                     if test_device:
                         try:
                             test_device.close()
-                        except:
-                            pass
+                        except Exception:
+                            pass  # Ignore cleanup errors
                     _LOGGER.warning(f"Protocol detection cancelled for version {test_version}")
                     raise  # Re-raise to propagate cancellation
 
@@ -284,8 +284,8 @@ class KKTKolbeTuyaDevice:
                     if test_device:
                         try:
                             test_device.close()
-                        except:
-                            pass
+                        except Exception:
+                            pass  # Ignore cleanup errors
                     _LOGGER.debug(f"Version {test_version} timeout - trying next")
                     continue
 
@@ -294,8 +294,8 @@ class KKTKolbeTuyaDevice:
                     if test_device:
                         try:
                             test_device.close()
-                        except:
-                            pass
+                        except Exception:
+                            pass  # Ignore cleanup errors
 
                     # Check if this is an authentication error
                     error_msg = str(e).lower()
@@ -355,8 +355,8 @@ class KKTKolbeTuyaDevice:
                     # Invalid response
                     try:
                         self._device.close()
-                    except:
-                        pass
+                    except Exception:
+                        pass  # Ignore cleanup errors
                     raise KKTConnectionError(
                         operation="validate_connection",
                         device_id=self.device_id[:8],
@@ -370,8 +370,8 @@ class KKTKolbeTuyaDevice:
                 if self._device:
                     try:
                         self._device.close()
-                    except:
-                        pass
+                    except Exception:
+                        pass  # Ignore cleanup errors
                 self._device = None
                 raise KKTConnectionError(
                     operation="validate_connection",
@@ -383,8 +383,8 @@ class KKTKolbeTuyaDevice:
                 if self._device:
                     try:
                         self._device.close()
-                    except:
-                        pass
+                    except Exception:
+                        pass  # Ignore cleanup errors
                 self._device = None
 
                 # Check if this is an authentication error
@@ -656,7 +656,7 @@ class KKTKolbeTuyaDevice:
             if self._device:
                 try:
                     self._device.close()
-                except:
+                except Exception:
                     pass  # Ignore errors during cleanup
             self._connected = False
             self._device = None
@@ -713,7 +713,7 @@ class KKTKolbeTuyaDevice:
             if self._device:
                 try:
                     self._device.close()
-                except:
+                except Exception:
                     pass  # Ignore errors during cleanup
             self._connected = False
             self._device = None

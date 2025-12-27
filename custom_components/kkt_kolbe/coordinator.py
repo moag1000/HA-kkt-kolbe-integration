@@ -15,6 +15,11 @@ from .tuya_device import KKTKolbeTuyaDevice
 
 _LOGGER = logging.getLogger(__name__)
 
+# Polling intervals
+POLL_INTERVAL_ONLINE = 30  # Normal polling when device is online (seconds)
+POLL_INTERVAL_OFFLINE = 60  # Slower polling when device is offline (seconds)
+POLL_INTERVAL_RECONNECTING = 15  # Faster polling when trying to reconnect (seconds)
+
 
 class DeviceState(Enum):
     """Device connection states."""
@@ -36,10 +41,11 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
         self.device = device
         self.entry = entry
 
-        # State tracking
-        self._device_state = DeviceState.OFFLINE
+        # State tracking - start in RECONNECTING to allow initial connection attempts
+        self._device_state = DeviceState.RECONNECTING
         self._last_successful_update: datetime | None = None
         self._consecutive_failures = 0
+        self._is_first_update = True  # Track first update for lenient handling
 
         # Update every 30 seconds for real-time control
         super().__init__(
@@ -56,8 +62,21 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
 
     @property
     def is_device_available(self) -> bool:
-        """Check if device is available."""
-        return self._device_state == DeviceState.ONLINE
+        """Check if device is available.
+
+        Returns True for ONLINE state, and also for RECONNECTING during initial startup
+        to prevent entities from immediately showing as unavailable.
+        """
+        # Device is available if online
+        if self._device_state == DeviceState.ONLINE:
+            return True
+
+        # During initial startup phase, also treat RECONNECTING as available
+        # This prevents "unavailable" flash during first connection attempt
+        if self._is_first_update and self._device_state == DeviceState.RECONNECTING:
+            return True
+
+        return False
 
     @property
     def last_successful_update(self) -> datetime | None:
@@ -73,6 +92,21 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
             "consecutive_failures": self._consecutive_failures,
             "is_connected": self.device.is_connected,
         }
+
+    def _adjust_poll_interval(self) -> None:
+        """Adjust polling interval based on device state."""
+        if self._device_state == DeviceState.ONLINE:
+            new_interval = timedelta(seconds=POLL_INTERVAL_ONLINE)
+        elif self._device_state == DeviceState.RECONNECTING:
+            new_interval = timedelta(seconds=POLL_INTERVAL_RECONNECTING)
+        else:  # OFFLINE or UNREACHABLE
+            new_interval = timedelta(seconds=POLL_INTERVAL_OFFLINE)
+
+        if self.update_interval != new_interval:
+            _LOGGER.debug(
+                f"Device {self.device.device_id[:8]}: Adjusting poll interval to {new_interval.total_seconds()}s (state: {self._device_state.value})"
+            )
+            self.update_interval = new_interval
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch data from the device."""
@@ -94,50 +128,73 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
                 raise UpdateFailed("Failed to get device status")
 
             # Success - update state
-            if self._device_state != DeviceState.ONLINE:
-                _LOGGER.info(f"Device {self.device.device_id[:8]} is now ONLINE")
+            was_offline = self._device_state != DeviceState.ONLINE
+            if was_offline:
+                _LOGGER.info(f"Device {self.device.device_id[:8]} is now ONLINE (recovered from {self._device_state.value})")
             self._device_state = DeviceState.ONLINE
             self._consecutive_failures = 0
             self._last_successful_update = datetime.now()
+            self._is_first_update = False  # First successful update completed
+
+            # Adjust poll interval for online state
+            self._adjust_poll_interval()
 
             _LOGGER.debug(f"Device {self.device.device_id[:8]} status updated: {status}")
             return status
 
         except KKTTimeoutError as err:
             self._consecutive_failures += 1
-            _LOGGER.warning(f"Timeout communicating with device {self.device.device_id[:8]}: {err}")
+            _LOGGER.warning(f"Timeout communicating with device {self.device.device_id[:8]}: {err} (failure #{self._consecutive_failures})")
 
-            # Mark offline after consecutive failures
+            # Mark as reconnecting after first failure, offline after threshold
             if self._consecutive_failures >= DEFAULT_CONSECUTIVE_FAILURES_THRESHOLD:
-                if self._device_state == DeviceState.ONLINE:
-                    _LOGGER.warning(f"Device {self.device.device_id[:8]} is now OFFLINE")
+                if self._device_state != DeviceState.OFFLINE:
+                    _LOGGER.warning(f"Device {self.device.device_id[:8]} is now OFFLINE after {self._consecutive_failures} failures")
                 self._device_state = DeviceState.OFFLINE
+            elif self._device_state == DeviceState.ONLINE:
+                _LOGGER.info(f"Device {self.device.device_id[:8]} is RECONNECTING...")
+                self._device_state = DeviceState.RECONNECTING
+
+            # Adjust poll interval based on new state
+            self._adjust_poll_interval()
 
             # Don't raise UpdateFailed for timeouts - keep last known state
             return self.data or {}
 
         except KKTConnectionError as err:
             self._consecutive_failures += 1
-            _LOGGER.warning(f"Connection error with device {self.device.device_id[:8]}: {err}")
+            _LOGGER.warning(f"Connection error with device {self.device.device_id[:8]}: {err} (failure #{self._consecutive_failures})")
 
-            # Mark offline after consecutive failures
+            # Mark as reconnecting after first failure, offline after threshold
             if self._consecutive_failures >= DEFAULT_CONSECUTIVE_FAILURES_THRESHOLD:
-                if self._device_state == DeviceState.ONLINE:
-                    _LOGGER.warning(f"Device {self.device.device_id[:8]} is now OFFLINE")
+                if self._device_state != DeviceState.OFFLINE:
+                    _LOGGER.warning(f"Device {self.device.device_id[:8]} is now OFFLINE after {self._consecutive_failures} failures")
                 self._device_state = DeviceState.OFFLINE
+            elif self._device_state == DeviceState.ONLINE:
+                _LOGGER.info(f"Device {self.device.device_id[:8]} is RECONNECTING...")
+                self._device_state = DeviceState.RECONNECTING
+
+            # Adjust poll interval based on new state
+            self._adjust_poll_interval()
 
             # Don't raise UpdateFailed for connection errors - keep last known state
             return self.data or {}
 
         except Exception as err:
             self._consecutive_failures += 1
-            _LOGGER.error(f"Unexpected error communicating with device {self.device.device_id[:8]}: {err}")
+            _LOGGER.error(f"Unexpected error communicating with device {self.device.device_id[:8]}: {err} (failure #{self._consecutive_failures})")
 
-            # Mark offline after consecutive failures
+            # Mark as reconnecting after first failure, offline after threshold
             if self._consecutive_failures >= DEFAULT_CONSECUTIVE_FAILURES_THRESHOLD:
-                if self._device_state == DeviceState.ONLINE:
-                    _LOGGER.warning(f"Device {self.device.device_id[:8]} is now OFFLINE")
+                if self._device_state != DeviceState.OFFLINE:
+                    _LOGGER.warning(f"Device {self.device.device_id[:8]} is now OFFLINE after {self._consecutive_failures} failures")
                 self._device_state = DeviceState.OFFLINE
+            elif self._device_state == DeviceState.ONLINE:
+                _LOGGER.info(f"Device {self.device.device_id[:8]} is RECONNECTING...")
+                self._device_state = DeviceState.RECONNECTING
+
+            # Adjust poll interval based on new state
+            self._adjust_poll_interval()
 
             raise UpdateFailed(f"Error communicating with device: {err}") from err
 

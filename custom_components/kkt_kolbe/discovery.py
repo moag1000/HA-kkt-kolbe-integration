@@ -5,6 +5,7 @@ import asyncio
 import json
 import logging
 import socket
+import time
 from hashlib import md5
 from typing import Any, Callable
 
@@ -26,6 +27,10 @@ _LOGGER = logging.getLogger(__name__)
 UDP_PORTS = [6666, 6667]
 UDP_KEY = md5(b"yGAdlopoPVldABfn").digest()
 DISCOVERY_TIMEOUT = 6  # seconds
+
+# Device cache cleanup settings
+DEVICE_CACHE_MAX_AGE = 3600  # Remove devices not seen for 1 hour
+DEVICE_CACHE_MAX_SIZE = 50  # Maximum number of cached devices
 
 # Tuya devices often advertise these mDNS service types
 TUYA_SERVICE_TYPES = [
@@ -91,23 +96,29 @@ class TuyaUDPDiscovery(asyncio.DatagramProtocol):
                             device_id = device_info.get("gwId", "")
 
                             # Extract product name from UDP data if available
-                            product_name = (
-                                device_info.get("productName") or
+                            product_key = (
                                 device_info.get("productKey") or
+                                device_info.get("productName") or
                                 device_info.get("product_name") or
-                                "KKT Kolbe Device"
+                                ""
                             )
+
+                            # Detect device type from product key
+                            from .helpers.device_detection import detect_device_type_from_product_key
+                            device_type, friendly_name = detect_device_type_from_product_key(product_key, device_id)
 
                             # LocalTuya approach: Just collect all devices, let config flow filter duplicates
                             formatted_device = {
                                 "device_id": device_id,
                                 "ip": device_info.get("ip"),  # Use consistent "ip" key
-                                "name": f"KKT Device {device_id}",
+                                "name": friendly_name or f"KKT Device {device_id[:8]}",
                                 "discovered_via": "UDP",
-                                "product_name": product_name,
-                                "device_type": "auto"
+                                "product_name": product_key or "auto",
+                                "device_type": device_type,
+                                "friendly_type": friendly_name,
                             }
                             _discovery_instance.discovered_devices[device_id] = formatted_device
+                            _discovery_instance._update_device_last_seen(device_id)
                             _LOGGER.debug(f"Added device {device_id} to discovered_devices")
 
                         # Also call callback
@@ -201,10 +212,12 @@ class KKTKolbeDiscovery(ServiceListener):
         """Initialize the discovery service."""
         self.hass = hass
         self.discovered_devices: dict[str, dict[str, Any]] = {}
+        self._device_last_seen: dict[str, float] = {}  # Track when each device was last seen
         self._zeroconf: AsyncZeroconf | None = None
         self._browsers: list[ServiceBrowser] = []
         self._udp_listeners: list[tuple[asyncio.DatagramTransport, TuyaUDPDiscovery]] = []
         self._discovery_callback = self._schedule_discovery_trigger
+        self._cleanup_task: asyncio.Task | None = None
 
     async def async_discover_devices(self, timeout: int = 6) -> dict[str, dict[str, Any]]:
         """Discover devices and return discovered devices dict."""
@@ -215,8 +228,60 @@ class KKTKolbeDiscovery(ServiceListener):
         # Wait for discovery to find devices
         await asyncio.sleep(timeout)
 
+        # Clean up stale devices before returning
+        self._cleanup_stale_devices()
+
         # Return discovered devices
         return self.discovered_devices.copy()
+
+    def _cleanup_stale_devices(self) -> None:
+        """Remove devices not seen recently to prevent memory leaks."""
+        current_time = time.time()
+        stale_devices = []
+
+        for device_id, last_seen in self._device_last_seen.items():
+            if current_time - last_seen > DEVICE_CACHE_MAX_AGE:
+                stale_devices.append(device_id)
+
+        for device_id in stale_devices:
+            if device_id in self.discovered_devices:
+                _LOGGER.debug(f"Removing stale device from cache: {device_id[:8]}...")
+                del self.discovered_devices[device_id]
+            if device_id in self._device_last_seen:
+                del self._device_last_seen[device_id]
+
+        # Also enforce max cache size (remove oldest if over limit)
+        if len(self.discovered_devices) > DEVICE_CACHE_MAX_SIZE:
+            # Sort by last seen and remove oldest
+            sorted_devices = sorted(
+                self._device_last_seen.items(),
+                key=lambda x: x[1]
+            )
+            devices_to_remove = len(self.discovered_devices) - DEVICE_CACHE_MAX_SIZE
+            for device_id, _ in sorted_devices[:devices_to_remove]:
+                if device_id in self.discovered_devices:
+                    _LOGGER.debug(f"Removing oldest device from cache (size limit): {device_id[:8]}...")
+                    del self.discovered_devices[device_id]
+                if device_id in self._device_last_seen:
+                    del self._device_last_seen[device_id]
+
+        if stale_devices:
+            _LOGGER.info(f"Cleaned up {len(stale_devices)} stale devices from discovery cache")
+
+    def _update_device_last_seen(self, device_id: str) -> None:
+        """Update the last seen timestamp for a device."""
+        self._device_last_seen[device_id] = time.time()
+
+    async def _periodic_cleanup(self) -> None:
+        """Periodically clean up stale devices."""
+        while True:
+            try:
+                await asyncio.sleep(DEVICE_CACHE_MAX_AGE / 2)  # Run cleanup every 30 minutes
+                self._cleanup_stale_devices()
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                _LOGGER.error(f"Error in periodic device cleanup: {e}")
 
     async def async_start(self) -> None:
         """Start mDNS and UDP discovery."""
@@ -225,6 +290,9 @@ class KKTKolbeDiscovery(ServiceListener):
             if self._browsers or self._udp_listeners:
                 _LOGGER.debug("Discovery already started, skipping")
                 return
+
+            # Clean up any stale devices from previous runs
+            self._cleanup_stale_devices()
 
             # Start mDNS discovery using Home Assistant's shared instance
             from homeassistant.components import zeroconf as ha_zeroconf
@@ -239,10 +307,13 @@ class KKTKolbeDiscovery(ServiceListener):
                 )
                 self._browsers.append(browser)
 
-
             # Start UDP discovery (like Local Tuya)
             # NOTE: If Local Tuya is running, UDP discovery will be disabled
             await self._start_udp_discovery()
+
+            # Start periodic cleanup task
+            if self._cleanup_task is None or self._cleanup_task.done():
+                self._cleanup_task = asyncio.create_task(self._periodic_cleanup())
 
         except Exception as e:
             _LOGGER.error(f"Failed to start discovery: {e}", exc_info=True)
@@ -310,6 +381,7 @@ class KKTKolbeDiscovery(ServiceListener):
                 }
 
                 self.discovered_devices[device_id] = formatted_device
+                self._update_device_last_seen(device_id)
 
                 # Trigger Home Assistant discovery flow
                 # Use callback to schedule in the main event loop
@@ -336,6 +408,15 @@ class KKTKolbeDiscovery(ServiceListener):
 
     async def async_stop(self) -> None:
         """Stop mDNS and UDP discovery."""
+        # Cancel periodic cleanup task
+        if self._cleanup_task and not self._cleanup_task.done():
+            self._cleanup_task.cancel()
+            try:
+                await self._cleanup_task
+            except asyncio.CancelledError:
+                pass
+            self._cleanup_task = None
+
         # Stop mDNS browsers
         for browser in self._browsers:
             browser.cancel()
@@ -349,6 +430,10 @@ class KKTKolbeDiscovery(ServiceListener):
         for transport, protocol in self._udp_listeners:
             transport.close()
         self._udp_listeners.clear()
+
+        # Clear device cache on stop
+        self.discovered_devices.clear()
+        self._device_last_seen.clear()
 
         _LOGGER.info("Stopped KKT Kolbe discovery (mDNS and UDP)")
 
@@ -383,6 +468,7 @@ class KKTKolbeDiscovery(ServiceListener):
                 device_id = device_info.get("device_id")
                 if device_id:
                     self.discovered_devices[device_id] = device_info
+                    self._update_device_last_seen(device_id)
 
                     # Trigger Home Assistant discovery flow
                     await self._async_trigger_discovery(device_info)

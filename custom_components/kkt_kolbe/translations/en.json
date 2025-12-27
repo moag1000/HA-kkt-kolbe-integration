@@ -57,16 +57,32 @@
       },
       "authentication": {
         "title": "Device Authentication",
-        "description": "Enter the Local Key for your device:\n\nDevice: {device_name}\nDevice ID: {device_id}\nIP Address: {ip_address}",
+        "description": "Enter the Local Key for your device.\n\n**Device:** {device_name}\n**Device ID:** {device_id}\n**IP Address:** {ip_address}\n\n**How to get the Local Key:**\nThe Local Key is retrieved from the Tuya IoT Platform. Follow our setup guide for API access.\n\n[Setup Guide](https://github.com/moag1000/HA-kkt-kolbe-integration#-tuya-api-setup---vollstaendige-anleitung) | [Tuya IoT Platform](https://iot.tuya.com)",
         "data": {
           "local_key": "Local Key",
+          "configure_api": "Configure API (recommended)",
           "test_connection": "Test Connection",
           "back_to_previous": "Back to Previous Step"
         },
         "data_description": {
-          "local_key": "16-character local encryption key from Smart Life app",
+          "local_key": "16-character local encryption key from Tuya IoT Platform",
+          "configure_api": "Configure Tuya Cloud API to automatically fetch the Local Key",
           "test_connection": "Test connection with the provided local key",
           "back_to_previous": "Return to device selection or manual configuration"
+        }
+      },
+      "auth_api_credentials": {
+        "title": "API Credentials",
+        "description": "{setup_info}",
+        "data": {
+          "api_client_id": "Client ID",
+          "api_client_secret": "Client Secret",
+          "api_endpoint": "API Region"
+        },
+        "data_description": {
+          "api_client_id": "Access ID/Client ID from Tuya IoT Platform",
+          "api_client_secret": "Access Secret/Client Secret from Tuya IoT Platform",
+          "api_endpoint": "Server region of your Tuya account"
         }
       },
       "settings": {
@@ -226,6 +242,53 @@
           "zone_naming_scheme": "How to name multi-zone entities",
           "test_connection": "Test device connection after changes"
         }
+      },
+      "reconfigure_menu": {
+        "title": "Reconfigure Device",
+        "description": "Select what you want to change:\n\n**Device:** {device_name}\n**IP:** {current_ip}\n**Device Type:** {current_device_type}\n**API:** {api_status}\n**Mode:** {integration_mode}",
+        "data": {
+          "reconfigure_option": "Select Action"
+        }
+      },
+      "reconfigure_connection": {
+        "title": "Reconfigure Connection",
+        "description": "Update IP address and/or Local Key for **{device_name}**.\n\nCurrent IP: {current_ip}\n\n{local_key_hint}",
+        "data": {
+          "ip_address": "IP Address",
+          "local_key": "New Local Key",
+          "test_connection": "Test Connection"
+        }
+      },
+      "reconfigure_device_type": {
+        "title": "Change Device Type",
+        "description": "Change the device type for **{device_name}**.\n\nCurrent Type: {current_device_type}",
+        "data": {
+          "device_type": "Device Type"
+        }
+      },
+      "reconfigure_api": {
+        "title": "API Settings",
+        "description": "Configure Tuya Cloud API for **{device_name}**.\n\nCurrent Status: {api_status}\n\n{secret_hint}",
+        "data": {
+          "api_enabled": "Enable API",
+          "api_client_id": "Client ID",
+          "api_client_secret": "Client Secret",
+          "api_endpoint": "API Region"
+        }
+      },
+      "reconfigure_all": {
+        "title": "All Settings",
+        "description": "Configure all settings for **{device_name}**.\n\n{local_key_hint}\n{secret_hint}",
+        "data": {
+          "ip_address": "IP Address",
+          "local_key": "New Local Key",
+          "device_type": "Device Type",
+          "api_enabled": "Enable API",
+          "api_client_id": "Client ID",
+          "api_client_secret": "Client Secret",
+          "api_endpoint": "API Region",
+          "test_connection": "Test Connection"
+        }
       }
     },
     "error": {
@@ -243,14 +306,25 @@
       "api_auth_failed": "API authentication failed. Check your credentials",
       "api_error": "API error occurred",
       "unknown_api_error": "Unknown API error occurred",
+      "api_no_local_key": "API did not return a Local Key for this device",
+      "api_fetch_key_failed": "Failed to fetch Local Key from API",
+      "api_key_connection_failed": "Local Key was retrieved but connection test failed",
+      "api_wrong_region": "Wrong API region selected",
+      "api_client_id_invalid": "Client ID invalid (minimum 10 characters)",
+      "api_client_secret_invalid": "Client Secret invalid (minimum 20 characters)",
+      "no_device_id": "Device ID not available",
+      "missing_local_key": "Local key is missing - please re-authenticate",
       "analysis_failed": "Device analysis failed",
       "no_kkt_devices_found": "No KKT Kolbe devices found",
       "missing_local_details": "Please provide local connection details"
     },
     "abort": {
       "already_configured": "Device is already configured",
+      "already_in_progress": "Configuration flow is already in progress",
       "reauth_successful": "Re-authentication was successful",
-      "reauth_failed": "Re-authentication failed"
+      "reauth_failed": "Re-authentication failed",
+      "reconfigure_successful": "Configuration updated successfully. The integration will be reloaded.",
+      "reconfigure_failed": "Reconfiguration failed. Entry not found."
     }
   },
   "options": {
@@ -355,6 +429,20 @@
       }
     },
     "binary_sensor": {
+      "device_connected": {
+        "name": "Device Connected",
+        "state": {
+          "on": "Connected",
+          "off": "Disconnected"
+        }
+      },
+      "api_connected": {
+        "name": "Cloud API Connected",
+        "state": {
+          "on": "Connected",
+          "off": "Disconnected"
+        }
+      },
       "zone_active": {
         "name": "Zone Active"
       },

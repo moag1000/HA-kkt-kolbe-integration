@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from homeassistant.components.number import NumberEntity
 from homeassistant.config_entries import ConfigEntry
@@ -11,22 +11,25 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .base_entity import KKTBaseEntity, KKTZoneBaseEntity
-from .const import DOMAIN
 from .device_types import get_device_entities
 from .bitfield_utils import get_zone_value_from_coordinator, set_zone_value_in_coordinator, BITFIELD_CONFIG
+
+if TYPE_CHECKING:
+    from . import KKTKolbeConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: KKTKolbeConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up KKT Kolbe number entities."""
-    coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-    device_type = hass.data[DOMAIN][entry.entry_id].get("device_type", "auto")
-    product_name = hass.data[DOMAIN][entry.entry_id].get("product_name", "unknown")
+    runtime_data = entry.runtime_data
+    coordinator = runtime_data.coordinator
+    device_type = runtime_data.device_type
+    product_name = runtime_data.product_name
 
     # Check if advanced entities are enabled (default: True)
     enable_advanced = entry.options.get("enable_advanced_entities", True)
@@ -70,8 +73,24 @@ class KKTKolbeNumber(KKTBaseEntity, NumberEntity):
         self._attr_icon = self._get_icon()
         self._cached_value = None
 
+        # Set display precision based on entity type (HA 2025.1+)
+        # Timers, filter days, power levels, fan speeds: no decimals
+        self._attr_suggested_display_precision = self._get_display_precision()
+
         # Initialize state from coordinator data
         self._update_cached_state()
+
+    def _get_display_precision(self) -> int:
+        """Determine display precision based on entity type."""
+        name_lower = self._name.lower()
+        # Entities that should show whole numbers only
+        if any(kw in name_lower for kw in ["timer", "filter", "speed", "level", "mode", "rgb", "brightness"]):
+            return 0
+        # Temperature might need 1 decimal
+        if "temperature" in name_lower:
+            return 1
+        # Default: no decimals for most KKT entities
+        return 0
 
     def _get_icon(self) -> str:
         """Get appropriate icon for the number entity."""
@@ -124,6 +143,9 @@ class KKTKolbeZoneNumber(KKTZoneBaseEntity, NumberEntity):
         self._attr_native_unit_of_measurement = config.get("unit_of_measurement")
         self._attr_icon = self._get_icon()
         self._cached_value = None
+
+        # Zone values are typically integers (power level 0-9, etc.) - no decimals
+        self._attr_suggested_display_precision = 0
 
         # Initialize state from coordinator data
         self._update_cached_state()

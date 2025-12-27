@@ -19,6 +19,17 @@ class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
 
     _attr_has_entity_name = True
 
+    # Exclude non-historical attributes from database recording (HA 2024.6+)
+    # This reduces database size by not recording frequently changing diagnostic data
+    _unrecorded_attributes = frozenset({
+        "raw_dp_data",
+        "last_update",
+        "data_point",
+        "device_id",
+        "zone",
+        "connection_status",
+    })
+
     def __init__(
         self,
         coordinator: DataUpdateCoordinator[dict[str, Any]],
@@ -51,7 +62,12 @@ class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
     @property
     def device_info(self) -> DeviceInfo:
         """Return device information about this entity."""
-        if not hasattr(self, '_device_info_cached'):
+        # Don't cache if hass is not available yet - rebuild once it is
+        if not self.hass:
+            return self._build_device_info()
+
+        # Cache device info once hass is available
+        if not hasattr(self, '_device_info_cached') or self._device_info_cached is None:
             self._device_info_cached = self._build_device_info()
         return self._device_info_cached
 
@@ -69,8 +85,14 @@ class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
                 f"{self._name.lower().replace(' ', '_')}"
             )
 
-        # Set entity name
-        self._attr_name = self._name
+        # Set translation key if provided (Gold Quality requirement)
+        translation_key = self._config.get("translation_key")
+        if translation_key:
+            self._attr_translation_key = translation_key
+            # When using translation_key, don't set name (HA uses translation)
+        else:
+            # Fallback to direct name if no translation key
+            self._attr_name = self._name
 
         # Set device class if provided
         self._attr_device_class = self._config.get("device_class")
@@ -87,78 +109,120 @@ class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
             self._attr_entity_registry_enabled_default = False
 
     def _build_device_info(self) -> DeviceInfo:
-        """Build standardized device info."""
+        """Build standardized device info using KNOWN_DEVICES."""
+        from .device_types import KNOWN_DEVICES, CATEGORY_HOOD, CATEGORY_COOKTOP
+
         # Get device data from hass.data (now available via property access)
         if not self.hass:
-            # Fallback for cases where hass is not yet available
             device_data = {}
-            product_name = "KKT Kolbe Device"
+            device_type_key = "auto"
         else:
             device_data = self.hass.data.get(DOMAIN, {}).get(self._entry.entry_id, {})
-            product_name = device_data.get("product_name", "KKT Kolbe Device")
+            device_type_key = device_data.get("device_type", "auto")
 
         # Extract device information
         device_id = self._entry.data.get("device_id", "unknown")
         ip_address = self._entry.data.get("ip_address", "unknown")
 
-        # Determine device type and model info
-        if "IND7705HC" in product_name:
-            device_type = "Induction Cooktop"
-            model = "IND7705HC"
-            manufacturer = "KKT Kolbe"
-        elif "HERMES" in product_name and "STYLE" in product_name:
-            device_type = "Range Hood"
-            model = "HERMES & STYLE"
-            manufacturer = "KKT Kolbe"
+        # Get device info from KNOWN_DEVICES (HA 2024.6+ model ID support)
+        if device_type_key in KNOWN_DEVICES:
+            device_info = KNOWN_DEVICES[device_type_key]
+            model_id = device_info.get("model_id", device_type_key)
+            device_name = device_info.get("name", "KKT Kolbe Device")
+            category = device_info.get("category", CATEGORY_HOOD)
+
+            if category == CATEGORY_COOKTOP:
+                device_type = "Induction Cooktop"
+            else:
+                device_type = "Range Hood"
         else:
+            # Fallback for unknown devices
+            model_id = "unknown"
+            device_name = "KKT Kolbe Device"
             device_type = "Kitchen Appliance"
-            model = product_name
-            manufacturer = "KKT Kolbe"
 
         return DeviceInfo(
             identifiers={(DOMAIN, device_id)},
-            name=f"KKT Kolbe {device_type}",
-            manufacturer=manufacturer,
-            model=model,
+            name=device_name,
+            manufacturer="KKT Kolbe",
+            model=model_id,  # Use model_id from KNOWN_DEVICES
             sw_version=self._get_software_version(),
             hw_version=self._get_hardware_version(),
             configuration_url=f"http://{ip_address}",
-            suggested_area=self._get_suggested_area(),
+            suggested_area="Kitchen",
         )
 
     def _get_software_version(self) -> str:
         """Get software version from device data."""
-        # Try to get from coordinator data or use integration version
-        if hasattr(self.coordinator, 'data') and self.coordinator.data:
-            # Look for firmware version in device data
-            if isinstance(self.coordinator.data, dict):
-                fw_version = self.coordinator.data.get("firmware_version")
-                if fw_version:
-                    return str(fw_version)
+        # Try to get protocol version from device via coordinator
+        if hasattr(self.coordinator, 'device') and self.coordinator.device:
+            device = self.coordinator.device
+            # Check for detected protocol version
+            version = getattr(device, 'version', None)
+            if version and version != "auto":
+                return f"Tuya Protocol {version}"
+            # Check connection stats for detected version
+            if hasattr(device, '_connection_stats'):
+                detected = device._connection_stats.get("protocol_version_detected")
+                if detected:
+                    return f"Tuya Protocol {detected}"
 
-        # Fallback to integration version from manifest
-        return "Unknown"
+        # Try to get from entry data (may be set during discovery)
+        version = self._entry.data.get("version")
+        if version and version != "auto":
+            return f"Tuya Protocol {version}"
+
+        # Use integration version as fallback
+        from .const import VERSION
+        return f"v{VERSION}"
 
     def _get_hardware_version(self) -> str:
         """Get hardware version from device data."""
-        # Try to get from coordinator data
-        if hasattr(self.coordinator, 'data') and self.coordinator.data:
-            if isinstance(self.coordinator.data, dict):
-                hw_version = self.coordinator.data.get("hardware_version")
-                if hw_version:
-                    return str(hw_version)
+        from .device_types import KNOWN_DEVICES
 
-        # Fallback based on product name
+        # Try to get device_type from runtime_data or entry.data
+        device_type = None
+        product_name = None
+
         if self.hass:
-            product_name = self.hass.data.get(DOMAIN, {}).get(self._entry.entry_id, {}).get("product_name", "")
-        else:
-            product_name = ""
-        if "IND7705HC" in product_name:
-            return "IND7705HC"
-        elif "HERMES" in product_name:
-            return "HERMES_STYLE"
+            runtime_data = self.hass.data.get(DOMAIN, {}).get(self._entry.entry_id, {})
+            device_type = runtime_data.get("device_type", "")
+            product_name = runtime_data.get("product_name", "")
 
-        return "Unknown"
+        # Fallback to entry.data
+        if not device_type or device_type in ("auto", "unknown", ""):
+            device_type = self._entry.data.get("device_type", "")
+        if not product_name or product_name in ("auto", "unknown", ""):
+            product_name = self._entry.data.get("product_name", "")
+
+        # Use model_id from KNOWN_DEVICES if available
+        if device_type and device_type in KNOWN_DEVICES:
+            model_id = KNOWN_DEVICES[device_type].get("model_id", "")
+            if model_id:
+                return model_id.upper()
+
+        # Use device_type as hardware identifier if valid
+        if device_type and device_type not in ("auto", "unknown", ""):
+            return device_type.replace("_", " ").title()
+
+        # Fallback to product_name pattern matching
+        if product_name:
+            product_upper = product_name.upper()
+            if "IND7705HC" in product_upper:
+                return "IND7705HC"
+            elif "HERMES" in product_upper:
+                return "HERMES"
+            elif "ECCO" in product_upper:
+                return "ECCO HCM"
+            elif "SOLO" in product_upper:
+                return "SOLO HCM"
+
+        # Try device_id first 8 chars as hardware identifier
+        device_id = self._entry.data.get("device_id", "")
+        if device_id:
+            return device_id[:8].upper()
+
+        return "KKT Device"
 
     def _get_suggested_area(self) -> str:
         """Get suggested area for the device."""
@@ -177,13 +241,39 @@ class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
 
     @property
     def available(self) -> bool:
-        """Return if entity is available."""
-        # Check if coordinator has valid data OR we have cached value
+        """Return if entity is available.
+
+        Entities are available if:
+        1. We have current data from coordinator, OR
+        2. We have a cached value from previous successful update, OR
+        3. We're in initial startup phase (coordinator hasn't had consecutive failures)
+
+        Entities only become unavailable after persistent connection issues.
+        """
+        # Check coordinator device state if available (KKTKolbeUpdateCoordinator)
+        if hasattr(self.coordinator, 'is_device_available'):
+            # Use coordinator's device state which tracks consecutive failures
+            device_available = self.coordinator.is_device_available
+
+            # If device is online, we're always available
+            if device_available:
+                return True
+
+            # If device is offline but we have cached data, still report as available
+            # This prevents flapping during temporary connection issues
+            if self._cached_value is not None:
+                return True
+
+            # If device is offline and no cached data, check if we ever had data
+            if self.coordinator.data is not None and len(self.coordinator.data) > 0:
+                return True
+
+        # Fallback for other coordinators: check if we have any data
         has_data = self.coordinator.data is not None and len(self.coordinator.data) > 0
         has_cached_value = self._cached_value is not None
 
-        # Entity is available if coordinator is working AND (has current data OR cached value)
-        is_available = self.coordinator.last_update_success and (has_data or has_cached_value)
+        # More lenient: available if we have data OR cache OR no failures yet
+        is_available = has_data or has_cached_value or self.coordinator.last_update_success
 
         if not is_available:
             _LOGGER.debug(
@@ -229,16 +319,20 @@ class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
             _LOGGER.debug(f"Entity {self._attr_unique_id}: No coordinator data available, using cached value")
             return self._cached_value
 
+        # Get the DPS dictionary - coordinator may return data with DPs under 'dps' key
+        # or directly at top level depending on the coordinator type
+        dps_data = self.coordinator.data.get("dps", self.coordinator.data)
+
         # Try both string and integer keys for compatibility
-        value = self.coordinator.data.get(str(data_point))
+        value = dps_data.get(str(data_point))
         if value is None:
-            value = self.coordinator.data.get(data_point)
+            value = dps_data.get(data_point)
 
         if value is None:
             # DP not available in current update - use cached value instead of None
             _LOGGER.debug(
                 f"Entity {self._attr_unique_id}: DP {data_point} not in current update. "
-                f"Available DPs: {list(self.coordinator.data.keys())}. Using cached value: {self._cached_value}"
+                f"Available DPs: {list(dps_data.keys())}. Using cached value: {self._cached_value}"
             )
             return self._cached_value
         else:
@@ -260,15 +354,18 @@ class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
             _LOGGER.debug(f"Entity {self._attr_unique_id}: No coordinator data available, using cached value")
             return self._cached_value
 
-        raw_value = self.coordinator.data.get(dp)
+        # Get the DPS dictionary - coordinator may return data with DPs under 'dps' key
+        dps_data = self.coordinator.data.get("dps", self.coordinator.data)
+
+        raw_value = dps_data.get(dp)
         if raw_value is None:
-            raw_value = self.coordinator.data.get(str(dp))
+            raw_value = dps_data.get(str(dp))
 
         if raw_value is None:
             # DP not available in current update - use cached value
             _LOGGER.debug(
                 f"Entity {self._attr_unique_id}: Zone DP {dp} not in current update. "
-                f"Available DPs: {list(self.coordinator.data.keys())}. Using cached value: {self._cached_value}"
+                f"Available DPs: {list(dps_data.keys())}. Using cached value: {self._cached_value}"
             )
             return self._cached_value
 
@@ -317,7 +414,12 @@ class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
         if not self.coordinator.data:
             return None
 
-        raw_value = self.coordinator.data.get(dp)
+        # Get the DPS dictionary - coordinator may return data with DPs under 'dps' key
+        dps_data = self.coordinator.data.get("dps", self.coordinator.data)
+
+        raw_value = dps_data.get(dp)
+        if raw_value is None:
+            raw_value = dps_data.get(str(dp))
         if raw_value is None:
             return None
 

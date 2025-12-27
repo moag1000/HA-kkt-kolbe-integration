@@ -12,7 +12,7 @@ Supports:
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from homeassistant.components.light import (
     LightEntity,
@@ -27,21 +27,24 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .base_entity import KKTBaseEntity
-from .const import DOMAIN
 from .device_types import get_device_entities, KNOWN_DEVICES
+
+if TYPE_CHECKING:
+    from . import KKTKolbeConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: KKTKolbeConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up KKT Kolbe light entities from device_types configuration."""
-    coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-    device_type = hass.data[DOMAIN][entry.entry_id].get("device_type", "auto")
-    product_name = hass.data[DOMAIN][entry.entry_id].get("product_name", "unknown")
+    runtime_data = entry.runtime_data
+    coordinator = runtime_data.coordinator
+    device_type = runtime_data.device_type
+    product_name = runtime_data.product_name
 
     # Prefer device_type (KNOWN_DEVICES key) over product_name (Tuya product ID)
     lookup_key = device_type if device_type not in ("auto", None, "") else product_name
@@ -133,7 +136,8 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
 
         # Get brightness from coordinator data
         if self.coordinator.data:
-            brightness_value = self.coordinator.data.get(str(self._brightness_dp))
+            dps_data = self.coordinator.data.get("dps", self.coordinator.data)
+            brightness_value = dps_data.get(str(self._brightness_dp))
             if brightness_value is not None:
                 # Scale from device range to 0-255
                 return int((brightness_value / self._max_brightness) * 255)
@@ -153,7 +157,8 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
             return None
 
         if self.coordinator.data:
-            effect_value = self.coordinator.data.get(str(self._effect_dp))
+            dps_data = self.coordinator.data.get("dps", self.coordinator.data)
+            effect_value = dps_data.get(str(self._effect_dp))
             if effect_value is not None:
                 if self._effect_numeric:
                     # Numeric mode: value is index

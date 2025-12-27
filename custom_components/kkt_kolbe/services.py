@@ -37,6 +37,7 @@ SERVICE_RESET_FILTER_TIMER = "reset_filter_timer"
 SERVICE_RECONNECT_DEVICE = "reconnect_device"
 SERVICE_UPDATE_LOCAL_KEY = "update_local_key"
 SERVICE_GET_CONNECTION_STATUS = "get_connection_status"
+SERVICE_RESCAN_DEVICES = "rescan_devices"
 
 
 async def async_setup_services(hass: HomeAssistant) -> None:
@@ -65,6 +66,14 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     }
                 else:
                     # Fallback for standard coordinator
+                    if coordinator.device is None:
+                        results[coord_entry_id] = {
+                            "success": False,
+                            "error": "No local device available (API-only mode)",
+                            "state": "api_only"
+                        }
+                        continue
+
                     await coordinator.device.async_disconnect()
                     await coordinator.device.async_connect()
                     await coordinator.async_request_refresh()
@@ -73,7 +82,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                         "state": "online" if coordinator.device.is_connected else "offline"
                     }
 
-                _LOGGER.info(f"Reconnected device {coordinator.device.device_id[:8]}: {results[coord_entry_id]}")
+                device_id_str = coordinator.device.device_id[:8] if coordinator.device else coord_entry_id[:8]
+                _LOGGER.info(f"Reconnected device {device_id_str}: {results[coord_entry_id]}")
 
             except Exception as err:
                 _LOGGER.error(f"Failed to reconnect device: {err}")
@@ -107,6 +117,15 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
                 device_id = entry.data.get("device_id")
                 ip_address = entry.data.get("ip_address")
+
+                # Check if coordinator has a local device
+                if coordinator.device is None:
+                    results[coord_entry_id] = {
+                        "success": False,
+                        "device_id": device_id,
+                        "error": "No local device available (API-only mode). Cannot update local key."
+                    }
+                    continue
 
                 # Log current connection state
                 _LOGGER.info(
@@ -219,13 +238,23 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     statuses[coord_entry_id] = coordinator.connection_info
                 else:
                     # Standard coordinator
-                    statuses[coord_entry_id] = {
-                        "state": "online" if coordinator.device.is_connected else "offline",
-                        "last_update": coordinator.last_update_success_time if hasattr(coordinator, 'last_update_success_time') else None,
-                        "is_connected": coordinator.device.is_connected,
-                        "device_id": coordinator.device.device_id,
-                        "ip_address": coordinator.device.ip_address,
-                    }
+                    if coordinator.device is None:
+                        statuses[coord_entry_id] = {
+                            "state": "api_only",
+                            "last_update": coordinator.last_update_success_time if hasattr(coordinator, 'last_update_success_time') else None,
+                            "is_connected": False,
+                            "device_id": "api_mode",
+                            "ip_address": None,
+                            "mode": "api_only",
+                        }
+                    else:
+                        statuses[coord_entry_id] = {
+                            "state": "online" if coordinator.device.is_connected else "offline",
+                            "last_update": coordinator.last_update_success_time if hasattr(coordinator, 'last_update_success_time') else None,
+                            "is_connected": coordinator.device.is_connected,
+                            "device_id": coordinator.device.device_id,
+                            "ip_address": coordinator.device.ip_address,
+                        }
 
             except Exception as err:
                 _LOGGER.error(f"Failed to get status: {err}")
@@ -258,8 +287,17 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             coordinator = entry_data["coordinator"]
 
             # Filter by device_id if specified
-            if device_id and coordinator.device.device_id != device_id:
-                continue
+            if device_id:
+                # Handle case where coordinator.device may be None (API-only mode)
+                coord_device_id = None
+                if hasattr(coordinator, 'device_id'):
+                    # HybridCoordinator has device_id attribute directly
+                    coord_device_id = coordinator.device_id
+                elif coordinator.device is not None:
+                    coord_device_id = coordinator.device.device_id
+
+                if coord_device_id != device_id:
+                    continue
 
             coordinators.append((coord_entry_id, coordinator))
 
@@ -656,6 +694,51 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         DOMAIN, SERVICE_GET_CONNECTION_STATUS, handle_get_connection_status
     )
 
+    async def handle_rescan_devices(service: ServiceCall) -> None:
+        """Handle rescan devices service - triggers dynamic device discovery."""
+        timeout = service.data.get("timeout", 6)
+
+        try:
+            from .discovery import get_discovered_devices, simple_tuya_discover
+
+            _LOGGER.info(f"Starting device rescan with timeout {timeout}s...")
+
+            # Run UDP discovery
+            discovered = await simple_tuya_discover(timeout=timeout)
+
+            # Get all discovered devices (including mDNS)
+            all_devices = get_discovered_devices()
+
+            # Fire event with results
+            hass.bus.async_fire(
+                f"{DOMAIN}_devices_discovered",
+                {
+                    "count": len(all_devices),
+                    "devices": [
+                        {
+                            "device_id": dev.get("device_id", ""),
+                            "ip": dev.get("ip", ""),
+                            "name": dev.get("name", ""),
+                            "discovered_via": dev.get("discovered_via", ""),
+                        }
+                        for dev in all_devices.values()
+                    ],
+                }
+            )
+
+            _LOGGER.info(f"Device rescan complete - found {len(all_devices)} device(s)")
+
+        except Exception as err:
+            _LOGGER.error(f"Device rescan failed: {err}")
+            hass.bus.async_fire(
+                f"{DOMAIN}_devices_discovered",
+                {"error": str(err), "count": 0, "devices": []}
+            )
+
+    hass.services.async_register(
+        DOMAIN, SERVICE_RESCAN_DEVICES, handle_rescan_devices
+    )
+
     _LOGGER.info("KKT Kolbe services registered successfully")
 
 
@@ -673,6 +756,7 @@ async def async_unload_services(hass: HomeAssistant) -> None:
         SERVICE_RECONNECT_DEVICE,
         SERVICE_UPDATE_LOCAL_KEY,
         SERVICE_GET_CONNECTION_STATUS,
+        SERVICE_RESCAN_DEVICES,
     ]
 
     for service in services_to_remove:

@@ -2,35 +2,42 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
     BinarySensorDeviceClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.entity import EntityCategory
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import (
+    CoordinatorEntity,
+    DataUpdateCoordinator,
+)
 
 from .base_entity import KKTBaseEntity, KKTZoneBaseEntity
-from .const import DOMAIN
+from .const import DOMAIN, MANUFACTURER
 from .device_types import get_device_entities
 from .bitfield_utils import get_zone_value_from_coordinator, BITFIELD_CONFIG
+
+if TYPE_CHECKING:
+    from . import KKTKolbeConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: KKTKolbeConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up KKT Kolbe binary sensor entities."""
-    coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-    device_type = hass.data[DOMAIN][entry.entry_id].get("device_type", "auto")
-    product_name = hass.data[DOMAIN][entry.entry_id].get("product_name", "unknown")
+    runtime_data = entry.runtime_data
+    coordinator = runtime_data.coordinator
+    device_type = runtime_data.device_type
+    product_name = runtime_data.product_name
 
     # Check if advanced entities are enabled (default: True)
     enable_advanced = entry.options.get("enable_advanced_entities", True)
@@ -38,11 +45,19 @@ async def async_setup_entry(
     # Prefer device_type (KNOWN_DEVICES key) over product_name (Tuya product ID)
     lookup_key = device_type if device_type not in ("auto", None, "") else product_name
 
+    entities: list[BinarySensorEntity] = []
+
+    # Always add connection status sensors (like Dyson integration)
+    entities.append(KKTKolbeConnectionSensor(coordinator, entry))
+
+    # Add API status sensor if API is enabled
+    if runtime_data.api_client is not None:
+        entities.append(KKTKolbeAPIStatusSensor(coordinator, entry))
+
     # Get binary sensor configurations for this device
     entity_configs = get_device_entities(lookup_key, "binary_sensor")
 
     if entity_configs:
-        entities = []
         for config in entity_configs:
             # Skip advanced entities if not enabled
             if config.get("advanced", False) and not enable_advanced:
@@ -52,8 +67,8 @@ async def async_setup_entry(
             else:
                 entities.append(KKTKolbeBinarySensor(coordinator, entry, config))
 
-        if entities:
-            async_add_entities(entities)
+    if entities:
+        async_add_entities(entities)
 
 
 class KKTKolbeBinarySensor(KKTBaseEntity, BinarySensorEntity):
@@ -167,3 +182,172 @@ class KKTKolbeZoneBinarySensor(KKTZoneBaseEntity, BinarySensorEntity):
     def is_on(self) -> bool | None:
         """Return true if the zone binary sensor is on."""
         return self._cached_state
+
+
+class KKTKolbeConnectionSensor(CoordinatorEntity, BinarySensorEntity):
+    """Binary sensor showing device connection status (like Dyson integration).
+
+    This sensor shows whether the local device is connected and responding.
+    Useful for monitoring device availability and debugging connection issues.
+    """
+
+    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_has_entity_name = True
+    _attr_translation_key = "device_connected"
+
+    def __init__(
+        self,
+        coordinator: DataUpdateCoordinator[dict[str, Any]],
+        entry: KKTKolbeConfigEntry,
+    ) -> None:
+        """Initialize the connection sensor."""
+        super().__init__(coordinator)
+        self._entry = entry
+        self._device_id = entry.data.get("device_id", "unknown")
+
+        # Set unique ID
+        self._attr_unique_id = f"{self._device_id}_connection_status"
+        self._attr_name = "Device Connected"
+
+        # Device info for device registry
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, self._device_id)},
+            "name": entry.runtime_data.device_info.get("name", "KKT Kolbe Device"),
+            "manufacturer": MANUFACTURER,
+            "model": entry.runtime_data.device_info.get("name", "Unknown"),
+        }
+
+    @property
+    def is_on(self) -> bool:
+        """Return true if device is connected."""
+        # Check coordinator update success
+        if not self.coordinator.last_update_success:
+            return False
+
+        # Check if device has is_connected property
+        runtime_data = self._entry.runtime_data
+        if runtime_data.device and hasattr(runtime_data.device, "is_connected"):
+            return runtime_data.device.is_connected
+
+        # Fallback: Check if we have data
+        return bool(self.coordinator.data)
+
+    @property
+    def icon(self) -> str:
+        """Return the icon based on connection state."""
+        return "mdi:lan-connect" if self.is_on else "mdi:lan-disconnect"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return extra state attributes."""
+        runtime_data = self._entry.runtime_data
+        attrs = {
+            "integration_mode": runtime_data.integration_mode,
+            "device_type": runtime_data.device_type,
+        }
+
+        # Add device-specific attributes if available
+        if runtime_data.device:
+            if hasattr(runtime_data.device, "ip_address"):
+                attrs["ip_address"] = runtime_data.device.ip_address
+            if hasattr(runtime_data.device, "version"):
+                attrs["protocol_version"] = runtime_data.device.version
+
+        # Add coordinator info
+        if self.coordinator.last_update_success_time:
+            attrs["last_successful_update"] = self.coordinator.last_update_success_time.isoformat()
+
+        return attrs
+
+
+class KKTKolbeAPIStatusSensor(CoordinatorEntity, BinarySensorEntity):
+    """Binary sensor showing Tuya Cloud API connection status (like Dyson integration).
+
+    This sensor shows whether the Tuya Cloud API is authenticated and working.
+    Only created when API credentials are configured.
+    """
+
+    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_has_entity_name = True
+    _attr_translation_key = "api_connected"
+
+    def __init__(
+        self,
+        coordinator: DataUpdateCoordinator[dict[str, Any]],
+        entry: KKTKolbeConfigEntry,
+    ) -> None:
+        """Initialize the API status sensor."""
+        super().__init__(coordinator)
+        self._entry = entry
+        self._device_id = entry.data.get("device_id", "unknown")
+        self._api_status: bool = False
+        self._last_check_error: str | None = None
+
+        # Set unique ID
+        self._attr_unique_id = f"{self._device_id}_api_status"
+        self._attr_name = "Cloud API Connected"
+
+        # Device info for device registry
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, self._device_id)},
+            "name": entry.runtime_data.device_info.get("name", "KKT Kolbe Device"),
+            "manufacturer": MANUFACTURER,
+            "model": entry.runtime_data.device_info.get("name", "Unknown"),
+        }
+
+    @property
+    def is_on(self) -> bool:
+        """Return true if API is connected and authenticated."""
+        runtime_data = self._entry.runtime_data
+        if not runtime_data.api_client:
+            return False
+
+        # Check if API client has authentication status
+        if hasattr(runtime_data.api_client, "is_authenticated"):
+            return runtime_data.api_client.is_authenticated
+
+        # Check if API client has token
+        if hasattr(runtime_data.api_client, "_access_token"):
+            return bool(runtime_data.api_client._access_token)
+
+        # Fallback: assume connected if client exists and coordinator works
+        return self.coordinator.last_update_success
+
+    @property
+    def icon(self) -> str:
+        """Return the icon based on API status."""
+        return "mdi:cloud-check" if self.is_on else "mdi:cloud-off-outline"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return extra state attributes."""
+        runtime_data = self._entry.runtime_data
+        attrs = {
+            "api_enabled": runtime_data.api_client is not None,
+        }
+
+        if runtime_data.api_client:
+            # Add endpoint info (redacted for security)
+            endpoint = self._entry.data.get("api_endpoint", "unknown")
+            attrs["api_endpoint"] = endpoint
+
+            # Add token expiry if available
+            if hasattr(runtime_data.api_client, "_token_expires_at"):
+                expires_at = runtime_data.api_client._token_expires_at
+                if expires_at:
+                    attrs["token_expires_at"] = expires_at.isoformat() if hasattr(expires_at, "isoformat") else str(expires_at)
+
+        if self._last_check_error:
+            attrs["last_error"] = self._last_check_error
+
+        return attrs
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        # Clear error on successful update
+        if self.coordinator.last_update_success:
+            self._last_check_error = None
+        self.async_write_ha_state()
