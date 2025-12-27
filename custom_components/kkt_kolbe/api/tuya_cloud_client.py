@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections import deque
 import hashlib
 import hmac
 import json
@@ -22,6 +23,12 @@ from .api_exceptions import (
 
 _LOGGER = logging.getLogger(__name__)
 
+# Rate limiting configuration
+RATE_LIMIT_REQUESTS_PER_MINUTE = 15  # Conservative limit for Tuya Free tier
+RATE_LIMIT_MIN_INTERVAL = 0.5  # Minimum seconds between requests
+RATE_LIMIT_BACKOFF_BASE = 5  # Base seconds for backoff after rate limit hit
+RATE_LIMIT_BACKOFF_MAX = 300  # Max backoff (5 minutes)
+
 
 class TuyaCloudClient:
     """TinyTuya Cloud API Client für Geräteabfragen."""
@@ -40,6 +47,13 @@ class TuyaCloudClient:
         self._own_session = session is None
         self._access_token: str | None = None
         self._token_expires_at: float | None = None
+
+        # Rate limiting state
+        self._request_times: deque[float] = deque(maxlen=RATE_LIMIT_REQUESTS_PER_MINUTE)
+        self._last_request_time: float = 0
+        self._rate_limit_backoff: float = 0
+        self._rate_limit_until: float = 0
+        self._request_lock = asyncio.Lock()
 
     async def __aenter__(self):
         """Async context manager entry."""
@@ -142,14 +156,64 @@ class TuyaCloudClient:
             self.session = aiohttp.ClientSession()
             self._own_session = True
 
+    async def _wait_for_rate_limit(self) -> None:
+        """Wait if necessary to respect rate limits."""
+        async with self._request_lock:
+            current_time = time.time()
+
+            # Check backoff period
+            if current_time < self._rate_limit_until:
+                wait_time = self._rate_limit_until - current_time
+                _LOGGER.warning(f"Rate limit backoff active, waiting {wait_time:.1f}s")
+                await asyncio.sleep(wait_time)
+                current_time = time.time()
+
+            # Enforce minimum interval
+            time_since_last = current_time - self._last_request_time
+            if time_since_last < RATE_LIMIT_MIN_INTERVAL:
+                await asyncio.sleep(RATE_LIMIT_MIN_INTERVAL - time_since_last)
+                current_time = time.time()
+
+            # Sliding window check
+            window_start = current_time - 60
+            while self._request_times and self._request_times[0] < window_start:
+                self._request_times.popleft()
+
+            if len(self._request_times) >= RATE_LIMIT_REQUESTS_PER_MINUTE:
+                oldest = self._request_times[0]
+                wait_time = oldest + 60 - current_time + 0.1
+                if wait_time > 0:
+                    _LOGGER.debug(f"Rate limit reached, waiting {wait_time:.1f}s")
+                    await asyncio.sleep(wait_time)
+                    current_time = time.time()
+
+            self._request_times.append(current_time)
+            self._last_request_time = current_time
+
+    def _handle_rate_limit_error(self) -> None:
+        """Handle rate limit error with exponential backoff."""
+        if self._rate_limit_backoff == 0:
+            self._rate_limit_backoff = RATE_LIMIT_BACKOFF_BASE
+        else:
+            self._rate_limit_backoff = min(self._rate_limit_backoff * 2, RATE_LIMIT_BACKOFF_MAX)
+        self._rate_limit_until = time.time() + self._rate_limit_backoff
+        _LOGGER.warning(f"Rate limit hit! Backing off for {self._rate_limit_backoff}s")
+
+    def _reset_rate_limit_backoff(self) -> None:
+        """Reset backoff after successful request."""
+        if self._rate_limit_backoff > 0:
+            self._rate_limit_backoff = 0
+            _LOGGER.debug("Rate limit backoff reset")
+
     async def _make_request(
         self,
         method: str,
         path: str,
         data: dict[str, Any] | None = None
     ) -> dict[str, Any]:
-        """Make authenticated request to Tuya API."""
+        """Make authenticated request to Tuya API with rate limiting."""
         await self._ensure_session()
+        await self._wait_for_rate_limit()
 
         url = f"{self.endpoint}{path}"
         body = json.dumps(data) if data else ""
@@ -181,6 +245,7 @@ class TuyaCloudClient:
                             error_code
                         )
                     elif error_code == 1011:
+                        self._handle_rate_limit_error()
                         raise TuyaRateLimitError(error_msg)
                     elif error_code == 1004:
                         raise TuyaAuthenticationError(
@@ -193,6 +258,8 @@ class TuyaCloudClient:
                     else:
                         raise TuyaAPIError(f"{error_msg} (Code: {error_code})", error_code)
 
+                # Success - reset rate limit backoff
+                self._reset_rate_limit_backoff()
                 return response_data
 
         except aiohttp.ClientError as err:
