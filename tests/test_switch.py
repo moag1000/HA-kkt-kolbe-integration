@@ -53,7 +53,8 @@ async def test_switch_setup_entry(
 
     entities = []
 
-    async def mock_add_entities(new_entities):
+    def mock_add_entities(new_entities):
+        """Sync mock for AddEntitiesCallback."""
         entities.extend(new_entities)
 
     from custom_components.kkt_kolbe.switch import async_setup_entry

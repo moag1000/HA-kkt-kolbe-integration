@@ -62,7 +62,8 @@ async def test_binary_sensor_setup_entry(
 
     entities = []
 
-    async def mock_add_entities(new_entities):
+    def mock_add_entities(new_entities):
+        """Sync mock for AddEntitiesCallback."""
         entities.extend(new_entities)
 
     from custom_components.kkt_kolbe.binary_sensor import async_setup_entry

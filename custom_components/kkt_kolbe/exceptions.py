@@ -5,6 +5,8 @@ from typing import Any
 
 from homeassistant.exceptions import HomeAssistantError
 
+from .const import DOMAIN
+
 
 class KKTKolbeError(HomeAssistantError):
     """Base exception for KKT Kolbe integration with translation support."""
@@ -16,14 +18,17 @@ class KKTKolbeError(HomeAssistantError):
         message: str | None = None,
     ) -> None:
         """Initialize with translation support."""
-        self.translation_key = translation_key
-        self.translation_placeholders = translation_placeholders or {}
-
         # Fallback message if translation not available
         if message is None:
             message = f"KKT Kolbe error: {translation_key}"
 
-        super().__init__(message)
+        # Pass translation params to HomeAssistantError
+        super().__init__(
+            message,
+            translation_domain=DOMAIN,
+            translation_key=translation_key,
+            translation_placeholders=translation_placeholders or {},
+        )
 
 
 class KKTConnectionError(KKTKolbeError):

@@ -9,15 +9,31 @@ from datetime import datetime
 import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.kkt_kolbe.const import DOMAIN
+# Import config_flow to ensure it's registered
+import custom_components.kkt_kolbe.config_flow  # noqa: F401
 
 
 @pytest.fixture(autouse=True)
 def auto_enable_custom_integrations(enable_custom_integrations):
     """Enable custom integrations for all tests."""
     yield
+
+
+@pytest.fixture(autouse=True)
+async def mock_integration_deps(hass: HomeAssistant):
+    """Mock integration dependencies to avoid setup issues in tests."""
+    # Mark zeroconf as already processed to skip setup
+    from homeassistant.setup import _DATA_DEPS_REQS
+    if _DATA_DEPS_REQS not in hass.data:
+        hass.data[_DATA_DEPS_REQS] = set()
+    hass.data[_DATA_DEPS_REQS].add("zeroconf")
+
+    # Also mark kkt_kolbe as processed to avoid dependency issues
+    hass.data[_DATA_DEPS_REQS].add("kkt_kolbe")
 
 
 @pytest.fixture

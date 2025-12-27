@@ -61,7 +61,7 @@ async def test_sensor_setup_entry(
 
     entities = []
 
-    async def mock_add_entities(new_entities):
+    def mock_add_entities(new_entities):
         entities.extend(new_entities)
 
     from custom_components.kkt_kolbe.sensor import async_setup_entry
@@ -112,7 +112,7 @@ async def test_sensor_unit_of_measurement(
     config = {
         "dp": 6,
         "name": "Filter Days",
-        "unit": "days",
+        "unit_of_measurement": "days",
     }
 
     sensor = KKTKolbeSensor(

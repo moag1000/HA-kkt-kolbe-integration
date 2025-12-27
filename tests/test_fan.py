@@ -61,7 +61,7 @@ async def test_fan_setup_entry(
 
     entities = []
 
-    async def mock_add_entities(new_entities):
+    def mock_add_entities(new_entities):
         entities.extend(new_entities)
 
     from custom_components.kkt_kolbe.fan import async_setup_entry
@@ -85,9 +85,8 @@ async def test_fan_is_on(
 
     config = {
         "name": "Range Hood Fan",
-        "power_dp": 1,
-        "speed_dp": 10,
-        "speed_list": ["off", "1", "2", "3", "4"],
+        "dp": 10,
+        "speeds": ["off", "1", "2", "3", "4"],
     }
 
     fan = KKTKolbeFan(
@@ -96,7 +95,7 @@ async def test_fan_is_on(
         config,
     )
 
-    # Power DP 1 is True in mock_runtime_data
+    # DP 10 has value "3" which is not "off", so fan should be on
     assert fan.is_on is True
 
 
@@ -113,9 +112,8 @@ async def test_fan_turn_on(
 
     config = {
         "name": "Range Hood Fan",
-        "power_dp": 1,
-        "speed_dp": 10,
-        "speed_list": ["off", "1", "2", "3", "4"],
+        "dp": 10,
+        "speeds": ["off", "1", "2", "3", "4"],
     }
 
     fan = KKTKolbeFan(
@@ -142,9 +140,8 @@ async def test_fan_turn_off(
 
     config = {
         "name": "Range Hood Fan",
-        "power_dp": 1,
-        "speed_dp": 10,
-        "speed_list": ["off", "1", "2", "3", "4"],
+        "dp": 10,
+        "speeds": ["off", "1", "2", "3", "4"],
     }
 
     fan = KKTKolbeFan(
@@ -171,9 +168,8 @@ async def test_fan_set_percentage(
 
     config = {
         "name": "Range Hood Fan",
-        "power_dp": 1,
-        "speed_dp": 10,
-        "speed_list": ["off", "1", "2", "3", "4"],
+        "dp": 10,
+        "speeds": ["off", "1", "2", "3", "4"],
     }
 
     fan = KKTKolbeFan(
@@ -201,9 +197,8 @@ async def test_fan_percentage(
 
     config = {
         "name": "Range Hood Fan",
-        "power_dp": 1,
-        "speed_dp": 10,
-        "speed_list": ["off", "1", "2", "3", "4"],
+        "dp": 10,
+        "speeds": ["off", "1", "2", "3", "4"],
     }
 
     fan = KKTKolbeFan(
@@ -231,9 +226,8 @@ async def test_fan_speed_count(
 
     config = {
         "name": "Range Hood Fan",
-        "power_dp": 1,
-        "speed_dp": 10,
-        "speed_list": ["off", "1", "2", "3", "4"],
+        "dp": 10,
+        "speeds": ["off", "1", "2", "3", "4"],
     }
 
     fan = KKTKolbeFan(
@@ -259,9 +253,8 @@ async def test_fan_supported_features(
 
     config = {
         "name": "Range Hood Fan",
-        "power_dp": 1,
-        "speed_dp": 10,
-        "speed_list": ["off", "1", "2", "3", "4"],
+        "dp": 10,
+        "speeds": ["off", "1", "2", "3", "4"],
     }
 
     fan = KKTKolbeFan(
@@ -287,9 +280,8 @@ async def test_fan_unique_id(
 
     config = {
         "name": "Range Hood Fan",
-        "power_dp": 1,
-        "speed_dp": 10,
-        "speed_list": ["off", "1", "2", "3", "4"],
+        "dp": 10,
+        "speeds": ["off", "1", "2", "3", "4"],
     }
 
     fan = KKTKolbeFan(

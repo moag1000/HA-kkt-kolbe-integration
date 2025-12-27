@@ -50,6 +50,7 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
         super().__init__(
             hass,
             _LOGGER,
+            config_entry=entry,
             name=f"KKT Kolbe {device_id[:8]} Hybrid",
             update_interval=update_interval,
         )
