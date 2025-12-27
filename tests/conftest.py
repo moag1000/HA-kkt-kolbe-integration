@@ -4,6 +4,7 @@ from __future__ import annotations
 from collections.abc import Generator
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import datetime
 
 import pytest
 from homeassistant.core import HomeAssistant
@@ -11,6 +12,12 @@ from homeassistant.config_entries import ConfigEntry
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.kkt_kolbe.const import DOMAIN
+
+
+@pytest.fixture(autouse=True)
+def auto_enable_custom_integrations(enable_custom_integrations):
+    """Enable custom integrations for all tests."""
+    yield
 
 
 @pytest.fixture

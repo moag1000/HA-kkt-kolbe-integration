@@ -64,6 +64,9 @@ async def test_stale_device_tracker_start(hass: HomeAssistant) -> None:
 
     assert tracker._cleanup_task is not None
 
+    # Clean up
+    await tracker.async_stop()
+
 
 @pytest.mark.asyncio
 async def test_stale_device_tracker_stop(hass: HomeAssistant) -> None:
@@ -100,11 +103,15 @@ async def test_is_device_stale_available_entity(
     state = MagicMock()
     state.state = "on"
     state.last_updated = datetime.now()
-    hass.states._states = {entity.entity_id: state}
+
+    # Setup hass.states mock
+    hass.states.get = MagicMock(return_value=state)
 
     tracker = StaleDeviceTracker(hass)
 
-    is_stale = await tracker._is_device_stale(device, entity_reg)
+    with patch('custom_components.kkt_kolbe.device_tracker.er') as mock_er:
+        mock_er.async_entries_for_device = MagicMock(return_value=[entity])
+        is_stale = await tracker._is_device_stale(device, entity_reg)
 
     assert is_stale is False
 
@@ -138,7 +145,9 @@ async def test_is_device_stale_unavailable_entity(
 
     tracker = StaleDeviceTracker(hass)
 
-    is_stale = await tracker._is_device_stale(device, entity_reg)
+    with patch('custom_components.kkt_kolbe.device_tracker.er') as mock_er:
+        mock_er.async_entries_for_device = MagicMock(return_value=[entity])
+        is_stale = await tracker._is_device_stale(device, entity_reg)
 
     # Should be stale (unavailable for 35 days > 30 day threshold)
     assert is_stale is True
@@ -160,7 +169,9 @@ async def test_is_device_stale_no_entities(
 
     tracker = StaleDeviceTracker(hass)
 
-    is_stale = await tracker._is_device_stale(device, entity_reg)
+    with patch('custom_components.kkt_kolbe.device_tracker.er') as mock_er:
+        mock_er.async_entries_for_device = MagicMock(return_value=[])
+        is_stale = await tracker._is_device_stale(device, entity_reg)
 
     # Old device with no entities should be stale
     assert is_stale is True
@@ -182,7 +193,9 @@ async def test_is_device_stale_new_device(
 
     tracker = StaleDeviceTracker(hass)
 
-    is_stale = await tracker._is_device_stale(device, entity_reg)
+    with patch('custom_components.kkt_kolbe.device_tracker.er') as mock_er:
+        mock_er.async_entries_for_device = MagicMock(return_value=[])
+        is_stale = await tracker._is_device_stale(device, entity_reg)
 
     # New device should not be stale yet
     assert is_stale is False
@@ -225,7 +238,7 @@ async def test_cleanup_stale_devices(
 
     tracker = StaleDeviceTracker(hass)
 
-    with patch.object(tracker, '_is_device_stale', return_value=True):
+    with patch.object(tracker, '_is_device_stale', new_callable=AsyncMock, return_value=True):
         with patch('custom_components.kkt_kolbe.device_tracker.dr') as mock_dr:
             with patch('custom_components.kkt_kolbe.device_tracker.er') as mock_er:
                 mock_dr.async_get = MagicMock(return_value=device_reg)

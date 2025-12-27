@@ -21,8 +21,8 @@ def mock_device():
     device.is_connected = True
     device.async_connect = AsyncMock(return_value=True)
     device.async_disconnect = AsyncMock()
-    device.async_status = AsyncMock(return_value={"dps": {"1": True, "4": False}})
-    device.async_set = AsyncMock()
+    device.async_get_status = AsyncMock(return_value={"1": True, "4": False})
+    device.async_set_dp = AsyncMock()
     return device
 
 
@@ -30,14 +30,17 @@ def mock_device():
 async def test_coordinator_initialization(
     hass: HomeAssistant,
     mock_device,
+    mock_config_entry,
 ) -> None:
     """Test coordinator initialization."""
-    from custom_components.kkt_kolbe.coordinator import KKTKolbeDataUpdateCoordinator
+    from custom_components.kkt_kolbe.coordinator import KKTKolbeUpdateCoordinator
 
-    coordinator = KKTKolbeDataUpdateCoordinator(
+    mock_config_entry.add_to_hass(hass)
+
+    coordinator = KKTKolbeUpdateCoordinator(
         hass=hass,
+        entry=mock_config_entry,
         device=mock_device,
-        update_interval=timedelta(seconds=30),
     )
 
     assert coordinator.device == mock_device
@@ -48,36 +51,41 @@ async def test_coordinator_initialization(
 async def test_coordinator_first_refresh(
     hass: HomeAssistant,
     mock_device,
+    mock_config_entry,
 ) -> None:
     """Test coordinator first refresh."""
-    from custom_components.kkt_kolbe.coordinator import KKTKolbeDataUpdateCoordinator
+    from custom_components.kkt_kolbe.coordinator import KKTKolbeUpdateCoordinator
 
-    coordinator = KKTKolbeDataUpdateCoordinator(
+    mock_config_entry.add_to_hass(hass)
+
+    coordinator = KKTKolbeUpdateCoordinator(
         hass=hass,
+        entry=mock_config_entry,
         device=mock_device,
-        update_interval=timedelta(seconds=30),
     )
 
     await coordinator.async_config_entry_first_refresh()
 
     # Device should have been polled
-    mock_device.async_status.assert_called()
+    mock_device.async_get_status.assert_called()
 
 
 @pytest.mark.asyncio
 async def test_coordinator_data_update(
     hass: HomeAssistant,
     mock_device,
+    mock_config_entry,
 ) -> None:
     """Test coordinator data update."""
-    from custom_components.kkt_kolbe.coordinator import KKTKolbeDataUpdateCoordinator
+    from custom_components.kkt_kolbe.coordinator import KKTKolbeUpdateCoordinator
 
-    mock_device.async_status.return_value = {"dps": {"1": True, "4": True, "10": 3}}
+    mock_device.async_get_status.return_value = {"1": True, "4": True, "10": 3}
+    mock_config_entry.add_to_hass(hass)
 
-    coordinator = KKTKolbeDataUpdateCoordinator(
+    coordinator = KKTKolbeUpdateCoordinator(
         hass=hass,
+        entry=mock_config_entry,
         device=mock_device,
-        update_interval=timedelta(seconds=30),
     )
 
     await coordinator.async_config_entry_first_refresh()
@@ -91,36 +99,41 @@ async def test_coordinator_data_update(
 async def test_coordinator_set_data_point(
     hass: HomeAssistant,
     mock_device,
+    mock_config_entry,
 ) -> None:
     """Test coordinator set_data_point method."""
-    from custom_components.kkt_kolbe.coordinator import KKTKolbeDataUpdateCoordinator
+    from custom_components.kkt_kolbe.coordinator import KKTKolbeUpdateCoordinator
 
-    coordinator = KKTKolbeDataUpdateCoordinator(
+    mock_config_entry.add_to_hass(hass)
+
+    coordinator = KKTKolbeUpdateCoordinator(
         hass=hass,
+        entry=mock_config_entry,
         device=mock_device,
-        update_interval=timedelta(seconds=30),
     )
 
     await coordinator.async_set_data_point(1, True)
 
-    mock_device.async_set.assert_called()
+    mock_device.async_set_dp.assert_called()
 
 
 @pytest.mark.asyncio
 async def test_coordinator_connection_failure(
     hass: HomeAssistant,
     mock_device,
+    mock_config_entry,
 ) -> None:
     """Test coordinator handles connection failure."""
-    from custom_components.kkt_kolbe.coordinator import KKTKolbeDataUpdateCoordinator
+    from custom_components.kkt_kolbe.coordinator import KKTKolbeUpdateCoordinator
 
-    mock_device.async_status.side_effect = Exception("Connection refused")
+    mock_device.async_get_status.side_effect = Exception("Connection refused")
     mock_device.is_connected = False
+    mock_config_entry.add_to_hass(hass)
 
-    coordinator = KKTKolbeDataUpdateCoordinator(
+    coordinator = KKTKolbeUpdateCoordinator(
         hass=hass,
+        entry=mock_config_entry,
         device=mock_device,
-        update_interval=timedelta(seconds=30),
     )
 
     with pytest.raises(UpdateFailed):
@@ -131,21 +144,23 @@ async def test_coordinator_connection_failure(
 async def test_coordinator_reconnect_on_failure(
     hass: HomeAssistant,
     mock_device,
+    mock_config_entry,
 ) -> None:
     """Test coordinator attempts reconnection on failure."""
-    from custom_components.kkt_kolbe.coordinator import KKTKolbeDataUpdateCoordinator
+    from custom_components.kkt_kolbe.coordinator import KKTKolbeUpdateCoordinator
 
     # First call fails, second succeeds
-    mock_device.async_status.side_effect = [
+    mock_device.async_get_status.side_effect = [
         Exception("Connection lost"),
-        {"dps": {"1": True}},
+        {"1": True},
     ]
     mock_device.is_connected = False
+    mock_config_entry.add_to_hass(hass)
 
-    coordinator = KKTKolbeDataUpdateCoordinator(
+    coordinator = KKTKolbeUpdateCoordinator(
         hass=hass,
+        entry=mock_config_entry,
         device=mock_device,
-        update_interval=timedelta(seconds=30),
     )
 
     # First update should fail
@@ -157,21 +172,25 @@ async def test_coordinator_reconnect_on_failure(
 async def test_hybrid_coordinator_initialization(
     hass: HomeAssistant,
     mock_device,
+    mock_config_entry,
 ) -> None:
     """Test hybrid coordinator initialization."""
-    from custom_components.kkt_kolbe.hybrid_coordinator import HybridCoordinator
+    from custom_components.kkt_kolbe.hybrid_coordinator import KKTKolbeHybridCoordinator
 
     mock_api_client = MagicMock()
     mock_api_client.is_authenticated = True
+    mock_config_entry.add_to_hass(hass)
 
-    coordinator = HybridCoordinator(
+    coordinator = KKTKolbeHybridCoordinator(
         hass=hass,
-        device=mock_device,
+        device_id=mock_device.device_id,
+        local_device=mock_device,
         api_client=mock_api_client,
         update_interval=timedelta(seconds=30),
+        entry=mock_config_entry,
     )
 
-    assert coordinator.device == mock_device
+    assert coordinator.local_device == mock_device
     assert coordinator.api_client == mock_api_client
 
 
@@ -179,52 +198,60 @@ async def test_hybrid_coordinator_initialization(
 async def test_hybrid_coordinator_local_first(
     hass: HomeAssistant,
     mock_device,
+    mock_config_entry,
 ) -> None:
     """Test hybrid coordinator tries local first."""
-    from custom_components.kkt_kolbe.hybrid_coordinator import HybridCoordinator
+    from custom_components.kkt_kolbe.hybrid_coordinator import KKTKolbeHybridCoordinator
 
     mock_api_client = MagicMock()
     mock_api_client.is_authenticated = True
     mock_api_client.async_get_device_status = AsyncMock()
 
-    mock_device.async_status.return_value = {"dps": {"1": True}}
+    mock_device.async_get_status.return_value = {"1": True}
     mock_device.is_connected = True
+    mock_config_entry.add_to_hass(hass)
 
-    coordinator = HybridCoordinator(
+    coordinator = KKTKolbeHybridCoordinator(
         hass=hass,
-        device=mock_device,
+        device_id=mock_device.device_id,
+        local_device=mock_device,
         api_client=mock_api_client,
         update_interval=timedelta(seconds=30),
+        entry=mock_config_entry,
     )
 
     await coordinator.async_config_entry_first_refresh()
 
     # Local should be tried first
-    mock_device.async_status.assert_called()
+    mock_device.async_get_status.assert_called()
 
 
 @pytest.mark.asyncio
 async def test_hybrid_coordinator_api_fallback(
     hass: HomeAssistant,
     mock_device,
+    mock_config_entry,
 ) -> None:
     """Test hybrid coordinator falls back to API on local failure."""
-    from custom_components.kkt_kolbe.hybrid_coordinator import HybridCoordinator
+    from custom_components.kkt_kolbe.hybrid_coordinator import KKTKolbeHybridCoordinator
 
     mock_api_client = MagicMock()
     mock_api_client.is_authenticated = True
-    mock_api_client.async_get_device_status = AsyncMock(
-        return_value={"result": {"dps": {"1": True}}}
+    mock_api_client.get_device_status = AsyncMock(
+        return_value=[{"code": "switch", "value": True}]
     )
 
-    mock_device.async_status.side_effect = Exception("Local connection failed")
+    mock_device.async_get_status.side_effect = Exception("Local connection failed")
     mock_device.is_connected = False
+    mock_config_entry.add_to_hass(hass)
 
-    coordinator = HybridCoordinator(
+    coordinator = KKTKolbeHybridCoordinator(
         hass=hass,
-        device=mock_device,
+        device_id=mock_device.device_id,
+        local_device=mock_device,
         api_client=mock_api_client,
         update_interval=timedelta(seconds=30),
+        entry=mock_config_entry,
     )
 
     # Should try API after local fails
@@ -235,3 +262,25 @@ async def test_hybrid_coordinator_api_fallback(
 
     # API fallback should have been attempted
     # (exact behavior depends on implementation)
+
+
+@pytest.mark.asyncio
+async def test_coordinator_alias() -> None:
+    """Test that backwards compatibility alias exists."""
+    from custom_components.kkt_kolbe.coordinator import (
+        KKTKolbeUpdateCoordinator,
+        KKTKolbeDataUpdateCoordinator,
+    )
+
+    assert KKTKolbeDataUpdateCoordinator is KKTKolbeUpdateCoordinator
+
+
+@pytest.mark.asyncio
+async def test_hybrid_coordinator_alias() -> None:
+    """Test that backwards compatibility alias exists for hybrid coordinator."""
+    from custom_components.kkt_kolbe.hybrid_coordinator import (
+        KKTKolbeHybridCoordinator,
+        HybridCoordinator,
+    )
+
+    assert HybridCoordinator is KKTKolbeHybridCoordinator
