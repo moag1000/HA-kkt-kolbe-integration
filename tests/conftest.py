@@ -38,17 +38,29 @@ def mock_zeroconf_setup():
 
 
 @pytest.fixture(autouse=True)
-def mock_device_tracker():
-    """Mock device tracker to avoid lingering timer issues in tests."""
-    with patch(
-        "custom_components.kkt_kolbe.device_tracker.async_start_tracker",
-        new_callable=AsyncMock,
-    ):
+def mock_device_tracker_and_discovery():
+    """Mock device tracker and discovery to avoid timer and socket issues in tests."""
+    # Reset the global tracker instance before each test
+    import custom_components.kkt_kolbe.device_tracker as dt
+    dt._tracker_instance = None
+
+    # Mock the StaleDeviceTracker class itself to prevent timer creation
+    mock_tracker = MagicMock()
+    mock_tracker.async_start = AsyncMock()
+    mock_tracker.async_stop = AsyncMock()
+
+    with patch.object(dt, "StaleDeviceTracker", return_value=mock_tracker):
         with patch(
-            "custom_components.kkt_kolbe.device_tracker.async_stop_tracker",
+            "custom_components.kkt_kolbe.discovery.async_start_discovery",
             new_callable=AsyncMock,
         ):
-            yield
+            with patch(
+                "custom_components.kkt_kolbe.discovery.async_stop_discovery",
+                new_callable=AsyncMock,
+            ):
+                yield
+                # Reset after test
+                dt._tracker_instance = None
 
 
 @pytest.fixture
