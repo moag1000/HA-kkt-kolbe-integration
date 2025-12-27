@@ -109,7 +109,44 @@ async def test_config_flow_abort_already_configured(
         },
     )
 
-    # Should abort as already configured
+    # After manual step, we go to authentication step
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "authentication"
+
+    # Provide the local key
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={
+            "local_key": "1234567890abcdef",
+            "test_connection": False,  # Skip connection test
+        },
+    )
+
+    # After authentication, we go to settings step
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "settings"
+
+    # Fill settings form
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={
+            "update_interval": 30,
+            "enable_debug_logging": False,
+            "enable_advanced_entities": True,
+        },
+    )
+
+    # After settings, we go to confirmation step
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "confirmation"
+
+    # Confirm - this is where the abort should happen
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={"confirm": True},
+    )
+
+    # Now we should get abort as already configured
     assert result["type"] == FlowResultType.ABORT
     assert result["reason"] == "already_configured"
 

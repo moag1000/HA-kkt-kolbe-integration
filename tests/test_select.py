@@ -52,7 +52,7 @@ async def test_select_setup_entry(
 
     entities = []
 
-    async def mock_add_entities(new_entities):
+    def mock_add_entities(new_entities):
         entities.extend(new_entities)
 
     from custom_components.kkt_kolbe.select import async_setup_entry

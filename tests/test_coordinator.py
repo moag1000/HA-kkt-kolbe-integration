@@ -64,7 +64,8 @@ async def test_coordinator_first_refresh(
         device=mock_device,
     )
 
-    await coordinator.async_config_entry_first_refresh()
+    # Use async_refresh for tests (async_config_entry_first_refresh requires setup in progress)
+    await coordinator.async_refresh()
 
     # Device should have been polled
     mock_device.async_get_status.assert_called()
@@ -88,7 +89,7 @@ async def test_coordinator_data_update(
         device=mock_device,
     )
 
-    await coordinator.async_config_entry_first_refresh()
+    await coordinator.async_refresh()
 
     # Data should be updated
     assert coordinator.data is not None
@@ -220,7 +221,7 @@ async def test_hybrid_coordinator_local_first(
         entry=mock_config_entry,
     )
 
-    await coordinator.async_config_entry_first_refresh()
+    await coordinator.async_refresh()
 
     # Local should be tried first
     mock_device.async_get_status.assert_called()

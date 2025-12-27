@@ -54,7 +54,7 @@ async def test_number_setup_entry(
 
     entities = []
 
-    async def mock_add_entities(new_entities):
+    def mock_add_entities(new_entities):
         entities.extend(new_entities)
 
     from custom_components.kkt_kolbe.number import async_setup_entry
@@ -167,8 +167,8 @@ async def test_number_display_precision(
         config,
     )
 
-    # Timer should have no decimals
-    assert number.suggested_display_precision == 0
+    # Timer should have no decimals (access internal attribute for unit tests)
+    assert number._attr_suggested_display_precision == 0
 
 
 @pytest.mark.asyncio
