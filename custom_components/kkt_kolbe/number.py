@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING
+from typing import Any
 
 from homeassistant.components.number import NumberEntity
 from homeassistant.config_entries import ConfigEntry
@@ -10,9 +11,12 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .base_entity import KKTBaseEntity, KKTZoneBaseEntity
+from .base_entity import KKTBaseEntity
+from .base_entity import KKTZoneBaseEntity
+from .bitfield_utils import BITFIELD_CONFIG
+from .bitfield_utils import get_zone_value_from_coordinator
+from .bitfield_utils import set_zone_value_in_coordinator
 from .device_types import get_device_entities
-from .bitfield_utils import get_zone_value_from_coordinator, set_zone_value_in_coordinator, BITFIELD_CONFIG
 
 if TYPE_CHECKING:
     from . import KKTKolbeConfigEntry

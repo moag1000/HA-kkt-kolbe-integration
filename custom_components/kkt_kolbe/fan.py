@@ -12,20 +12,21 @@ from __future__ import annotations
 
 import logging
 import math
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING
+from typing import Any
 
-from homeassistant.components.fan import FanEntity, FanEntityFeature
+from homeassistant.components.fan import FanEntity
+from homeassistant.components.fan import FanEntityFeature
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
+from homeassistant.core import callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-from homeassistant.util.percentage import (
-    ordered_list_item_to_percentage,
-    percentage_to_ordered_list_item,
-)
+from homeassistant.util.percentage import ordered_list_item_to_percentage
+from homeassistant.util.percentage import percentage_to_ordered_list_item
 
 from .base_entity import KKTBaseEntity
-from .device_types import get_device_entities, get_device_entity_config
+from .device_types import get_device_entity_config
 
 if TYPE_CHECKING:
     from . import KKTKolbeConfigEntry

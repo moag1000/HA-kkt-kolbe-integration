@@ -8,7 +8,8 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 
 from .api_manager import GlobalAPIManager
-from .discovery import get_discovered_devices, async_start_discovery
+from .discovery import async_start_discovery
+from .discovery import get_discovered_devices
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -120,7 +121,8 @@ class SmartDiscovery:
 
             # Use device_id pattern matching to identify device
             if device_id:
-                from .device_types import KNOWN_DEVICES, find_device_by_device_id
+                from .device_types import KNOWN_DEVICES
+                from .device_types import find_device_by_device_id
                 detected_info = find_device_by_device_id(device_id)
                 if detected_info:
                     friendly_type = detected_info.get("name")
@@ -210,7 +212,7 @@ class SmartDiscovery:
             api_devices = await self._api_manager.get_kkt_devices_from_api()
 
             # Create lookup by device_id
-            api_lookup = {d.get("id", ""): d for d in api_devices}
+            {d.get("id", ""): d for d in api_devices}
 
             # Also add any API-only devices not found locally
             for api_device in api_devices:
@@ -280,7 +282,9 @@ class SmartDiscovery:
         Returns:
             Tuple of (device_type, product_name, friendly_type)
         """
-        from .device_types import KNOWN_DEVICES, find_device_by_product_name, find_device_by_device_id
+        from .device_types import KNOWN_DEVICES
+        from .device_types import find_device_by_device_id
+        from .device_types import find_device_by_product_name
 
         tuya_category = api_device.get("category", "").lower()
         api_product_name = api_device.get("product_name", "Unknown Device")

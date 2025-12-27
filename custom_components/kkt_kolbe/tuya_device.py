@@ -5,26 +5,21 @@ import asyncio
 import logging
 import random
 import socket
-from typing import Any, Callable, Coroutine, Optional
+from typing import Any
+from typing import Callable
+from typing import Coroutine
 
 import tinytuya
 from homeassistant.core import HomeAssistant
 
-from .exceptions import (
-    KKTConnectionError,
-    KKTTimeoutError,
-    KKTDataPointError,
-    KKTAuthenticationError
-)
-from .const import (
-    DEFAULT_CONNECTION_TIMEOUT,
-    DEFAULT_STATUS_TIMEOUT,
-    DEFAULT_SET_DP_TIMEOUT,
-    DEFAULT_PROTOCOL_TIMEOUT,
-    TCP_KEEPALIVE_IDLE,
-    TCP_KEEPALIVE_INTERVAL,
-    TCP_KEEPALIVE_COUNT,
-)
+from .const import DEFAULT_CONNECTION_TIMEOUT
+from .const import TCP_KEEPALIVE_COUNT
+from .const import TCP_KEEPALIVE_IDLE
+from .const import TCP_KEEPALIVE_INTERVAL
+from .exceptions import KKTAuthenticationError
+from .exceptions import KKTConnectionError
+from .exceptions import KKTDataPointError
+from .exceptions import KKTTimeoutError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -86,7 +81,6 @@ class KKTKolbeTuyaDevice:
         max_retries = 2  # Reduced from 3 to speed up failure detection
         base_retry_delay = 3.0  # Base delay for retry
 
-        last_exception = None
 
         # Quick pre-check before full protocol detection
         is_reachable = await self.async_quick_check(timeout=2.0)
@@ -136,8 +130,7 @@ class KKTKolbeTuyaDevice:
                 _LOGGER.warning(f"Connection attempt cancelled for device at {self.ip_address}")
                 raise  # Always re-raise CancelledError
 
-            except asyncio.TimeoutError as e:
-                last_exception = e
+            except asyncio.TimeoutError:
                 self._connected = False
                 self._device = None
                 self._connection_stats["total_timeouts"] += 1
@@ -164,7 +157,6 @@ class KKTKolbeTuyaDevice:
 
             except (KKTConnectionError, KKTTimeoutError) as e:
                 # Re-raise our custom exceptions immediately without retry
-                last_exception = e
                 self._connected = False
                 self._device = None
                 _LOGGER.error(
@@ -178,7 +170,6 @@ class KKTKolbeTuyaDevice:
                 raise
 
             except Exception as e:
-                last_exception = e
                 self._connected = False
                 self._device = None
                 if attempt == max_retries - 1:

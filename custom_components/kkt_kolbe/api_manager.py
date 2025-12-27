@@ -2,12 +2,13 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 
-from .const import GLOBAL_API_STORAGE_KEY, DEFAULT_API_ENDPOINT, DOMAIN
+from .const import DEFAULT_API_ENDPOINT
+from .const import DOMAIN
+from .const import GLOBAL_API_STORAGE_KEY
 
 _LOGGER = logging.getLogger(__name__)
 

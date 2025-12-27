@@ -25,11 +25,9 @@ def detect_device_type_from_api(device: dict[str, Any]) -> tuple[str, str]:
         - device_type: Internal device key for entity lookup
         - internal_product_name: Product name for matching in KNOWN_DEVICES
     """
-    from ..device_types import (
-        find_device_by_product_name,
-        find_device_by_device_id,
-        KNOWN_DEVICES,
-    )
+    from ..device_types import KNOWN_DEVICES
+    from ..device_types import find_device_by_device_id
+    from ..device_types import find_device_by_product_name
 
     tuya_category = device.get("category", "").lower()
     api_product_name = device.get("product_name", "Unknown Device")
@@ -152,7 +150,9 @@ def get_device_type_options() -> list[dict[str, str]]:
     Returns:
         List of dicts with 'value' and 'label' keys for selector options.
     """
-    from ..device_types import KNOWN_DEVICES, CATEGORY_HOOD, CATEGORY_COOKTOP
+    from ..device_types import CATEGORY_COOKTOP
+    from ..device_types import CATEGORY_HOOD
+    from ..device_types import KNOWN_DEVICES
 
     options: list[dict[str, str]] = []
     hoods: list[dict[str, str]] = []

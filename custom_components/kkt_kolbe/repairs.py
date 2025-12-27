@@ -5,19 +5,13 @@ import logging
 from typing import Any
 
 import voluptuous as vol
-
 from homeassistant import data_entry_flow
 from homeassistant.components.repairs import RepairsFlow
-from homeassistant.const import CONF_DEVICE_ID, CONF_HOST
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
 
-from .const import (
-    CONF_API_CLIENT_ID,
-    CONF_API_CLIENT_SECRET,
-    CONF_API_ENDPOINT,
-    DOMAIN,
-)
+from .const import CONF_API_ENDPOINT
+from .const import DOMAIN
 
 # Home Assistant doesn't have CONF_LOCAL_KEY in const, so we define it here
 CONF_LOCAL_KEY = "local_key"

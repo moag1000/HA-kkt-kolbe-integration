@@ -4,7 +4,8 @@ from __future__ import annotations
 from typing import Any
 
 import voluptuous as vol
-from homeassistant.const import CONF_IP_ADDRESS, CONF_SCAN_INTERVAL
+from homeassistant.const import CONF_IP_ADDRESS
+from homeassistant.const import CONF_SCAN_INTERVAL
 from homeassistant.helpers import selector
 
 # Import get_device_type_options from device_detection to avoid duplication

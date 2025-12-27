@@ -4,28 +4,28 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
+from typing import Any
 
-from homeassistant.config_entries import ConfigEntry, ConfigEntryNotReady
+import homeassistant.helpers.config_validation as cv
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigEntryNotReady
+from homeassistant.const import CONF_ACCESS_TOKEN
+from homeassistant.const import CONF_DEVICE_ID
+from homeassistant.const import CONF_IP_ADDRESS
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.const import (
-    Platform,
-    CONF_HOST,
-    CONF_IP_ADDRESS,
-    CONF_DEVICE_ID,
-    CONF_ACCESS_TOKEN,
-)
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers import issue_registry as ir
-import homeassistant.helpers.config_validation as cv
 
-from .const import DOMAIN, CONF_API_ENDPOINT
+from .const import CONF_API_ENDPOINT
+from .const import DOMAIN
 
 if TYPE_CHECKING:
+    from .api import TuyaCloudClient
     from .coordinator import KKTKolbeUpdateCoordinator
     from .hybrid_coordinator import KKTKolbeHybridCoordinator
     from .tuya_device import KKTKolbeTuyaDevice
-    from .api import TuyaCloudClient
 
 # This integration is config entry only - no YAML configuration
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
@@ -156,7 +156,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: KKTKolbeConfigEntry) -> 
 
     # Test connection to validate credentials early
     # For hybrid/API mode, allow setup even if local connection fails initially
-    from .exceptions import KKTConnectionError, KKTTimeoutError, KKTAuthenticationError
+    from .exceptions import KKTAuthenticationError
+    from .exceptions import KKTConnectionError
+    from .exceptions import KKTTimeoutError
 
     connection_successful = False
     local_connection_failed = False
@@ -332,7 +334,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: KKTKolbeConfigEntry) -> 
 
     # Determine device type and platforms
     # Priority: device_type (KNOWN_DEVICES key) > product_name (Tuya product ID)
-    from .device_types import get_device_info_by_product_name, get_device_platforms, KNOWN_DEVICES, find_device_by_product_name
+    from .device_types import KNOWN_DEVICES
+    from .device_types import get_device_info_by_product_name
+    from .device_types import get_device_platforms
 
     device_type = entry.data.get("device_type", "auto")
     product_name = entry.data.get("product_name", "auto")
@@ -373,7 +377,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: KKTKolbeConfigEntry) -> 
         else:
             device_info = get_device_info_by_product_name("default_hood")
             effective_device_type = "default_hood"
-            _LOGGER.warning(f"Could not detect device type, using default_hood")
+            _LOGGER.warning("Could not detect device type, using default_hood")
 
     platforms = get_device_platforms(device_info["category"])
 
@@ -402,6 +406,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: KKTKolbeConfigEntry) -> 
 
     # Register device in device registry with version info
     from homeassistant.helpers import device_registry as dr
+
     from .const import VERSION as INTEGRATION_VERSION
 
     device_registry = dr.async_get(hass)

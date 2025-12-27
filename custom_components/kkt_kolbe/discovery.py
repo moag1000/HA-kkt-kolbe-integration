@@ -4,21 +4,23 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import socket
 import time
 from hashlib import md5
-from typing import Any, Callable
+from typing import Any
+from typing import Callable
 
-from zeroconf import ServiceBrowser, ServiceListener, ServiceInfo, Zeroconf
-from zeroconf.asyncio import AsyncServiceInfo, AsyncZeroconf
 from Crypto.Cipher import AES
+from homeassistant.const import CONF_DEVICE_ID
+from homeassistant.const import CONF_HOST
+from homeassistant.const import CONF_IP_ADDRESS
+from homeassistant.core import HomeAssistant
+from zeroconf import ServiceBrowser
+from zeroconf import ServiceListener
+from zeroconf.asyncio import AsyncServiceInfo
+from zeroconf.asyncio import AsyncZeroconf
 
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.network import get_url
-from homeassistant.components import zeroconf
-from homeassistant.const import CONF_HOST, CONF_DEVICE_ID, CONF_IP_ADDRESS
-
-from .const import DOMAIN, MODELS
+from .const import DOMAIN
+from .const import MODELS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -663,7 +665,7 @@ class KKTKolbeDiscovery(ServiceListener):
 
 
             # Create a unique identifier for this discovery
-            unique_id = device_info.get("device_id", device_info["ip"])
+            device_info.get("device_id", device_info["ip"])
 
             # Trigger automatic discovery flow
             try:

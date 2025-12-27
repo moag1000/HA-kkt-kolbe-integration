@@ -12,22 +12,22 @@ Supports:
 from __future__ import annotations
 
 import logging
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING
+from typing import Any
 
-from homeassistant.components.light import (
-    LightEntity,
-    LightEntityFeature,
-    ColorMode,
-    ATTR_BRIGHTNESS,
-    ATTR_EFFECT,
-)
+from homeassistant.components.light import ATTR_BRIGHTNESS
+from homeassistant.components.light import ATTR_EFFECT
+from homeassistant.components.light import ColorMode
+from homeassistant.components.light import LightEntity
+from homeassistant.components.light import LightEntityFeature
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
+from homeassistant.core import callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .base_entity import KKTBaseEntity
-from .device_types import get_device_entities, KNOWN_DEVICES
+from .device_types import get_device_entities
 
 if TYPE_CHECKING:
     from . import KKTKolbeConfigEntry
