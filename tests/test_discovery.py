@@ -108,10 +108,15 @@ async def test_discovery_device_not_found(hass: HomeAssistant) -> None:
 @pytest.mark.asyncio
 async def test_simple_tuya_discover_function(hass: HomeAssistant) -> None:
     """Test the simple_tuya_discover helper function."""
-    with patch('custom_components.kkt_kolbe.discovery.tinytuya') as mock_tuya:
-        mock_tuya.deviceScan.return_value = {}
+    # Mock the UDP listener creation to avoid actual network operations
+    with patch('asyncio.get_running_loop') as mock_loop:
+        mock_transport = MagicMock()
+        mock_protocol = MagicMock()
+        mock_loop.return_value.create_datagram_endpoint = AsyncMock(
+            return_value=(mock_transport, mock_protocol)
+        )
 
-        devices = await simple_tuya_discover(timeout=2)
+        devices = await simple_tuya_discover(timeout=0.1)
 
         assert isinstance(devices, dict)
 

@@ -15,8 +15,10 @@ def mock_runtime_data():
     """Create mock runtime data."""
     coordinator = MagicMock()
     coordinator.data = {
-        "101": 2,    # RGB mode at index 2
-        "102": 0,    # Another select value
+        101: 2,    # RGB mode at index 2
+        "101": 2,  # Also string key version
+        102: 0,    # Another select value
+        "102": 0,  # Also string key version
     }
     coordinator.last_update_success = True
     coordinator.async_set_data_point = AsyncMock()

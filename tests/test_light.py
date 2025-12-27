@@ -16,9 +16,12 @@ def mock_runtime_data():
     """Create mock runtime data."""
     coordinator = MagicMock()
     coordinator.data = {
-        "4": True,   # Light on
-        "5": 128,    # Brightness at 50%
-        "101": 2,    # Effect mode
+        4: True,     # Light on
+        "4": True,   # Also string key
+        5: 128,      # Brightness at 50%
+        "5": 128,    # Also string key
+        101: 2,      # Effect mode
+        "101": 2,    # Also string key
     }
     coordinator.last_update_success = True
     coordinator.async_set_data_point = AsyncMock()
@@ -72,6 +75,8 @@ async def test_light_is_on(
     """Test light is_on property."""
     from custom_components.kkt_kolbe.light import KKTKolbeLight
 
+    mock_config_entry.add_to_hass(hass)
+
     config = {
         "dp": 4,
         "name": "Light",
@@ -95,6 +100,8 @@ async def test_light_turn_on(
 ) -> None:
     """Test turning on a light."""
     from custom_components.kkt_kolbe.light import KKTKolbeLight
+
+    mock_config_entry.add_to_hass(hass)
 
     config = {
         "dp": 4,
@@ -121,6 +128,8 @@ async def test_light_turn_off(
     """Test turning off a light."""
     from custom_components.kkt_kolbe.light import KKTKolbeLight
 
+    mock_config_entry.add_to_hass(hass)
+
     config = {
         "dp": 4,
         "name": "Light",
@@ -145,6 +154,8 @@ async def test_light_with_brightness(
 ) -> None:
     """Test light with brightness support."""
     from custom_components.kkt_kolbe.light import KKTKolbeLight
+
+    mock_config_entry.add_to_hass(hass)
 
     config = {
         "dp": 4,
@@ -173,6 +184,8 @@ async def test_light_with_effects(
 ) -> None:
     """Test light with effect support."""
     from custom_components.kkt_kolbe.light import KKTKolbeLight
+
+    mock_config_entry.add_to_hass(hass)
 
     config = {
         "dp": 4,
@@ -203,6 +216,8 @@ async def test_light_unique_id(
 ) -> None:
     """Test light unique_id generation."""
     from custom_components.kkt_kolbe.light import KKTKolbeLight
+
+    mock_config_entry.add_to_hass(hass)
 
     config = {
         "dp": 4,

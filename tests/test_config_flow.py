@@ -61,14 +61,17 @@ async def test_config_flow_discovery_step(hass: HomeAssistant) -> None:
 
     # Mock discovery to return no devices
     with patch(
-        "custom_components.kkt_kolbe.config_flow.async_run_discovery",
+        "custom_components.kkt_kolbe.config_flow.async_start_discovery",
         new_callable=AsyncMock,
-        return_value=[],
     ):
-        result = await hass.config_entries.flow.async_configure(
-            result["flow_id"],
-            user_input={"setup_method": "discovery"},
-        )
+        with patch(
+            "custom_components.kkt_kolbe.config_flow.get_discovered_devices",
+            return_value={},
+        ):
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"],
+                user_input={"setup_method": "discovery"},
+            )
 
     # Should show discovery form (even with no devices - user can retry or go manual)
     assert result["type"] == FlowResultType.FORM
@@ -90,26 +93,21 @@ async def test_config_flow_abort_already_configured(
         context={"source": config_entries.SOURCE_USER},
     )
 
-    # Try to configure the same device
-    with patch(
-        "custom_components.kkt_kolbe.config_flow.KKTKolbeConfigFlow._async_validate_connection",
-        new_callable=AsyncMock,
-        return_value=True,
-    ):
-        result = await hass.config_entries.flow.async_configure(
-            result["flow_id"],
-            user_input={"setup_method": "manual"},
-        )
+    # Select manual method
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={"setup_method": "manual"},
+    )
 
-        # Fill manual form with same device ID
-        result = await hass.config_entries.flow.async_configure(
-            result["flow_id"],
-            user_input={
-                "host": "192.168.1.100",
-                "device_id": "bf735dfe2ad64fba7cpyhn",  # Same as mock_config_entry
-                "device_type": "hermes_style_hood",
-            },
-        )
+    # Fill manual form with same device ID
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={
+            "ip_address": "192.168.1.100",
+            "device_id": "bf735dfe2ad64fba7cpyhn",  # Same as mock_config_entry
+            "device_type": "hermes_style_hood",
+        },
+    )
 
     # Should abort as already configured
     assert result["type"] == FlowResultType.ABORT
@@ -135,7 +133,7 @@ async def test_config_flow_invalid_ip(hass: HomeAssistant) -> None:
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         user_input={
-            "host": "not-an-ip-address",
+            "ip_address": "not-an-ip-address",
             "device_id": "bf735dfe2ad64fba7cpyhn",
             "device_type": "hermes_style_hood",
         },
@@ -165,7 +163,7 @@ async def test_config_flow_invalid_device_id(hass: HomeAssistant) -> None:
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         user_input={
-            "host": "192.168.1.100",
+            "ip_address": "192.168.1.100",
             "device_id": "short",  # Too short
             "device_type": "hermes_style_hood",
         },

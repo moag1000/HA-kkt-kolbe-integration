@@ -16,8 +16,10 @@ def mock_runtime_data():
     """Create mock runtime data."""
     coordinator = MagicMock()
     coordinator.data = {
-        "1": True,   # Power on
-        "6": False,  # Filter reminder off
+        1: True,     # Power on
+        "1": True,   # Also string key
+        6: False,    # Filter reminder off
+        "6": False,  # Also string key
     }
     coordinator.last_update_success = True
     coordinator.async_set_data_point = AsyncMock()

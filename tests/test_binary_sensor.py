@@ -86,6 +86,7 @@ async def test_connection_sensor_is_on(
     """Test connection sensor is_on property."""
     from custom_components.kkt_kolbe.binary_sensor import KKTKolbeConnectionSensor
 
+    mock_config_entry.add_to_hass(hass)
     mock_config_entry.runtime_data = mock_runtime_data
 
     sensor = KKTKolbeConnectionSensor(
@@ -106,6 +107,7 @@ async def test_connection_sensor_device_class(
     """Test connection sensor device class."""
     from custom_components.kkt_kolbe.binary_sensor import KKTKolbeConnectionSensor
 
+    mock_config_entry.add_to_hass(hass)
     mock_config_entry.runtime_data = mock_runtime_data
 
     sensor = KKTKolbeConnectionSensor(
@@ -125,6 +127,7 @@ async def test_connection_sensor_entity_category(
     """Test connection sensor entity category."""
     from custom_components.kkt_kolbe.binary_sensor import KKTKolbeConnectionSensor
 
+    mock_config_entry.add_to_hass(hass)
     mock_config_entry.runtime_data = mock_runtime_data
 
     sensor = KKTKolbeConnectionSensor(
@@ -144,6 +147,7 @@ async def test_connection_sensor_extra_attributes(
     """Test connection sensor extra state attributes."""
     from custom_components.kkt_kolbe.binary_sensor import KKTKolbeConnectionSensor
 
+    mock_config_entry.add_to_hass(hass)
     mock_config_entry.runtime_data = mock_runtime_data
 
     sensor = KKTKolbeConnectionSensor(
@@ -167,6 +171,7 @@ async def test_api_status_sensor_is_on(
     """Test API status sensor is_on property."""
     from custom_components.kkt_kolbe.binary_sensor import KKTKolbeAPIStatusSensor
 
+    mock_config_entry.add_to_hass(hass)
     mock_config_entry.runtime_data = mock_runtime_data
 
     sensor = KKTKolbeAPIStatusSensor(
@@ -187,6 +192,7 @@ async def test_api_status_sensor_device_class(
     """Test API status sensor device class."""
     from custom_components.kkt_kolbe.binary_sensor import KKTKolbeAPIStatusSensor
 
+    mock_config_entry.add_to_hass(hass)
     mock_config_entry.runtime_data = mock_runtime_data
 
     sensor = KKTKolbeAPIStatusSensor(
@@ -206,6 +212,7 @@ async def test_api_status_sensor_extra_attributes(
     """Test API status sensor extra state attributes."""
     from custom_components.kkt_kolbe.binary_sensor import KKTKolbeAPIStatusSensor
 
+    mock_config_entry.add_to_hass(hass)
     mock_config_entry.runtime_data = mock_runtime_data
 
     sensor = KKTKolbeAPIStatusSensor(
@@ -228,6 +235,7 @@ async def test_binary_sensor_unique_id(
     """Test binary sensor unique_id generation."""
     from custom_components.kkt_kolbe.binary_sensor import KKTKolbeConnectionSensor
 
+    mock_config_entry.add_to_hass(hass)
     mock_config_entry.runtime_data = mock_runtime_data
 
     sensor = KKTKolbeConnectionSensor(
@@ -248,6 +256,7 @@ async def test_connection_sensor_icon(
     """Test connection sensor icon based on state."""
     from custom_components.kkt_kolbe.binary_sensor import KKTKolbeConnectionSensor
 
+    mock_config_entry.add_to_hass(hass)
     mock_config_entry.runtime_data = mock_runtime_data
 
     sensor = KKTKolbeConnectionSensor(

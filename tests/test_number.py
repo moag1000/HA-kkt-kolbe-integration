@@ -15,9 +15,12 @@ def mock_runtime_data():
     """Create mock runtime data."""
     coordinator = MagicMock()
     coordinator.data = {
-        "13": 30,    # Timer at 30 minutes
-        "101": 5,    # RGB mode
-        "5": 200,    # Light brightness
+        13: 30,    # Timer at 30 minutes
+        "13": 30,  # Also string key version
+        101: 5,    # RGB mode
+        "101": 5,  # Also string key version
+        5: 200,    # Light brightness
+        "5": 200,  # Also string key version
     }
     coordinator.last_update_success = True
     coordinator.async_set_data_point = AsyncMock()
