@@ -148,7 +148,8 @@ class SmartDiscovery:
             )
 
         # Step 2: Enrich with API data if credentials available
-        if enrich_with_api and self._api_manager.has_stored_credentials():
+        has_creds = await self._api_manager.async_has_stored_credentials()
+        if enrich_with_api and has_creds:
             await self._enrich_with_api_data()
 
         # Step 3: Check which devices are ready to add
@@ -169,7 +170,8 @@ class SmartDiscovery:
         """
         self._discovered_devices.clear()
 
-        if not self._api_manager.has_stored_credentials():
+        has_creds = await self._api_manager.async_has_stored_credentials()
+        if not has_creds:
             _LOGGER.warning("Smart Discovery: No API credentials available")
             return {}
 
@@ -224,11 +226,19 @@ class SmartDiscovery:
                     result.api_enriched = True
 
                     # Update device type if we can detect it from API
+                    # BUT only if not already correctly detected from device_id pattern
                     device_type, product_name, friendly_type = self._detect_device_type(api_device)
                     if device_type != "auto":
-                        result.device_type = device_type
-                        result.product_name = product_name
-                        result.friendly_type = friendly_type
+                        # Only overwrite if current device_type is "auto" or not in KNOWN_DEVICES
+                        from .device_types import KNOWN_DEVICES
+                        current_type = result.device_type
+                        if current_type == "auto" or current_type not in KNOWN_DEVICES:
+                            result.device_type = device_type
+                            result.product_name = product_name
+                            result.friendly_type = friendly_type
+                            _LOGGER.debug(f"Updated device_type from API: {device_type}")
+                        else:
+                            _LOGGER.debug(f"Keeping existing device_type: {current_type} (API suggested: {device_type})")
 
                     # Prefer API name if more descriptive
                     api_name = api_device.get("name", "")

@@ -57,16 +57,32 @@
       },
       "authentication": {
         "title": "Geräte-Authentifizierung",
-        "description": "Geben Sie den Local Key für Ihr Gerät ein:\n\nGerät: {device_name}\nGeräte-ID: {device_id}\nIP-Adresse: {ip_address}",
+        "description": "Geben Sie den Local Key für Ihr Gerät ein.\n\n**Gerät:** {device_name}\n**Geräte-ID:** {device_id}\n**IP-Adresse:** {ip_address}\n\n**So erhalten Sie den Local Key:**\nDer Local Key wird von der Tuya IoT Platform abgerufen. Folgen Sie unserer Einrichtungsanleitung für den API-Zugang.\n\n[Einrichtungsanleitung](https://github.com/moag1000/HA-kkt-kolbe-integration#-tuya-api-setup---vollstaendige-anleitung) | [Tuya IoT Platform](https://iot.tuya.com)",
         "data": {
           "local_key": "Local Key",
+          "configure_api": "API konfigurieren (empfohlen)",
           "test_connection": "Verbindung testen",
           "back_to_previous": "Zurück zum vorherigen Schritt"
         },
         "data_description": {
-          "local_key": "16-stelliger lokaler Verschlüsselungsschlüssel aus der Smart Life App",
+          "local_key": "16-stelliger lokaler Verschlüsselungsschlüssel von der Tuya IoT Platform",
+          "configure_api": "Tuya Cloud API konfigurieren um den Local Key automatisch abzurufen",
           "test_connection": "Verbindung mit dem angegebenen Local Key testen",
           "back_to_previous": "Zurück zur Geräteauswahl oder manuellen Konfiguration"
+        }
+      },
+      "auth_api_credentials": {
+        "title": "API-Zugangsdaten",
+        "description": "{setup_info}",
+        "data": {
+          "api_client_id": "Client ID",
+          "api_client_secret": "Client Secret",
+          "api_endpoint": "API Region"
+        },
+        "data_description": {
+          "api_client_id": "Access ID/Client ID von der Tuya IoT Platform",
+          "api_client_secret": "Access Secret/Client Secret von der Tuya IoT Platform",
+          "api_endpoint": "Server-Region Ihres Tuya-Kontos"
         }
       },
       "settings": {
@@ -131,6 +147,20 @@
         "description": "Wählen Sie Ihr KKT Kolbe Gerät aus den erkannten Geräten.",
         "data": {
           "selected_device": "Gerät"
+        }
+      },
+      "smart_discovery": {
+        "title": "Smart Discovery",
+        "description": "{discovery_status}\n\nGeräte mit ✅ haben alle erforderlichen Informationen und können mit einem Klick hinzugefügt werden.\nGeräte mit 🔑 benötigen einen manuell einzugebenden Local Key.",
+        "data": {
+          "selected_device": "Gerät auswählen",
+          "retry_discovery": "Erneut suchen",
+          "back_to_user": "Zurück zur Methodenauswahl"
+        },
+        "data_description": {
+          "selected_device": "Wählen Sie ein Gerät zur Konfiguration",
+          "retry_discovery": "Gerätesuche erneut starten",
+          "back_to_user": "Zurück zur Auswahl einer anderen Einrichtungsmethode"
         }
       },
       "api_device_selection": {
@@ -226,6 +256,53 @@
           "zone_naming_scheme": "Benennung von Multi-Zonen-Entitäten",
           "test_connection": "Geräteverbindung nach Änderungen testen"
         }
+      },
+      "reconfigure_menu": {
+        "title": "Gerät rekonfigurieren",
+        "description": "Wählen Sie, was Sie ändern möchten:\n\n**Gerät:** {device_name}\n**IP:** {current_ip}\n**Gerätetyp:** {current_device_type}\n**API:** {api_status}\n**Modus:** {integration_mode}",
+        "data": {
+          "reconfigure_option": "Aktion wählen"
+        }
+      },
+      "reconfigure_connection": {
+        "title": "Verbindung rekonfigurieren",
+        "description": "Aktualisieren Sie IP-Adresse und/oder Local Key für **{device_name}**.\n\nAktuelle IP: {current_ip}\n\n{local_key_hint}",
+        "data": {
+          "ip_address": "IP-Adresse",
+          "local_key": "Neuer Local Key",
+          "test_connection": "Verbindung testen"
+        }
+      },
+      "reconfigure_device_type": {
+        "title": "Gerätetyp ändern",
+        "description": "Ändern Sie den Gerätetyp für **{device_name}**.\n\nAktueller Typ: {current_device_type}",
+        "data": {
+          "device_type": "Gerätetyp"
+        }
+      },
+      "reconfigure_api": {
+        "title": "API-Einstellungen",
+        "description": "Konfigurieren Sie die Tuya Cloud API für **{device_name}**.\n\nAktueller Status: {api_status}\n\n{secret_hint}",
+        "data": {
+          "api_enabled": "API aktivieren",
+          "api_client_id": "Client ID",
+          "api_client_secret": "Client Secret",
+          "api_endpoint": "API Region"
+        }
+      },
+      "reconfigure_all": {
+        "title": "Alle Einstellungen",
+        "description": "Konfigurieren Sie alle Einstellungen für **{device_name}**.\n\n{local_key_hint}\n{secret_hint}",
+        "data": {
+          "ip_address": "IP-Adresse",
+          "local_key": "Neuer Local Key",
+          "device_type": "Gerätetyp",
+          "api_enabled": "API aktivieren",
+          "api_client_id": "Client ID",
+          "api_client_secret": "Client Secret",
+          "api_endpoint": "API Region",
+          "test_connection": "Verbindung testen"
+        }
       }
     },
     "error": {
@@ -243,14 +320,27 @@
       "api_auth_failed": "API-Authentifizierung fehlgeschlagen. Überprüfen Sie Ihre Zugangsdaten",
       "api_error": "API-Fehler aufgetreten",
       "unknown_api_error": "Unbekannter API-Fehler aufgetreten",
+      "api_no_local_key": "API hat keinen Local Key für dieses Gerät zurückgegeben",
+      "api_fetch_key_failed": "Local Key konnte nicht von der API abgerufen werden",
+      "api_key_connection_failed": "Local Key wurde abgerufen, aber Verbindung fehlgeschlagen",
+      "api_wrong_region": "Falsche API-Region ausgewählt",
+      "api_client_id_invalid": "Client ID ungültig (mindestens 10 Zeichen)",
+      "api_client_secret_invalid": "Client Secret ungültig (mindestens 20 Zeichen)",
+      "no_device_id": "Geräte-ID nicht verfügbar",
+      "missing_local_key": "Local Key fehlt - bitte erneut authentifizieren",
       "analysis_failed": "Geräteanalyse fehlgeschlagen",
       "no_kkt_devices_found": "Keine KKT Kolbe Geräte gefunden",
       "missing_local_details": "Bitte geben Sie lokale Verbindungsdetails an"
     },
     "abort": {
       "already_configured": "Gerät ist bereits konfiguriert",
+      "already_in_progress": "Ein Einrichtungsflow für dieses Gerät läuft bereits. Bitte schließen Sie den bestehenden Flow ab oder verwerfen Sie ihn.",
+      "no_device_id": "Gerät konnte nicht identifiziert werden. Keine Geräte-ID gefunden.",
+      "no_local_key": "Gerät gefunden, aber kein Local Key verfügbar. Bitte nutzen Sie Smart Discovery oder Manuelle Einrichtung mit API-Zugangsdaten.",
       "reauth_successful": "Erneute Authentifizierung erfolgreich",
-      "reauth_failed": "Erneute Authentifizierung fehlgeschlagen"
+      "reauth_failed": "Erneute Authentifizierung fehlgeschlagen",
+      "reconfigure_successful": "Konfiguration erfolgreich aktualisiert. Die Integration wird neu geladen.",
+      "reconfigure_failed": "Rekonfiguration fehlgeschlagen. Eintrag nicht gefunden."
     }
   },
   "options": {
@@ -342,19 +432,53 @@
       }
     },
     "fan": {
+      "fan": {
+        "name": "Lüfter"
+      },
       "hood_fan": {
         "name": "Dunstabzugslüfter"
+      }
+    },
+    "light": {
+      "light": {
+        "name": "Licht"
       }
     },
     "sensor": {
       "filter_status": {
         "name": "Filterstatus"
       },
+      "filter_hours": {
+        "name": "Filterstunden"
+      },
       "current_temperature": {
         "name": "Aktuelle Temperatur"
       }
     },
     "binary_sensor": {
+      "device_connected": {
+        "name": "Gerät verbunden",
+        "state": {
+          "on": "Verbunden",
+          "off": "Getrennt"
+        }
+      },
+      "api_connected": {
+        "name": "Cloud API verbunden",
+        "state": {
+          "on": "Verbunden",
+          "off": "Getrennt"
+        }
+      },
+      "zone_selected": {
+        "name": "Zone {zone} ausgewählt"
+      },
+      "zone_boost": {
+        "name": "Zone {zone} Boost"
+      },
+      "zone_warm": {
+        "name": "Zone {zone} Warmhalten"
+      },
       "zone_active": {
         "name": "Zone aktiv"
       },
@@ -369,14 +493,44 @@
       "timer": {
         "name": "Timer"
       },
-      "power_level": {
-        "name": "Leistungsstufe"
-      },
       "rgb_mode": {
         "name": "RGB-Modus"
+      },
+      "light_brightness": {
+        "name": "Licht-Helligkeit"
+      },
+      "rgb_brightness": {
+        "name": "RGB-Helligkeit"
+      },
+      "fan_speed": {
+        "name": "Lüfterstufe"
+      },
+      "carbon_filter_remaining": {
+        "name": "Kohlefilter Restlaufzeit"
+      },
+      "metal_filter_remaining": {
+        "name": "Metallfilter Restlaufzeit"
+      },
+      "zone_power_level": {
+        "name": "Zone {zone} Leistungsstufe"
+      },
+      "zone_timer": {
+        "name": "Zone {zone} Timer"
+      },
+      "power_level": {
+        "name": "Leistungsstufe"
       }
     },
     "select": {
+      "fan_speed_select": {
+        "name": "Lüfterstufe"
+      },
+      "color_temperature": {
+        "name": "Farbtemperatur"
+      },
+      "rgb_mode_select": {
+        "name": "RGB-Modus"
+      },
       "fan_speed": {
         "name": "Lüftergeschwindigkeit",
         "state": {
@@ -387,6 +541,35 @@
           "strong": "Stark"
         }
       }
+    }
+  },
+  "exceptions": {
+    "unknown_error": {
+      "message": "Ein unbekannter Fehler ist in der KKT Kolbe Integration aufgetreten."
+    },
+    "connection_failed": {
+      "message": "Verbindung zum KKT Kolbe Gerät {device_id} fehlgeschlagen. {reason}"
+    },
+    "authentication_failed": {
+      "message": "Authentifizierung für Gerät {device_id} fehlgeschlagen. Bitte prüfen Sie den Local Key."
+    },
+    "timeout": {
+      "message": "Operation '{operation}' auf Gerät {device_id} nach {timeout} Sekunden abgelaufen."
+    },
+    "device_error": {
+      "message": "Gerätefehler {error_code}: {device_message}"
+    },
+    "configuration_error": {
+      "message": "Konfigurationsfehler im Feld '{config_field}'."
+    },
+    "discovery_failed": {
+      "message": "Geräteerkennung mit {discovery_method} fehlgeschlagen."
+    },
+    "service_failed": {
+      "message": "Dienst '{service_name}' fehlgeschlagen: {reason}"
+    },
+    "data_point_error": {
+      "message": "Fehler beim {operation} von Datenpunkt {data_point} mit Wert {value} auf Gerät {device_id}: {reason}"
     }
   }
 }

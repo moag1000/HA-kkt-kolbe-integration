@@ -1,61 +1,66 @@
 """Constants for KKT Kolbe integration."""
 from __future__ import annotations
 
-DOMAIN = "kkt_kolbe"
+from typing import Final
 
-MANUFACTURER = "KKT Kolbe"
+# === VERSION ===
+VERSION: Final = "3.0.7"
 
-# Connection stability configuration
-DEFAULT_SCAN_INTERVAL = 30  # seconds
-DEFAULT_CONNECTION_TIMEOUT = 15.0  # seconds
-DEFAULT_STATUS_TIMEOUT = 10.0  # seconds
-DEFAULT_SET_DP_TIMEOUT = 8.0  # seconds
-DEFAULT_PROTOCOL_TIMEOUT = 3.0  # seconds
-DEFAULT_RECONNECT_TEST_TIMEOUT = 5.0  # seconds
+# === CORE IDENTIFIERS ===
+DOMAIN: Final = "kkt_kolbe"
+MANUFACTURER: Final = "KKT Kolbe"
 
-# Reconnection configuration
-DEFAULT_BASE_BACKOFF = 5  # seconds
-DEFAULT_MAX_BACKOFF = 300  # 5 minutes
-DEFAULT_MAX_RECONNECT_ATTEMPTS = 10
-DEFAULT_CONSECUTIVE_FAILURES_THRESHOLD = 3
+# === CONNECTION STABILITY CONFIGURATION ===
+DEFAULT_SCAN_INTERVAL: Final = 30  # seconds
+DEFAULT_CONNECTION_TIMEOUT: Final = 15.0  # seconds
+DEFAULT_STATUS_TIMEOUT: Final = 10.0  # seconds
+DEFAULT_SET_DP_TIMEOUT: Final = 8.0  # seconds
+DEFAULT_PROTOCOL_TIMEOUT: Final = 3.0  # seconds
+DEFAULT_RECONNECT_TEST_TIMEOUT: Final = 5.0  # seconds
 
-# Adaptive intervals (during offline/reconnection)
-ADAPTIVE_UPDATE_INTERVAL_OFFLINE = 120  # 2 minutes during offline
-ADAPTIVE_UPDATE_INTERVAL_RECONNECTING = 60  # 1 minute during reconnection
+# === RECONNECTION CONFIGURATION ===
+DEFAULT_BASE_BACKOFF: Final = 5  # seconds
+DEFAULT_MAX_BACKOFF: Final = 300  # 5 minutes
+DEFAULT_MAX_RECONNECT_ATTEMPTS: Final = 10
+DEFAULT_CONSECUTIVE_FAILURES_THRESHOLD: Final = 3
 
-# Circuit breaker configuration
-CIRCUIT_BREAKER_SLEEP_INTERVAL = 3600  # 1 hour sleep when unreachable
-CIRCUIT_BREAKER_MAX_SLEEP_RETRIES = 3  # Max retries per sleep cycle
+# === ADAPTIVE INTERVALS ===
+ADAPTIVE_UPDATE_INTERVAL_OFFLINE: Final = 120  # 2 minutes during offline
+ADAPTIVE_UPDATE_INTERVAL_RECONNECTING: Final = 60  # 1 minute during reconnection
 
-# TCP Keep-Alive configuration
-TCP_KEEPALIVE_IDLE = 60  # seconds before sending keepalive probes
-TCP_KEEPALIVE_INTERVAL = 10  # seconds between keepalive probes
-TCP_KEEPALIVE_COUNT = 5  # number of failed probes before declaring dead
+# === CIRCUIT BREAKER CONFIGURATION ===
+CIRCUIT_BREAKER_SLEEP_INTERVAL: Final = 3600  # 1 hour sleep when unreachable
+CIRCUIT_BREAKER_MAX_SLEEP_RETRIES: Final = 3  # Max retries per sleep cycle
 
-# Global API storage key
-GLOBAL_API_STORAGE_KEY = f"{DOMAIN}_global_api"
+# === TCP KEEP-ALIVE CONFIGURATION ===
+TCP_KEEPALIVE_IDLE: Final = 60  # seconds before sending keepalive probes
+TCP_KEEPALIVE_INTERVAL: Final = 10  # seconds between keepalive probes
+TCP_KEEPALIVE_COUNT: Final = 5  # number of failed probes before declaring dead
 
-# API Configuration
-CONF_API_CLIENT_ID = "api_client_id"
-CONF_API_CLIENT_SECRET = "api_client_secret"
-CONF_API_ENDPOINT = "api_endpoint"
-CONF_API_ENABLED = "api_enabled"
-CONF_INTEGRATION_MODE = "integration_mode"
+# === GLOBAL STORAGE ===
+GLOBAL_API_STORAGE_KEY: Final = f"{DOMAIN}_global_api"
 
-# Default API endpoint
-DEFAULT_API_ENDPOINT = "https://openapi.tuyaeu.com"
+# === API CONFIGURATION KEYS ===
+CONF_API_CLIENT_ID: Final = "api_client_id"
+CONF_API_CLIENT_SECRET: Final = "api_client_secret"
+CONF_API_ENDPOINT: Final = "api_endpoint"
+CONF_API_ENABLED: Final = "api_enabled"
+CONF_INTEGRATION_MODE: Final = "integration_mode"
 
-# Integration modes
-MODE_MANUAL = "manual"
-MODE_API_DISCOVERY = "api_discovery"
-MODE_HYBRID = "hybrid"
+# === API DEFAULTS ===
+DEFAULT_API_ENDPOINT: Final = "https://openapi.tuyaeu.com"
 
-# Device categories
-CATEGORY_HOOD = "yyj"  # Dunstabzugshaube
-CATEGORY_COOKTOP = "dcl"  # Induktionskochfeld
+# === INTEGRATION MODES ===
+MODE_MANUAL: Final = "manual"
+MODE_API_DISCOVERY: Final = "api_discovery"
+MODE_HYBRID: Final = "hybrid"
 
-# Device models
-MODELS = {
+# === DEVICE CATEGORIES (Tuya) ===
+CATEGORY_HOOD: Final = "yyj"  # Dunstabzugshaube
+CATEGORY_COOKTOP: Final = "dcl"  # Induktionskochfeld
+
+# === DEVICE MODELS ===
+MODELS: Final[dict[str, dict[str, str]]] = {
     "e1k6i0zo": {
         "name": "HERMES & STYLE",
         "category": CATEGORY_HOOD,
@@ -68,8 +73,8 @@ MODELS = {
     },
 }
 
-# Fan speed mappings
-FAN_SPEEDS = {
+# === FAN SPEED MAPPINGS ===
+FAN_SPEEDS: Final[dict[str, int]] = {
     "off": 0,
     "low": 25,
     "middle": 50,
@@ -77,7 +82,7 @@ FAN_SPEEDS = {
     "strong": 100,
 }
 
-FAN_SPEED_TO_DP = {
+FAN_SPEED_TO_DP: Final[dict[int, str]] = {
     0: "off",
     25: "low",
     50: "middle",
@@ -85,16 +90,18 @@ FAN_SPEED_TO_DP = {
     100: "strong",
 }
 
-# RGB Light modes
-RGB_MODES = {
+# === RGB LIGHT MODES ===
+# From HERMES manual: weiß > rot > grün > blau > gelb > lila > orange > cyan > grasgrün
+# Device uses 1-based indexing for colors
+RGB_MODES: Final[dict[int, str]] = {
     0: "Off",
     1: "White",
-    2: "Warm White",
-    3: "Cool White",
-    4: "Red",
-    5: "Green",
-    6: "Blue",
-    7: "Yellow",
-    8: "Purple",
-    9: "Rainbow",
+    2: "Red",
+    3: "Green",
+    4: "Blue",
+    5: "Yellow",
+    6: "Purple",
+    7: "Orange",
+    8: "Cyan",
+    9: "Grass Green",
 }

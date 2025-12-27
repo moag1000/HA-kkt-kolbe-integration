@@ -1,7 +1,11 @@
 """KKT Kolbe Dunstabzugshaube Integration for Home Assistant."""
 from __future__ import annotations
 
+import asyncio
 import logging
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any
+
 from homeassistant.config_entries import ConfigEntry, ConfigEntryNotReady
 from homeassistant.core import HomeAssistant
 from homeassistant.const import (
@@ -17,6 +21,12 @@ import homeassistant.helpers.config_validation as cv
 
 from .const import DOMAIN, CONF_API_ENDPOINT
 
+if TYPE_CHECKING:
+    from .coordinator import KKTKolbeUpdateCoordinator
+    from .hybrid_coordinator import KKTKolbeHybridCoordinator
+    from .tuya_device import KKTKolbeTuyaDevice
+    from .api import TuyaCloudClient
+
 # This integration is config entry only - no YAML configuration
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 # Heavy imports moved to lazy loading to prevent blocking the event loop
@@ -24,6 +34,23 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = [Platform.SENSOR, Platform.FAN, Platform.LIGHT, Platform.SWITCH, Platform.SELECT, Platform.NUMBER, Platform.BINARY_SENSOR]
+
+
+@dataclass
+class KKTKolbeRuntimeData:
+    """Runtime data for KKT Kolbe integration."""
+
+    coordinator: KKTKolbeUpdateCoordinator | KKTKolbeHybridCoordinator
+    device: KKTKolbeTuyaDevice | None
+    api_client: TuyaCloudClient | None
+    device_info: dict[str, Any]
+    product_name: str
+    device_type: str
+    integration_mode: str
+
+
+# Type alias for config entries with runtime data
+type KKTKolbeConfigEntry = ConfigEntry[KKTKolbeRuntimeData]
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
@@ -41,8 +68,9 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
     return True
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: KKTKolbeConfigEntry) -> bool:
     """Set up KKT Kolbe from a config entry."""
+    # Keep hass.data for backward compatibility with services
     hass.data.setdefault(DOMAIN, {})
 
     # Discovery is already started in async_setup, no need to start again
@@ -73,11 +101,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.info("API client initialized for TinyTuya Cloud API")
 
             # Store credentials globally for reuse with other devices
-            # This ensures credentials persist across restarts via config entry
+            # This ensures credentials persist across restarts via config entry AND persistent storage
             api_manager = GlobalAPIManager(hass)
-            if not api_manager.has_stored_credentials():
-                api_manager.store_api_credentials(client_id, client_secret, endpoint)
-                _LOGGER.info("API credentials restored from config entry to global storage")
+            has_creds = await api_manager.async_has_stored_credentials()
+            if not has_creds:
+                await api_manager.async_store_api_credentials(client_id, client_secret, endpoint)
+                _LOGGER.info("API credentials restored from config entry to global persistent storage")
 
     # Initialize local device if we have local connection details
     ip_address = entry.data.get(CONF_IP_ADDRESS) or entry.data.get("ip_address") or entry.data.get("host")
@@ -113,6 +142,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             local_device=device,
             api_client=api_client,
             prefer_local=(integration_mode == "hybrid"),
+            entry=entry,
         )
         _LOGGER.info(f"Hybrid coordinator initialized in {integration_mode} mode")
     elif device:
@@ -258,10 +288,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                         raise ConfigEntryNotReady(f"API not reachable: {e}") from e
 
         # Perform initial data fetch if at least one connection method works
+        # Use timeout to prevent indefinite hang during setup
+        FIRST_REFRESH_TIMEOUT = 60  # seconds
         if connection_successful or integration_mode in ["hybrid", "api_discovery"]:
             try:
-                await coordinator.async_config_entry_first_refresh()
+                await asyncio.wait_for(
+                    coordinator.async_config_entry_first_refresh(),
+                    timeout=FIRST_REFRESH_TIMEOUT
+                )
                 _LOGGER.info("Initial data fetch successful")
+            except asyncio.TimeoutError:
+                _LOGGER.warning(
+                    f"Initial data fetch timed out after {FIRST_REFRESH_TIMEOUT}s, "
+                    "coordinator will retry automatically"
+                )
+                # Don't raise - let coordinator handle retries
             except Exception as e:
                 # Log at debug to avoid excessive logging (HA Best Practice)
                 _LOGGER.debug(f"Initial data fetch failed, coordinator will retry: {e}")
@@ -336,6 +377,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     platforms = get_device_platforms(device_info["category"])
 
+    # Store runtime data using modern pattern (HA 2024.6+)
+    entry.runtime_data = KKTKolbeRuntimeData(
+        coordinator=coordinator,
+        device=device,
+        api_client=api_client,
+        device_info=device_info,
+        product_name=product_name,
+        device_type=effective_device_type,
+        integration_mode=integration_mode,
+    )
+
+    # Also store in hass.data for backward compatibility with services
     hass.data[DOMAIN][entry.entry_id] = {
         "coordinator": coordinator,
         "device": device,
@@ -343,23 +396,54 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "config": entry.data,
         "device_info": device_info,
         "product_name": product_name,
-        "device_type": effective_device_type,  # KNOWN_DEVICES key for entity lookup
+        "device_type": effective_device_type,
         "integration_mode": integration_mode,
     }
 
-    # Register device in device registry
+    # Register device in device registry with version info
     from homeassistant.helpers import device_registry as dr
+    from .const import VERSION as INTEGRATION_VERSION
+
     device_registry = dr.async_get(hass)
-    device_registry.async_get_or_create(
+
+    # Determine software version - prefer detected protocol version
+    sw_version = f"v{INTEGRATION_VERSION}"  # Default fallback
+    if device and hasattr(device, 'version') and device.version and device.version != "auto":
+        sw_version = f"Tuya Protocol {device.version}"
+    elif entry.data.get("version") and entry.data.get("version") != "auto":
+        sw_version = f"Tuya Protocol {entry.data.get('version')}"
+
+    # Determine hardware version from device type
+    hw_version = None
+    if effective_device_type and effective_device_type in KNOWN_DEVICES:
+        hw_version = KNOWN_DEVICES[effective_device_type].get("model_id", effective_device_type).upper()
+    elif device_id:
+        hw_version = device_id[:8].upper()
+
+    device_entry = device_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
         identifiers={(DOMAIN, device_id)},
         manufacturer="KKT Kolbe",
         name=device_info.get("name", "KKT Kolbe Device"),
-        model=device_info.get("name", "Unknown"),
+        model=device_info.get("model_id", device_info.get("name", "Unknown")),
+        sw_version=sw_version,
+        hw_version=hw_version,
     )
+
+    # Update existing device entry if sw/hw version was previously Unknown
+    if device_entry.sw_version == "Unknown" or device_entry.hw_version == "Unknown":
+        device_registry.async_update_device(
+            device_entry.id,
+            sw_version=sw_version,
+            hw_version=hw_version,
+        )
+        _LOGGER.info(f"Updated device registry: sw_version={sw_version}, hw_version={hw_version}")
 
     # Load only the platforms needed for this specific device
     await hass.config_entries.async_forward_entry_setups(entry, platforms)
+
+    # Register listener for options updates - triggers reload when options change
+    entry.async_on_unload(entry.add_update_listener(async_options_update_listener))
 
     # Set up services when the first device is added
     if len(hass.data[DOMAIN]) == 1:
@@ -369,18 +453,31 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     return True
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_options_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Handle options update - reload the integration when options change."""
+    _LOGGER.info(f"Options updated for {entry.title}, reloading integration")
+    await hass.config_entries.async_reload(entry.entry_id)
+
+
+async def async_unload_entry(hass: HomeAssistant, entry: KKTKolbeConfigEntry) -> bool:
     """Unload a config entry."""
     # Get the platforms that were loaded for this specific device
-    from .device_types import get_device_info_by_product_name, get_device_platforms
+    from .device_types import get_device_platforms
 
-    product_name = entry.data.get("product_name", "unknown")
-    device_info = get_device_info_by_product_name(product_name)
-    platforms = get_device_platforms(device_info["category"])
+    # Use runtime_data if available, fallback to entry.data
+    if hasattr(entry, 'runtime_data') and entry.runtime_data:
+        device_info = entry.runtime_data.device_info
+    else:
+        from .device_types import get_device_info_by_product_name
+        product_name = entry.data.get("product_name", "unknown")
+        device_info = get_device_info_by_product_name(product_name)
+
+    platforms = get_device_platforms(device_info.get("category", "unknown"))
 
     unload_ok = await hass.config_entries.async_unload_platforms(entry, platforms)
     if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id)
+        # Remove from hass.data (backward compatibility)
+        hass.data[DOMAIN].pop(entry.entry_id, None)
 
         # Unload services when the last device is removed
         if not hass.data[DOMAIN]:

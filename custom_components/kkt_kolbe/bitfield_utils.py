@@ -265,10 +265,13 @@ def get_zone_value_from_coordinator(coordinator: Any, dp_id: int, zone: int) -> 
         else:
             _LOGGER.debug("Coordinator data is None")
 
+        # Get the DPS dictionary - coordinator may return data with DPs under 'dps' key
+        dps_data = coordinator.data.get("dps", coordinator.data)
+
         # Try both string and integer keys (fix falsy value bug)
-        raw_data = coordinator.data.get(str(dp_id))
+        raw_data = dps_data.get(str(dp_id))
         if raw_data is None:
-            raw_data = coordinator.data.get(dp_id)
+            raw_data = dps_data.get(dp_id)
         if raw_data is None:
             _LOGGER.debug(f"DP {dp_id} not in current update (tried both str and int keys). Zone entities will use cached values.")
             return 0 if BITFIELD_CONFIG.get(dp_id, {}).get("type") == "value" else False
@@ -304,8 +307,11 @@ async def set_zone_value_in_coordinator(coordinator: Any, dp_id: int, zone: int,
         value: New value for the zone
     """
     try:
+        # Get the DPS dictionary - coordinator may return data with DPs under 'dps' key
+        dps_data = coordinator.data.get("dps", coordinator.data)
+
         # Get current raw bitfield data
-        current_data = coordinator.data.get(str(dp_id), "")
+        current_data = dps_data.get(str(dp_id), "")
 
         # Get bitfield configuration
         config = BITFIELD_CONFIG.get(dp_id)

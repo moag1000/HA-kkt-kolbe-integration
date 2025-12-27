@@ -5,10 +5,15 @@ import logging
 from typing import Any
 
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.storage import Store
 
-from .const import GLOBAL_API_STORAGE_KEY, DEFAULT_API_ENDPOINT
+from .const import GLOBAL_API_STORAGE_KEY, DEFAULT_API_ENDPOINT, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
+
+# Persistent storage version
+STORAGE_VERSION = 1
+STORAGE_KEY = f"{DOMAIN}.api_credentials"
 
 
 class GlobalAPIManager:
@@ -17,9 +22,23 @@ class GlobalAPIManager:
     def __init__(self, hass: HomeAssistant):
         """Initialize the global API manager."""
         self.hass = hass
+        self._store = Store(hass, STORAGE_VERSION, STORAGE_KEY)
+
+    async def async_load_stored_credentials(self) -> dict[str, str] | None:
+        """Load credentials from persistent storage."""
+        try:
+            data = await self._store.async_load()
+            if data:
+                _LOGGER.debug("Loaded API credentials from persistent storage")
+                # Also update runtime cache
+                self.hass.data[GLOBAL_API_STORAGE_KEY] = data
+                return data
+        except Exception as err:
+            _LOGGER.error(f"Failed to load API credentials: {err}")
+        return None
 
     def get_stored_api_credentials(self) -> dict[str, str] | None:
-        """Get stored global API credentials."""
+        """Get stored global API credentials (from runtime cache)."""
         global_api_data = self.hass.data.get(GLOBAL_API_STORAGE_KEY)
         if global_api_data:
             return {
@@ -29,8 +48,29 @@ class GlobalAPIManager:
             }
         return None
 
+    async def async_store_api_credentials(self, client_id: str, client_secret: str, endpoint: str | None = None) -> None:
+        """Store global API credentials persistently."""
+        if endpoint is None:
+            endpoint = DEFAULT_API_ENDPOINT
+
+        data = {
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "endpoint": endpoint
+        }
+
+        # Store in runtime cache
+        self.hass.data[GLOBAL_API_STORAGE_KEY] = data
+
+        # Persist to storage
+        try:
+            await self._store.async_save(data)
+            _LOGGER.info("Global API credentials stored persistently for KKT Kolbe integration")
+        except Exception as err:
+            _LOGGER.error(f"Failed to persist API credentials: {err}")
+
     def store_api_credentials(self, client_id: str, client_secret: str, endpoint: str | None = None) -> None:
-        """Store global API credentials."""
+        """Store global API credentials (runtime only - use async version for persistence)."""
         if endpoint is None:
             endpoint = DEFAULT_API_ENDPOINT
 
@@ -43,10 +83,10 @@ class GlobalAPIManager:
             "endpoint": endpoint
         }
 
-        _LOGGER.info("Global API credentials stored for KKT Kolbe integration")
+        _LOGGER.info("Global API credentials stored in runtime cache")
 
     def has_stored_credentials(self) -> bool:
-        """Check if we have stored API credentials."""
+        """Check if we have stored API credentials (runtime cache only)."""
         creds = self.get_stored_api_credentials()
         return (
             creds is not None
@@ -54,11 +94,35 @@ class GlobalAPIManager:
             and creds.get("client_secret")
         )
 
+    async def async_has_stored_credentials(self) -> bool:
+        """Check if we have stored API credentials (including persistent storage)."""
+        # First check runtime cache
+        if self.has_stored_credentials():
+            return True
+
+        # Try loading from persistent storage
+        creds = await self.async_load_stored_credentials()
+        return (
+            creds is not None
+            and creds.get("client_id")
+            and creds.get("client_secret")
+        )
+
     def clear_stored_credentials(self) -> None:
-        """Clear stored global API credentials."""
+        """Clear stored global API credentials (runtime only)."""
         if GLOBAL_API_STORAGE_KEY in self.hass.data:
             del self.hass.data[GLOBAL_API_STORAGE_KEY]
-            _LOGGER.info("Global API credentials cleared")
+            _LOGGER.info("Global API credentials cleared from runtime cache")
+
+    async def async_clear_stored_credentials(self) -> None:
+        """Clear stored global API credentials (including persistent storage)."""
+        if GLOBAL_API_STORAGE_KEY in self.hass.data:
+            del self.hass.data[GLOBAL_API_STORAGE_KEY]
+        try:
+            await self._store.async_remove()
+            _LOGGER.info("Global API credentials cleared from persistent storage")
+        except Exception as err:
+            _LOGGER.error(f"Failed to clear persistent API credentials: {err}")
 
     async def test_stored_credentials(self) -> bool:
         """Test stored API credentials."""

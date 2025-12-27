@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import logging
 import math
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from homeassistant.components.fan import FanEntity, FanEntityFeature
 from homeassistant.config_entries import ConfigEntry
@@ -25,8 +25,10 @@ from homeassistant.util.percentage import (
 )
 
 from .base_entity import KKTBaseEntity
-from .const import DOMAIN
 from .device_types import get_device_entities, get_device_entity_config
+
+if TYPE_CHECKING:
+    from . import KKTKolbeConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -37,13 +39,14 @@ DEFAULT_SPEED_LIST = ["off", "low", "middle", "high", "strong"]
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: KKTKolbeConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up KKT Kolbe fan entity."""
-    coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-    device_type = hass.data[DOMAIN][entry.entry_id].get("device_type", "auto")
-    product_name = hass.data[DOMAIN][entry.entry_id].get("product_name", "unknown")
+    runtime_data = entry.runtime_data
+    coordinator = runtime_data.coordinator
+    device_type = runtime_data.device_type
+    product_name = runtime_data.product_name
 
     # Prefer device_type (KNOWN_DEVICES key) over product_name (Tuya product ID)
     lookup_key = device_type if device_type not in ("auto", None, "") else product_name

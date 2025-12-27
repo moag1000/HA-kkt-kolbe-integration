@@ -4,8 +4,8 @@
 rules:
   # Bronze tier (Internal)
   action-setup:
-    status: exempt
-    comment: Integration does not register custom actions
+    status: done
+    comment: 12 services registered in services.py with services.yaml documentation
   appropriate-polling:
     status: done
     comment: Uses configurable polling interval (default 30s) with local push updates
@@ -25,8 +25,8 @@ rules:
     status: done
     comment: All dependencies listed in manifest.json (tinytuya, pycryptodome, aiohttp)
   docs-actions:
-    status: exempt
-    comment: No custom actions to document
+    status: done
+    comment: All 12 services documented in services.yaml with full field descriptions
   docs-high-level-description:
     status: done
     comment: README provides comprehensive overview
@@ -47,7 +47,7 @@ rules:
     comment: All entities use has_entity_name = True pattern
   runtime-data:
     status: done
-    comment: Uses hass.data[DOMAIN] for runtime storage
+    comment: Uses entry.runtime_data with KKTKolbeRuntimeData dataclass (HA 2024.6+)
   test-before-configure:
     status: done
     comment: Connection test available during setup
@@ -60,8 +60,8 @@ rules:
 
   # Silver tier
   action-exceptions:
-    status: exempt
-    comment: No custom actions
+    status: done
+    comment: Services use ServiceValidationError and translated exceptions
   config-entry-unloading:
     status: done
     comment: Proper unload implemented in __init__.py
@@ -72,8 +72,8 @@ rules:
     status: done
     comment: Troubleshooting section in README
   dynamic-devices:
-    status: exempt
-    comment: Single device per config entry
+    status: done
+    comment: mDNS/UDP discovery + rescan_devices service for runtime device detection
   entity-category:
     status: done
     comment: Diagnostic entities properly categorized
@@ -146,11 +146,11 @@ rules:
     status: done
     comment: Repair flows in repairs.py for common issues
   stale-devices:
-    status: exempt
-    comment: Single device per entry, manual removal
+    status: done
+    comment: StaleDeviceTracker in device_tracker.py with 30-day auto-cleanup
   test-coverage:
     status: done
-    comment: Tests for config_flow, diagnostics, init, fan, sensor
+    comment: 15 test files covering all platforms, services, coordinator, discovery
 
   # Platinum tier
   async-dependency:

@@ -1,24 +1,24 @@
 """Diagnostics support for KKT Kolbe integration."""
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN
+if TYPE_CHECKING:
+    from . import KKTKolbeConfigEntry
 
 
 async def async_get_config_entry_diagnostics(
-    hass: HomeAssistant, entry: ConfigEntry
+    hass: HomeAssistant, entry: KKTKolbeConfigEntry
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
-    data = hass.data[DOMAIN][entry.entry_id]
+    runtime_data = entry.runtime_data
 
-    # Get coordinator data
-    coordinator = data.get("coordinator")
-    device = data.get("device")
-    api_client = data.get("api_client")
+    # Get coordinator data from runtime_data
+    coordinator = runtime_data.coordinator
+    device = runtime_data.device
+    api_client = runtime_data.api_client
 
     # Build diagnostics data
     diagnostics_data = {
@@ -29,8 +29,9 @@ async def async_get_config_entry_diagnostics(
             "domain": entry.domain,
         },
         "config": {
-            "integration_mode": data.get("integration_mode", "unknown"),
-            "product_name": data.get("product_name", "unknown"),
+            "integration_mode": runtime_data.integration_mode,
+            "product_name": runtime_data.product_name,
+            "device_type": runtime_data.device_type,
             "api_enabled": entry.data.get("api_enabled", False),
             # Redact sensitive information
             "device_id": (entry.data.get("device_id", "")[:8] + "...") if entry.data.get("device_id") else "not_set",
@@ -128,7 +129,7 @@ async def async_get_config_entry_diagnostics(
             "enabled": False,
         }
 
-    # Add device info from registry
-    diagnostics_data["device_info"] = data.get("device_info", {})
+    # Add device info from runtime_data
+    diagnostics_data["device_info"] = runtime_data.device_info
 
     return diagnostics_data

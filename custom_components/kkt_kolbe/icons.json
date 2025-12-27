@@ -1,0 +1,180 @@
+{
+  "entity": {
+    "fan": {
+      "_": {
+        "default": "mdi:fan",
+        "state": {
+          "on": "mdi:fan",
+          "off": "mdi:fan-off"
+        }
+      }
+    },
+    "light": {
+      "_": {
+        "default": "mdi:lightbulb",
+        "state": {
+          "on": "mdi:lightbulb-on",
+          "off": "mdi:lightbulb-off"
+        }
+      }
+    },
+    "switch": {
+      "power": {
+        "default": "mdi:power",
+        "state": {
+          "on": "mdi:power",
+          "off": "mdi:power-off"
+        }
+      },
+      "pause": {
+        "default": "mdi:pause",
+        "state": {
+          "on": "mdi:pause",
+          "off": "mdi:play"
+        }
+      },
+      "child_lock": {
+        "default": "mdi:lock",
+        "state": {
+          "on": "mdi:lock",
+          "off": "mdi:lock-open"
+        }
+      },
+      "filter_cleaning_reminder": {
+        "default": "mdi:air-filter"
+      },
+      "delayed_shutdown": {
+        "default": "mdi:timer-off"
+      },
+      "eco_mode": {
+        "default": "mdi:leaf"
+      },
+      "rgb_light": {
+        "default": "mdi:palette"
+      },
+      "wash_mode": {
+        "default": "mdi:spray-bottle"
+      },
+      "led_light": {
+        "default": "mdi:led-strip"
+      }
+    },
+    "number": {
+      "timer": {
+        "default": "mdi:timer"
+      },
+      "power_level": {
+        "default": "mdi:flash"
+      },
+      "rgb_mode": {
+        "default": "mdi:palette"
+      },
+      "brightness": {
+        "default": "mdi:brightness-6"
+      },
+      "carbon_filter_remaining": {
+        "default": "mdi:air-filter"
+      },
+      "metal_filter_remaining": {
+        "default": "mdi:air-filter"
+      },
+      "zone_power": {
+        "default": "mdi:stove"
+      },
+      "zone_timer": {
+        "default": "mdi:timer-outline"
+      },
+      "zone_temperature": {
+        "default": "mdi:thermometer"
+      }
+    },
+    "sensor": {
+      "filter_status": {
+        "default": "mdi:air-filter"
+      },
+      "filter_hours": {
+        "default": "mdi:clock-outline"
+      },
+      "estimated_power": {
+        "default": "mdi:lightning-bolt"
+      },
+      "total_power_level": {
+        "default": "mdi:gauge"
+      },
+      "active_zones": {
+        "default": "mdi:stove"
+      },
+      "temperature": {
+        "default": "mdi:thermometer"
+      }
+    },
+    "binary_sensor": {
+      "error": {
+        "default": "mdi:alert-circle",
+        "state": {
+          "on": "mdi:alert-circle",
+          "off": "mdi:check-circle"
+        }
+      },
+      "selected": {
+        "default": "mdi:radiobox-marked",
+        "state": {
+          "on": "mdi:radiobox-marked",
+          "off": "mdi:radiobox-blank"
+        }
+      },
+      "boost_active": {
+        "default": "mdi:flash",
+        "state": {
+          "on": "mdi:flash",
+          "off": "mdi:flash-off"
+        }
+      },
+      "keep_warm": {
+        "default": "mdi:thermometer-low",
+        "state": {
+          "on": "mdi:thermometer-low",
+          "off": "mdi:thermometer-off"
+        }
+      },
+      "flex_zone": {
+        "default": "mdi:arrow-expand-horizontal"
+      },
+      "bbq_mode": {
+        "default": "mdi:grill"
+      },
+      "api_connected": {
+        "default": "mdi:cloud-check",
+        "state": {
+          "on": "mdi:cloud-check",
+          "off": "mdi:cloud-off-outline"
+        }
+      }
+    },
+    "select": {
+      "fan_speed": {
+        "default": "mdi:fan"
+      },
+      "rgb_mode": {
+        "default": "mdi:palette"
+      },
+      "color_temperature": {
+        "default": "mdi:thermometer"
+      },
+      "quick_level": {
+        "default": "mdi:numeric-1-circle-outline"
+      },
+      "power_limit": {
+        "default": "mdi:flash-triangle"
+      }
+    }
+  },
+  "services": {
+    "set_fan_speed": "mdi:fan",
+    "set_light": "mdi:lightbulb",
+    "set_rgb_mode": "mdi:palette",
+    "set_power": "mdi:power",
+    "set_timer": "mdi:timer",
+    "set_power_level": "mdi:flash"
+  }
+}

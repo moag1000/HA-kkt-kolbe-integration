@@ -1,3 +1,20 @@
+# Discovery Services
+rescan_devices:
+  name: Rescan Devices
+  description: Trigger a rescan for KKT Kolbe devices on the network (dynamic device discovery)
+  fields:
+    timeout:
+      name: Scan Timeout
+      description: How long to scan for devices in seconds
+      required: false
+      default: 6
+      selector:
+        number:
+          min: 3
+          max: 30
+          unit_of_measurement: seconds
+          mode: slider
+
 # Reconnection and Maintenance Services
 reconnect_device:
   name: Reconnect Device
@@ -117,12 +134,12 @@ set_zone_power:
             - domain: number
     power_level:
       name: Power Level
-      description: Power level (0-9, 0 = off)
+      description: Power level (0-25, 0 = off)
       required: true
       selector:
         number:
           min: 0
-          max: 9
+          max: 25
           step: 1
           mode: slider
 

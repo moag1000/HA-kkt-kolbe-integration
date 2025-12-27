@@ -1,0 +1,8 @@
+# This file defines code owners for the KKT Kolbe integration
+# See https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything in the repo
+* @moag1000
+
+# Custom component files
+/custom_components/kkt_kolbe/ @moag1000
