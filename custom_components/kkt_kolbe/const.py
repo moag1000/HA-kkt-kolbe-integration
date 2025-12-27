@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Final
 
 # === VERSION ===
-VERSION: Final = "3.0.7"
+VERSION: Final = "3.0.8"
 
 # === CORE IDENTIFIERS ===
 DOMAIN: Final = "kkt_kolbe"
