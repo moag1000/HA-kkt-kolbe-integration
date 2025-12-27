@@ -1,7 +1,7 @@
 {
   "entity": {
     "fan": {
-      "_": {
+      "hood_fan": {
         "default": "mdi:fan",
         "state": {
           "on": "mdi:fan",
@@ -10,7 +10,7 @@
       }
     },
     "light": {
-      "_": {
+      "hood_light": {
         "default": "mdi:lightbulb",
         "state": {
           "on": "mdi:lightbulb-on",
