@@ -9,7 +9,6 @@ from datetime import datetime
 import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.kkt_kolbe.const import DOMAIN
@@ -27,13 +26,16 @@ def auto_enable_custom_integrations(enable_custom_integrations):
 async def mock_integration_deps(hass: HomeAssistant):
     """Mock integration dependencies to avoid setup issues in tests."""
     # Mark zeroconf as already processed to skip setup
-    from homeassistant.setup import _DATA_DEPS_REQS
-    if _DATA_DEPS_REQS not in hass.data:
-        hass.data[_DATA_DEPS_REQS] = set()
-    hass.data[_DATA_DEPS_REQS].add("zeroconf")
-
-    # Also mark kkt_kolbe as processed to avoid dependency issues
-    hass.data[_DATA_DEPS_REQS].add("kkt_kolbe")
+    # Handle different HA versions (internal constant may vary)
+    try:
+        from homeassistant.setup import _DATA_DEPS_REQS
+        if _DATA_DEPS_REQS not in hass.data:
+            hass.data[_DATA_DEPS_REQS] = set()
+        hass.data[_DATA_DEPS_REQS].add("zeroconf")
+        hass.data[_DATA_DEPS_REQS].add("kkt_kolbe")
+    except ImportError:
+        # Older HA versions don't have this constant - skip dependency marking
+        pass
 
 
 @pytest.fixture
