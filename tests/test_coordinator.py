@@ -114,6 +114,8 @@ async def test_coordinator_set_data_point(
     )
 
     await coordinator.async_set_data_point(1, True)
+    # Wait for debounced refresh to complete
+    await hass.async_block_till_done()
 
     mock_device.async_set_dp.assert_called()
 
