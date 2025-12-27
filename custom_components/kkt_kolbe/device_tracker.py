@@ -27,6 +27,7 @@ class StaleDeviceTracker:
         """Initialize the device tracker."""
         self.hass = hass
         self._cleanup_task = None
+        self._initial_cleanup_handle = None
         self._tracked_devices: Set[str] = set()
 
     async def async_start(self) -> None:
@@ -40,7 +41,9 @@ class StaleDeviceTracker:
         _LOGGER.info("Stale device tracker started")
 
         # Run initial cleanup after 1 hour
-        self.hass.loop.call_later(3600, self._schedule_initial_cleanup)
+        self._initial_cleanup_handle = self.hass.loop.call_later(
+            3600, self._schedule_initial_cleanup
+        )
 
     def _schedule_initial_cleanup(self) -> None:
         """Schedule the initial cleanup."""
@@ -48,6 +51,9 @@ class StaleDeviceTracker:
 
     async def async_stop(self) -> None:
         """Stop the stale device tracker."""
+        if self._initial_cleanup_handle:
+            self._initial_cleanup_handle.cancel()
+            self._initial_cleanup_handle = None
         if self._cleanup_task:
             self._cleanup_task()
             self._cleanup_task = None
