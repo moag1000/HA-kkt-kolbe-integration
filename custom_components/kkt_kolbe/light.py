@@ -89,8 +89,10 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
 
         # Effect/RGB mode configuration
         self._effect_dp = light_config.get("effect_dp")
-        self._effect_list = light_config.get("effects", [])
+        self._effect_list: list[str] = light_config.get("effects", [])
         self._effect_numeric = light_config.get("effect_numeric", False)
+        # Offset for numeric effects (e.g., 1 if device uses 0=off, 1=first effect)
+        self._effect_offset = light_config.get("effect_offset", 0)
 
         # Determine color modes
         if self._brightness_dp:
@@ -161,9 +163,9 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
             effect_value = dps_data.get(str(self._effect_dp))
             if effect_value is not None:
                 if self._effect_numeric:
-                    # Numeric mode: value is index
+                    # Numeric mode: value is index (with offset)
                     try:
-                        idx = int(effect_value)
+                        idx = int(effect_value) - self._effect_offset
                         if 0 <= idx < len(self._effect_list):
                             return self._effect_list[idx]
                     except (ValueError, TypeError):
@@ -209,10 +211,10 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
             return
 
         if self._effect_numeric:
-            # Numeric mode: send index
-            idx = self._effect_list.index(effect)
+            # Numeric mode: send index with offset
+            idx = self._effect_list.index(effect) + self._effect_offset
             await self._async_set_data_point(self._effect_dp, idx)
-            self._log_entity_state("Set Effect", f"Effect: {effect} (index {idx})")
+            self._log_entity_state("Set Effect", f"Effect: {effect} (value {idx})")
         else:
             # String mode: send effect name
             await self._async_set_data_point(self._effect_dp, effect)

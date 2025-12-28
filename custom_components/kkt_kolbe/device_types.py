@@ -113,6 +113,7 @@ KNOWN_DEVICES = {
                     "icon": "mdi:lightbulb",
                     "effect_dp": 101,
                     "effect_numeric": True,
+                    "effect_offset": 1,  # Device uses 0=off, 1=Weiß, 2=Rot, etc.
                     "effects": ["Weiß", "Rot", "Grün", "Blau", "Gelb", "Lila", "Orange", "Cyan", "Grasgrün"]
                 }
             ],
@@ -137,6 +138,14 @@ KNOWN_DEVICES = {
                 {"dp": 14, "name": "Filter Hours", "unit": "h", "device_class": "duration", "icon": "mdi:clock-outline", "advanced": True, "entity_category": "diagnostic"}
             ],
             "select": [
+                # RGB Mode select - maps numeric values 0-8 to color names
+                {
+                    "dp": 101,
+                    "name": "RGB Mode",
+                    "options": ["Aus", "Weiß", "Rot", "Grün", "Blau", "Gelb", "Lila", "Orange", "Cyan", "Grasgrün"],
+                    "options_map": {"Aus": 0, "Weiß": 1, "Rot": 2, "Grün": 3, "Blau": 4, "Gelb": 5, "Lila": 6, "Orange": 7, "Cyan": 8, "Grasgrün": 9},
+                    "icon": "mdi:palette"
+                },
                 # Fan Speed select marked as advanced to avoid HomeKit showing both fan and select
                 {"dp": 10, "name": "Fan Speed", "options": ["off", "low", "middle", "high", "strong"], "icon": "mdi:fan", "advanced": True, "entity_category": "config"},
                 # Experimental select
@@ -210,6 +219,7 @@ KNOWN_DEVICES = {
                     "icon": "mdi:lightbulb",
                     "effect_dp": 101,
                     "effect_numeric": True,
+                    "effect_offset": 1,  # Device uses 0=off, 1=Weiß, 2=Rot, etc.
                     "effects": ["Weiß", "Rot", "Grün", "Blau", "Gelb", "Lila", "Orange", "Cyan", "Grasgrün"]
                 }
             ],
@@ -398,6 +408,7 @@ KNOWN_DEVICES = {
                     "icon": "mdi:lightbulb",
                     "effect_dp": 101,
                     "effect_numeric": True,
+                    "effect_offset": 1,  # Device uses 0=off, 1=Weiß, 2=Rot, etc.
                     "effects": ["Weiß", "Rot", "Grün", "Blau", "Gelb", "Lila", "Orange", "Cyan", "Grasgrün"]
                 }
             ],
@@ -615,22 +626,22 @@ KNOWN_DEVICES = {
     }
 }
 
-def find_device_by_product_name(product_name: str) -> dict:
+def find_device_by_product_name(product_name: str) -> dict | None:
     """Find device in central database by product name."""
-    for device_key, device_info in KNOWN_DEVICES.items():
+    for _device_key, device_info in KNOWN_DEVICES.items():
         if product_name in device_info["product_names"]:
             return device_info
     return None
 
-def find_device_by_device_id(device_id: str) -> dict:
+def find_device_by_device_id(device_id: str) -> dict | None:
     """Find device in central database by device ID."""
-    for device_key, device_info in KNOWN_DEVICES.items():
+    for _device_key, device_info in KNOWN_DEVICES.items():
         # Exact match
         if device_id in device_info["device_ids"]:
             return device_info
         # Pattern match
         for pattern in device_info["device_id_patterns"]:
-            if device_id.startswith(pattern):
+            if isinstance(pattern, str) and device_id.startswith(pattern):
                 return device_info
     return None
 
@@ -643,26 +654,29 @@ def get_device_dps(category: str) -> dict:
     else:
         return {}
 
-def get_device_info_by_device_id(device_id: str) -> dict:
+def get_device_info_by_device_id(device_id: str) -> dict | None:
     """Get device information based on device ID (for manual setup)."""
     device_info = find_device_by_device_id(device_id)
     if device_info:
+        product_names = device_info["product_names"]
         return {
             "model_id": device_info["model_id"],
             "category": device_info["category"],
             "name": device_info["name"],
-            "product_name": device_info["product_names"][0]  # Use first product name
+            "product_name": product_names[0] if isinstance(product_names, list) and product_names else ""
         }
     return None
 
-def get_product_name_by_device_id(device_id: str) -> str:
+def get_product_name_by_device_id(device_id: str) -> str | None:
     """Get product name by device ID - for automatic device type detection."""
     device_info = find_device_by_device_id(device_id)
     if device_info:
-        return device_info["product_names"][0]  # Return the primary product name
+        product_names = device_info["product_names"]
+        if isinstance(product_names, list) and product_names:
+            return str(product_names[0])  # Return the primary product name
     return None
 
-def auto_detect_device_config(device_id: str = None, provided_product_name: str = None) -> dict:
+def auto_detect_device_config(device_id: str | None = None, provided_product_name: str | None = None) -> dict | None:
     """Auto-detect device configuration from available information."""
     detected_product_name = None
 
@@ -708,12 +722,12 @@ def get_device_info_by_product_name(product_name: str) -> dict:
         }
 
     # Method 2: Check central database by Tuya product ID
-    device_info = find_device_by_product_name(product_name)
-    if device_info:
+    found_device_info = find_device_by_product_name(product_name)
+    if found_device_info:
         return {
-            "model_id": device_info["model_id"],
-            "category": device_info["category"],
-            "name": device_info["name"]
+            "model_id": found_device_info["model_id"],
+            "category": found_device_info["category"],
+            "name": found_device_info["name"]
         }
 
     # Handle manual setup device types
@@ -758,12 +772,14 @@ def get_device_info_by_product_name(product_name: str) -> dict:
         "name": f"KKT Device ({product_name})"
     }
 
-def get_device_platforms(category: str) -> list:
+def get_device_platforms(category: str) -> list[str]:
     """Get required platforms for device category."""
     # Try to find specific device platforms first
-    for device_key, device_info in KNOWN_DEVICES.items():
+    for _device_key, device_info in KNOWN_DEVICES.items():
         if device_info["category"] == category:
-            return device_info["platforms"]
+            platforms = device_info["platforms"]
+            if isinstance(platforms, list):
+                return platforms
 
     # Fallback to category-based platforms
     if category == CATEGORY_HOOD:
@@ -775,7 +791,7 @@ def get_device_platforms(category: str) -> list:
         # This ensures manual setup always works
         return ["fan", "light", "switch", "sensor", "select", "number", "binary_sensor"]
 
-def get_device_platforms_by_product_name(product_name: str) -> list:
+def get_device_platforms_by_product_name(product_name: str) -> list[str]:
     """Get platforms directly by product name (most efficient).
 
     Supports:
@@ -784,16 +800,21 @@ def get_device_platforms_by_product_name(product_name: str) -> list:
     """
     # Method 1: Check if product_name is a device key
     if product_name in KNOWN_DEVICES:
-        return KNOWN_DEVICES[product_name]["platforms"]
+        platforms = KNOWN_DEVICES[product_name]["platforms"]
+        if isinstance(platforms, list):
+            return platforms
 
     # Method 2: Try Tuya product ID lookup
     device_info = find_device_by_product_name(product_name)
     if device_info:
-        return device_info["platforms"]
+        platforms = device_info["platforms"]
+        if isinstance(platforms, list):
+            return platforms
 
     # Fallback to category-based lookup
     device_type_info = get_device_info_by_product_name(product_name)
-    return get_device_platforms(device_type_info["category"])
+    category = device_type_info.get("category", "unknown") if isinstance(device_type_info, dict) else "unknown"
+    return get_device_platforms(str(category))
 
 def get_device_entities(product_name: str, platform: str) -> list:
     """Get entity configurations for a specific product and platform.
@@ -813,7 +834,7 @@ def get_device_entities(product_name: str, platform: str) -> list:
 
     if device_info and "entities" in device_info:
         entities_config = device_info["entities"]
-        if platform in entities_config:
+        if isinstance(entities_config, dict) and platform in entities_config:
             entity_config = entities_config[platform]
             # Handle both single entity (dict) and multiple entities (list)
             if isinstance(entity_config, dict):
@@ -849,10 +870,11 @@ def get_product_name_from_device_choice(device_choice: str) -> str:
     """Convert user device choice to internal product name."""
     if device_choice in KNOWN_DEVICES:
         # Known specific device
-        return KNOWN_DEVICES[device_choice]["product_names"][0]
-    elif device_choice == "generic_hood":
+        product_names = KNOWN_DEVICES[device_choice]["product_names"]
+        if isinstance(product_names, list) and product_names:
+            return str(product_names[0])
+    if device_choice == "generic_hood":
         return "manual_hood"
-    elif device_choice == "generic_cooktop":
+    if device_choice == "generic_cooktop":
         return "manual_cooktop"
-    else:
-        return "unknown"
+    return "unknown"

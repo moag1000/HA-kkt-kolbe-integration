@@ -90,6 +90,7 @@ class KKTKolbeFan(KKTBaseEntity, FanEntity):
 
         # For numeric mode, the "off" speed is 0
         # For enum mode, remember last non-off speed
+        self._last_non_off_speed: int | str
         if self._numeric_mode:
             self._last_non_off_speed = 3  # Default to level 3 for numeric
         else:

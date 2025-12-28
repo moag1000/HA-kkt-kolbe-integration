@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from dataclasses import field
+from typing import Any
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -29,11 +31,7 @@ class DeviceConfig:
     device_type: str  # hood, cooktop, unknown
     name: str
     manufacturer: str = "KKT Kolbe"
-    entities: list[EntityConfig] = None
-
-    def __post_init__(self):
-        if self.entities is None:
-            self.entities = []
+    entities: list[EntityConfig] = field(default_factory=list)
 
 
 class DynamicDeviceFactory:
@@ -121,11 +119,11 @@ class DynamicDeviceFactory:
             "name": result.get("name", "KKT Kolbe Device"),
         }
 
-    def _parse_model_data(self, model_json: str) -> dict:
+    def _parse_model_data(self, model_json: str) -> dict[str, Any]:
         """Parse the nested JSON model data from API response."""
         try:
             import json
-            model_data = json.loads(model_json)
+            model_data: dict[str, Any] = json.loads(model_json)
             return model_data
         except (json.JSONDecodeError, TypeError) as err:
             _LOGGER.warning(f"Failed to parse model data: {err}")
@@ -158,9 +156,9 @@ class DynamicDeviceFactory:
         _LOGGER.debug(f"Could not detect device type for model '{model_id}', using 'unknown'")
         return "unknown"
 
-    async def create_entity_configurations(self, model_data: dict) -> list[EntityConfig]:
+    async def create_entity_configurations(self, model_data: dict[str, Any]) -> list[EntityConfig]:
         """Create entity configurations from model data."""
-        entities = []
+        entities: list[EntityConfig] = []
 
         services = model_data.get("services", [])
         if not services:
@@ -217,9 +215,9 @@ class DynamicDeviceFactory:
             dp_id=ability_id,
             property_code=code,
             entity_type=entity_type,
-            name=name,
+            name=str(name) if name else code,
             data_type=data_type,
-            description=property_data.get("description", ""),
+            description=str(property_data.get("description", "")),
             range_data=range_data,
             unit=unit,
             icon=icon,

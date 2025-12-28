@@ -86,7 +86,7 @@ class KKTKolbeSensor(KKTBaseEntity, SensorEntity):
     ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, entry, config, "sensor")
-        self._cached_value = None
+        self._cached_value: int | float | None = None
 
         # Initialize state from coordinator data
         self._update_cached_state()
@@ -201,7 +201,7 @@ class KKTKolbeZoneSensor(KKTZoneBaseEntity, SensorEntity):
     def _update_cached_state(self) -> None:
         """Update the cached state from coordinator data."""
         # Check if this DP uses bitfield encoding
-        if self._dp in BITFIELD_CONFIG and BITFIELD_CONFIG[self._dp]["type"] == "value":
+        if self._zone is not None and self._dp in BITFIELD_CONFIG and BITFIELD_CONFIG[self._dp]["type"] == "value":
             # Use bitfield utilities for Base64-encoded RAW data
             value = get_zone_value_from_coordinator(self.coordinator, self._dp, self._zone)
             self._cached_value = value
@@ -214,7 +214,7 @@ class KKTKolbeZoneSensor(KKTZoneBaseEntity, SensorEntity):
             return
 
         # For zone-specific values, extract from bitfield if needed
-        if isinstance(raw_value, int) and raw_value > 255:
+        if self._zone is not None and isinstance(raw_value, int) and raw_value > 255:
             # Likely a bitfield, extract zone-specific value
             # This depends on the specific data point structure
             zone_offset = (self._zone - 1) * 8  # Assuming 8 bits per zone
@@ -244,7 +244,7 @@ class KKTKolbeCalculatedPowerSensor(KKTBaseEntity, SensorEntity):
         self._zones_dp = config.get("zones_dp", 162)  # DP for zone levels
         self._num_zones = config.get("num_zones", 5)
         self._watts_per_level = config.get("watts_per_level", WATTS_PER_LEVEL)
-        self._cached_value = None
+        self._cached_value: int | None = None
 
         # Set sensor attributes
         self._attr_device_class = SensorDeviceClass.POWER
@@ -289,7 +289,7 @@ class KKTKolbeTotalLevelSensor(KKTBaseEntity, SensorEntity):
         super().__init__(coordinator, entry, config, "sensor")
         self._zones_dp = config.get("zones_dp", 162)
         self._num_zones = config.get("num_zones", 5)
-        self._cached_value = None
+        self._cached_value: int | None = None
 
         # Set sensor attributes
         self._attr_state_class = SensorStateClass.MEASUREMENT
@@ -330,7 +330,7 @@ class KKTKolbeActiveZonesSensor(KKTBaseEntity, SensorEntity):
         super().__init__(coordinator, entry, config, "sensor")
         self._zones_dp = config.get("zones_dp", 162)
         self._num_zones = config.get("num_zones", 5)
-        self._cached_value = None
+        self._cached_value: int | None = None
 
         # Set sensor attributes
         self._attr_state_class = SensorStateClass.MEASUREMENT

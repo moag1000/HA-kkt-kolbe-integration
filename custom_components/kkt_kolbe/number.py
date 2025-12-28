@@ -75,7 +75,7 @@ class KKTKolbeNumber(KKTBaseEntity, NumberEntity):
         self._attr_native_step = config.get("step", 1)
         self._attr_native_unit_of_measurement = config.get("unit", config.get("unit_of_measurement"))
         self._attr_icon = self._get_icon()
-        self._cached_value = None
+        self._cached_value: float | None = None
 
         # Set display precision based on entity type (HA 2025.1+)
         # Timers, filter days, power levels, fan speeds: no decimals
@@ -146,7 +146,7 @@ class KKTKolbeZoneNumber(KKTZoneBaseEntity, NumberEntity):
         self._attr_native_step = config.get("step", 1)
         self._attr_native_unit_of_measurement = config.get("unit_of_measurement")
         self._attr_icon = self._get_icon()
-        self._cached_value = None
+        self._cached_value: float | None = None
 
         # Zone values are typically integers (power level 0-9, etc.) - no decimals
         self._attr_suggested_display_precision = 0
@@ -170,7 +170,7 @@ class KKTKolbeZoneNumber(KKTZoneBaseEntity, NumberEntity):
     def _update_cached_state(self) -> None:
         """Update the cached state from coordinator data."""
         # Check if this DP uses bitfield encoding
-        if self._dp in BITFIELD_CONFIG and BITFIELD_CONFIG[self._dp]["type"] == "value":
+        if self._zone is not None and self._dp in BITFIELD_CONFIG and BITFIELD_CONFIG[self._dp]["type"] == "value":
             # Use bitfield utilities for Base64-encoded RAW data
             value = get_zone_value_from_coordinator(self.coordinator, self._dp, self._zone)
             self._cached_value = float(value) if value is not None else None
@@ -183,7 +183,7 @@ class KKTKolbeZoneNumber(KKTZoneBaseEntity, NumberEntity):
             return
 
         # For zone-specific values, extract from bitfield if needed
-        if isinstance(raw_value, int) and raw_value > 255:
+        if self._zone is not None and isinstance(raw_value, int) and raw_value > 255:
             # Extract zone-specific value from bitfield
             zone_offset = (self._zone - 1) * 8
             zone_mask = 0xFF << zone_offset
@@ -202,7 +202,7 @@ class KKTKolbeZoneNumber(KKTZoneBaseEntity, NumberEntity):
         int_value = int(value)
 
         # Check if this DP uses bitfield encoding
-        if self._dp in BITFIELD_CONFIG and BITFIELD_CONFIG[self._dp]["type"] == "value":
+        if self._zone is not None and self._dp in BITFIELD_CONFIG and BITFIELD_CONFIG[self._dp]["type"] == "value":
             # Use bitfield utilities for Base64-encoded RAW data
             await set_zone_value_in_coordinator(self.coordinator, self._dp, self._zone, int_value)
             self._log_entity_state("Set Zone Value (Bitfield)", f"Zone {self._zone}, DP {self._dp} set to {int_value}")
@@ -210,7 +210,7 @@ class KKTKolbeZoneNumber(KKTZoneBaseEntity, NumberEntity):
 
         # Fallback to legacy integer bitfield handling
         current_data = self._get_data_point_value()
-        if current_data is not None and isinstance(current_data, int) and current_data > 255:
+        if self._zone is not None and current_data is not None and isinstance(current_data, int) and current_data > 255:
             # Update the specific zone in the bitfield
             zone_offset = (self._zone - 1) * 8
             zone_mask = 0xFF << zone_offset

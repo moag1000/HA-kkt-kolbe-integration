@@ -132,7 +132,7 @@ class TuyaAPIRegionRepairFlow(RepairsFlow):
         errors = {}
 
         if user_input is not None:
-            region = user_input.get("region")
+            region = str(user_input.get("region", ""))
             new_endpoint = self.ENDPOINTS.get(region)
 
             if new_endpoint and self.entry_id:

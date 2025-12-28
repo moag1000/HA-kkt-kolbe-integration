@@ -97,14 +97,21 @@ def _detect_device_type_from_api(device: dict[str, Any]) -> tuple[str, str]:
         if device_info:
             for device_key, info in KNOWN_DEVICES.items():
                 # Check exact match
-                if device_id in info.get("device_ids", []):
+                device_ids = info.get("device_ids", [])
+                if isinstance(device_ids, list) and device_id in device_ids:
+                    product_names = info.get("product_names", [])
+                    product_name = str(product_names[0]) if isinstance(product_names, list) and product_names else device_key
                     _LOGGER.info(f"Detected device by device_id: {device_key} ({device_id[:12]}...)")
-                    return (device_key, info["product_names"][0])
+                    return (device_key, product_name)
                 # Check pattern match
-                for pattern in info.get("device_id_patterns", []):
-                    if device_id.startswith(pattern):
-                        _LOGGER.info(f"Detected device by device_id pattern: {device_key} ({pattern}*)")
-                        return (device_key, info["product_names"][0])
+                patterns = info.get("device_id_patterns", [])
+                if isinstance(patterns, list):
+                    for pattern in patterns:
+                        if isinstance(pattern, str) and device_id.startswith(pattern):
+                            product_names = info.get("product_names", [])
+                            product_name = str(product_names[0]) if isinstance(product_names, list) and product_names else device_key
+                            _LOGGER.info(f"Detected device by device_id pattern: {device_key} ({pattern}*)")
+                            return (device_key, product_name)
 
     # Method 2: Category-based detection with specific device matching
     search_text = f"{api_product_name} {device_name}".lower()
@@ -161,19 +168,24 @@ def _detect_device_type_from_device_id(device_id: str) -> tuple[str, str, str]:
     # Check each known device for device_id matches
     for device_key, info in KNOWN_DEVICES.items():
         # Check exact device_id match
-        if device_id in info.get("device_ids", []):
-            friendly_name = info.get("name", device_key)
-            product_name = info["product_names"][0] if info.get("product_names") else device_key
+        device_ids = info.get("device_ids", [])
+        if isinstance(device_ids, list) and device_id in device_ids:
+            friendly_name = str(info.get("name", device_key))
+            product_names = info.get("product_names", [])
+            product_name = str(product_names[0]) if isinstance(product_names, list) and product_names else device_key
             _LOGGER.info(f"Detected device by exact device_id: {device_key} -> {friendly_name}")
             return (device_key, product_name, friendly_name)
 
         # Check device_id pattern match
-        for pattern in info.get("device_id_patterns", []):
-            if device_id.startswith(pattern):
-                friendly_name = info.get("name", device_key)
-                product_name = info["product_names"][0] if info.get("product_names") else device_key
-                _LOGGER.info(f"Detected device by device_id pattern {pattern}*: {device_key} -> {friendly_name}")
-                return (device_key, product_name, friendly_name)
+        patterns = info.get("device_id_patterns", [])
+        if isinstance(patterns, list):
+            for pattern in patterns:
+                if isinstance(pattern, str) and device_id.startswith(pattern):
+                    friendly_name = str(info.get("name", device_key))
+                    product_names = info.get("product_names", [])
+                    product_name = str(product_names[0]) if isinstance(product_names, list) and product_names else device_key
+                    _LOGGER.info(f"Detected device by device_id pattern {pattern}*: {device_key} -> {friendly_name}")
+                    return (device_key, product_name, friendly_name)
 
     # No match found - return defaults
     _LOGGER.debug(f"No device_id pattern matched for {device_id[:12]}, using defaults")
@@ -215,7 +227,7 @@ async def _try_discover_local_ip(
                     _LOGGER.info(
                         f"Found local IP {local_ip} for device {device_id[:8]} via discovery"
                     )
-                    return local_ip
+                    return str(local_ip)
 
         _LOGGER.debug(f"No local IP found for device {device_id[:8]} via discovery")
         return None
@@ -363,7 +375,7 @@ STEP_AUTHENTICATION_DATA_SCHEMA = vol.Schema({
     vol.Optional("back_to_previous", default=False): bool,
 })
 
-def get_settings_schema(device_type: str = None) -> vol.Schema:
+def get_settings_schema(device_type: str | None = None) -> vol.Schema:
     """Get settings schema based on device type."""
     schema_dict = {
         vol.Optional("update_interval", default=30): selector.selector({
@@ -399,7 +411,7 @@ def get_settings_schema(device_type: str = None) -> vol.Schema:
 STEP_SETTINGS_DATA_SCHEMA = get_settings_schema()
 
 
-class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
+class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
     """Handle a config flow for KKT Kolbe."""
 
     VERSION = 2
@@ -823,11 +835,12 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                                 return await self.async_step_zeroconf_confirm()
                             else:
                                 # API works but device not found or no local_key
-                                _LOGGER.warning(f"API configured but device {device_id[:8]} not found or has no local_key")
+                                device_id_str = str(device_id) if device_id else ""
+                                _LOGGER.warning(f"API configured but device {device_id_str[:8]} not found or has no local_key")
 
                                 # Still try to detect device type from device_id if not already detected
                                 if not self._device_info.get("device_type") or self._device_info.get("device_type") == "auto":
-                                    dev_type, prod_name, friendly = _detect_device_type_from_device_id(device_id)
+                                    dev_type, prod_name, friendly = _detect_device_type_from_device_id(device_id_str)
                                     if dev_type != "auto":
                                         self._device_info["device_type"] = dev_type
                                         self._device_info["product_name"] = prod_name
@@ -892,7 +905,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                     device_type = result.device_type
                     product_name = result.product_name or "auto"
 
-                    config_data = {
+                    config_data: dict[str, Any] = {
                         CONF_IP_ADDRESS: result.ip_address,
                         "device_id": result.device_id,
                         "local_key": result.local_key,
@@ -1000,7 +1013,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_user(
-        self, user_input: dict[str, Any | None] = None
+        self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Handle the initial step - setup method selection."""
         errors: dict[str, str] = {}
@@ -1051,7 +1064,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             }
         )
 
-    async def async_step_reauth(self, user_input: dict[str, Any | None] = None) -> ConfigFlowResult:
+    async def async_step_reauth(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle reauthentication for API credentials."""
         self._reauth_entry = self.hass.config_entries.async_get_entry(
             self.context["entry_id"]
@@ -1063,7 +1076,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         return await self.async_step_reauth_confirm()
 
     async def async_step_reauth_confirm(
-        self, user_input: dict[str, Any | None] = None
+        self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Handle reauthentication confirmation."""
         errors: dict[str, str] = {}
@@ -1111,11 +1124,10 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             # Check if we're updating local key
             elif "local_key" in user_input:
                 # Test local connection
-                if await self._test_device_connection(
-                    self._reauth_entry.data.get("ip_address"),
-                    self._reauth_entry.data.get("device_id"),
-                    user_input["local_key"]
-                ):
+                ip_addr = str(self._reauth_entry.data.get("ip_address", ""))
+                dev_id = str(self._reauth_entry.data.get("device_id", ""))
+                local_key_val = str(user_input["local_key"]) if user_input.get("local_key") else ""
+                if await self._test_device_connection(ip_addr, dev_id, local_key_val):
                     # Update config entry with new local key
                     self.hass.config_entries.async_update_entry(
                         self._reauth_entry,
@@ -1320,8 +1332,8 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                 # Update product_name based on device type
                 if new_device_type in KNOWN_DEVICES:
                     product_names = KNOWN_DEVICES[new_device_type].get("product_names", [])
-                    if product_names:
-                        new_data["product_name"] = product_names[0]
+                    if isinstance(product_names, list) and product_names:
+                        new_data["product_name"] = str(product_names[0])
 
                 # Update the config entry and reload
                 return self.async_update_reload_and_abort(
@@ -1484,8 +1496,8 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                     new_data["device_type"] = new_device_type
                     if new_device_type in KNOWN_DEVICES:
                         product_names = KNOWN_DEVICES[new_device_type].get("product_names", [])
-                        if product_names:
-                            new_data["product_name"] = product_names[0]
+                        if isinstance(product_names, list) and product_names:
+                            new_data["product_name"] = str(product_names[0])
 
                 # Update API settings
                 new_data["api_enabled"] = api_enabled
@@ -1585,7 +1597,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_discovery(
-        self, user_input: dict[str, Any | None] = None
+        self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Handle device discovery step."""
         errors: dict[str, str] = {}
@@ -1658,7 +1670,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_manual(
-        self, user_input: dict[str, Any | None] = None
+        self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Handle manual configuration step."""
         errors: dict[str, str] = {}
@@ -1671,17 +1683,19 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             # Validate input format (without local_key)
             validation_errors = await self._validate_manual_input(user_input)
             if not validation_errors:
-                device_type = user_input["device_type"]
+                device_type = str(user_input.get("device_type", "auto"))
+                device_id_val = str(user_input.get("device_id", ""))
 
                 # Check KNOWN_DEVICES first (from device_types.py)
                 if device_type in KNOWN_DEVICES:
                     known_device = KNOWN_DEVICES[device_type]
-                    device_name = known_device["name"]
-                    device_category = known_device["category"]
+                    device_name = str(known_device.get("name", device_type))
+                    device_category = known_device.get("category", "")
                     is_cooktop = device_category == CATEGORY_COOKTOP
                     category = "Induction Cooktop" if is_cooktop else "Range Hood"
                     # Use first product_name for internal identification
-                    product_name_internal = known_device["product_names"][0] if known_device.get("product_names") else device_type
+                    pnames = known_device.get("product_names", [])
+                    product_name_internal = str(pnames[0]) if isinstance(pnames, list) and pnames else device_type
                 elif device_type == "default_hood":
                     # Default Hood from RealDeviceMappings
                     device_name = "Default Hood"
@@ -1695,8 +1709,8 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
 
                 self._device_info = {
                     "ip": user_input[CONF_IP_ADDRESS],
-                    "device_id": user_input["device_id"],
-                    "name": f"KKT Kolbe {device_name} {user_input['device_id'][:8]}",
+                    "device_id": device_id_val,
+                    "name": f"KKT Kolbe {device_name} {device_id_val[:8]}",
                     "product_name": product_name_internal,
                     "device_type": device_type,
                     "category": category,
@@ -1720,7 +1734,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_api_only(
-        self, user_input: dict[str, Any | None] = None
+        self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Handle API-only setup step."""
         errors: dict[str, str] = {}
@@ -1825,7 +1839,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_api_device_selection(
-        self, user_input: dict[str, Any | None] = None
+        self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Handle device selection from API discovery."""
         errors: dict[str, str] = {}
@@ -1834,7 +1848,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             if user_input.get("retry_discovery"):
                 return await self.async_step_api_only()
 
-            selected_device_id = user_input["selected_device"]
+            selected_device_id = str(user_input.get("selected_device", ""))
             device_info = self._discovered_devices[selected_device_id]
 
             # Create config entry with API-only mode
@@ -1914,7 +1928,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_api_choice(
-        self, user_input: dict[str, Any | None] = None
+        self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Handle choice between using stored API credentials or entering new ones."""
         api_manager = GlobalAPIManager(self.hass)
@@ -1928,7 +1942,8 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                     if kkt_devices:
                         # Get stored credentials for later use
                         creds = api_manager.get_stored_api_credentials()
-                        self._api_info = creds
+                        if creds:
+                            self._api_info = creds
 
                         self._discovered_devices = {}
                         for device in kkt_devices:
@@ -1992,7 +2007,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         })
 
     async def async_step_api_credentials(
-        self, user_input: dict[str, Any | None] = None
+        self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Handle entering new API credentials."""
         # This is essentially the same as the original api_only step
@@ -2081,7 +2096,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_authentication(
-        self, user_input: dict[str, Any | None] = None
+        self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Handle authentication step - local key input and validation."""
         errors: dict[str, str] = {}
@@ -2098,7 +2113,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                 else:
                     return await self.async_step_discovery()
 
-            local_key = user_input["local_key"]
+            local_key = str(user_input.get("local_key", ""))
             test_connection = user_input.get("test_connection", True)
 
             # Store local key
@@ -2106,10 +2121,10 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
 
             # Test connection if requested
             if test_connection:
+                ip_addr = str(self._device_info.get("ip", ""))
+                dev_id = str(self._device_info.get("device_id", ""))
                 connection_valid = await self._test_device_connection(
-                    self._device_info["ip"],
-                    self._device_info["device_id"],
-                    local_key
+                    ip_addr, dev_id, local_key
                 )
 
                 if not connection_valid:
@@ -2145,7 +2160,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_settings(
-        self, user_input: dict[str, Any | None] = None
+        self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Handle advanced settings step."""
         if user_input is not None:
@@ -2174,7 +2189,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_confirmation(
-        self, user_input: dict[str, Any | None] = None
+        self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Handle confirmation and create config entry."""
         if user_input is not None:
@@ -2318,7 +2333,8 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             device = KKTKolbeTuyaDevice(device_id, ip_address, local_key)
 
             # Use the new async_test_connection method with built-in timeout protection
-            return await device.async_test_connection()
+            result = await device.async_test_connection()
+            return bool(result)
 
         except Exception as exc:
             _LOGGER.debug("Connection test failed: %s", exc)
@@ -2335,7 +2351,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
         pass
 
     async def async_step_init(
-        self, user_input: dict[str, Any | None] = None
+        self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Manage the options."""
         errors: dict[str, str] = {}

@@ -28,7 +28,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
         pass
 
     async def async_step_init(
-        self, user_input: dict[str, Any | None] = None
+        self, user_input: dict[str, Any | None] | None = None
     ) -> FlowResult:
         """Manage the options."""
         errors: dict[str, str] = {}

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -52,8 +53,11 @@ class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
         self._name = config["name"]
 
         # State caching to prevent "unknown" values when DPs are temporarily unavailable
-        self._cached_value = None
-        self._last_update_time = None
+        self._cached_value: Any = None
+        self._last_update_time: datetime | None = None
+
+        # Device info cache
+        self._device_info_cached: DeviceInfo | None = None
 
         # Set up entity attributes
         self._setup_entity_attributes()
@@ -200,12 +204,12 @@ class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
         # Use model_id from KNOWN_DEVICES if available
         if device_type and device_type in KNOWN_DEVICES:
             model_id = KNOWN_DEVICES[device_type].get("model_id", "")
-            if model_id:
-                return model_id.upper()
+            if model_id and isinstance(model_id, str):
+                return str(model_id).upper()
 
         # Use device_type as hardware identifier if valid
         if device_type and device_type not in ("auto", "unknown", ""):
-            return device_type.replace("_", " ").title()
+            return str(device_type).replace("_", " ").title()
 
         # Fallback to product_name pattern matching
         if product_name:
@@ -221,8 +225,8 @@ class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
 
         # Try device_id first 8 chars as hardware identifier
         device_id = self._entry.data.get("device_id", "")
-        if device_id:
-            return device_id[:8].upper()
+        if device_id and isinstance(device_id, str):
+            return str(device_id[:8]).upper()
 
         return "KKT Device"
 
@@ -339,9 +343,8 @@ class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
             return self._cached_value
         else:
             # DP is available - update cache and return new value
-            import datetime
             self._cached_value = value
-            self._last_update_time = datetime.datetime.now()
+            self._last_update_time = datetime.now()
             _LOGGER.debug(f"Entity {self._attr_unique_id}: DP {data_point} = {value} (type: {type(value)}) - cached")
 
         return value
@@ -380,9 +383,8 @@ class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
                 _LOGGER.debug(f"Zone {zone_number} DP {dp}: Extracted value {value} from Base64 data - cached")
 
                 # Update cache
-                import datetime
                 self._cached_value = value
-                self._last_update_time = datetime.datetime.now()
+                self._last_update_time = datetime.now()
                 return value
             except Exception as e:
                 _LOGGER.error(f"Failed to extract zone {zone_number} from DP {dp}: {e}")
@@ -405,9 +407,8 @@ class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
             return self._cached_value
 
         # Update cache and return new value
-        import datetime
         self._cached_value = value
-        self._last_update_time = datetime.datetime.now()
+        self._last_update_time = datetime.now()
         _LOGGER.debug(f"Zone {zone_number} DP {dp}: Extracted value {value} - cached")
         return value
 

@@ -312,7 +312,7 @@ class RealDeviceMappings:
             }
         }
 
-    def get_device_codes(self, device_type: str) -> list[str | None]:
+    def get_device_codes(self, device_type: str) -> list[str] | None:
         """Get device codes for real-time API calls."""
         mapping = self._device_mappings.get(device_type)
         return mapping.get("codes") if mapping else None
@@ -335,7 +335,7 @@ class RealDeviceMappings:
         """Get list of supported device types."""
         return list(self._device_mappings.keys())
 
-    def get_optimized_codes_for_polling(self, device_type: str) -> list[str | None]:
+    def get_optimized_codes_for_polling(self, device_type: str) -> list[str] | None:
         """Get optimized codes for real-time polling (exclude write-only)."""
         entities = self.get_device_entities(device_type)
         if not entities:
@@ -350,7 +350,7 @@ class RealDeviceMappings:
 
         return readable_codes
 
-    def get_writable_codes(self, device_type: str) -> list[str | None]:
+    def get_writable_codes(self, device_type: str) -> list[str] | None:
         """Get codes that can be written to (for commands)."""
         entities = self.get_device_entities(device_type)
         if not entities:

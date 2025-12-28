@@ -5,6 +5,59 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2025-12-28
+
+### Added
+
+**Apple Home / HomeKit Support**
+- Neue Dokumentation: [docs/HOMEKIT.md](docs/HOMEKIT.md)
+- Anleitung für RGB-Modi Steuerung via Home Assistant Szenen
+- Szenen-Vorlagen für alle 10 RGB-Farben (HERMES/STYLE)
+- Szenen-Vorlagen für ECCO/SOLO HCM Modi (white, colour, scene, music)
+
+**Light Entity: Effect Offset Support**
+- Neuer Parameter `effect_offset` in der Light-Konfiguration
+- Korrigiert die Indizierung bei Geräten mit 0=off, 1=erster Effekt
+- Betroffene Geräte: HERMES, HERMES & STYLE, SOLO HCM
+
+**RGB Mode Select für HERMES & STYLE**
+- RGB Mode Select Entity hinzugefügt (DP 101)
+- 10 Modi: Aus, Weiß, Rot, Grün, Blau, Gelb, Lila, Orange, Cyan, Grasgrün
+
+### Fixed
+
+**Light Effects Offset Bug**
+- Problem: Light Effects starteten bei Index 0 statt 1
+- Geräte senden 0=Aus, 1=Weiß, 2=Rot, etc.
+- Integration verwendete 0=Weiß, 1=Rot (falsch)
+- Fix: `effect_offset: 1` in device_types.py für betroffene Geräte
+
+**HybridCoordinator: last_update_success_time**
+- AttributeError behoben: Property `last_update_success_time` fehlte
+- Timestamp-Tracking für erfolgreiche Updates hinzugefügt
+
+### Changed
+
+**device_types.py**
+- `effect_offset: 1` zu allen Hood Light-Konfigurationen hinzugefügt
+- RGB Mode Select für `hermes_style_hood` hinzugefügt
+
+**light.py**
+- `effect_offset` Parameter in Light-Entity-Initialisierung
+- Offset-Korrektur beim Lesen und Setzen von Effects
+
+**hybrid_coordinator.py**
+- `_last_update_success_time` Attribut und Property hinzugefügt
+- Timestamp wird bei erfolgreichen Updates (local, API, hybrid) gesetzt
+
+### Documentation
+
+- README.md: HomeKit-Sektion erweitert mit Szenen-Hinweis
+- README.md: Link zu docs/HOMEKIT.md in Documentation-Sektion
+- Neue Datei: docs/HOMEKIT.md mit vollständiger Anleitung
+
+---
+
 ## [3.0.0] - 2025-12-25
 
 ### BREAKING CHANGE - Mindestversion Home Assistant 2025.1.0

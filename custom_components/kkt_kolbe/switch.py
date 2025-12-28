@@ -62,7 +62,7 @@ class KKTKolbeSwitch(KKTBaseEntity, SwitchEntity):
         """Initialize the switch."""
         super().__init__(coordinator, entry, config, "switch")
         self._attr_icon = self._get_icon()
-        self._cached_state = None
+        self._cached_state: bool | None = None
 
         # Initialize state from coordinator data
         self._update_cached_state()

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from datetime import datetime
 from datetime import timedelta
 from typing import Any
 
@@ -51,6 +52,9 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
         self.api_consecutive_errors = 0
         self.max_consecutive_errors = 3
 
+        # Timestamp tracking for last successful update
+        self._last_update_success_time: datetime | None = None
+
         super().__init__(
             hass,
             _LOGGER,
@@ -58,6 +62,11 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
             name=f"KKT Kolbe {device_id[:8]} Hybrid",
             update_interval=update_interval,
         )
+
+    @property
+    def last_update_success_time(self) -> datetime | None:
+        """Return the timestamp of the last successful update."""
+        return self._last_update_success_time
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Update data using hybrid approach."""
@@ -68,6 +77,7 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
             try:
                 data = await self.async_update_local()
                 self.local_consecutive_errors = 0
+                self._last_update_success_time = datetime.now()
                 return data
             except (KKTConnectionError, KKTTimeoutError) as err:
                 self.local_consecutive_errors += 1
@@ -88,6 +98,7 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
             try:
                 data = await self.async_update_via_api()
                 self.api_consecutive_errors = 0
+                self._last_update_success_time = datetime.now()
 
                 # If we were in fallback mode and API works, consider it primary
                 if self.current_mode != "api":
@@ -102,12 +113,15 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
 
         # If both modes failed or unavailable, try hybrid approach
         if self.local_available and self.api_available:
-            return await self.async_update_hybrid()
+            data = await self.async_update_hybrid()
+            self._last_update_success_time = datetime.now()
+            return data
 
         # Last resort: return cached data or raise error
         if self.data:
             _LOGGER.warning("All communication methods failed, using cached data")
-            return self.data
+            cached_data: dict[str, Any] = self.data
+            return cached_data
 
         raise UpdateFailed("All communication methods failed and no cached data available")
 
@@ -133,7 +147,7 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
             }
 
         except Exception as err:
-            raise KKTConnectionError(f"Local communication failed: {err}")
+            raise KKTConnectionError(f"Local communication failed: {err}") from err
 
     async def async_update_via_api(self) -> dict[str, Any]:
         """Update data via API communication."""
@@ -147,8 +161,10 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
             status_list = await self.api_client.get_device_status(self.device_id)
 
             # Convert API status format to DPS format
-            dps = {}
+            dps: dict[str, Any] = {}
             for status_item in status_list:
+                if not isinstance(status_item, dict):
+                    continue
                 code = status_item.get("code")
                 value = status_item.get("value")
 
@@ -171,10 +187,10 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
                 "raw_api_status": status_list,
             }
 
-        except TuyaDeviceNotFoundError:
-            raise TuyaAPIError(f"Device {self.device_id} not found in API")
+        except TuyaDeviceNotFoundError as err:
+            raise TuyaAPIError(f"Device {self.device_id} not found in API") from err
         except Exception as err:
-            raise TuyaAPIError(f"API communication failed: {err}")
+            raise TuyaAPIError(f"API communication failed: {err}") from err
 
     async def async_update_hybrid(self) -> dict[str, Any]:
         """Update data using hybrid approach - combine local and API data."""
@@ -271,7 +287,7 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
         _LOGGER.debug(f"Sending command to DP {dp_id}: {value}")
 
         # Try local first if available and preferred
-        if self.local_available and (self.prefer_local or self.current_mode == "local"):
+        if self.local_available and self.local_device and (self.prefer_local or self.current_mode == "local"):
             try:
                 result = await self.local_device.async_set_dp(dp_id, value)
                 if result:
@@ -289,7 +305,7 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
                 _LOGGER.debug(f"Attempting API command for DP {dp_id}: {value}")
                 result = await self.api_client.send_dp_commands(
                     self.device_id,
-                    {dp_id: value}
+                    {str(dp_id): value}
                 )
                 if result:
                     _LOGGER.info(f"Command sent successfully via API for DP {dp_id}")

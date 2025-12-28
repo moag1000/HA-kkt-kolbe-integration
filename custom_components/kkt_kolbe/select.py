@@ -66,7 +66,7 @@ class KKTKolbeSelect(KKTBaseEntity, SelectEntity):
         self._attr_options = config.get("options", [])
         self._options_map = config.get("options_map", {})
         self._attr_icon = self._get_icon()
-        self._cached_option = None
+        self._cached_option: str | None = None
 
         # Initialize state from coordinator data
         self._update_cached_state()

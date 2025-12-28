@@ -216,7 +216,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             {"results": results}
         )
 
-    async def handle_get_connection_status(service: ServiceCall) -> None:
+    async def handle_get_connection_status(service: ServiceCall) -> dict:
         """Handle get connection status service."""
         device_id = service.data.get("device_id")
         entry_id = service.data.get("entry_id")

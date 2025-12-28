@@ -4,7 +4,6 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from datetime import timedelta
-from typing import Set
 
 from homeassistant.core import HomeAssistant
 from homeassistant.core import callback
@@ -31,7 +30,7 @@ class StaleDeviceTracker:
         self.hass = hass
         self._cleanup_task = None
         self._initial_cleanup_handle = None
-        self._tracked_devices: Set[str] = set()
+        self._tracked_devices: set[str] = set()
 
     async def async_start(self) -> None:
         """Start the stale device tracker."""
@@ -114,7 +113,7 @@ class StaleDeviceTracker:
                 # But be conservative - only remove if old
                 if device.created_at:
                     age = datetime.now() - device.created_at
-                    return age > STALE_DEVICE_THRESHOLD
+                    return bool(age > STALE_DEVICE_THRESHOLD)
                 return False
 
             # Check if any entity has been updated recently

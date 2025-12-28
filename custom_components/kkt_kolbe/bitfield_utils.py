@@ -183,7 +183,7 @@ def update_zone_bit_in_bitfield(base64_data: str, zone: int, new_value: bool) ->
         return base64_data or ""
 
 # Bitfield configuration for IND7705HC data points
-BITFIELD_CONFIG = {
+BITFIELD_CONFIG: dict[int, dict[str, Any]] = {
     # Value-based bitfields (8 bits per zone)
     162: {  # oem_hob_level_num - Zone power levels
         "type": "value",

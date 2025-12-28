@@ -9,6 +9,7 @@ from homeassistant.const import CONF_IP_ADDRESS
 from homeassistant.core import HomeAssistant
 
 # Import is_private_ip from helpers to avoid duplication
+from ..helpers import is_private_ip  # noqa: F401
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -36,7 +37,7 @@ async def test_device_connection(
         device = KKTKolbeTuyaDevice(device_id, ip_address, local_key)
 
         # Use the async_test_connection method with built-in timeout protection
-        return await device.async_test_connection()
+        return bool(await device.async_test_connection())
 
     except Exception as exc:
         _LOGGER.debug("Connection test failed: %s", exc)
@@ -79,7 +80,7 @@ async def try_discover_local_ip(
                 ip = disc_info.get("ip") or disc_info.get("host")
                 if ip:
                     _LOGGER.info(f"Discovered local IP {ip} for device {device_id[:8]}")
-                    return ip
+                    return str(ip)
 
         _LOGGER.debug(f"Device {device_id[:8]} not found in discovery results")
         return None
@@ -120,7 +121,7 @@ def create_config_entry_data(
     Returns:
         Dictionary suitable for config entry data.
     """
-    data = {
+    data: dict[str, Any] = {
         CONF_IP_ADDRESS: ip_address,
         "device_id": device_id,
         "local_key": local_key,
@@ -195,6 +196,6 @@ def get_friendly_device_type(device_type: str) -> str:
     from ..device_types import KNOWN_DEVICES
 
     if device_type in KNOWN_DEVICES:
-        return KNOWN_DEVICES[device_type].get("name", device_type)
+        return str(KNOWN_DEVICES[device_type].get("name", device_type))
 
     return device_type.replace("_", " ").title()
