@@ -10,6 +10,7 @@ import logging
 from typing import TYPE_CHECKING
 from typing import Any
 from typing import TypeVar
+from typing import cast
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import Entity
@@ -44,8 +45,8 @@ def get_entity_lookup_key(entry: KKTKolbeConfigEntry) -> str:
     product_name = runtime_data.product_name
 
     if device_type not in ("auto", None, ""):
-        return device_type
-    return product_name
+        return str(device_type)
+    return str(product_name)
 
 
 def is_advanced_entities_enabled(entry: KKTKolbeConfigEntry) -> bool:
@@ -57,7 +58,7 @@ def is_advanced_entities_enabled(entry: KKTKolbeConfigEntry) -> bool:
     Returns:
         True if advanced entities should be created
     """
-    return entry.options.get("enable_advanced_entities", True)
+    return bool(entry.options.get("enable_advanced_entities", True))
 
 
 def create_entities_from_config(
@@ -104,7 +105,7 @@ def create_entities_from_config(
     return entities
 
 
-def create_single_entity_from_config(
+def create_single_entity_from_config[EntityT: Entity](
     entry: KKTKolbeConfigEntry,
     platform: str,
     entity_class: type[EntityT],
@@ -128,7 +129,7 @@ def create_single_entity_from_config(
     entity_config = get_device_entity_config(lookup_key, platform)
 
     if entity_config:
-        return entity_class(coordinator, entry, entity_config)
+        return cast(EntityT, entity_class(coordinator, entry, entity_config))
 
     return None
 
@@ -211,4 +212,5 @@ def get_device_info_from_entry(entry: KKTKolbeConfigEntry) -> dict[str, Any]:
     Returns:
         Device info dictionary
     """
-    return entry.runtime_data.device_info
+    device_info: dict[str, Any] = entry.runtime_data.device_info
+    return device_info

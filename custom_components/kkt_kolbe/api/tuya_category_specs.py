@@ -33,7 +33,7 @@ class TuyaCategorySpecs:
                 category_file = specs_dir / filename
 
                 if category_file.exists():
-                    with open(category_file, 'r', encoding='utf-8') as f:
+                    with open(category_file, encoding='utf-8') as f:
                         category_data = json.load(f)
                         if category_data.get("success") and "result" in category_data:
                             self._specs[category] = category_data["result"]
@@ -568,9 +568,9 @@ class TuyaCategorySpecs:
         self,
         device_id: str,
         category: str,
-        device_name: str = None,
-        model_id: str = None
-    ) -> list[dict | None]:
+        device_name: str | None = None,
+        model_id: str | None = None
+    ) -> list[dict] | None:
         """Generate complete device configuration from category specification."""
         spec = self.get_category_spec(category)
         if not spec:

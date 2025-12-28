@@ -106,7 +106,8 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
         else:  # OFFLINE or UNREACHABLE
             new_interval = timedelta(seconds=POLL_INTERVAL_OFFLINE)
 
-        if self.update_interval != new_interval:
+        current_interval = self.update_interval  # type: ignore[has-type]
+        if current_interval != new_interval:
             _LOGGER.debug(
                 f"Device {self.device.device_id[:8]}: Adjusting poll interval to {new_interval.total_seconds()}s (state: {self._device_state.value})"
             )
@@ -125,7 +126,7 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
                 await self.device.async_connect()
 
             # Get current device status
-            status = await self.device.async_get_status()
+            status: dict[str, Any] = await self.device.async_get_status()
 
             if not status:
                 _LOGGER.warning(f"Device {self.device.device_id[:8]} returned empty status")

@@ -140,7 +140,8 @@ class TuyaCloudClient:
             headers["nonce"] = nonce
         else:
             # API requests with access_token don't use nonce
-            headers["access_token"] = self._access_token
+            # We know _access_token is not None here because is_token_request is False
+            headers["access_token"] = self._access_token or ""
 
         # Generate and add signature
         signature = self._generate_signature(method, url, headers, body, nonce)
@@ -219,11 +220,12 @@ class TuyaCloudClient:
 
         _LOGGER.debug(f"Making {method} request to {path}")
 
+        assert self.session is not None  # Guaranteed by _ensure_session()
         try:
             async with self.session.request(
                 method, url, headers=headers, data=body
             ) as response:
-                response_data = await response.json()
+                response_data: dict[str, Any] = await response.json()
 
                 # Check for API errors
                 if not response_data.get("success", False):
@@ -261,7 +263,7 @@ class TuyaCloudClient:
                 return response_data
 
         except aiohttp.ClientError as err:
-            raise TuyaAPIError(f"HTTP request failed: {err}")
+            raise TuyaAPIError(f"HTTP request failed: {err}") from err
 
     async def authenticate(self) -> str:
         """Authenticate and get access token."""
@@ -350,9 +352,9 @@ class TuyaCloudClient:
             # Fallback to v1.0 API (older accounts)
             try:
                 response = await self._make_request("GET", "/v1.0/devices")
-                devices = response.get("result", [])
-                _LOGGER.info(f"Retrieved {len(devices)} devices from API v1.0")
-                return devices  # v1.0 already in correct format
+                v1_devices: list[dict[str, Any]] = response.get("result", [])
+                _LOGGER.info(f"Retrieved {len(v1_devices)} devices from API v1.0")
+                return v1_devices  # v1.0 already in correct format
             except TuyaAPIError:
                 _LOGGER.error("Both v2.0 and v1.0 device list APIs failed")
                 raise
@@ -374,7 +376,7 @@ class TuyaCloudClient:
         # Try v1.0 API first (returns local_key, product_id, etc.)
         try:
             response = await self._make_request("GET", f"/v1.0/devices/{device_id}")
-            device = response.get("result", {})
+            device: dict[str, Any] = response.get("result", {})
 
             if device:
                 has_local_key = bool(device.get('local_key'))
@@ -503,7 +505,7 @@ class TuyaCloudClient:
 
             except (json.JSONDecodeError, KeyError) as parse_err:
                 _LOGGER.warning(f"Failed to parse v2.0 model data: {parse_err}")
-                raise TuyaAPIError("Failed to parse Things Data Model")
+                raise TuyaAPIError("Failed to parse Things Data Model") from parse_err
 
         except TuyaAPIError as v2_error:
             _LOGGER.debug(f"v2.0 Things Data Model failed, trying v1.0 fallback: {v2_error}")
@@ -515,9 +517,9 @@ class TuyaCloudClient:
                     f"/v1.0/iot-03/devices/{device_id}/functions"
                 )
 
-                result = response.get("result", {})
+                iot03_result: dict[str, Any] = response.get("result", {})
                 _LOGGER.debug("Retrieved properties from v1.0 iot-03 API")
-                return result
+                return iot03_result
 
             except TuyaAPIError as iot03_error:
                 _LOGGER.debug(f"v1.0 iot-03 failed, trying legacy v1.0: {iot03_error}")
@@ -529,11 +531,12 @@ class TuyaCloudClient:
                         f"/v1.0/devices/{device_id}/functions"
                     )
 
-                    return response.get("result", {})
+                    legacy_result: dict[str, Any] = response.get("result", {})
+                    return legacy_result
 
                 except TuyaAPIError as err:
                     if "device not found" in str(err).lower():
-                        raise TuyaDeviceNotFoundError(device_id)
+                        raise TuyaDeviceNotFoundError(device_id) from err
                     raise
 
     async def get_device_status(self, device_id: str) -> dict[str, Any] | list[dict[str, Any]]:
@@ -554,8 +557,8 @@ class TuyaCloudClient:
             )
 
             # v2.0 nests properties: result.properties[]
-            result = response.get("result", {})
-            properties = result.get("properties", [])
+            result: dict[str, Any] = response.get("result", {})
+            properties: list[dict[str, Any]] = result.get("properties", [])
 
             _LOGGER.debug(f"Retrieved {len(properties)} properties from v2.0 API")
             return properties
@@ -570,13 +573,13 @@ class TuyaCloudClient:
                     f"/v1.0/devices/{device_id}/status"
                 )
 
-                status = response.get("result", [])
+                status: list[dict[str, Any]] = response.get("result", [])
                 _LOGGER.debug(f"Retrieved {len(status)} status values from v1.0 API")
                 return status
 
             except TuyaAPIError as err:
                 if "device not found" in str(err).lower():
-                    raise TuyaDeviceNotFoundError(device_id)
+                    raise TuyaDeviceNotFoundError(device_id) from err
                 raise
 
     async def send_commands(self, device_id: str, commands: list[dict[str, Any]]) -> bool:
@@ -601,7 +604,7 @@ class TuyaCloudClient:
                 data={"commands": commands}
             )
 
-            success = response.get("success", False)
+            success: bool = response.get("success", False)
             if success:
                 _LOGGER.info(f"Commands sent successfully to device {device_id}")
             else:
@@ -641,7 +644,7 @@ class TuyaCloudClient:
                 data={"commands": commands}
             )
 
-            success = response.get("success", False)
+            success: bool = response.get("success", False)
             if success:
                 _LOGGER.info(f"DP commands sent successfully to device {device_id}")
                 return True
@@ -657,10 +660,10 @@ class TuyaCloudClient:
                 data={"commands": commands}
             )
 
-            success = response.get("success", False)
-            if success:
+            std_success: bool = response.get("success", False)
+            if std_success:
                 _LOGGER.info(f"DP commands sent via standard API to device {device_id}")
-            return success
+            return std_success
 
         except TuyaAPIError as err:
             _LOGGER.error(f"Failed to send DP commands to device {device_id}: {err}")

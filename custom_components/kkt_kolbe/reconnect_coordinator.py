@@ -61,9 +61,9 @@ class ReconnectCoordinator(DataUpdateCoordinator):
         self._max_reconnect_attempts = DEFAULT_MAX_RECONNECT_ATTEMPTS
 
         # Backoff configuration
-        self._base_backoff_time = DEFAULT_BASE_BACKOFF
-        self._max_backoff_time = DEFAULT_MAX_BACKOFF
-        self._current_backoff_time = self._base_backoff_time
+        self._base_backoff_time: float = float(DEFAULT_BASE_BACKOFF)
+        self._max_backoff_time: float = float(DEFAULT_MAX_BACKOFF)
+        self._current_backoff_time: float = self._base_backoff_time
 
         # Reconnection task
         self._reconnect_task: asyncio.Task | None = None
@@ -242,8 +242,8 @@ class ReconnectCoordinator(DataUpdateCoordinator):
         try:
             async with asyncio.timeout(timeout):
                 return await self.device.async_get_status()
-        except asyncio.TimeoutError:
-            raise KKTTimeoutError(f"Device fetch timed out after {timeout}s")
+        except TimeoutError as err:
+            raise KKTTimeoutError(f"Device fetch timed out after {timeout}s") from err
 
     async def _async_mark_online(self) -> None:
         """Mark device as online."""

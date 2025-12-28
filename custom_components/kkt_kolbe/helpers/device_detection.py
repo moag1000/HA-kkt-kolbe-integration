@@ -55,15 +55,21 @@ def detect_device_type_from_api(device: dict[str, Any]) -> tuple[str, str]:
         device_info = find_device_by_device_id(device_id)
         if device_info:
             for device_key, info in KNOWN_DEVICES.items():
+                device_ids = info.get("device_ids", [])
+                product_names = info.get("product_names", [])
                 # Check exact match
-                if device_id in info.get("device_ids", []):
+                if isinstance(device_ids, list) and device_id in device_ids:
+                    product_name = str(product_names[0]) if isinstance(product_names, list) and product_names else device_key
                     _LOGGER.info(f"Detected device by device_id: {device_key} ({device_id[:12]}...)")
-                    return (device_key, info["product_names"][0])
+                    return (device_key, product_name)
                 # Check pattern match
-                for pattern in info.get("device_id_patterns", []):
-                    if device_id.startswith(pattern):
-                        _LOGGER.info(f"Detected device by device_id pattern: {device_key} ({pattern}*)")
-                        return (device_key, info["product_names"][0])
+                patterns = info.get("device_id_patterns", [])
+                if isinstance(patterns, list):
+                    for pattern in patterns:
+                        if isinstance(pattern, str) and device_id.startswith(pattern):
+                            product_name = str(product_names[0]) if isinstance(product_names, list) and product_names else device_key
+                            _LOGGER.info(f"Detected device by device_id pattern: {device_key} ({pattern}*)")
+                            return (device_key, product_name)
 
     # Method 3: Category-based detection
     search_text = f"{api_product_name} {device_name}".lower()
@@ -120,20 +126,24 @@ def detect_device_type_from_device_id(device_id: str) -> tuple[str, str, str]:
 
     # Check each known device for matches
     for device_key, info in KNOWN_DEVICES.items():
+        device_ids = info.get("device_ids", [])
+        product_names = info.get("product_names", [])
+        friendly_name = str(info.get("name", device_key))
+
         # Check exact device_id match
-        if device_id in info.get("device_ids", []):
-            friendly_name = info.get("name", device_key)
-            product_name = info["product_names"][0] if info.get("product_names") else device_key
+        if isinstance(device_ids, list) and device_id in device_ids:
+            product_name = str(product_names[0]) if isinstance(product_names, list) and product_names else device_key
             _LOGGER.info(f"Detected device by exact device_id: {device_key} -> {friendly_name}")
             return (device_key, product_name, friendly_name)
 
         # Check device_id pattern match
-        for pattern in info.get("device_id_patterns", []):
-            if device_id.startswith(pattern):
-                friendly_name = info.get("name", device_key)
-                product_name = info["product_names"][0] if info.get("product_names") else device_key
-                _LOGGER.info(f"Detected device by pattern {pattern}*: {device_key} -> {friendly_name}")
-                return (device_key, product_name, friendly_name)
+        patterns = info.get("device_id_patterns", [])
+        if isinstance(patterns, list):
+            for pattern in patterns:
+                if isinstance(pattern, str) and device_id.startswith(pattern):
+                    product_name = str(product_names[0]) if isinstance(product_names, list) and product_names else device_key
+                    _LOGGER.info(f"Detected device by pattern {pattern}*: {device_key} -> {friendly_name}")
+                    return (device_key, product_name, friendly_name)
 
     # No match found
     _LOGGER.debug(f"No device_id pattern matched for {device_id[:12]}, using defaults")
@@ -161,7 +171,7 @@ def get_device_type_options() -> list[dict[str, str]]:
 
     for device_key, device_info in KNOWN_DEVICES.items():
         category = device_info.get("category", "")
-        name = device_info.get("name", device_key)
+        name = str(device_info.get("name", device_key))
 
         if device_key == "default_hood":
             default_options.append({
@@ -211,8 +221,9 @@ def detect_device_type_from_product_key(product_key: str, device_id: str = "") -
 
     # Check if product_key matches any known device's product_names
     for device_key, info in KNOWN_DEVICES.items():
-        if product_key in info.get("product_names", []):
-            friendly_name = info.get("name", device_key)
+        product_names = info.get("product_names", [])
+        if isinstance(product_names, list) and product_key in product_names:
+            friendly_name = str(info.get("name", device_key))
             _LOGGER.info(f"Detected device by product_key: {product_key} -> {friendly_name}")
             return (device_key, friendly_name)
 

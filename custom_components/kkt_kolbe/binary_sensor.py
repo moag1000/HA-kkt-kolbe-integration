@@ -84,7 +84,7 @@ class KKTKolbeBinarySensor(KKTBaseEntity, BinarySensorEntity):
         """Initialize the binary sensor."""
         super().__init__(coordinator, entry, config, "binary_sensor")
         self._attr_icon = self._get_icon()
-        self._cached_state = None
+        self._cached_state: bool | None = None
 
         # Note: entity_category is now handled in base_entity.py from device_types.py config
 
@@ -142,11 +142,11 @@ class KKTKolbeZoneBinarySensor(KKTZoneBaseEntity, BinarySensorEntity):
         super().__init__(coordinator, entry, config, "binary_sensor")
 
         # Override device class for zone sensors
-        if not self._attr_device_class:
+        if not getattr(self, "_attr_device_class", None):
             self._attr_device_class = BinarySensorDeviceClass.RUNNING
 
         self._attr_icon = self._get_icon()
-        self._cached_state = None
+        self._cached_state: bool | None = None
 
         # Initialize state from coordinator data
         self._update_cached_state()
@@ -171,7 +171,7 @@ class KKTKolbeZoneBinarySensor(KKTZoneBaseEntity, BinarySensorEntity):
     def _update_cached_state(self) -> None:
         """Update the cached state from coordinator data."""
         # Check if this DP uses bitfield encoding
-        if self._dp in BITFIELD_CONFIG and BITFIELD_CONFIG[self._dp]["type"] == "bit":
+        if self._zone is not None and self._dp in BITFIELD_CONFIG and BITFIELD_CONFIG[self._dp]["type"] == "bit":
             # Use bitfield utilities for Base64-encoded RAW data
             value = get_zone_value_from_coordinator(self.coordinator, self._dp, self._zone)
             self._cached_state = bool(value) if value is not None else None
@@ -229,7 +229,7 @@ class KKTKolbeConnectionSensor(CoordinatorEntity, BinarySensorEntity):
         # Check if device has is_connected property
         runtime_data = self._entry.runtime_data
         if runtime_data.device and hasattr(runtime_data.device, "is_connected"):
-            return runtime_data.device.is_connected
+            return bool(runtime_data.device.is_connected)
 
         # Fallback: Check if we have data
         return bool(self.coordinator.data)
@@ -307,14 +307,14 @@ class KKTKolbeAPIStatusSensor(CoordinatorEntity, BinarySensorEntity):
 
         # Check if API client has authentication status
         if hasattr(runtime_data.api_client, "is_authenticated"):
-            return runtime_data.api_client.is_authenticated
+            return bool(runtime_data.api_client.is_authenticated)
 
         # Check if API client has token
         if hasattr(runtime_data.api_client, "_access_token"):
             return bool(runtime_data.api_client._access_token)
 
         # Fallback: assume connected if client exists and coordinator works
-        return self.coordinator.last_update_success
+        return bool(self.coordinator.last_update_success)
 
     @property
     def icon(self) -> str:
@@ -325,7 +325,7 @@ class KKTKolbeAPIStatusSensor(CoordinatorEntity, BinarySensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes."""
         runtime_data = self._entry.runtime_data
-        attrs = {
+        attrs: dict[str, Any] = {
             "api_enabled": runtime_data.api_client is not None,
         }
 

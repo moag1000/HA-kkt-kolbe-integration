@@ -130,13 +130,16 @@ class SmartDiscovery:
                         product_name = detected_info["product_names"][0]
                     # Find the device key
                     for key, info in KNOWN_DEVICES.items():
-                        if device_id in info.get("device_ids", []):
+                        device_ids = info.get("device_ids", [])
+                        if isinstance(device_ids, list) and device_id in device_ids:
                             device_type = key
                             break
-                        for pattern in info.get("device_id_patterns", []):
-                            if device_id.startswith(pattern):
-                                device_type = key
-                                break
+                        patterns = info.get("device_id_patterns", [])
+                        if isinstance(patterns, list):
+                            for pattern in patterns:
+                                if isinstance(pattern, str) and device_id.startswith(pattern):
+                                    device_type = key
+                                    break
                     _LOGGER.info(f"Smart Discovery: Detected {friendly_type} from device_id pattern")
 
             self._discovered_devices[device_id] = SmartDiscoveryResult(
@@ -300,8 +303,9 @@ class SmartDiscovery:
             device_info = find_device_by_product_name(product_id)
             if device_info:
                 for device_key, info in KNOWN_DEVICES.items():
-                    if product_id in info.get("product_names", []):
-                        friendly_type = info.get("name", device_key)
+                    product_names = info.get("product_names", [])
+                    if isinstance(product_names, list) and product_id in product_names:
+                        friendly_type = str(info.get("name", device_key))
                         _LOGGER.info(f"Smart Discovery: Detected {friendly_type} by product_id")
                         return (device_key, product_id, friendly_type)
 
@@ -311,54 +315,61 @@ class SmartDiscovery:
             if device_info:
                 for device_key, info in KNOWN_DEVICES.items():
                     # Check exact match
-                    if device_id in info.get("device_ids", []):
-                        friendly_type = info.get("name", device_key)
+                    device_ids = info.get("device_ids", [])
+                    if isinstance(device_ids, list) and device_id in device_ids:
+                        friendly_type = str(info.get("name", device_key))
+                        product_names = info.get("product_names", [])
+                        prod_name = str(product_names[0]) if isinstance(product_names, list) and product_names else device_key
                         _LOGGER.info(f"Smart Discovery: Detected {friendly_type} by device_id")
-                        return (device_key, info["product_names"][0], friendly_type)
+                        return (device_key, prod_name, friendly_type)
                     # Check pattern match
-                    for pattern in info.get("device_id_patterns", []):
-                        if device_id.startswith(pattern):
-                            friendly_type = info.get("name", device_key)
-                            _LOGGER.info(f"Smart Discovery: Detected {friendly_type} by device_id pattern")
-                            return (device_key, info["product_names"][0], friendly_type)
+                    patterns = info.get("device_id_patterns", [])
+                    if isinstance(patterns, list):
+                        for pattern in patterns:
+                            if isinstance(pattern, str) and device_id.startswith(pattern):
+                                friendly_type = str(info.get("name", device_key))
+                                product_names = info.get("product_names", [])
+                                prod_name = str(product_names[0]) if isinstance(product_names, list) and product_names else device_key
+                                _LOGGER.info(f"Smart Discovery: Detected {friendly_type} by device_id pattern")
+                                return (device_key, prod_name, friendly_type)
 
         # Method 3: Category-based detection with keyword matching
         search_text = f"{api_product_name} {device_name}".lower()
 
         if tuya_category == "dcl":  # Cooktop category
-            friendly_type = KNOWN_DEVICES.get("ind7705hc_cooktop", {}).get("name", "Induction Cooktop")
+            friendly_type = str(KNOWN_DEVICES.get("ind7705hc_cooktop", {}).get("name", "Induction Cooktop"))
             return ("ind7705hc_cooktop", "ind7705hc_cooktop", friendly_type)
         elif tuya_category == "yyj":  # Hood category
             # Try to identify specific hood model
             if "solo" in search_text:
-                friendly_type = KNOWN_DEVICES.get("solo_hcm_hood", {}).get("name", "SOLO HCM Hood")
+                friendly_type = str(KNOWN_DEVICES.get("solo_hcm_hood", {}).get("name", "SOLO HCM Hood"))
                 return ("solo_hcm_hood", "bgvbvjwomgbisd8x", friendly_type)
             elif "ecco" in search_text:
-                friendly_type = KNOWN_DEVICES.get("ecco_hcm_hood", {}).get("name", "ECCO HCM Hood")
+                friendly_type = str(KNOWN_DEVICES.get("ecco_hcm_hood", {}).get("name", "ECCO HCM Hood"))
                 return ("ecco_hcm_hood", "gwdgkteknzvsattn", friendly_type)
             elif "flat" in search_text:
-                friendly_type = KNOWN_DEVICES.get("flat_hood", {}).get("name", "FLAT Hood")
+                friendly_type = str(KNOWN_DEVICES.get("flat_hood", {}).get("name", "FLAT Hood"))
                 return ("flat_hood", "luoxakxm2vm9azwu", friendly_type)
             elif "hermes" in search_text:
-                friendly_type = KNOWN_DEVICES.get("hermes_style_hood", {}).get("name", "HERMES & STYLE Hood")
+                friendly_type = str(KNOWN_DEVICES.get("hermes_style_hood", {}).get("name", "HERMES & STYLE Hood"))
                 return ("hermes_style_hood", "ypaixllljc2dcpae", friendly_type)
             else:
                 # Default hood
-                friendly_type = KNOWN_DEVICES.get("default_hood", {}).get("name", "Range Hood")
+                friendly_type = str(KNOWN_DEVICES.get("default_hood", {}).get("name", "Range Hood"))
                 return ("default_hood", "default_hood", friendly_type)
 
         # Method 4: Fallback keyword detection
         if "ind" in search_text or "cooktop" in search_text or "kochfeld" in search_text:
-            friendly_type = KNOWN_DEVICES.get("ind7705hc_cooktop", {}).get("name", "Induction Cooktop")
+            friendly_type = str(KNOWN_DEVICES.get("ind7705hc_cooktop", {}).get("name", "Induction Cooktop"))
             return ("ind7705hc_cooktop", "ind7705hc_cooktop", friendly_type)
         elif any(kw in search_text for kw in ["hood", "hermes", "style", "ecco", "solo", "dunst", "abzug"]):
             if "solo" in search_text:
-                friendly_type = KNOWN_DEVICES.get("solo_hcm_hood", {}).get("name", "SOLO HCM Hood")
+                friendly_type = str(KNOWN_DEVICES.get("solo_hcm_hood", {}).get("name", "SOLO HCM Hood"))
                 return ("solo_hcm_hood", "bgvbvjwomgbisd8x", friendly_type)
             elif "ecco" in search_text:
-                friendly_type = KNOWN_DEVICES.get("ecco_hcm_hood", {}).get("name", "ECCO HCM Hood")
+                friendly_type = str(KNOWN_DEVICES.get("ecco_hcm_hood", {}).get("name", "ECCO HCM Hood"))
                 return ("ecco_hcm_hood", "gwdgkteknzvsattn", friendly_type)
-            friendly_type = KNOWN_DEVICES.get("default_hood", {}).get("name", "Range Hood")
+            friendly_type = str(KNOWN_DEVICES.get("default_hood", {}).get("name", "Range Hood"))
             return ("default_hood", "default_hood", friendly_type)
 
         # Default: unknown device
@@ -366,7 +377,7 @@ class SmartDiscovery:
 
     def _update_ready_status(self) -> None:
         """Update ready_to_add status for all devices."""
-        for device_id, result in self._discovered_devices.items():
+        for _device_id, result in self._discovered_devices.items():
             # A device is ready to add if we have:
             # 1. Device ID (always have this)
             # 2. IP address (from local discovery or API)

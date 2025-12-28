@@ -29,11 +29,11 @@ class GlobalAPIManager:
         """Load credentials from persistent storage."""
         try:
             data = await self._store.async_load()
-            if data:
+            if data and isinstance(data, dict):
                 _LOGGER.debug("Loaded API credentials from persistent storage")
                 # Also update runtime cache
                 self.hass.data[GLOBAL_API_STORAGE_KEY] = data
-                return data
+                return {k: str(v) for k, v in data.items()}
         except Exception as err:
             _LOGGER.error(f"Failed to load API credentials: {err}")
         return None
@@ -89,7 +89,7 @@ class GlobalAPIManager:
     def has_stored_credentials(self) -> bool:
         """Check if we have stored API credentials (runtime cache only)."""
         creds = self.get_stored_api_credentials()
-        return (
+        return bool(
             creds is not None
             and creds.get("client_id")
             and creds.get("client_secret")
@@ -103,7 +103,7 @@ class GlobalAPIManager:
 
         # Try loading from persistent storage
         creds = await self.async_load_stored_credentials()
-        return (
+        return bool(
             creds is not None
             and creds.get("client_id")
             and creds.get("client_secret")
@@ -141,7 +141,7 @@ class GlobalAPIManager:
             )
 
             async with api_client:
-                return await api_client.test_connection()
+                return bool(await api_client.test_connection())
 
         except Exception as err:
             _LOGGER.error(f"Stored API credentials test failed: {err}")

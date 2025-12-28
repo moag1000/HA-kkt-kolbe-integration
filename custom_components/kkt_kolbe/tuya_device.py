@@ -5,9 +5,9 @@ import asyncio
 import logging
 import random
 import socket
+from collections.abc import Callable
+from collections.abc import Coroutine
 from typing import Any
-from typing import Callable
-from typing import Coroutine
 
 import tinytuya
 from homeassistant.core import HomeAssistant
@@ -40,13 +40,13 @@ class KKTKolbeTuyaDevice:
         self.ip_address = ip_address
         self.local_key = local_key
         self.version = version
-        self._device = None
-        self._status = {}
+        self._device: Any = None
+        self._status: dict[str, Any] = {}
         self._connected = False
         self._hass = hass
 
         # Connection statistics for diagnostics
-        self._connection_stats = {
+        self._connection_stats: dict[str, Any] = {
             "total_connects": 0,
             "total_disconnects": 0,
             "total_reconnects": 0,
@@ -130,7 +130,7 @@ class KKTKolbeTuyaDevice:
                 _LOGGER.warning(f"Connection attempt cancelled for device at {self.ip_address}")
                 raise  # Always re-raise CancelledError
 
-            except asyncio.TimeoutError:
+            except TimeoutError as timeout_err:
                 self._connected = False
                 self._device = None
                 self._connection_stats["total_timeouts"] += 1
@@ -143,7 +143,7 @@ class KKTKolbeTuyaDevice:
                         operation="connect",
                         device_id=self.device_id[:8],
                         timeout=DEFAULT_CONNECTION_TIMEOUT
-                    )
+                    ) from timeout_err
                 else:
                     _LOGGER.info(f"Timeout, retrying in {retry_delay:.1f}s...")
                     await asyncio.sleep(retry_delay)
@@ -182,25 +182,25 @@ class KKTKolbeTuyaDevice:
                         operation="connect",
                         device_id=self.device_id[:8],
                         reason=str(e)
-                    )
+                    ) from e
                 else:
                     _LOGGER.info(f"Connection attempt {attempt + 1} failed: {e}, retrying in {retry_delay}s...")
                     await asyncio.sleep(retry_delay)
 
-    def _run_executor_job(self, func: Callable[..., Any], *args: Any) -> Coroutine[Any, Any, Any]:
+    async def _run_executor_job(self, func: Callable[..., Any], *args: Any) -> Any:
         """Run a function in executor - use hass if available, otherwise fallback to loop.
 
         This follows Home Assistant best practices for running blocking I/O.
         """
         if self._hass:
-            return self._hass.async_add_executor_job(func, *args)
+            return await self._hass.async_add_executor_job(func, *args)
         else:
             # Fallback for cases where hass is not available (e.g., tests)
             loop = asyncio.get_running_loop()
             if args:
-                return loop.run_in_executor(None, func, *args)
+                return await loop.run_in_executor(None, func, *args)
             else:
-                return loop.run_in_executor(None, func)
+                return await loop.run_in_executor(None, func)
 
     async def _perform_connection(self) -> None:
         """Perform the actual connection logic."""
@@ -270,7 +270,7 @@ class KKTKolbeTuyaDevice:
                     _LOGGER.warning(f"Protocol detection cancelled for version {test_version}")
                     raise  # Re-raise to propagate cancellation
 
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     # Cleanup on timeout
                     if test_device:
                         try:
@@ -296,7 +296,7 @@ class KKTKolbeTuyaDevice:
                         raise KKTAuthenticationError(
                             device_id=self.device_id,
                             message=f"Authentication failed - invalid local key: {e}"
-                        )
+                        ) from e
 
                     _LOGGER.debug(f"Version {test_version} failed: {type(e).__name__} - trying next")
                     continue
@@ -357,7 +357,7 @@ class KKTKolbeTuyaDevice:
                 self._connected = True
                 _LOGGER.info(f"Connected to device at {self.ip_address} using version {self.version}")
 
-            except asyncio.TimeoutError:
+            except TimeoutError as timeout_err:
                 if self._device:
                     try:
                         self._device.close()
@@ -368,7 +368,7 @@ class KKTKolbeTuyaDevice:
                     operation="validate_connection",
                     device_id=self.device_id[:8],
                     reason=f"Timeout validating connection with version {version_float}"
-                )
+                ) from timeout_err
             except Exception as e:
                 # Cleanup on error
                 if self._device:
@@ -385,14 +385,14 @@ class KKTKolbeTuyaDevice:
                     raise KKTAuthenticationError(
                         device_id=self.device_id,
                         message=f"Authentication failed - invalid local key: {e}"
-                    )
+                    ) from e
 
                 # Otherwise raise as connection error
                 raise KKTConnectionError(
                     operation="validate_connection",
                     device_id=self.device_id[:8],
                     reason=f"Failed to validate connection: {e}"
-                )
+                ) from e
 
     async def async_ensure_connected(self) -> None:
         """Ensure device is connected (async) with proper error handling."""
@@ -408,7 +408,7 @@ class KKTKolbeTuyaDevice:
                     operation="ensure_connected",
                     device_id=self.device_id[:8],
                     reason=str(e)
-                )
+                ) from e
 
     @property
     def is_connected(self) -> bool:
@@ -463,12 +463,12 @@ class KKTKolbeTuyaDevice:
                 try:
                     result = sock.connect_ex((self.ip_address, 6668))
                     return result == 0
-                except (socket.timeout, socket.error):
+                except (TimeoutError, OSError):
                     return False
                 finally:
                     sock.close()
 
-            is_reachable = await asyncio.wait_for(
+            is_reachable: bool = await asyncio.wait_for(
                 loop.run_in_executor(None, _check_socket),
                 timeout=timeout + 0.5
             )
@@ -477,7 +477,7 @@ class KKTKolbeTuyaDevice:
                 _LOGGER.debug(f"Quick check: Device {self.ip_address} not reachable on port 6668")
             return is_reachable
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             _LOGGER.debug(f"Quick check timeout for {self.ip_address}")
             return False
         except Exception as e:
@@ -508,7 +508,8 @@ class KKTKolbeTuyaDevice:
                 import platform
                 if platform.system() == 'Linux':
                     # TCP_KEEPIDLE - time before sending keepalive probes
-                    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, TCP_KEEPALIVE_IDLE)
+                    tcp_keepidle = getattr(socket, 'TCP_KEEPIDLE', 4)  # 4 is the value on Linux
+                    sock.setsockopt(socket.IPPROTO_TCP, tcp_keepidle, TCP_KEEPALIVE_IDLE)
                     # TCP_KEEPINTVL - interval between probes
                     sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, TCP_KEEPALIVE_INTERVAL)
                     # TCP_KEEPCNT - number of failed probes before declaring dead
@@ -524,7 +525,7 @@ class KKTKolbeTuyaDevice:
     @property
     def is_on(self) -> bool:
         """Return True if device is on (DP 1)."""
-        return self.get_dp_value(1, False)
+        return bool(self.get_dp_value(1, False))
 
     def get_dp_value(self, dp: int, default: Any = None) -> Any:
         """Get data point value from cached status."""
@@ -572,7 +573,8 @@ class KKTKolbeTuyaDevice:
 
             self._status = status
             _LOGGER.debug(f"Retrieved status with {len(status.get('dps', {}))} data points")
-            return self._status.get("dps", {})
+            dps: dict[str, Any] = self._status.get("dps", {})
+            return dps
 
         except asyncio.CancelledError:
             # Handle cancellation - cleanup but re-raise
@@ -581,14 +583,14 @@ class KKTKolbeTuyaDevice:
             _LOGGER.debug(f"get_status cancelled for device at {self.ip_address}")
             raise
 
-        except asyncio.TimeoutError:
+        except TimeoutError as timeout_err:
             self._connected = False
             self._device = None
             raise KKTTimeoutError(
                 operation="get_status",
                 device_id=self.device_id[:8],
                 timeout=10.0
-            )
+            ) from timeout_err
         except (KKTDataPointError, KKTTimeoutError):
             # Re-raise our custom exceptions
             raise
@@ -600,7 +602,7 @@ class KKTKolbeTuyaDevice:
                 operation="get_status",
                 device_id=self.device_id[:8],
                 reason=str(e)
-            )
+            ) from e
 
     async def async_update_status(self) -> None:
         """Update device status asynchronously with timeout protection."""
@@ -633,14 +635,14 @@ class KKTKolbeTuyaDevice:
             _LOGGER.debug(f"update_status cancelled for device at {self.ip_address}")
             raise
 
-        except asyncio.TimeoutError:
+        except TimeoutError as timeout_err:
             self._connected = False
             self._device = None
             raise KKTTimeoutError(
                 operation="update_status",
                 device_id=self.device_id[:8],
                 timeout=10.0
-            )
+            ) from timeout_err
         except Exception as e:
             _LOGGER.error(f"Failed to update device status: {e}")
             # Properly close connection on error like LocalTuya
@@ -655,7 +657,7 @@ class KKTKolbeTuyaDevice:
                 operation="update_status",
                 device_id=self.device_id[:8],
                 reason=str(e)
-            )
+            ) from e
 
     async def async_set_dp(self, dp: int, value: Any) -> bool:
         """Set data point value asynchronously with explicit data point writing logic."""
@@ -689,7 +691,7 @@ class KKTKolbeTuyaDevice:
             _LOGGER.debug(f"set_dp cancelled for DP {dp} on device at {self.ip_address}")
             raise
 
-        except asyncio.TimeoutError:
+        except TimeoutError as timeout_err:
             self._connected = False
             self._device = None
             raise KKTTimeoutError(
@@ -697,7 +699,7 @@ class KKTKolbeTuyaDevice:
                 device_id=self.device_id[:8],
                 data_point=dp,
                 timeout=8.0
-            )
+            ) from timeout_err
         except Exception as e:
             _LOGGER.error(f"Failed to set DP {dp} to {value}: {e}")
             # Properly close connection on error like LocalTuya
@@ -713,7 +715,7 @@ class KKTKolbeTuyaDevice:
                 device_id=self.device_id[:8],
                 data_point=dp,
                 reason=str(e)
-            )
+            ) from e
 
     def turn_on(self) -> None:
         """Turn device on (DP 1 = True). DEPRECATED: Use coordinator.async_set_data_point() instead."""
@@ -758,7 +760,7 @@ class KKTKolbeTuyaDevice:
     @property
     def light_on(self) -> bool:
         """Return True if light is on."""
-        return self.get_dp_value(4, False)
+        return bool(self.get_dp_value(4, False))
 
     def set_rgb_mode(self, mode: int) -> None:
         """Set RGB mode (DP 101)."""
@@ -768,7 +770,7 @@ class KKTKolbeTuyaDevice:
     @property
     def rgb_mode(self) -> int:
         """Get current RGB mode."""
-        return self.get_dp_value(101, 0)
+        return int(self.get_dp_value(101, 0))
 
     def set_countdown(self, minutes: int) -> None:
         """Set countdown timer (DP 13)."""
@@ -778,12 +780,12 @@ class KKTKolbeTuyaDevice:
     @property
     def countdown_minutes(self) -> int:
         """Get current countdown timer minutes."""
-        return self.get_dp_value(13, 0)
+        return int(self.get_dp_value(13, 0))
 
     @property
     def light_brightness(self) -> int:
         """Get current light brightness (DP 5)."""
-        return self.get_dp_value(5, 255)
+        return int(self.get_dp_value(5, 255))
 
     def set_light_brightness(self, brightness: int) -> None:
         """Set light brightness (DP 5)."""
@@ -792,7 +794,7 @@ class KKTKolbeTuyaDevice:
     @property
     def rgb_brightness(self) -> int:
         """Get current RGB brightness (DP 102)."""
-        return self.get_dp_value(102, 255)
+        return int(self.get_dp_value(102, 255))
 
     def set_rgb_brightness(self, brightness: int) -> None:
         """Set RGB brightness (DP 102)."""
@@ -801,7 +803,7 @@ class KKTKolbeTuyaDevice:
     @property
     def filter_hours(self) -> int:
         """Get filter usage hours (DP 14)."""
-        return self.get_dp_value(14, 0)
+        return int(self.get_dp_value(14, 0))
 
     def reset_filter(self) -> None:
         """Reset filter (DP 15)."""
@@ -1046,32 +1048,32 @@ class KKTKolbeTuyaDevice:
     @property
     def cooktop_power_on(self) -> bool:
         """Get cooktop main power state (DP 101)."""
-        return self.get_dp_value(101, False)
+        return bool(self.get_dp_value(101, False))
 
     @property
     def cooktop_paused(self) -> bool:
         """Get cooktop pause state (DP 102)."""
-        return self.get_dp_value(102, False)
+        return bool(self.get_dp_value(102, False))
 
     @property
     def cooktop_child_lock(self) -> bool:
         """Get cooktop child lock state (DP 103)."""
-        return self.get_dp_value(103, False)
+        return bool(self.get_dp_value(103, False))
 
     @property
     def cooktop_max_level(self) -> int:
         """Get cooktop max power level (DP 104)."""
-        return self.get_dp_value(104, 0)
+        return int(self.get_dp_value(104, 0))
 
     @property
     def cooktop_timer(self) -> int:
         """Get cooktop general timer (DP 134)."""
-        return self.get_dp_value(134, 0)
+        return int(self.get_dp_value(134, 0))
 
     @property
     def cooktop_senior_mode(self) -> bool:
         """Get cooktop senior mode state (DP 145)."""
-        return self.get_dp_value(145, False)
+        return bool(self.get_dp_value(145, False))
 
     def set_cooktop_power(self, state: bool) -> None:
         """Set cooktop main power (DP 101)."""

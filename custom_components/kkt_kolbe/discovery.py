@@ -5,9 +5,9 @@ import asyncio
 import json
 import logging
 import time
+from collections.abc import Callable
 from hashlib import md5
 from typing import Any
-from typing import Callable
 
 from Crypto.Cipher import AES
 from homeassistant.const import CONF_DEVICE_ID
@@ -68,9 +68,9 @@ class TuyaUDPDiscovery(asyncio.DatagramProtocol):
         self.transport: asyncio.DatagramTransport | None = None
         self.hass = hass
 
-    def connection_made(self, transport: asyncio.DatagramTransport) -> None:
+    def connection_made(self, transport: asyncio.BaseTransport) -> None:
         """Called when UDP connection is established."""
-        self.transport = transport
+        self.transport = transport  # type: ignore[assignment]
         _LOGGER.debug(f"UDP Discovery listening on {transport.get_extra_info('sockname')}")
 
     def datagram_received(self, data: bytes, addr: tuple[str, int]) -> None:
@@ -155,13 +155,13 @@ class TuyaUDPDiscovery(asyncio.DatagramProtocol):
 
             # Decrypt using Tuya UDP key
             cipher = AES.new(UDP_KEY, AES.MODE_ECB)
-            decrypted = cipher.decrypt(encrypted_payload)
+            decrypted: bytes = cipher.decrypt(encrypted_payload)
 
             # Remove PKCS7 padding
             padding_length = decrypted[-1]
             if 1 <= padding_length <= 16:
                 decrypted = decrypted[:-padding_length]
-                return decrypted
+                return bytes(decrypted)
             else:
                 _LOGGER.debug(f"Invalid padding length: {padding_length}")
                 return None
@@ -429,7 +429,7 @@ class KKTKolbeDiscovery(ServiceListener):
             self._zeroconf = None
 
         # Stop UDP listeners
-        for transport, protocol in self._udp_listeners:
+        for transport, _protocol in self._udp_listeners:
             transport.close()
         self._udp_listeners.clear()
 
@@ -837,7 +837,7 @@ async def simple_tuya_discover(timeout: int = 6) -> dict[str, dict[str, Any]]:
             await asyncio.sleep(timeout)
 
         # Close listeners
-        for transport, protocol in listeners:
+        for transport, _protocol in listeners:
             transport.close()
 
         return discovered
@@ -876,7 +876,7 @@ async def debug_scan_network() -> dict[str, Any]:
     global _discovery_instance
 
     try:
-        results = {
+        results: dict[str, Any] = {
             "mDNS_services": {},
             "UDP_discovery": {},
             "discovery_status": {}
@@ -943,7 +943,7 @@ async def debug_scan_network() -> dict[str, Any]:
                 await asyncio.sleep(3)
 
                 # Close listeners
-                for transport, protocol in listeners:
+                for transport, _protocol in listeners:
                     transport.close()
 
                 return discovered

@@ -144,8 +144,12 @@ Bestehende Geräte können jetzt über die UI neu konfiguriert werden:
 - SOLO/ECCO HCM: white, colour, scene, music
 
 **HomeKit/Siri Integration:**
-- Fan: Vollständige Geschwindigkeitssteuerung
-- Light: An/Aus + Effekte
+- Fan: Vollständige Geschwindigkeitssteuerung via HomeKit
+- Light: An/Aus Steuerung
+- RGB-Modi: Via Szenen in Apple Home steuerbar
+
+> **Hinweis:** HomeKit unterstützt keine Light-Effects direkt. RGB-Modi können über Home Assistant Szenen gesteuert werden, die dann in Apple Home verfügbar sind.
+> → [Vollständige HomeKit-Anleitung mit Szenen-Setup](docs/HOMEKIT.md)
 
 ## 📘 Blueprints
 
@@ -164,6 +168,7 @@ Fertige Automations-Vorlagen zum Importieren:
 - **[Blueprints](blueprints/README.md)** - One-click automation templates
 - **[Automation Examples](docs/AUTOMATION_EXAMPLES.md)** - 15+ ready-to-use automation examples
 - **[Use Cases](docs/USE_CASES.md)** - Practical scenarios and implementation guides
+- **[Apple Home / HomeKit](docs/HOMEKIT.md)** - HomeKit integration with scenes for RGB control
 - **[Gold Tier Checklist](docs/GOLD_TIER_CHECKLIST.md)** - Quality compliance status
 - **[Developer Guide](docs/DEVELOPER_GUIDE.md)** - Integration development documentation
 - **[Contributing](docs/CONTRIBUTING.md)** - How to contribute to this project
@@ -627,7 +632,12 @@ cat home-assistant.log | grep "kkt_kolbe"
 
 ## 📝 Changelog
 
-### v3.0.0 (Aktuell) 🚀
+### v3.1.0 (Aktuell)
+- Light Effects mit `effect_offset` für korrekte RGB-Modi Indizierung
+- **[Apple Home / HomeKit Dokumentation](docs/HOMEKIT.md)** mit Szenen-Setup
+- RGB Mode Select für HERMES & STYLE Hauben hinzugefügt
+
+### v3.0.0 🚀
 - ⚠️ **Breaking**: Mindestversion Home Assistant 2025.1.0
 - Neue HA 2025 Features: `suggested_display_precision`, `_unrecorded_attributes`
 - Modernisierte Type-Annotations

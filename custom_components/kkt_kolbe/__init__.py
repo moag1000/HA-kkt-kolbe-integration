@@ -299,7 +299,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: KKTKolbeConfigEntry) -> 
                     timeout=FIRST_REFRESH_TIMEOUT
                 )
                 _LOGGER.info("Initial data fetch successful")
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 _LOGGER.warning(
                     f"Initial data fetch timed out after {FIRST_REFRESH_TIMEOUT}s, "
                     "coordinator will retry automatically"
@@ -479,7 +479,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: KKTKolbeConfigEntry) ->
 
     platforms = get_device_platforms(device_info.get("category", "unknown"))
 
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, platforms)
+    unload_ok: bool = await hass.config_entries.async_unload_platforms(entry, platforms)
     if unload_ok:
         # Remove from hass.data (backward compatibility)
         hass.data[DOMAIN].pop(entry.entry_id, None)
