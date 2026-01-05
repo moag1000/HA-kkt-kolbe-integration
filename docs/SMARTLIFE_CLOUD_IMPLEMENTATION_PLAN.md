@@ -1566,6 +1566,268 @@ async def async_step_reauth_smartlife(
     )
 ```
 
+### 5.3 UI/UX Best Practices & HA Patterns
+
+#### 5.3.1 Progress Indicator während QR-Scan (HA 2024.8+)
+
+**WICHTIG:** Ab HA 2024.8 muss `progress_task` verwendet werden!
+
+```python
+async def async_step_smartlife_scan(
+    self, user_input: dict[str, Any] | None = None
+) -> ConfigFlowResult:
+    """Show QR code and wait for scan with proper progress indicator."""
+
+    if not hasattr(self, "_scan_task"):
+        # Start background task for polling
+        self._scan_task = self.hass.async_create_task(
+            self._async_wait_for_qr_scan()
+        )
+
+    if not self._scan_task.done():
+        # Show progress while waiting
+        return self.async_show_progress(
+            step_id="smartlife_scan",
+            progress_action="wait_for_scan",
+            progress_task=self._scan_task,  # REQUIRED in HA 2024.8+
+            description_placeholders={
+                "qr_code": self._smartlife_qr_code,
+            },
+        )
+
+    # Task completed - check result
+    try:
+        result = self._scan_task.result()
+        return self.async_show_progress_done(next_step_id="smartlife_select_device")
+    except KKTTimeoutError:
+        return self.async_show_progress_done(next_step_id="smartlife_scan_timeout")
+    except Exception as err:
+        _LOGGER.error("QR scan failed: %s", err)
+        return self.async_show_progress_done(next_step_id="smartlife_scan_error")
+
+async def _async_wait_for_qr_scan(self) -> TuyaSharingAuthResult:
+    """Background task that polls for QR scan completion."""
+    return await self._smartlife_client.async_poll_login_result(
+        timeout=QR_LOGIN_TIMEOUT
+    )
+```
+
+#### 5.3.2 Ein Gerät pro Config Entry (Best Practice)
+
+**WICHTIG:** Jedes Gerät sollte seinen eigenen Config Entry haben!
+
+```python
+async def async_step_smartlife_select_device(
+    self, user_input: dict[str, Any] | None = None
+) -> ConfigFlowResult:
+    """Select a SINGLE device to add."""
+
+    if user_input is not None:
+        device_id = user_input.get("device")
+        selected_device = next(
+            (d for d in self._devices if d.device_id == device_id),
+            None
+        )
+
+        if selected_device:
+            # Create entry for THIS device
+            return self.async_create_entry(
+                title=selected_device.name,
+                data={
+                    "device_id": selected_device.device_id,
+                    "local_key": selected_device.local_key,
+                    "setup_mode": SETUP_MODE_SMARTLIFE,
+                    CONF_SMARTLIFE_TOKEN_INFO: self._smartlife_client.get_token_info_for_storage(),
+                    # ... more config
+                },
+            )
+
+    # Show dropdown with SINGLE selection (not multi-select!)
+    device_options = [
+        selector.SelectOptionDict(
+            value=d.device_id,
+            label=f"{d.name} ({d.category})",
+        )
+        for d in self._devices
+        if d.category in SUPPORTED_CATEGORIES
+    ]
+
+    return self.async_show_form(
+        step_id="smartlife_select_device",
+        data_schema=vol.Schema({
+            vol.Required("device"): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=device_options,
+                    mode=selector.SelectSelectorMode.LIST,  # Bessere UX als Dropdown
+                )
+            ),
+        }),
+        description_placeholders={
+            "device_count": str(len(device_options)),
+        },
+    )
+```
+
+#### 5.3.3 ConfigEntryNotReady & ConfigEntryAuthFailed
+
+**Für robuste Fehlerbehandlung in `__init__.py`:**
+
+```python
+from homeassistant.exceptions import ConfigEntryNotReady, ConfigEntryAuthFailed
+
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+) -> bool:
+    """Set up KKT Kolbe from a config entry."""
+
+    setup_mode = entry.data.get("setup_mode", SETUP_MODE_MANUAL)
+
+    # Initialize SmartLife client if needed
+    if setup_mode == SETUP_MODE_SMARTLIFE:
+        token_info = entry.data.get(CONF_SMARTLIFE_TOKEN_INFO, {})
+
+        try:
+            smartlife_client = await TuyaSharingClient.async_from_stored_tokens(
+                hass, token_info
+            )
+        except KKTAuthenticationError as err:
+            # Token invalid/expired → triggers automatic reauth flow
+            raise ConfigEntryAuthFailed(
+                f"SmartLife authentication failed: {err}"
+            ) from err
+        except KKTConnectionError as err:
+            # Network issue → HA will retry automatically
+            raise ConfigEntryNotReady(
+                f"Cannot connect to SmartLife cloud: {err}"
+            ) from err
+
+    # Try to connect to local device
+    try:
+        device = await async_connect_device(hass, entry.data)
+    except KKTConnectionError as err:
+        # Device offline → HA retries with exponential backoff
+        raise ConfigEntryNotReady(
+            f"Device not responding: {err}"
+        ) from err
+    except KKTAuthenticationError as err:
+        # Local key invalid → trigger reauth
+        raise ConfigEntryAuthFailed(
+            f"Invalid local key: {err}"
+        ) from err
+
+    # ... rest of setup
+```
+
+#### 5.3.4 Reconfigure Flow für SmartLife
+
+**Ermöglicht Änderung von Connection-Einstellungen ohne Neukonfiguration:**
+
+```python
+async def async_step_reconfigure(
+    self, user_input: dict[str, Any] | None = None
+) -> ConfigFlowResult:
+    """Handle reconfiguration of the integration."""
+
+    reconfigure_entry = self.hass.config_entries.async_get_entry(
+        self.context["entry_id"]
+    )
+    setup_mode = reconfigure_entry.data.get("setup_mode")
+
+    if user_input is not None:
+        action = user_input.get("action")
+
+        if action == "refresh_token":
+            # Refresh SmartLife tokens
+            return await self.async_step_reconfigure_smartlife_refresh()
+        elif action == "change_ip":
+            # Change device IP
+            return await self.async_step_reconfigure_ip()
+        elif action == "change_local_key":
+            # Manual local key update
+            return await self.async_step_reconfigure_local_key()
+
+    # Show reconfigure options
+    options = [
+        selector.SelectOptionDict(value="change_ip", label="IP-Adresse ändern"),
+        selector.SelectOptionDict(value="change_local_key", label="Local Key ändern"),
+    ]
+
+    # SmartLife-specific option
+    if setup_mode == SETUP_MODE_SMARTLIFE:
+        options.insert(0, selector.SelectOptionDict(
+            value="refresh_token",
+            label="SmartLife Token erneuern"
+        ))
+
+    return self.async_show_form(
+        step_id="reconfigure",
+        data_schema=vol.Schema({
+            vol.Required("action"): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=options,
+                    mode=selector.SelectSelectorMode.LIST,
+                )
+            ),
+        }),
+    )
+```
+
+#### 5.3.5 Accessibility Considerations
+
+**Für Screen Reader und kognitive Barrierefreiheit:**
+
+```python
+# In strings.json - Klare, beschreibende Texte
+
+{
+  "config": {
+    "step": {
+      "smartlife_user_code": {
+        "title": "SmartLife App verbinden",
+        "description": "Gib deinen User Code aus der SmartLife oder Tuya Smart App ein.\n\n**So findest du den Code:**\n1. Öffne die App\n2. Gehe zu 'Ich' (Profil)\n3. Tippe auf Einstellungen (⚙️)\n4. Wähle 'Konto und Sicherheit'\n5. Scrolle zu 'User Code'",
+        "data": {
+          "user_code": "User Code (z.B. EU12345678)",
+          "app_schema": "Welche App verwendest du?"
+        },
+        "data_description": {
+          "user_code": "Der User Code ist eine Kombination aus Buchstaben und Zahlen, z.B. EU12345678",
+          "app_schema": "Wähle die App, die du auf deinem Smartphone installiert hast"
+        }
+      },
+      "smartlife_scan": {
+        "title": "QR-Code scannen",
+        "description": "Scanne den unten angezeigten QR-Code mit deiner SmartLife/Tuya App.\n\n**Anleitung:**\n1. Öffne die App auf deinem Handy\n2. Tippe auf 'Ich' (Profil)\n3. Tippe auf das QR-Symbol oben rechts\n4. Richte die Kamera auf diesen Bildschirm\n5. Bestätige die Autorisierung in der App",
+        "progress_action": {
+          "wait_for_scan": "Warte auf QR-Code Scan... Bitte scanne den Code mit deiner App."
+        }
+      }
+    },
+    "error": {
+      "qr_scan_timeout": "Der QR-Code ist abgelaufen. Bitte starte den Vorgang erneut.",
+      "invalid_user_code": "Der User Code ist ungültig. Bitte überprüfe die Eingabe.",
+      "cannot_connect": "Verbindung zum SmartLife Server fehlgeschlagen. Bitte prüfe deine Internetverbindung."
+    }
+  }
+}
+```
+
+**Accessibility Checkliste:**
+
+- [ ] Alle Formularfelder haben beschreibende Labels (`data_description`)
+- [ ] Fehlermeldungen sind spezifisch und handlungsorientiert
+- [ ] Keine zeitkritischen Aktionen ohne ausreichend Zeit (QR-Code: 2 Minuten)
+- [ ] Alternativen für QR-Code anbieten (manueller Weg verfügbar)
+- [ ] Visuelle Indikatoren haben Text-Äquivalente
+- [ ] Logische Tab-Reihenfolge in Formularen
+
+#### 5.3.6 Browser Cache Hinweis (für Entwickler)
+
+> ⚠️ **Entwickler-Hinweis:** Nach Änderungen am Config Flow:
+> - Browser-Cache leeren (Hard Refresh: Ctrl+Shift+R / Cmd+Shift+R)
+> - Oder: Inkognito-Fenster verwenden
+> - HA Frontend kann alte Flow-Definitionen cachen
+
 ---
 
 ## 6. API Client Implementation
