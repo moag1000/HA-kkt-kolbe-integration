@@ -52,14 +52,14 @@
         }
       },
       "smartlife_select_devices": {
-        "title": "Select Devices",
-        "description": "Found {kkt_device_count} KKT Kolbe device(s) in your SmartLife account.\n\n{account_info}\n\nSelect the devices you want to add to Home Assistant.\n\n**Note:** You can add more devices later by running the setup again.",
+        "title": "Select Device",
+        "description": "Found {kkt_device_count} KKT Kolbe device(s) in your SmartLife account.\n\n{account_info}\n\nSelect the device you want to add to Home Assistant.\n\n**Important:** Only **one device** is added per setup. To add multiple devices, run this setup again for each additional device.",
         "data": {
-          "selected_devices": "KKT Kolbe Devices",
+          "selected_devices": "KKT Kolbe Device",
           "use_manual": "Use manual device ID entry instead"
         },
         "data_description": {
-          "selected_devices": "Select one or more KKT Kolbe devices to add",
+          "selected_devices": "Select the KKT Kolbe device to add (one device per setup)",
           "use_manual": "If your device is not listed, use manual configuration"
         }
       },

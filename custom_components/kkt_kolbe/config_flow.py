@@ -1418,14 +1418,16 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            selected_devices = user_input.get("selected_devices", [])
+            # Single-select returns a string, convert to list for consistency
+            selected_device = user_input.get("selected_devices")
+            selected_devices = [selected_device] if selected_device else []
 
             if not selected_devices:
                 errors["base"] = "no_devices_selected"
             else:
                 self._smartlife_selected_devices = selected_devices
 
-                # Check if any device needs type selection (unknown model)
+                # Check if the device needs type selection (unknown model)
                 unknown_devices = []
                 for device_id in selected_devices:
                     for device in self._smartlife_devices:
@@ -1530,12 +1532,12 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             # All devices already configured
             return self.async_abort(reason="all_devices_configured")
 
-        # Multi-select schema for device selection
+        # Single-select schema for device selection (one device per setup)
         schema = vol.Schema({
             vol.Required("selected_devices"): selector.selector({
                 "select": {
                     "options": device_options,
-                    "multiple": True,
+                    "multiple": False,
                     "mode": "list",
                 }
             }),
@@ -1546,8 +1548,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             data_schema=schema,
             errors=errors,
             description_placeholders={
-                "device_count": str(len(device_options)),
-                "all_device_count": str(len(self._smartlife_devices)),
+                "kkt_device_count": str(len(device_options)),
                 "account_info": f"Connected as user {self._smartlife_auth_result.user_id[:8]}...",
             },
         )
