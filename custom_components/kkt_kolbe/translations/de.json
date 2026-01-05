@@ -52,14 +52,14 @@
         }
       },
       "smartlife_select_devices": {
-        "title": "Geräte auswählen",
-        "description": "{kkt_device_count} KKT Kolbe Gerät(e) in Ihrem SmartLife-Konto gefunden.\n\n{account_info}\n\nWählen Sie die Geräte aus, die Sie zu Home Assistant hinzufügen möchten.\n\n**Hinweis:** Sie können später weitere Geräte hinzufügen, indem Sie die Einrichtung erneut ausführen.",
+        "title": "Gerät auswählen",
+        "description": "{kkt_device_count} KKT Kolbe Gerät(e) in Ihrem SmartLife-Konto gefunden.\n\n{account_info}\n\nWählen Sie das Gerät aus, das Sie zu Home Assistant hinzufügen möchten.\n\n**Wichtig:** Pro Setup-Durchlauf wird nur **ein Gerät** hinzugefügt. Um mehrere Geräte hinzuzufügen, führen Sie diese Einrichtung für jedes weitere Gerät erneut aus.",
         "data": {
-          "selected_devices": "KKT Kolbe Geräte",
+          "selected_devices": "KKT Kolbe Gerät",
           "use_manual": "Stattdessen manuelle Geräte-ID-Eingabe verwenden"
         },
         "data_description": {
-          "selected_devices": "Wählen Sie ein oder mehrere KKT Kolbe Geräte zum Hinzufügen",
+          "selected_devices": "Wählen Sie das KKT Kolbe Gerät zum Hinzufügen (ein Gerät pro Setup)",
           "use_manual": "Falls Ihr Gerät nicht aufgelistet ist, verwenden Sie die manuelle Konfiguration"
         }
       },
