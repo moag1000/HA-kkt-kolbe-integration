@@ -514,5 +514,15 @@
         }
       }
     }
+  },
+  "issues": {
+    "parent_entry_missing": {
+      "title": "SmartLife Account Missing",
+      "description": "The SmartLife account for device **{device_name}** was deleted or is missing.\n\nThe device cannot retrieve updated tokens without its parent account.\n\n**To fix:** Remove this device and add it again using the SmartLife setup."
+    },
+    "smartlife_token_expired": {
+      "title": "SmartLife Token Expired",
+      "description": "The SmartLife authentication token has expired.\n\n**To fix:** Go to the integration settings and re-authenticate with SmartLife."
+    }
   }
 }

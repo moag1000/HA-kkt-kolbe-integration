@@ -1634,29 +1634,38 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
         """Create config entries for selected SmartLife devices.
 
         Implements the Parent-Child Entry Pattern:
-        1. Creates one Account Entry (parent) for token storage
-        2. Creates Device Entries (children) for each selected device
+        1. Creates or reuses Account Entry (parent) for central token storage
+        2. Creates Device Entry (child) linked to the account
+
+        The Account Entry is created programmatically first, then the Device Entry
+        is returned via async_create_entry().
         """
+        from homeassistant.config_entries import ConfigEntry, SOURCE_USER
+        import uuid
+
         if not self._smartlife_client or not self._smartlife_auth_result:
             _LOGGER.error("SmartLife client not initialized - cannot create entries")
             return self.async_abort(reason="smartlife_not_authenticated")
 
         # Get token info for storage
         token_info = self._smartlife_client.get_token_info_for_storage()
-
-        # Create the Parent Entry (Account)
-        parent_entry_id = None
         user_id = self._smartlife_auth_result.user_id
+
+        # =====================================================================
+        # Step 1: Find or create Account Entry (Parent)
+        # =====================================================================
+        parent_entry_id = None
+        account_unique_id = f"smartlife_account_{user_id}"
 
         # Check if account entry already exists for this user
         for entry in self.hass.config_entries.async_entries(DOMAIN):
-            if (
-                entry.data.get("entry_type") == ENTRY_TYPE_ACCOUNT
-                and entry.data.get(CONF_SMARTLIFE_TOKEN_INFO, {}).get("uid") == user_id
-            ):
+            if entry.unique_id == account_unique_id:
                 # Account already exists - use it as parent
                 parent_entry_id = entry.entry_id
-                _LOGGER.info("Using existing SmartLife account entry: %s", parent_entry_id)
+                _LOGGER.info(
+                    "Using existing SmartLife account entry: %s (%s)",
+                    entry.title, parent_entry_id[:8]
+                )
 
                 # Update tokens in existing entry
                 self.hass.config_entries.async_update_entry(
@@ -1669,12 +1678,8 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                 break
 
         if parent_entry_id is None:
-            # Create new account entry
-            # We need to set unique_id for the account entry
-            await self.async_set_unique_id(f"smartlife_account_{user_id}")
-            self._abort_if_unique_id_configured()
-
-            parent_data = {
+            # Create new Account Entry programmatically
+            account_data = {
                 "entry_type": ENTRY_TYPE_ACCOUNT,
                 "setup_mode": SETUP_MODE_SMARTLIFE,
                 CONF_SMARTLIFE_USER_CODE: self._smartlife_user_code,
@@ -1682,111 +1687,96 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                 CONF_SMARTLIFE_TOKEN_INFO: token_info,
             }
 
-            # For parent entry, we create it first and then the children
-            # The parent entry will be created with the first device
-            _LOGGER.info("Will create new SmartLife account entry for user %s", user_id[:8])
+            # Create ConfigEntry for account
+            account_entry = ConfigEntry(
+                version=1,
+                minor_version=1,
+                domain=DOMAIN,
+                title=f"SmartLife Account ({self._smartlife_user_code[:8]}...)",
+                data=account_data,
+                source=SOURCE_USER,
+                options={},
+                unique_id=account_unique_id,
+            )
 
-        # Create Device Entries (children)
-        created_count = 0
-        first_device_entry_created = False
+            # Add entry to Home Assistant
+            await self.hass.config_entries.async_add(account_entry)
+            parent_entry_id = account_entry.entry_id
 
-        for device_id in self._smartlife_selected_devices:
-            # Find the device in our list
-            device = None
-            for d in self._smartlife_devices:
-                if d.device_id == device_id:
-                    device = d
-                    break
+            _LOGGER.info(
+                "Created SmartLife account entry: %s (%s)",
+                account_entry.title, parent_entry_id[:8]
+            )
 
-            if not device:
-                _LOGGER.warning("Device %s not found in device list", device_id[:8])
-                continue
+        # =====================================================================
+        # Step 2: Create Device Entry (Child)
+        # =====================================================================
 
-            # Determine device type
-            device_type = device.kkt_device_type or "default_hood"
-            product_name = device.kkt_product_name or device.product_name or "KKT Device"
+        # Get the selected device (single-select, so only one)
+        device_id = self._smartlife_selected_devices[0] if self._smartlife_selected_devices else None
 
-            # Get friendly name from KNOWN_DEVICES
-            if device_type in KNOWN_DEVICES:
-                friendly_type = KNOWN_DEVICES[device_type].get("name", device_type)
-            else:
-                friendly_type = product_name
+        if not device_id:
+            return self.async_abort(reason="no_devices_selected")
 
-            # For the first device, we create the parent entry too
-            if parent_entry_id is None and not first_device_entry_created:
-                # Create parent entry with first device
-                # This is a workaround since config_flow can only create one entry at a time
-                # The account entry will be created in __init__.py when we detect it
-                first_device_entry_created = True
+        # Find the device in our list
+        device = None
+        for d in self._smartlife_devices:
+            if d.device_id == device_id:
+                device = d
+                break
 
-            # Set unique ID for this device
-            await self.async_set_unique_id(device_id)
-            self._abort_if_unique_id_configured()
+        if not device:
+            _LOGGER.error("Selected device %s not found in device list", device_id[:8])
+            return self.async_abort(reason="device_not_found")
 
-            # Build device entry data
-            device_data: dict[str, Any] = {
-                "entry_type": ENTRY_TYPE_DEVICE,
-                "setup_mode": SETUP_MODE_SMARTLIFE,
-                "device_id": device.device_id,
-                "device_name": device.name,
-                "local_key": device.local_key or "",
-                "category": device.category,
-                "product_id": device.product_id,
-                "product_name": device.kkt_device_type or device.product_id,
-                "device_type": device_type,
-            }
+        # Determine device type
+        device_type = device.kkt_device_type or "default_hood"
+        product_name = device.kkt_product_name or device.product_name or "KKT Device"
 
-            # Add IP if available
-            if device.ip:
-                device_data[CONF_IP_ADDRESS] = device.ip
+        # Get friendly name from KNOWN_DEVICES
+        if device_type in KNOWN_DEVICES:
+            friendly_type = KNOWN_DEVICES[device_type].get("name", device_type)
+        else:
+            friendly_type = product_name
 
-            # For SmartLife devices, also store token info in device entry
-            # This allows the device to work even if parent is removed
-            # (though re-auth would be needed for local_key refresh)
-            device_data[CONF_SMARTLIFE_TOKEN_INFO] = token_info
-            device_data[CONF_SMARTLIFE_USER_CODE] = self._smartlife_user_code
-            device_data[CONF_SMARTLIFE_APP_SCHEMA] = self._smartlife_app_schema
+        # Set unique ID for this device
+        await self.async_set_unique_id(device_id)
+        self._abort_if_unique_id_configured()
 
-            # Store parent reference (for when we have parent-child support)
-            if parent_entry_id:
-                device_data["parent_entry_id"] = parent_entry_id
+        # Build device entry data
+        device_data: dict[str, Any] = {
+            "entry_type": ENTRY_TYPE_DEVICE,
+            "setup_mode": SETUP_MODE_SMARTLIFE,
+            "parent_entry_id": parent_entry_id,  # Link to Account Entry
+            "device_id": device.device_id,
+            "device_name": device.name,
+            "local_key": device.local_key or "",
+            "category": device.category,
+            "product_id": device.product_id,
+            "product_name": device.kkt_device_type or device.product_id,
+            "device_type": device_type,
+        }
 
-            # Create the entry
-            if created_count == 0:
-                # First device - this will be the entry we return
-                first_entry_data = device_data
-                first_entry_title = friendly_type
-            else:
-                # Additional devices - create them directly
-                # Note: This is a simplified approach. In production,
-                # we'd need to handle this differently as config_flow
-                # can only create one entry per flow.
-                _LOGGER.info(
-                    "Additional device %s would need separate config flow. "
-                    "Creating entry for first device only.",
-                    device.name
-                )
+        # Add IP if available
+        if device.ip:
+            device_data[CONF_IP_ADDRESS] = device.ip
 
-            created_count += 1
+        # Note: Tokens are stored in Account Entry only (not duplicated in device)
+        # Device Entry references parent_entry_id to get tokens when needed
 
-        if created_count == 0:
-            return self.async_abort(reason="no_devices_created")
-
-        # Create entry for first selected device
         default_options = {
             "enable_advanced_entities": True,
             "enable_debug_logging": False,
         }
 
         _LOGGER.info(
-            "Creating SmartLife device entry: %s (%d total selected)",
-            first_entry_title,
-            created_count,
+            "Creating SmartLife device entry: %s (parent: %s)",
+            friendly_type, parent_entry_id[:8]
         )
 
         return self.async_create_entry(
-            title=first_entry_title,
-            data=first_entry_data,
+            title=friendly_type,
+            data=device_data,
             options=default_options,
         )
 
