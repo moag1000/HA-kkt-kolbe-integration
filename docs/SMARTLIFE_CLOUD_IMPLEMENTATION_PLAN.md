@@ -2264,6 +2264,245 @@ Mögliche Ursachen:
 - Versuche es mit der anderen App (z.B. Tuya Smart statt SmartLife)
 ```
 
+### 10.3 Zusätzliche Dokumentations-Updates
+
+Die folgenden Dateien müssen ebenfalls aktualisiert werden:
+
+#### 10.3.1 info.md (HACS Info-Datei)
+
+**Problem:** Aktuell Version 2.3.0, SmartLife nicht erwähnt.
+
+**Änderungen:**
+- Version auf 4.0.0 aktualisieren
+- SmartLife als primäre Setup-Methode erwähnen
+- "Kein Developer Account nötig" als Highlight
+
+```markdown
+## Home Assistant Integration für KKT Kolbe Geräte
+
+Diese Integration bringt **KKT Kolbe Dunstabzugshauben** und **Induktionskochfelder** in Home Assistant.
+
+### 🆕 NEU: SmartLife/Tuya App Setup
+
+**Kein Tuya Developer Account erforderlich!**
+
+Einfach die SmartLife oder Tuya Smart App nutzen - Local Key wird automatisch abgerufen.
+
+### Installation
+
+1. **HACS** → **Integrations** → **Custom repositories**
+2. Repository: `https://github.com/moag1000/HA-kkt-kolbe-integration`
+...
+```
+
+#### 10.3.2 TROUBLESHOOTING.md Erweiterung
+
+**Neuer Abschnitt hinzufügen:**
+
+```markdown
+---
+
+### 4. SmartLife/Tuya App Probleme
+
+#### QR-Code wird nicht erkannt
+
+**Symptome:**
+- App zeigt "Unbekannter QR-Code"
+- Scan-Bildschirm reagiert nicht
+
+**Lösungen:**
+
+1. **Richtige App verwenden:**
+   - Verwende die GLEICHE App (SmartLife ODER Tuya Smart)
+   - Die im Setup gewählte App muss zum Scannen verwendet werden
+
+2. **App aktualisieren:**
+   - App Store / Play Store → SmartLife/Tuya Smart → Update
+
+3. **QR-Code Timeout:**
+   - QR-Codes sind 2 Minuten gültig
+   - Bei Timeout: Zurück und erneut starten
+
+#### User Code nicht gefunden
+
+**Symptome:**
+- "User Code" Feld ist leer
+- Kein User Code in App-Einstellungen
+
+**Lösungen:**
+
+1. **App-Einstellungen prüfen:**
+   - **Ich** → ⚙️ → **Konto und Sicherheit** → **User Code**
+   - Falls nicht vorhanden: App neu installieren
+
+2. **Account-Region:**
+   - Manche Regionen zeigen den User Code nicht
+   - Versuch mit der anderen App (SmartLife ↔ Tuya Smart)
+
+#### Token abgelaufen
+
+**Symptome:**
+- Integration zeigt "Re-Authentifizierung erforderlich"
+- Gerät war lange offline
+
+**Lösung:**
+- Folge dem Reauth-Flow (QR-Code erneut scannen)
+- Tokens werden automatisch erneuert
+```
+
+#### 10.3.3 GitHub Issue Templates
+
+**Neue Felder in `.github/ISSUE_TEMPLATE/bug_report.yml`:**
+
+```yaml
+  - type: dropdown
+    id: setup_mode
+    attributes:
+      label: Setup-Methode
+      description: Wie wurde die Integration eingerichtet?
+      options:
+        - SmartLife/Tuya App (QR-Code)
+        - Tuya IoT Platform (Developer Account)
+        - Automatische Erkennung (mDNS)
+        - Manuell (IP, Device ID, Local Key)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: token_status
+    attributes:
+      label: SmartLife Token Status (falls SmartLife Setup)
+      description: Falls SmartLife Setup verwendet wurde
+      options:
+        - Token gültig (keine Warnung in HA)
+        - Token abgelaufen (Reauth-Meldung)
+        - Nicht zutreffend (anderes Setup)
+    validations:
+      required: false
+```
+
+#### 10.3.4 RELEASE_CHECKLIST.md Erweiterung
+
+**Neue Checks hinzufügen:**
+
+```markdown
+### SmartLife-spezifische Validierung
+
+- [ ] SmartLife QR-Code Flow manuell getestet
+  - [ ] User Code Eingabe
+  - [ ] QR-Code Anzeige
+  - [ ] App-Scan und Autorisierung
+  - [ ] Geräteauswahl
+  - [ ] Erfolgreiche Verbindung
+
+- [ ] Reauth Flow getestet
+  - [ ] Token-Ablauf simuliert
+  - [ ] Reauth-Benachrichtigung erscheint
+  - [ ] Erneute QR-Code Authentifizierung funktioniert
+
+- [ ] Backwards Compatibility
+  - [ ] Bestehende IoT Platform Setups funktionieren
+  - [ ] Bestehende manuelle Setups funktionieren
+  - [ ] Keine Breaking Changes für Automations
+```
+
+#### 10.3.5 known_configs/tinytuya_cloud_api_guide.md
+
+**Hinweis am Anfang hinzufügen:**
+
+```markdown
+> ⚠️ **Hinweis:** Diese Anleitung beschreibt den Tuya IoT Platform Weg,
+> der einen Developer Account erfordert.
+>
+> **Einfachere Alternative:** Nutze die [SmartLife/Tuya App Methode](../docs/SMARTLIFE_SETUP.md) -
+> kein Developer Account erforderlich!
+```
+
+### 10.4 CI/CD & Validierung
+
+#### 10.4.1 HACS Validation
+
+Die HACS Validation erfolgt automatisch via GitHub Actions (`.github/workflows/validate.yml`).
+
+**Lokaler Test vor Commit:**
+
+```bash
+# HACS Action lokal ausführen
+docker run --rm -v $(pwd):/github/workspace ghcr.io/hacs/action:main
+```
+
+**Prüfpunkte:**
+- [ ] `hacs.json` enthält gültige Konfiguration
+- [ ] `manifest.json` hat alle Pflichtfelder
+- [ ] Keine HACS-Warnungen in der Ausgabe
+
+#### 10.4.2 Hassfest Validation
+
+Hassfest prüft die Integration gegen Home Assistant Core Standards.
+
+**Lokaler Test:**
+
+```bash
+# Hassfest lokal ausführen
+pip install homeassistant
+python -m homeassistant.scripts.hassfest \
+    --integration-path custom_components/kkt_kolbe
+```
+
+**Kritische Prüfpunkte für SmartLife:**
+
+1. **manifest.json Dependency:**
+   ```json
+   {
+     "requirements": [
+       "tuya-device-sharing-sdk>=0.2.0"
+     ]
+   }
+   ```
+   - SDK muss auf PyPI verfügbar sein
+   - Version muss existieren
+
+2. **Services:**
+   - Keine Breaking Changes in `services.yaml`
+   - Neue Services (falls vorhanden) dokumentiert
+
+3. **Strings:**
+   - Alle neuen Config Flow Steps in `strings.json`
+   - Translations vollständig (de.json, en.json)
+
+#### 10.4.3 Python Tests
+
+```bash
+# Alle Tests ausführen
+pytest tests/ -v
+
+# Nur SmartLife Tests
+pytest tests/test_tuya_sharing_client.py tests/test_config_flow.py -v -k smartlife
+
+# Mit Coverage
+pytest tests/ -v --cov=custom_components/kkt_kolbe --cov-report=term-missing
+```
+
+**Minimum Coverage Ziel:** 80% für neue SmartLife-Module
+
+#### 10.4.4 hacs.json Prüfung
+
+Aktuelle Konfiguration:
+
+```json
+{
+  "name": "KKT Kolbe Integration",
+  "content_in_root": false,
+  "country": ["DE", "AT", "CH"],
+  "homeassistant": "2025.12.0",
+  "render_readme": true
+}
+```
+
+**Für SmartLife v4.0.0:**
+- `homeassistant`: Bleibt bei `2025.12.0` (keine Erhöhung nötig)
+- Keine weiteren Änderungen erforderlich
+
 ---
 
 ## 11. Migration & Backwards Compatibility

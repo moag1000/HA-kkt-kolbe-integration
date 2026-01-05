@@ -135,35 +135,100 @@
 
 ## Phase 7: Dokumentation
 
-### 7.1 User-Dokumentation
+### 7.1 Haupt-README
 > Referenz: Plan Section 10
 
 - [ ] `README.md` aktualisieren
-  - [ ] SmartLife Setup als primäre Methode
+  - [ ] SmartLife/Tuya Smart als **primäre** Setup-Methode
+  - [ ] "Kein Developer Account nötig" prominent platzieren
+  - [ ] Vergleichstabelle: SmartLife vs IoT Platform
   - [ ] Screenshots für QR-Code Flow
-  - [ ] FAQ erweitern
+  - [ ] FAQ erweitern (SmartLife-spezifisch)
 
-- [ ] `docs/SMARTLIFE_SETUP.md` erstellen (User Guide)
+### 7.2 HACS Info-Datei
+- [ ] `info.md` aktualisieren
+  - [ ] Version auf 4.0.0 aktualisieren (aktuell: 2.3.0!)
+  - [ ] SmartLife Setup als primäre Methode erwähnen
+  - [ ] "Kein Developer Account" als Selling Point
 
-### 7.2 Changelog
+### 7.3 Neue User Guides
+- [ ] `docs/SMARTLIFE_SETUP.md` erstellen (detaillierter User Guide)
+- [ ] `docs/SMARTLIFE_FAQ.md` erstellen (häufige Fragen)
+
+### 7.4 Troubleshooting
+- [ ] `TROUBLESHOOTING.md` erweitern
+  - [ ] SmartLife QR-Code Probleme
+  - [ ] Token-Erneuerung Troubleshooting
+  - [ ] "User Code nicht gefunden" Hilfe
+
+### 7.5 Veraltete Dokumentation
+- [ ] `known_configs/tinytuya_cloud_api_guide.md`
+  - [ ] Als "Alternative Methode" markieren
+  - [ ] Verweis auf SmartLife als einfachere Option
+
+### 7.6 Changelog
 - [ ] `CHANGELOG.md` für v4.0.0
-  - Breaking Changes (falls vorhanden)
-  - Neue Features
-  - Dokumentation
+  - [ ] Breaking Changes (falls vorhanden)
+  - [ ] Neue Features (SmartLife QR-Code)
+  - [ ] Dokumentation
 
 ---
 
-## Phase 8: Release
+## Phase 8: GitHub & HACS
 
-### 8.1 Finale Checks
-- [ ] Alle Tests grün
-- [ ] HACS Validation bestanden
-- [ ] Manual Test: Kompletter SmartLife Flow
+### 8.1 Issue Templates aktualisieren
+- [ ] `.github/ISSUE_TEMPLATE/bug_report.yml`
+  - [ ] "Setup Mode" Dropdown hinzufügen (SmartLife/IoT Platform/Manual)
+  - [ ] SmartLife-spezifische Felder (Token-Status, etc.)
 
-### 8.2 Release erstellen
+- [ ] `.github/ISSUE_TEMPLATE/new_device.yml`
+  - [ ] SmartLife als Option für Device Discovery erwähnen
+
+### 8.2 HACS Konfiguration
+- [ ] `hacs.json` prüfen
+  - [ ] `homeassistant` Version korrekt? (aktuell: 2025.12.0 ✅)
+  - [ ] Keine Änderung nötig falls SmartLife abwärtskompatibel
+
+### 8.3 Release Checklist
+- [ ] `RELEASE_CHECKLIST.md` erweitern
+  - [ ] SmartLife-spezifische Validierung
+  - [ ] QR-Code Flow manuell testen
+  - [ ] Token-Refresh testen
+
+---
+
+## Phase 9: Validierung & Release
+
+### 9.1 CI/CD Validierung
+- [ ] HACS Validation (`hacs/action@main`)
+  - [ ] Lokal testen: `docker run --rm -v $(pwd):/github/workspace ghcr.io/hacs/action:main`
+- [ ] Hassfest Validation (`home-assistant/actions/hassfest@master`)
+  - [ ] manifest.json mit neuer Dependency validieren
+  - [ ] Keine Breaking Changes in Service-Definitionen
+- [ ] Python Tests bestehen
+  - [ ] Neue SmartLife Tests enthalten
+
+### 9.2 Manuelle Tests
+- [ ] Kompletter SmartLife QR-Code Flow
+  - [ ] User Code eingeben
+  - [ ] QR-Code scannen
+  - [ ] Gerät auswählen
+  - [ ] Verbindung erfolgreich
+- [ ] Reauth Flow testen
+  - [ ] Token-Ablauf simulieren
+  - [ ] Re-Authentifizierung durchführen
+- [ ] Bestehende Installationen (Backwards Compatibility)
+  - [ ] IoT Platform Setup funktioniert weiterhin
+  - [ ] Manuelles Setup funktioniert weiterhin
+
+### 9.3 Release erstellen
+- [ ] Version in allen Dateien prüfen:
+  - [ ] `manifest.json` → `4.0.0`
+  - [ ] `const.py` → `VERSION = "4.0.0"`
+  - [ ] `info.md` → Badge aktualisiert
 - [ ] Git Tag `v4.0.0`
 - [ ] GitHub Release mit Changelog
-- [ ] HACS Update prüfen
+- [ ] HACS Update verifizieren
 
 ---
 
@@ -177,10 +242,11 @@
 | 4. Translations | 30 min | Phase 3 |
 | 5. Integration | 1 h | Phase 3 |
 | 6. Testing | 1-2 h | Phase 1-5 |
-| 7. Dokumentation | 1 h | Phase 1-5 |
-| 8. Release | 30 min | Alles |
+| 7. Dokumentation | 2 h | Phase 1-5 |
+| 8. GitHub & HACS | 30 min | Phase 7 |
+| 9. Validierung & Release | 1 h | Alles |
 
-**Gesamt:** ~8-10 Stunden
+**Gesamt:** ~10-12 Stunden
 
 ---
 
@@ -194,8 +260,43 @@
 | 4. Translations | ⬜ Offen | |
 | 5. Integration | ⬜ Offen | |
 | 6. Testing | ⬜ Offen | |
-| 7. Dokumentation | ⬜ Offen | |
-| 8. Release | ⬜ Offen | |
+| 7. Dokumentation | ⬜ Offen | README, info.md, Troubleshooting, etc. |
+| 8. GitHub & HACS | ⬜ Offen | Issue Templates, hacs.json, Release Checklist |
+| 9. Validierung & Release | ⬜ Offen | CI/CD, Manuelle Tests, Release |
+
+---
+
+## Datei-Übersicht
+
+### Neue Dateien
+| Datei | Phase |
+|-------|-------|
+| `clients/__init__.py` | 2 |
+| `clients/tuya_sharing_client.py` | 2 |
+| `docs/SMARTLIFE_SETUP.md` | 7 |
+| `docs/SMARTLIFE_FAQ.md` | 7 |
+| `tests/test_tuya_sharing_client.py` | 6 |
+
+### Zu aktualisierende Dateien
+| Datei | Phase | Änderungsart |
+|-------|-------|--------------|
+| `manifest.json` | 1 | Dependency + Version |
+| `const.py` | 1 | Neue Konstanten |
+| `config_flow.py` | 3 | SmartLife Steps |
+| `strings.json` | 4 | Translations |
+| `translations/de.json` | 4 | Translations |
+| `translations/en.json` | 4 | Translations |
+| `__init__.py` | 5 | SmartLife Client Init |
+| `diagnostics.py` | 5 | Token-Status |
+| `repairs.py` | 5 | Token-Expired Issue |
+| `tests/test_config_flow.py` | 6 | SmartLife Tests |
+| `README.md` | 7 | SmartLife als primär |
+| `info.md` | 7 | Version + SmartLife |
+| `TROUBLESHOOTING.md` | 7 | SmartLife Troubleshooting |
+| `CHANGELOG.md` | 7 | v4.0.0 Eintrag |
+| `RELEASE_CHECKLIST.md` | 8 | SmartLife Checks |
+| `.github/ISSUE_TEMPLATE/bug_report.yml` | 8 | Setup Mode Dropdown |
+| `known_configs/tinytuya_cloud_api_guide.md` | 7 | Veraltet markieren |
 
 ---
 
