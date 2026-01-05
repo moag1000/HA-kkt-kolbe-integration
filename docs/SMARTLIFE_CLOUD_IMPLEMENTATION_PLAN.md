@@ -257,7 +257,7 @@ custom_components/kkt_kolbe/
 │   ├── __init__.py
 │   ├── tuya_sharing_client.py    # NEU: QR-Code auth client
 │   └── tuya_iot_client.py        # Bestehend: IoT Platform client
-├── config_flow.py                 # ERWEITERT: SmartLife Setup-Modus
+├── config_flow.py                 # ERWEITERT: SmartLife + Parent-Child Pattern
 ├── const.py                       # ERWEITERT: Neue Konstanten
 ├── strings.json                   # ERWEITERT: Neue Translations
 ├── translations/
@@ -266,7 +266,201 @@ custom_components/kkt_kolbe/
 └── ...
 ```
 
-### 3.2 Config Flow Konzept: QR-Code als Standard
+### 3.2 Parent-Child Entry Architektur
+
+> **Kernkonzept:** SmartLife Account als Parent Entry, Geräte als Child Entries.
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        Home Assistant                                    │
+│                                                                          │
+│  Geräte & Dienste                                                       │
+│  ────────────────                                                       │
+│                                                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │ 📱 SmartLife Account                          [Parent Entry]     │   │
+│  │    user_code: EU12345678                                        │   │
+│  │    app: SmartLife                                               │   │
+│  │    token_status: ✅ Gültig (läuft ab in 89 Tagen)               │   │
+│  │                                                                  │   │
+│  │    Verbundene Geräte: 2                                         │   │
+│  │    ─────────────────────────────────────────────────────────    │   │
+│  │    [+ Gerät hinzufügen]  [Token erneuern]  [Account entfernen]  │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │ 🌬️ HERMES Dunstabzugshaube                   [Child Entry]      │   │
+│  │    via SmartLife Account                                        │   │
+│  │    IP: 192.168.1.50                                             │   │
+│  │    Status: 🟢 Online                                            │   │
+│  │                                                                  │   │
+│  │    Entities: Fan, Light, RGB Mode, Timer, Filter...            │   │
+│  │    ─────────────────────────────────────────────────────────    │   │
+│  │    [Konfigurieren]  [Gerät entfernen]                          │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │ 🔥 IND7705HC Kochfeld                        [Child Entry]      │   │
+│  │    via SmartLife Account                                        │   │
+│  │    IP: 192.168.1.51                                             │   │
+│  │    Status: 🟢 Online                                            │   │
+│  │                                                                  │   │
+│  │    Entities: Zones, Timers, Child Lock...                      │   │
+│  │    ─────────────────────────────────────────────────────────    │   │
+│  │    [Konfigurieren]  [Gerät entfernen]                          │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+#### 3.2.1 Datenstruktur: Parent Entry (SmartLife Account)
+
+```python
+# Parent Entry - speichert Account-Daten und Tokens
+PARENT_ENTRY_DATA = {
+    "entry_type": "account",  # Markierung als Parent
+    "setup_mode": SETUP_MODE_SMARTLIFE,
+    "user_code": "EU12345678",
+    "app_schema": "smartlife",
+    CONF_SMARTLIFE_TOKEN_INFO: {
+        "access_token": "...",
+        "refresh_token": "...",
+        "expire_time": 1234567890,
+        "uid": "...",
+    },
+    CONF_SMARTLIFE_TERMINAL_ID: "...",
+    CONF_SMARTLIFE_ENDPOINT: "https://openapi.tuyaeu.com",
+}
+
+# Parent Entry hat KEINE Entities - nur Account-Management
+```
+
+#### 3.2.2 Datenstruktur: Child Entry (Device)
+
+```python
+# Child Entry - speichert Gerätedaten, referenziert Parent
+CHILD_ENTRY_DATA = {
+    "entry_type": "device",  # Markierung als Child
+    "parent_entry_id": "abc123...",  # Referenz zum Parent Entry
+    "setup_mode": SETUP_MODE_SMARTLIFE,  # Woher kommt das Gerät
+    "device_id": "bf1234567890abcd",
+    "device_name": "HERMES Dunstabzugshaube",
+    "local_key": "1234567890abcdef",
+    "ip_address": "192.168.1.50",
+    "category": "yyj",
+    "product_id": "ypaixllljc2dcpae",
+}
+
+# Child Entry hat ALLE Entities (Fan, Light, Sensors, etc.)
+```
+
+#### 3.2.3 Vorteile des Parent-Child Patterns
+
+| Aspekt | Ohne Parent-Child | Mit Parent-Child |
+|--------|-------------------|------------------|
+| **Token-Speicherung** | Dupliziert pro Gerät | Einmal im Parent |
+| **Token-Refresh** | Alle Entries updaten | Nur Parent updaten |
+| **Neues Gerät hinzufügen** | Kompletter Flow nochmal | Nur Gerät auswählen |
+| **Account entfernen** | Jedes Gerät einzeln | Parent löscht alle Children |
+| **Übersichtlichkeit** | Viele einzelne Entries | Klare Hierarchie |
+| **Reauth Flow** | Pro Gerät | Einmal für Account |
+| **Local Key Update** | Jedes Gerät einzeln | Parent holt alle Keys |
+
+#### 3.2.4 Config Entry Lifecycle
+
+```python
+# In __init__.py
+
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Set up KKT Kolbe from a config entry."""
+
+    entry_type = entry.data.get("entry_type", "device")
+
+    if entry_type == "account":
+        # Parent Entry: SmartLife Account
+        return await _async_setup_account_entry(hass, entry)
+    else:
+        # Child Entry: Device
+        return await _async_setup_device_entry(hass, entry)
+
+
+async def _async_setup_account_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Set up SmartLife account (parent entry)."""
+
+    # Initialize SmartLife client
+    token_info = entry.data.get(CONF_SMARTLIFE_TOKEN_INFO, {})
+
+    try:
+        smartlife_client = await TuyaSharingClient.async_from_stored_tokens(
+            hass, token_info
+        )
+    except KKTAuthenticationError as err:
+        raise ConfigEntryAuthFailed(f"SmartLife auth failed: {err}") from err
+
+    # Store client for child entries to use
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {
+        "smartlife_client": smartlife_client,
+        "type": "account",
+    }
+
+    # No platforms to forward - account has no entities
+    return True
+
+
+async def _async_setup_device_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Set up device (child entry)."""
+
+    parent_entry_id = entry.data.get("parent_entry_id")
+
+    # Get SmartLife client from parent (if SmartLife setup)
+    if parent_entry_id:
+        parent_data = hass.data.get(DOMAIN, {}).get(parent_entry_id, {})
+        smartlife_client = parent_data.get("smartlife_client")
+    else:
+        smartlife_client = None
+
+    # Connect to local device
+    device = await async_connect_device(hass, entry.data)
+
+    # Create coordinator
+    coordinator = KKTKolbeUpdateCoordinator(
+        hass=hass,
+        entry=entry,
+        device=device,
+        smartlife_client=smartlife_client,  # For local_key refresh
+    )
+
+    # ... rest of device setup
+```
+
+#### 3.2.5 Automatisches Cleanup bei Parent-Löschung
+
+```python
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Unload a config entry."""
+
+    entry_type = entry.data.get("entry_type", "device")
+
+    if entry_type == "account":
+        # Parent Entry wird gelöscht → alle Children auch löschen
+        child_entries = [
+            e for e in hass.config_entries.async_entries(DOMAIN)
+            if e.data.get("parent_entry_id") == entry.entry_id
+        ]
+
+        for child_entry in child_entries:
+            await hass.config_entries.async_remove(child_entry.entry_id)
+
+        # Cleanup parent data
+        hass.data[DOMAIN].pop(entry.entry_id, None)
+        return True
+
+    else:
+        # Device Entry - normal unload
+        # ... existing cleanup code
+```
+
+### 3.3 Config Flow Konzept: QR-Code als Standard
 
 **Kernprinzip:** Der SmartLife/Tuya Smart App QR-Code Weg ist der **STANDARD**.
 Der Developer-Weg (Tuya IoT Platform) ist nur eine optionale Abzweigung für Nutzer mit bestehendem Account.
@@ -304,50 +498,62 @@ Der Developer-Weg (Tuya IoT Platform) ist nur eine optionale Abzweigung für Nut
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 3.3 Flow-Diagramm: Standard vs. Erweiterte Optionen
+### 3.3 Flow-Diagramm: Parent-Child Pattern
 
 ```
                     ┌──────────────────────────────┐
                     │      async_step_user         │
-                    │  (Zeigt QR-Code Setup als    │
-                    │   Standard mit optionaler    │
-                    │   Developer-Abzweigung)      │
+                    │  (SmartLife QR-Code Setup)   │
                     └─────────────┬────────────────┘
                                   │
               ┌───────────────────┼───────────────────┐
               │                   │                   │
               │ [Standard]        │ [Erweitert]       │ [Erweitert]
-              │ User Code         │ Developer         │ Manuell
-              │ eingegeben        │ Account           │ Setup
+              │ SmartLife         │ Developer         │ Manuell
+              │ QR-Code           │ Account           │ Setup
               │                   │                   │
               ▼                   ▼                   ▼
     ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-    │ QR-Code         │  │ Tuya IoT        │  │ IP/DeviceID/    │
-    │ anzeigen        │  │ Platform        │  │ LocalKey        │
-    │ (SmartLife/     │  │ Credentials     │  │ eingeben        │
-    │  Tuya Smart)    │  │ eingeben        │  │                 │
-    └────────┬────────┘  └────────┬────────┘  └────────┬────────┘
+    │ User Code +     │  │ IoT Platform    │  │ IP/DeviceID/    │
+    │ QR-Code Scan    │  │ (kein Parent)   │  │ LocalKey        │
+    └────────┬────────┘  └────────┬────────┘  │ (kein Parent)   │
+             │                    │           └────────┬────────┘
+             ▼                    │                    │
+    ┌─────────────────┐           │                    │
+    │ PARENT ENTRY    │           │                    │
+    │ erstellen       │           │                    │
+    │ (SmartLife      │           │                    │
+    │  Account)       │           │                    │
+    └────────┬────────┘           │                    │
              │                    │                    │
              ▼                    ▼                    │
-    ┌─────────────────┐  ┌─────────────────┐          │
-    │ Auf App-Scan    │  │ API Discovery   │          │
-    │ warten          │  │                 │          │
-    └────────┬────────┘  └────────┬────────┘          │
-             │                    │                    │
-             └────────────────────┼────────────────────┘
-                                  │
-                                  ▼
+    ┌─────────────────────────────────────────────────┐│
+    │           Geräte auswählen                      ││
+    │   (Multi-Select: alle Geräte auf einmal)       ││
+    └─────────────────────┬───────────────────────────┘│
+                          │                            │
+                          ▼                            │
+    ┌─────────────────────────────────────────────────┐│
+    │    Für jedes gewählte Gerät:                    ││
+    │    CHILD ENTRY erstellen                        │◄┘
+    │    (referenziert Parent)                        │
+    └─────────────────────────────────────────────────┘
+
                     ┌──────────────────────────────┐
-                    │      Gerät auswählen         │
-                    │   (mit local_key aus Cloud)  │
-                    └─────────────┬────────────────┘
-                                  │
-                                  ▼
-                    ┌──────────────────────────────┐
-                    │      Config Entry            │
-                    │        erstellen             │
+                    │   Später: Gerät hinzufügen   │
+                    │   (über Parent Options Flow) │
+                    │   → kein neuer QR-Scan nötig │
                     └──────────────────────────────┘
 ```
+
+**Wichtige Unterschiede:**
+
+| Szenario | Entry-Typ | Parent nötig? |
+|----------|-----------|---------------|
+| SmartLife Setup | Parent + Child(ren) | Ja, Parent wird erstellt |
+| IoT Platform | Device Entry | Nein (standalone) |
+| Manuell | Device Entry | Nein (standalone) |
+| Gerät nachträglich hinzufügen | Child Entry | Nutzt bestehenden Parent |
 
 ### 3.4 SmartLife vs. Tuya Smart App
 
@@ -423,12 +629,13 @@ Schritt 2: QR-Code Scannen
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 
-Schritt 3: Gerät auswählen
+Schritt 3: Geräte auswählen (Multi-Select)
 ┌─────────────────────────────────────────────────────────────┐
 │                                                             │
-│  ✅ Verbindung hergestellt!                                │
+│  ✅ SmartLife Account verbunden!                           │
 │                                                             │
-│  Folgende KKT Kolbe Geräte wurden gefunden:               │
+│  Wähle die Geräte, die du hinzufügen möchtest:            │
+│  (Du kannst mehrere auswählen)                             │
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐   │
 │  │ ☑ HERMES Dunstabzugshaube                          │   │
@@ -438,18 +645,143 @@ Schritt 3: Gerät auswählen
 │  └─────────────────────────────────────────────────────┘   │
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐   │
-│  │ ☐ IND7705HC Kochfeld                               │   │
+│  │ ☑ IND7705HC Kochfeld                               │   │
 │  │   IP: 192.168.1.51                                 │   │
 │  │   Local Key: ✅ Abgerufen                          │   │
 │  │   Status: 🟢 Online                                │   │
 │  └─────────────────────────────────────────────────────┘   │
 │                                                             │
-│  💡 Weitere Geräte können später hinzugefügt werden       │
+│  ℹ️ Es werden erstellt:                                    │
+│     • 1× SmartLife Account (für Token-Verwaltung)         │
+│     • 2× Geräte-Einträge (mit allen Entities)             │
+│                                                             │
+│  💡 Weitere Geräte können später über den Account         │
+│     hinzugefügt werden - ohne erneuten QR-Scan!           │
 │                                                             │
 │                              [Hinzufügen →]                │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+### 3.4 KKT Kolbe Geräte-Filterung
+
+**Problem:** Nutzer, die bereits die Core Tuya Integration verwenden, haben viele SmartLife-Geräte. Wir wollen nur KKT Kolbe Geräte anzeigen, nicht alle.
+
+#### 3.4.1 Erkennungsmethoden (Priorität)
+
+| Priorität | Methode | Feld | Beispiel | Zuverlässigkeit |
+|-----------|---------|------|----------|-----------------|
+| 1 | **product_id Match** | `product_names` in KNOWN_DEVICES | `"ypaixllljc2dcpae"` | ✅ Höchste |
+| 2 | **device_id Pattern** | `device_id_patterns` | `"bf735dfe2ad64fba7c"` | ✅ Hoch |
+| 3 | **model_id Match** | `model_id` | `"e1k6i0zo"`, `"edjszs"` | ✅ Hoch |
+| 4 | **Tuya Kategorie** | `category` | `"yyj"`, `"dcl"` | ⚠️ Zu generisch |
+
+#### 3.4.2 Bestehende Erkennungsfunktion
+
+Die Funktion `detect_device_type()` in `config_flow.py:71` implementiert bereits diese Logik:
+
+```python
+def detect_device_type(device: dict) -> tuple[str, str] | None:
+    """Detect KKT Kolbe device type from Tuya API device data."""
+    product_id = device.get("product_id", "")
+    device_id = device.get("id", "")
+
+    # Method 1: Match by Tuya product_id (most accurate)
+    if product_id:
+        device_info = find_device_by_product_name(product_id)
+        if device_info:
+            for device_key, info in KNOWN_DEVICES.items():
+                if product_id in info.get("product_names", []):
+                    return (device_key, product_id)
+
+    # Method 2: Match by device_id pattern
+    device_info = find_device_by_device_id(device_id)
+    if device_info:
+        return (device_info.get("model_id", "unknown"), device_id)
+
+    return None  # Not a KKT device
+```
+
+#### 3.4.3 Filterung im SmartLife Flow
+
+```python
+async def _filter_kkt_devices(self, all_devices: list[TuyaSharingDevice]) -> list[TuyaSharingDevice]:
+    """Filter devices to only show KKT Kolbe devices."""
+    kkt_devices = []
+
+    for device in all_devices:
+        device_dict = {
+            "product_id": device.product_id,
+            "id": device.device_id,
+            "category": device.category,
+            "name": device.name,
+        }
+
+        # Use existing detection logic
+        detected = detect_device_type(device_dict)
+        if detected:
+            device_key, product_name = detected
+            device.kkt_device_type = device_key  # Store for later use
+            device.kkt_product_name = product_name
+            kkt_devices.append(device)
+        else:
+            _LOGGER.debug(
+                f"Skipping non-KKT device: {device.name} "
+                f"(product_id={device.product_id}, category={device.category})"
+            )
+
+    if not kkt_devices:
+        _LOGGER.warning(
+            f"No KKT Kolbe devices found in {len(all_devices)} SmartLife devices"
+        )
+    else:
+        _LOGGER.info(
+            f"Found {len(kkt_devices)} KKT Kolbe devices out of {len(all_devices)} total"
+        )
+
+    return kkt_devices
+```
+
+#### 3.4.4 UI bei keinen KKT Geräten
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                                                             │
+│  ⚠️ Keine KKT Kolbe Geräte gefunden                        │
+│                                                             │
+│  In deinem SmartLife Account wurden 12 Geräte gefunden,    │
+│  aber keines davon ist ein bekanntes KKT Kolbe Gerät.      │
+│                                                             │
+│  Mögliche Ursachen:                                        │
+│  • Gerät ist mit einem anderen Account verknüpft           │
+│  • Gerät ist ein neues, noch unbekanntes Modell            │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ Gerät manuell hinzufügen                            │   │
+│  │ (Device ID und Local Key aus SmartLife kopieren)    │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ Alle Tuya-Geräte anzeigen (Fortgeschritten)         │   │
+│  │ ⚠️ Nur für Entwickler - nicht alle Geräte werden    │   │
+│  │    von dieser Integration unterstützt               │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│                         [Zurück]                           │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### 3.4.5 Bekannte KKT Kolbe Product IDs
+
+| Gerät | product_id | model_id | Kategorie |
+|-------|------------|----------|-----------|
+| HERMES & STYLE Hood | `ypaixllljc2dcpae` | `e1k6i0zo` | yyj |
+| FLAT Hood | `luoxakxm2vm9azwu` | `luoxakxm2vm9azwu` | yyj |
+| HERMES Hood | (wird gemeldet) | `0fcj8kha86svfmve` | yyj |
+| SOLO HCM Hood | `bgvbvjwomgbisd8x` | `edjszs` | yyj |
+| ECCO HCM Hood | `gwdgkteknzvsattn` | `edjsx0` | yyj |
+| IND7705HC Cooktop | `p8volecsgzdyun29` | `e1kc5q64` | dcl |
 
 ---
 

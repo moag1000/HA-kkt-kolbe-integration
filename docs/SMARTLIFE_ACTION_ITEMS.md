@@ -23,6 +23,7 @@
   - `QR_CODE_FORMAT`, `QR_LOGIN_POLL_INTERVAL`, `QR_LOGIN_TIMEOUT`
   - `CONF_SMARTLIFE_*` Keys
   - `SETUP_MODE_*` Konstanten
+  - `ENTRY_TYPE_ACCOUNT`, `ENTRY_TYPE_DEVICE` (Parent-Child Pattern)
 
 ---
 
@@ -58,14 +59,21 @@
   - App-Auswahl (SmartLife/Tuya Smart)
   - "Erweiterte Optionen" für Developer/Manual
 
-### 3.2 SmartLife Flow Steps
-> Referenz: Plan Section 5.3
+### 3.2 SmartLife Flow Steps (Parent-Child Pattern)
+> Referenz: Plan Section 3.2, 3.4, 5.3
 
 - [ ] `async_step_smartlife_scan()` - QR-Code mit Progress Indicator
   - [ ] `async_show_progress()` mit `progress_task` (HA 2024.8+)
   - [ ] Background Task für Polling
   - [ ] Timeout-Handling
-- [ ] `async_step_smartlife_select_device()` - **Ein** Gerät auswählen (nicht Multi-Select!)
+- [ ] `_filter_kkt_devices()` - **NUR KKT Kolbe Geräte anzeigen**
+  - [ ] Filter via `detect_device_type()` (product_id Match)
+  - [ ] Fallback: device_id Pattern Match
+  - [ ] UI für "Keine KKT Geräte gefunden" mit manuellem Fallback
+- [ ] `async_step_smartlife_select_devices()` - **Multi-Select** für Geräte
+  - [ ] Checkbox-Liste aller **gefilterten KKT** Geräte
+  - [ ] Parent Entry (Account) erstellen
+  - [ ] Child Entries (Devices) mit `parent_entry_id` erstellen
 - [ ] `async_step_smartlife_manual_ip()` - IP manuell eingeben (falls nötig)
 
 ### 3.3 Reauth Flow
@@ -119,11 +127,15 @@
 
 ## Phase 5: Integration
 
-### 5.1 Entry Setup
-> Referenz: Plan Section 11.1
+### 5.1 Entry Setup (Parent-Child Pattern)
+> Referenz: Plan Section 3.2.4, 11.1
 
-- [ ] `__init__.py`: SmartLife Client bei Setup initialisieren
-- [ ] Token-Info in RuntimeData speichern
+- [ ] `__init__.py`: Entry-Type Dispatch implementieren
+  - [ ] `async_setup_entry()` prüft `entry_type` (account/device)
+  - [ ] `_async_setup_account_entry()` - Token-Verwaltung, kein Device Setup
+  - [ ] `_async_setup_device_entry()` - Token von Parent holen, Device verbinden
+- [ ] `async_unload_entry()` mit Child-Cleanup wenn Parent entladen wird
+- [ ] Token-Info in RuntimeData speichern (Account Entry)
 
 ### 5.2 Coordinator Updates
 > Referenz: Plan Section 7
@@ -156,8 +168,10 @@
 - [ ] `tests/test_config_flow.py` erweitern
   - [ ] SmartLife User Code Step
   - [ ] QR-Code Scan Step
-  - [ ] Device Selection Step
-  - [ ] Reauth Flow
+  - [ ] Multi-Device Selection Step
+  - [ ] Parent-Child Entry Creation
+  - [ ] Reauth Flow (Account Entry)
+  - [ ] Child Cleanup when Parent deleted
 
 ---
 
@@ -237,14 +251,19 @@
   - [ ] Neue SmartLife Tests enthalten
 
 ### 9.2 Manuelle Tests
-- [ ] Kompletter SmartLife QR-Code Flow
+- [ ] Kompletter SmartLife QR-Code Flow (Parent-Child)
   - [ ] User Code eingeben
   - [ ] QR-Code scannen
-  - [ ] Gerät auswählen
-  - [ ] Verbindung erfolgreich
+  - [ ] Mehrere Geräte auswählen (Multi-Select)
+  - [ ] Account Entry (Parent) erstellt
+  - [ ] Device Entries (Children) erstellt
+  - [ ] Alle Verbindungen erfolgreich
+- [ ] Parent-Child Lifecycle
+  - [ ] Weiteres Gerät zu bestehendem Account hinzufügen
+  - [ ] Account löschen → Alle Children werden entfernt
 - [ ] Reauth Flow testen
   - [ ] Token-Ablauf simulieren
-  - [ ] Re-Authentifizierung durchführen
+  - [ ] Re-Authentifizierung über Account Entry
 - [ ] Bestehende Installationen (Backwards Compatibility)
   - [ ] IoT Platform Setup funktioniert weiterhin
   - [ ] Manuelles Setup funktioniert weiterhin
@@ -282,15 +301,17 @@
 
 | Phase | Status | Notizen |
 |-------|--------|---------|
-| 1. Grundlagen | ⬜ Offen | |
+| 1. Grundlagen | ⬜ Offen | inkl. Entry Type Konstanten |
 | 2. Client | ⬜ Offen | |
-| 3. Config Flow | ⬜ Offen | |
+| 3. Config Flow | ⬜ Offen | **Parent-Child Pattern** |
 | 4. Translations | ⬜ Offen | |
-| 5. Integration | ⬜ Offen | |
-| 6. Testing | ⬜ Offen | |
+| 5. Integration | ⬜ Offen | Entry-Type Dispatch |
+| 6. Testing | ⬜ Offen | Parent-Child Lifecycle Tests |
 | 7. Dokumentation | ⬜ Offen | README, info.md, Troubleshooting, etc. |
 | 8. GitHub & HACS | ⬜ Offen | Issue Templates, hacs.json, Release Checklist |
 | 9. Validierung & Release | ⬜ Offen | CI/CD, Manuelle Tests, Release |
+
+> **Architektur:** Parent-Child Entry Pattern (1 Account → N Devices)
 
 ---
 
@@ -328,4 +349,4 @@
 
 ---
 
-*Letzte Aktualisierung: 2026-01-05*
+*Letzte Aktualisierung: 2026-01-05 (Parent-Child Architektur)*
