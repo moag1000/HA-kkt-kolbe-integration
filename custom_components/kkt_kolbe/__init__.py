@@ -19,7 +19,10 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers import issue_registry as ir
 
 from .const import CONF_API_ENDPOINT
+from .const import CONF_SMARTLIFE_TOKEN_INFO
 from .const import DOMAIN
+from .const import ENTRY_TYPE_ACCOUNT
+from .const import ENTRY_TYPE_DEVICE
 
 if TYPE_CHECKING:
     from .api import TuyaCloudClient
@@ -38,7 +41,7 @@ PLATFORMS = [Platform.SENSOR, Platform.FAN, Platform.LIGHT, Platform.SWITCH, Pla
 
 @dataclass
 class KKTKolbeRuntimeData:
-    """Runtime data for KKT Kolbe integration."""
+    """Runtime data for KKT Kolbe device entries."""
 
     coordinator: KKTKolbeUpdateCoordinator | KKTKolbeHybridCoordinator
     device: KKTKolbeTuyaDevice | None
@@ -49,8 +52,23 @@ class KKTKolbeRuntimeData:
     integration_mode: str
 
 
+@dataclass
+class KKTKolbeAccountRuntimeData:
+    """Runtime data for SmartLife account entries (Parent Entry).
+
+    Account entries manage token information and don't have devices directly.
+    They serve as parent entries for device entries.
+    """
+
+    token_info: dict[str, Any]
+    user_code: str
+    app_schema: str  # "smartlife" or "tuyaSmart"
+    child_entry_ids: list[str]  # IDs of device entries linked to this account
+
+
 # Type alias for config entries with runtime data
 type KKTKolbeConfigEntry = ConfigEntry[KKTKolbeRuntimeData]
+type KKTKolbeAccountConfigEntry = ConfigEntry[KKTKolbeAccountRuntimeData]
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
@@ -68,11 +86,88 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
     return True
 
-async def async_setup_entry(hass: HomeAssistant, entry: KKTKolbeConfigEntry) -> bool:
-    """Set up KKT Kolbe from a config entry."""
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Set up KKT Kolbe from a config entry.
+
+    Dispatches to appropriate setup function based on entry type:
+    - account: SmartLife account entry (Parent) - manages tokens
+    - device: Device entry (Child or standalone) - manages device connection
+    """
     # Keep hass.data for backward compatibility with services
     hass.data.setdefault(DOMAIN, {})
 
+    # Determine entry type - default to "device" for backward compatibility
+    entry_type = entry.data.get("entry_type", ENTRY_TYPE_DEVICE)
+
+    if entry_type == ENTRY_TYPE_ACCOUNT:
+        return await _async_setup_account_entry(hass, entry)
+    else:
+        return await _async_setup_device_entry(hass, entry)
+
+
+async def _async_setup_account_entry(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> bool:
+    """Set up a SmartLife account entry (Parent Entry).
+
+    Account entries:
+    - Store token information for SmartLife/Tuya Smart authentication
+    - Don't create any devices or platforms directly
+    - Serve as parent for device entries that use their tokens
+    """
+    _LOGGER.info("Setting up SmartLife account entry: %s", entry.title)
+
+    # Get token info from entry data
+    token_info = entry.data.get(CONF_SMARTLIFE_TOKEN_INFO, {})
+    user_code = entry.data.get("smartlife_user_code", "")
+    app_schema = entry.data.get("smartlife_app_schema", "smartlife")
+
+    if not token_info:
+        _LOGGER.warning(
+            "SmartLife account entry %s has no token info stored", entry.entry_id
+        )
+
+    # Find child entries linked to this account
+    child_entry_ids: list[str] = []
+    for config_entry in hass.config_entries.async_entries(DOMAIN):
+        if config_entry.data.get("parent_entry_id") == entry.entry_id:
+            child_entry_ids.append(config_entry.entry_id)
+
+    # Store runtime data for account entry
+    entry.runtime_data = KKTKolbeAccountRuntimeData(
+        token_info=token_info,
+        user_code=user_code,
+        app_schema=app_schema,
+        child_entry_ids=child_entry_ids,
+    )
+
+    # Store in hass.data for access by child entries
+    hass.data[DOMAIN][entry.entry_id] = {
+        "entry_type": ENTRY_TYPE_ACCOUNT,
+        "token_info": token_info,
+        "user_code": user_code,
+        "app_schema": app_schema,
+        "child_entry_ids": child_entry_ids,
+    }
+
+    _LOGGER.info(
+        "SmartLife account entry setup complete: %s (children: %d)",
+        entry.title,
+        len(child_entry_ids),
+    )
+
+    # Account entries don't forward to any platforms
+    # They only manage token information
+    return True
+
+
+async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEntry) -> bool:
+    """Set up a KKT Kolbe device entry.
+
+    This handles both:
+    - Standalone device entries (manual setup, IoT Platform)
+    - Child device entries (linked to a SmartLife account parent)
+    """
     # Discovery is already started in async_setup, no need to start again
 
     # Check integration mode (V2 config flow adds this)
@@ -464,8 +559,57 @@ async def async_options_update_listener(hass: HomeAssistant, entry: ConfigEntry)
     await hass.config_entries.async_reload(entry.entry_id)
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: KKTKolbeConfigEntry) -> bool:
-    """Unload a config entry."""
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Unload a config entry.
+
+    Handles both account entries and device entries.
+    """
+    entry_type = entry.data.get("entry_type", ENTRY_TYPE_DEVICE)
+
+    if entry_type == ENTRY_TYPE_ACCOUNT:
+        return await _async_unload_account_entry(hass, entry)
+    else:
+        return await _async_unload_device_entry(hass, entry)
+
+
+async def _async_unload_account_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Unload a SmartLife account entry (Parent Entry).
+
+    Note: Child device entries should be unloaded separately by Home Assistant
+    when the user removes the account. This function only cleans up the account
+    entry itself.
+    """
+    _LOGGER.info("Unloading SmartLife account entry: %s", entry.title)
+
+    # Get child entry IDs before cleanup
+    child_entry_ids: list[str] = []
+    if hasattr(entry, 'runtime_data') and entry.runtime_data:
+        child_entry_ids = entry.runtime_data.child_entry_ids
+    else:
+        # Fallback: scan for child entries
+        for config_entry in hass.config_entries.async_entries(DOMAIN):
+            if config_entry.data.get("parent_entry_id") == entry.entry_id:
+                child_entry_ids.append(config_entry.entry_id)
+
+    # Log warning if there are still child entries
+    if child_entry_ids:
+        _LOGGER.warning(
+            "Unloading SmartLife account entry %s with %d child devices still linked. "
+            "Child devices may need token refresh via a new account entry.",
+            entry.entry_id,
+            len(child_entry_ids),
+        )
+
+    # Remove from hass.data
+    hass.data[DOMAIN].pop(entry.entry_id, None)
+
+    # Account entries don't have platforms to unload
+    _LOGGER.info("SmartLife account entry unloaded: %s", entry.title)
+    return True
+
+
+async def _async_unload_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEntry) -> bool:
+    """Unload a KKT Kolbe device entry."""
     # Get the platforms that were loaded for this specific device
     from .device_types import get_device_platforms
 
@@ -484,8 +628,14 @@ async def async_unload_entry(hass: HomeAssistant, entry: KKTKolbeConfigEntry) ->
         # Remove from hass.data (backward compatibility)
         hass.data[DOMAIN].pop(entry.entry_id, None)
 
+        # Count remaining device entries (exclude account entries)
+        device_entries = [
+            e for e in hass.data[DOMAIN].values()
+            if isinstance(e, dict) and e.get("entry_type") != ENTRY_TYPE_ACCOUNT
+        ]
+
         # Unload services when the last device is removed
-        if not hass.data[DOMAIN]:
+        if not device_entries:
             from .services import async_unload_services
             await async_unload_services(hass)
             _LOGGER.info("KKT Kolbe services unloaded")

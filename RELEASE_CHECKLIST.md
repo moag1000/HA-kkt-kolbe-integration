@@ -26,6 +26,33 @@ gh release create vX.X.X --title "vX.X.X: Title" --notes "Release notes"
 - [ ] Download funktioniert?
 - [ ] Badge aktualisiert?
 
+## SmartLife Validation (v4.0.0+)
+
+### QR-Code Flow
+- [ ] User Code Eingabe funktioniert
+- [ ] QR-Code wird generiert und angezeigt
+- [ ] QR-Code Scan mit SmartLife App erfolgreich
+- [ ] QR-Code Scan mit Tuya Smart App erfolgreich
+- [ ] Timeout nach 2 Minuten ohne Scan
+- [ ] Retry nach Timeout funktioniert
+
+### Device Selection
+- [ ] Nur KKT Kolbe Geräte werden angezeigt
+- [ ] Bereits konfigurierte Geräte werden gefiltert
+- [ ] Multi-Select funktioniert
+- [ ] Unbekannte Modelle können Typ auswählen
+
+### Entry Creation
+- [ ] Device Entry wird erstellt
+- [ ] Token-Info wird gespeichert
+- [ ] Local Key wird korrekt übernommen
+- [ ] IP-Adresse wird übernommen (falls vorhanden)
+
+### Error Handling
+- [ ] Ungültiger User Code zeigt Fehlermeldung
+- [ ] Netzwerkfehler werden behandelt
+- [ ] "Keine KKT Geräte" zeigt Fallback zu Manual
+
 ## Nach dem Release
 - [ ] Weiterentwicklung fortsetzen
 
