@@ -674,7 +674,104 @@ Schritt 3: Geräte auswählen (Multi-Select)
 | 1 | **product_id Match** | `product_names` in KNOWN_DEVICES | `"ypaixllljc2dcpae"` | ✅ Höchste |
 | 2 | **device_id Pattern** | `device_id_patterns` | `"bf735dfe2ad64fba7c"` | ✅ Hoch |
 | 3 | **model_id Match** | `model_id` | `"e1k6i0zo"`, `"edjszs"` | ✅ Hoch |
-| 4 | **Tuya Kategorie** | `category` | `"yyj"`, `"dcl"` | ⚠️ Zu generisch |
+| 4 | **product_name Prefix** | `product_name.startswith("KKT")` | `"KKT Kolbe HERMES"` | ✅ **NEU** |
+| 5 | **Tuya Kategorie** | `category` | `"yyj"`, `"dcl"` | ⚠️ Zu generisch |
+
+> **Wichtig:** Die `tuya_sharing` SDK liefert das `product_name` Attribut direkt!
+> Laut Nutzer-Feedback beginnen **alle KKT Kolbe Produkte** mit `"KKT "`.
+
+#### 3.4.1.1 Fallback: product_name mit "KKT" Prefix (Unbekannte Modelle)
+
+**Anwendungsfall:** Neues KKT-Gerät, das noch nicht in KNOWN_DEVICES ist.
+
+```python
+# CustomerDevice Attribute aus tuya_sharing SDK
+device.product_id    # "newproductid123" (Tuya ID - evtl. noch nicht bekannt)
+device.product_name  # "KKT Kolbe NEW MODEL" ✅ Startet mit "KKT"!
+device.category      # "yyj"
+device.local_key     # "..." (für lokale Steuerung)
+```
+
+**Erkennungslogik:**
+
+```python
+def _is_kkt_device(device: CustomerDevice) -> tuple[bool, str | None]:
+    """
+    Check if device is a KKT Kolbe device.
+
+    Returns:
+        tuple: (is_kkt, device_type_key or None)
+        - (True, "hermes_style_hood") = Bekanntes Gerät
+        - (True, None) = KKT-Gerät aber unbekanntes Modell
+        - (False, None) = Kein KKT-Gerät
+    """
+    # Method 1: Match by product_id (exact match in KNOWN_DEVICES)
+    if device.product_id:
+        for device_key, info in KNOWN_DEVICES.items():
+            if device.product_id in info.get("product_names", []):
+                return (True, device_key)
+
+    # Method 2: Match by device_id pattern
+    device_info = find_device_by_device_id(device.id)
+    if device_info:
+        return (True, device_info.get("model_id"))
+
+    # Method 3: NEW - Check product_name prefix
+    # All KKT Kolbe devices start with "KKT "
+    if device.product_name and device.product_name.upper().startswith("KKT"):
+        _LOGGER.info(
+            f"Found KKT device by product_name: {device.product_name} "
+            f"(product_id={device.product_id} not in KNOWN_DEVICES)"
+        )
+        return (True, None)  # KKT device, but unknown model
+
+    return (False, None)  # Not a KKT device
+```
+
+**Flow bei unbekanntem KKT-Gerät:**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                                                             │
+│  ℹ️ Neues KKT Kolbe Gerät erkannt                          │
+│                                                             │
+│  Das Gerät "KKT Kolbe NEW MODEL" wurde gefunden, aber      │
+│  ist noch nicht in der Geräte-Datenbank.                   │
+│                                                             │
+│  Bitte wähle den passenden Gerätetyp:                      │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ ○ HERMES & STYLE Hood (RGB-Beleuchtung, 5 Stufen)  │   │
+│  │ ○ FLAT Hood (Einfache Beleuchtung, 5 Stufen)       │   │
+│  │ ○ SOLO/ECCO HCM Hood (9 Stufen, Filter-Tracking)   │   │
+│  │ ○ IND7705HC Cooktop (5-Zonen Induktion)            │   │
+│  │ ○ Default Hood (Generisch)                         │   │
+│  │ ○ Gerät nicht unterstützt                          │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  💡 Wähle "Default Hood" wenn du unsicher bist.            │
+│     Die meisten Funktionen sollten funktionieren.          │
+│                                                             │
+│                              [Weiter →]                    │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Datenstruktur für unbekanntes KKT-Gerät:**
+
+```python
+# Config Entry Data für unbekanntes KKT-Gerät
+{
+    "device_id": "bf...",
+    "local_key": "...",
+    "ip_address": "192.168.1.50",
+    "device_type": "hermes_style_hood",  # User-selected fallback type
+    "product_name": "KKT Kolbe NEW MODEL",  # Original product_name from API
+    "product_id": "newproductid123",  # Für spätere KNOWN_DEVICES Ergänzung
+    "detected_by": "product_name_prefix",  # Tracking how it was detected
+    "is_unknown_model": True,  # Flag für potenzielle Issues
+}
+```
 
 #### 3.4.2 Bestehende Erkennungsfunktion
 

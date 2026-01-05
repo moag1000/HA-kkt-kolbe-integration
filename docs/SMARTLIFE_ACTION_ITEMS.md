@@ -66,10 +66,16 @@
   - [ ] `async_show_progress()` mit `progress_task` (HA 2024.8+)
   - [ ] Background Task für Polling
   - [ ] Timeout-Handling
-- [ ] `_filter_kkt_devices()` - **NUR KKT Kolbe Geräte anzeigen**
-  - [ ] Filter via `detect_device_type()` (product_id Match)
-  - [ ] Fallback: device_id Pattern Match
-  - [ ] UI für "Keine KKT Geräte gefunden" mit manuellem Fallback
+- [ ] `_is_kkt_device()` - **KKT Kolbe Geräte erkennen**
+  - [ ] Priorität 1: product_id Match in KNOWN_DEVICES
+  - [ ] Priorität 2: device_id Pattern Match
+  - [ ] Priorität 3: **product_name.startswith("KKT")** (NEU!)
+  - [ ] Rückgabe: `(is_kkt, device_type_key | None)`
+- [ ] `async_step_smartlife_select_device_type()` - **Gerätetyp wählen**
+  - [ ] Nur anzeigen wenn `device_type_key` is None (unbekanntes Modell)
+  - [ ] Liste bekannter Gerätetypen zur Auswahl
+  - [ ] Speichern von `product_id` für spätere KNOWN_DEVICES Ergänzung
+- [ ] UI für "Keine KKT Geräte gefunden" mit manuellem Fallback
 - [ ] `async_step_smartlife_select_devices()` - **Multi-Select** für Geräte
   - [ ] Checkbox-Liste aller **gefilterten KKT** Geräte
   - [ ] Parent Entry (Account) erstellen
