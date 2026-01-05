@@ -1,8 +1,10 @@
-# SmartLife/Tuya Cloud Integration - Implementierungsplan
+# SmartLife/Tuya Smart App Integration - Implementierungsplan
 
 **Erstellt:** 2026-01-05
 **Branch:** `feature/tuya-cloud-integration`
-**Ziel:** QR-Code basierte Einrichtung ohne Developer Account mit automatischem Local Key Abruf
+**Ziel:** QR-Code basierte Einrichtung via SmartLife/Tuya Smart App - **OHNE Developer Account** - mit automatischem Local Key Abruf
+
+> **Wichtig:** SmartLife und Tuya Smart sind funktional identische Apps, die regional unterschiedlich vermarktet werden. Diese Integration unterstützt **beide Apps** gleichwertig.
 
 ---
 
@@ -264,41 +266,106 @@ custom_components/kkt_kolbe/
 └── ...
 ```
 
-### 3.2 Setup-Modi Übersicht
+### 3.2 Config Flow Konzept: QR-Code als Standard
+
+**Kernprinzip:** Der SmartLife/Tuya Smart App QR-Code Weg ist der **STANDARD**.
+Der Developer-Weg (Tuya IoT Platform) ist nur eine optionale Abzweigung für Nutzer mit bestehendem Account.
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    KKT Kolbe Setup                          │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  Wähle Setup-Methode:                                      │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ 📱 SmartLife/Tuya App (EMPFOHLEN)                   │   │
-│  │    → QR-Code scannen, automatische Einrichtung     │   │
-│  │    → Kein Developer Account erforderlich           │   │
-│  │    → Local Key wird automatisch abgerufen          │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ 🔍 Automatische Erkennung (Discovery)               │   │
-│  │    → Findet Geräte im lokalen Netzwerk             │   │
-│  │    → Erfordert manuellen Local Key                 │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ ☁️ Tuya IoT Platform (Erweitert)                    │   │
-│  │    → Für Nutzer mit bestehendem Developer Account  │   │
-│  │    → Client ID & Secret erforderlich               │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ 🔧 Manuell (Experten)                               │   │
-│  │    → IP, Device ID, Local Key manuell eingeben     │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         KKT Kolbe Setup                                 │
+│                                                                         │
+│   📱 Einrichtung via SmartLife / Tuya Smart App                        │
+│                                                                         │
+│   Kein Developer Account erforderlich!                                 │
+│   Der Local Key wird automatisch abgerufen.                            │
+│                                                                         │
+│   ┌───────────────────────────────────────────────────────────────┐    │
+│   │ User Code: [________________________]                         │    │
+│   │                                                               │    │
+│   │ Welche App verwendest du?                                     │    │
+│   │   ● SmartLife                                                 │    │
+│   │   ○ Tuya Smart                                               │    │
+│   └───────────────────────────────────────────────────────────────┘    │
+│                                                                         │
+│   ℹ️ So findest du den User Code:                                      │
+│      App öffnen → Ich → ⚙️ → Konto und Sicherheit → User Code         │
+│                                                                         │
+│   ─────────────────────────────────────────────────────────────────    │
+│                                                                         │
+│   ▼ Erweiterte Optionen (optional)                                     │
+│   ┌───────────────────────────────────────────────────────────────┐    │
+│   │ ○ Ich habe bereits einen Tuya IoT Developer Account          │    │
+│   │ ○ Manuelles Setup (IP, Device ID, Local Key bekannt)         │    │
+│   └───────────────────────────────────────────────────────────────┘    │
+│                                                                         │
+│                                              [Weiter →]                │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
+
+### 3.3 Flow-Diagramm: Standard vs. Erweiterte Optionen
+
+```
+                    ┌──────────────────────────────┐
+                    │      async_step_user         │
+                    │  (Zeigt QR-Code Setup als    │
+                    │   Standard mit optionaler    │
+                    │   Developer-Abzweigung)      │
+                    └─────────────┬────────────────┘
+                                  │
+              ┌───────────────────┼───────────────────┐
+              │                   │                   │
+              │ [Standard]        │ [Erweitert]       │ [Erweitert]
+              │ User Code         │ Developer         │ Manuell
+              │ eingegeben        │ Account           │ Setup
+              │                   │                   │
+              ▼                   ▼                   ▼
+    ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+    │ QR-Code         │  │ Tuya IoT        │  │ IP/DeviceID/    │
+    │ anzeigen        │  │ Platform        │  │ LocalKey        │
+    │ (SmartLife/     │  │ Credentials     │  │ eingeben        │
+    │  Tuya Smart)    │  │ eingeben        │  │                 │
+    └────────┬────────┘  └────────┬────────┘  └────────┬────────┘
+             │                    │                    │
+             ▼                    ▼                    │
+    ┌─────────────────┐  ┌─────────────────┐          │
+    │ Auf App-Scan    │  │ API Discovery   │          │
+    │ warten          │  │                 │          │
+    └────────┬────────┘  └────────┬────────┘          │
+             │                    │                    │
+             └────────────────────┼────────────────────┘
+                                  │
+                                  ▼
+                    ┌──────────────────────────────┐
+                    │      Gerät auswählen         │
+                    │   (mit local_key aus Cloud)  │
+                    └─────────────┬────────────────┘
+                                  │
+                                  ▼
+                    ┌──────────────────────────────┐
+                    │      Config Entry            │
+                    │        erstellen             │
+                    └──────────────────────────────┘
+```
+
+### 3.4 SmartLife vs. Tuya Smart App
+
+> **Beide Apps sind funktional identisch!** Die Unterschiede sind nur regional/Marketing-bedingt.
+
+| Aspekt | SmartLife | Tuya Smart |
+|--------|-----------|------------|
+| Verbreitung | Europa, USA | Asien, global |
+| App Store Name | "Smart Life" | "Tuya Smart" |
+| Logo | Grün | Blau |
+| Backend | Tuya Cloud | Tuya Cloud |
+| API | Identisch | Identisch |
+| User Code | ✅ Vorhanden | ✅ Vorhanden |
+| QR-Login | ✅ Unterstützt | ✅ Unterstützt |
+
+**Im Code:** Der `app_schema` Parameter bestimmt die App:
+- `"smartlife"` → SmartLife App
+- `"tuyaSmart"` → Tuya Smart App
 
 ### 3.3 SmartLife Setup Flow
 
@@ -881,54 +948,91 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Handle the initial step - setup mode selection."""
+        """Handle the initial step - QR-Code setup as DEFAULT.
+
+        The SmartLife/Tuya Smart App QR-Code method is the STANDARD.
+        Developer and Manual options are only available via "Erweiterte Optionen".
+        """
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            setup_mode = user_input.get("setup_mode")
+            # Check if user selected an advanced option
+            advanced_mode = user_input.get("advanced_mode")
 
-            if setup_mode == SETUP_MODE_SMARTLIFE:
-                return await self.async_step_smartlife_user_code()
-            elif setup_mode == SETUP_MODE_DISCOVERY:
-                return await self.async_step_discovery()
-            elif setup_mode == SETUP_MODE_IOT_PLATFORM:
+            if advanced_mode == "developer":
+                # Redirect to existing Developer/IoT Platform flow
                 return await self.async_step_api_config()
-            elif setup_mode == SETUP_MODE_MANUAL:
+            elif advanced_mode == "manual":
+                # Redirect to manual setup
                 return await self.async_step_manual()
 
+            # DEFAULT: SmartLife/Tuya Smart App QR-Code Setup
+            user_code = user_input.get("user_code", "").strip()
+            app_schema = user_input.get("app_schema", SMARTLIFE_SCHEMA)
+
+            if not user_code:
+                errors["user_code"] = "user_code_required"
+            else:
+                # Initialize client and generate QR code
+                self._smartlife_client = TuyaSharingClient(
+                    self.hass,
+                    user_code,
+                    app_schema,
+                )
+
+                try:
+                    self._smartlife_qr_code = await self._smartlife_client.async_generate_qr_code()
+                    return await self.async_step_smartlife_scan()
+                except KKTAuthenticationError as err:
+                    _LOGGER.error("User code invalid: %s", err)
+                    errors["user_code"] = "invalid_user_code"
+                except KKTConnectionError as err:
+                    _LOGGER.error("Connection error: %s", err)
+                    errors["base"] = "cannot_connect"
+
+        # QR-Code Setup as DEFAULT with optional advanced modes
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema({
-                vol.Required("setup_mode", default=SETUP_MODE_SMARTLIFE): selector.SelectSelector(
+                # MAIN: SmartLife/Tuya Smart App fields (shown by default)
+                vol.Required("user_code"): selector.TextSelector(
+                    selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
+                ),
+                vol.Required("app_schema", default=SMARTLIFE_SCHEMA): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
                             selector.SelectOptionDict(
-                                value=SETUP_MODE_SMARTLIFE,
-                                label="📱 SmartLife/Tuya App (Empfohlen)",
+                                value=SMARTLIFE_SCHEMA,
+                                label="SmartLife",
                             ),
                             selector.SelectOptionDict(
-                                value=SETUP_MODE_DISCOVERY,
-                                label="🔍 Automatische Erkennung",
-                            ),
-                            selector.SelectOptionDict(
-                                value=SETUP_MODE_IOT_PLATFORM,
-                                label="☁️ Tuya IoT Platform",
-                            ),
-                            selector.SelectOptionDict(
-                                value=SETUP_MODE_MANUAL,
-                                label="🔧 Manuell",
+                                value=TUYA_SMART_SCHEMA,
+                                label="Tuya Smart",
                             ),
                         ],
-                        mode=selector.SelectSelectorMode.LIST,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                # OPTIONAL: Advanced modes (collapsed/expandable in UI)
+                vol.Optional("advanced_mode"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            selector.SelectOptionDict(
+                                value="developer",
+                                label="Ich habe einen Tuya IoT Developer Account",
+                            ),
+                            selector.SelectOptionDict(
+                                value="manual",
+                                label="Manuelles Setup (IP, Device ID, Local Key bekannt)",
+                            ),
+                        ],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
             }),
             errors=errors,
             description_placeholders={
-                "smartlife_description": "QR-Code scannen - kein Developer Account nötig",
-                "discovery_description": "Geräte im Netzwerk finden",
-                "iot_platform_description": "Für bestehende Tuya IoT Accounts",
-                "manual_description": "IP, Device ID und Local Key eingeben",
+                "user_code_help": "App öffnen → Ich → ⚙️ → Konto und Sicherheit → User Code",
             },
         )
 
@@ -1179,24 +1283,16 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
     "step": {
       "user": {
         "title": "KKT Kolbe Setup",
-        "description": "Wähle eine Setup-Methode für dein KKT Kolbe Gerät.",
-        "data": {
-          "setup_mode": "Setup-Methode"
-        },
-        "data_description": {
-          "setup_mode": "SmartLife/Tuya App ist die einfachste Methode - kein Developer Account erforderlich."
-        }
-      },
-      "smartlife_user_code": {
-        "title": "SmartLife/Tuya App Login",
-        "description": "Gib deinen User Code aus der SmartLife oder Tuya Smart App ein.\n\n**So findest du den User Code:**\n1. Öffne die SmartLife/Tuya App\n2. Gehe zu: **Ich** → ⚙️ **Einstellungen**\n3. Tippe auf **Konto und Sicherheit**\n4. Scrolle zu **User Code**",
+        "description": "Einrichtung via **SmartLife** oder **Tuya Smart** App.\n\n**Kein Developer Account erforderlich!**\nDer Local Key wird automatisch abgerufen.\n\n**So findest du den User Code:**\nApp öffnen → Ich → ⚙️ → Konto und Sicherheit → User Code",
         "data": {
           "user_code": "User Code",
-          "app_schema": "App"
+          "app_schema": "Welche App verwendest du?",
+          "advanced_mode": "Erweiterte Optionen (optional)"
         },
         "data_description": {
-          "user_code": "Der User Code aus der SmartLife oder Tuya Smart App",
-          "app_schema": "Wähle die App, die du verwendest"
+          "user_code": "Den User Code findest du in der SmartLife/Tuya Smart App unter Konto und Sicherheit",
+          "app_schema": "SmartLife und Tuya Smart sind funktional identisch - wähle die App, die du installiert hast",
+          "advanced_mode": "Nur für Nutzer mit bestehendem Tuya IoT Developer Account oder bekannten Gerätedaten"
         }
       },
       "smartlife_scan": {
@@ -1249,24 +1345,16 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
     "step": {
       "user": {
         "title": "KKT Kolbe Setup",
-        "description": "Wähle eine Setup-Methode für dein KKT Kolbe Gerät.",
-        "data": {
-          "setup_mode": "Setup-Methode"
-        },
-        "data_description": {
-          "setup_mode": "SmartLife/Tuya App ist die einfachste Methode - kein Developer Account erforderlich."
-        }
-      },
-      "smartlife_user_code": {
-        "title": "SmartLife/Tuya App Login",
-        "description": "Gib deinen User Code aus der SmartLife oder Tuya Smart App ein.\n\n**So findest du den User Code:**\n1. Öffne die SmartLife/Tuya App\n2. Gehe zu: **Ich** → ⚙️ **Einstellungen**\n3. Tippe auf **Konto und Sicherheit**\n4. Scrolle zu **User Code**",
+        "description": "Einrichtung via **SmartLife** oder **Tuya Smart** App.\n\n**Kein Developer Account erforderlich!**\nDer Local Key wird automatisch abgerufen.\n\n**So findest du den User Code:**\nApp öffnen → Ich → ⚙️ → Konto und Sicherheit → User Code",
         "data": {
           "user_code": "User Code",
-          "app_schema": "App"
+          "app_schema": "Welche App verwendest du?",
+          "advanced_mode": "Erweiterte Optionen (optional)"
         },
         "data_description": {
-          "user_code": "Der User Code aus der SmartLife oder Tuya Smart App",
-          "app_schema": "Wähle die App, die du verwendest"
+          "user_code": "Den User Code findest du in der SmartLife/Tuya Smart App unter Konto und Sicherheit",
+          "app_schema": "SmartLife und Tuya Smart sind funktional identisch - wähle die App, die du installiert hast",
+          "advanced_mode": "Nur für Nutzer mit bestehendem Tuya IoT Developer Account oder bekannten Gerätedaten"
         }
       },
       "smartlife_scan": {
@@ -1319,24 +1407,16 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
     "step": {
       "user": {
         "title": "KKT Kolbe Setup",
-        "description": "Choose a setup method for your KKT Kolbe device.",
-        "data": {
-          "setup_mode": "Setup Method"
-        },
-        "data_description": {
-          "setup_mode": "SmartLife/Tuya App is the easiest method - no developer account required."
-        }
-      },
-      "smartlife_user_code": {
-        "title": "SmartLife/Tuya App Login",
-        "description": "Enter your User Code from the SmartLife or Tuya Smart app.\n\n**How to find your User Code:**\n1. Open the SmartLife/Tuya app\n2. Go to: **Me** → ⚙️ **Settings**\n3. Tap **Account and Security**\n4. Scroll to **User Code**",
+        "description": "Setup via **SmartLife** or **Tuya Smart** app.\n\n**No developer account required!**\nThe Local Key is retrieved automatically.\n\n**How to find your User Code:**\nOpen app → Me → ⚙️ → Account and Security → User Code",
         "data": {
           "user_code": "User Code",
-          "app_schema": "App"
+          "app_schema": "Which app do you use?",
+          "advanced_mode": "Advanced options (optional)"
         },
         "data_description": {
-          "user_code": "The User Code from your SmartLife or Tuya Smart app",
-          "app_schema": "Select the app you are using"
+          "user_code": "You can find the User Code in the SmartLife/Tuya Smart app under Account and Security",
+          "app_schema": "SmartLife and Tuya Smart are functionally identical - choose the app you have installed",
+          "advanced_mode": "Only for users with existing Tuya IoT Developer account or known device data"
         }
       },
       "smartlife_scan": {
@@ -2294,6 +2374,425 @@ async def async_step_setup_mode_change(
 | `CustomerDevice` | `tuya_sharing.device` | Device Model mit `local_key` |
 | `CustomerApi` | `tuya_sharing.customerapi` | Authentifizierte HTTP Requests |
 | `SharingTokenListener` | `tuya_sharing` | Token Update Callbacks |
+
+---
+
+## 13. Home Assistant Quality Tier Compliance
+
+### 13.1 Bronze Tier (Pflicht) ✅
+
+Die folgenden Anforderungen sind bereits in der KKT Kolbe Integration erfüllt und müssen für SmartLife erweitert werden:
+
+| Anforderung | Status | SmartLife Implementierung |
+|-------------|--------|---------------------------|
+| Config Flow | ✅ Vorhanden | QR-Code als Standard hinzufügen |
+| Unique IDs | ✅ Vorhanden | Bestehende unique_id Logik wiederverwenden |
+| RuntimeData | ✅ Vorhanden | SmartLife Token Info zu RuntimeData hinzufügen |
+| `_attr_has_entity_name` | ✅ Vorhanden | Keine Änderung nötig |
+| manifest.json | ✅ Vorhanden | Dependency hinzufügen |
+
+### 13.2 Silver Tier (Produktion) ✅
+
+| Anforderung | Status | SmartLife Implementierung |
+|-------------|--------|---------------------------|
+| **Reauth Flow** | 🔄 Erweitern | `async_step_reauth_smartlife` für Token-Erneuerung |
+| Options Flow | ✅ Vorhanden | Option zum Wechsel zwischen Setup-Modi |
+| `async_unload_entry` | ✅ Vorhanden | SmartLife Client Cleanup hinzufügen |
+| Exception-Hierarchie | ✅ Vorhanden | Bestehende Exceptions nutzen |
+| Test Coverage | 🔄 Erweitern | SmartLife Client Tests hinzufügen |
+
+#### 13.2.1 Reauth Flow Implementierung
+
+```python
+async def async_step_reauth(
+    self, entry_data: Mapping[str, Any]
+) -> ConfigFlowResult:
+    """Handle reauth when SmartLife tokens expire."""
+    self._reauth_entry = self.hass.config_entries.async_get_entry(
+        self.context["entry_id"]
+    )
+    setup_mode = entry_data.get("setup_mode")
+
+    if setup_mode == SETUP_MODE_SMARTLIFE:
+        # SmartLife tokens expired - need new QR code scan
+        return await self.async_step_reauth_smartlife()
+    else:
+        # Existing reauth for other setup modes
+        return await self.async_step_reauth_confirm()
+
+async def async_step_reauth_smartlife(
+    self, user_input: dict[str, Any] | None = None
+) -> ConfigFlowResult:
+    """Reauth specifically for SmartLife token expiry."""
+    errors: dict[str, str] = {}
+
+    if user_input is not None:
+        user_code = user_input.get("user_code", "").strip()
+        app_schema = user_input.get("app_schema", SMARTLIFE_SCHEMA)
+
+        if not user_code:
+            errors["user_code"] = "user_code_required"
+        else:
+            self._smartlife_client = TuyaSharingClient(
+                self.hass,
+                user_code,
+                app_schema,
+            )
+
+            try:
+                self._smartlife_qr_code = await self._smartlife_client.async_generate_qr_code()
+                return await self.async_step_reauth_smartlife_scan()
+            except KKTAuthenticationError:
+                errors["user_code"] = "invalid_user_code"
+            except KKTConnectionError:
+                errors["base"] = "cannot_connect"
+
+    return self.async_show_form(
+        step_id="reauth_smartlife",
+        data_schema=vol.Schema({
+            vol.Required("user_code"): str,
+            vol.Required("app_schema", default=SMARTLIFE_SCHEMA): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[
+                        selector.SelectOptionDict(value=SMARTLIFE_SCHEMA, label="SmartLife"),
+                        selector.SelectOptionDict(value=TUYA_SMART_SCHEMA, label="Tuya Smart"),
+                    ],
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
+        }),
+        errors=errors,
+        description_placeholders={
+            "device_name": self._reauth_entry.title if self._reauth_entry else "Unknown",
+            "reason": "Die SmartLife/Tuya Tokens sind abgelaufen. Bitte erneut authentifizieren.",
+        },
+    )
+
+async def async_step_reauth_smartlife_scan(
+    self, user_input: dict[str, Any] | None = None
+) -> ConfigFlowResult:
+    """Reauth QR code scan step."""
+    errors: dict[str, str] = {}
+
+    if user_input is not None:
+        try:
+            await self._smartlife_client.async_poll_login_result()
+
+            # Update existing entry with new tokens
+            new_token_info = self._smartlife_client.get_token_info_for_storage()
+
+            new_data = {**self._reauth_entry.data}
+            new_data[CONF_SMARTLIFE_TOKEN_INFO] = new_token_info
+
+            self.hass.config_entries.async_update_entry(
+                self._reauth_entry,
+                data=new_data,
+            )
+
+            await self.hass.config_entries.async_reload(self._reauth_entry.entry_id)
+
+            return self.async_abort(reason="reauth_successful")
+
+        except KKTTimeoutError:
+            errors["base"] = "qr_scan_timeout"
+        except KKTAuthenticationError:
+            errors["base"] = "authentication_failed"
+
+    return self.async_show_form(
+        step_id="reauth_smartlife_scan",
+        data_schema=vol.Schema({
+            vol.Optional("qr_code"): QrCodeSelector(
+                QrCodeSelectorConfig(
+                    data=self._smartlife_qr_code,
+                    scale=5,
+                    error_correction_level=QrErrorCorrectionLevel.QUARTILE,
+                )
+            ),
+        }),
+        errors=errors,
+    )
+```
+
+### 13.3 Gold Tier (Exzellenz) ✅
+
+| Anforderung | Status | SmartLife Implementierung |
+|-------------|--------|---------------------------|
+| **Diagnostics** | ✅ Vorhanden | SmartLife Token Status hinzufügen |
+| **Repairs Flow** | ✅ Vorhanden | SmartLife-spezifische Issues |
+| Zeroconf Discovery | ✅ Vorhanden | Keine Änderung nötig |
+| Vollständige Translations | 🔄 Erweitern | DE/EN für SmartLife Steps |
+| Entity Categories | ✅ Vorhanden | Keine Änderung nötig |
+| `_unrecorded_attributes` | ✅ Vorhanden | Keine Änderung nötig |
+| `translation_key` | ✅ Vorhanden | Keine Änderung nötig |
+
+#### 13.3.1 Diagnostics Erweiterung
+
+```python
+# In diagnostics.py - async_get_config_entry_diagnostics erweitern
+
+async def async_get_config_entry_diagnostics(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> dict[str, Any]:
+    """Return diagnostics for a config entry."""
+    # ... bestehender Code ...
+
+    # SmartLife Token Status hinzufügen
+    smartlife_token_info = entry.data.get(CONF_SMARTLIFE_TOKEN_INFO, {})
+    if smartlife_token_info:
+        diagnostics["smartlife"] = {
+            "setup_mode": entry.data.get("setup_mode"),
+            "token_status": "valid" if _is_token_valid(smartlife_token_info) else "expired",
+            "token_expires_in_hours": _get_token_expiry_hours(smartlife_token_info),
+            "endpoint": smartlife_token_info.get("endpoint", "N/A"),
+            "app_schema": smartlife_token_info.get("app_schema", "N/A"),
+            # WICHTIG: Keine sensitiven Daten wie access_token!
+            "terminal_id": "REDACTED" if smartlife_token_info.get("terminal_id") else "N/A",
+            "uid": "REDACTED" if smartlife_token_info.get("uid") else "N/A",
+        }
+
+    return diagnostics
+
+def _is_token_valid(token_info: dict[str, Any]) -> bool:
+    """Check if SmartLife token is still valid."""
+    expire_time = token_info.get("expire_time", 0)
+    current_time = int(datetime.now().timestamp())
+    return current_time < expire_time
+
+def _get_token_expiry_hours(token_info: dict[str, Any]) -> float:
+    """Get hours until token expires."""
+    expire_time = token_info.get("expire_time", 0)
+    current_time = int(datetime.now().timestamp())
+    seconds_remaining = max(0, expire_time - current_time)
+    return round(seconds_remaining / 3600, 1)
+```
+
+#### 13.3.2 Repairs Flow für SmartLife
+
+```python
+# In repairs.py - SmartLife-spezifische Issues hinzufügen
+
+SMARTLIFE_TOKEN_EXPIRED = "smartlife_token_expired"
+SMARTLIFE_LOCAL_KEY_CHANGED = "smartlife_local_key_changed"
+
+async def async_create_fix_flow(
+    hass: HomeAssistant,
+    issue_id: str,
+    data: dict[str, str | int | float | None] | None,
+) -> RepairsFlow:
+    """Create a fix flow for the given issue."""
+    if issue_id.startswith("smartlife_token_expired"):
+        return SmartLifeTokenExpiredRepairFlow()
+    elif issue_id.startswith("smartlife_local_key_changed"):
+        return SmartLifeLocalKeyChangedRepairFlow()
+    # ... bestehende Issues ...
+
+
+class SmartLifeTokenExpiredRepairFlow(RepairsFlow):
+    """Handler for SmartLife token expiry issues."""
+
+    async def async_step_init(
+        self, user_input: dict[str, str] | None = None
+    ) -> FlowResult:
+        """Handle the first step of the repair flow."""
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema({}),
+            description_placeholders={
+                "info": "Die SmartLife/Tuya Tokens sind abgelaufen. Bitte starte die Re-Authentifizierung über die Integration.",
+            },
+        )
+
+    async def async_step_confirm(
+        self, user_input: dict[str, str] | None = None
+    ) -> FlowResult:
+        """Handle confirmation and trigger reauth."""
+        # Trigger reauth flow for the affected entry
+        entry_id = self.data.get("entry_id")
+        if entry_id:
+            entry = self.hass.config_entries.async_get_entry(entry_id)
+            if entry:
+                entry.async_start_reauth(self.hass)
+
+        return self.async_create_entry(title="", data={})
+```
+
+### 13.4 Debug & Logging
+
+#### 13.4.1 Strukturiertes Logging für SmartLife
+
+```python
+# In clients/tuya_sharing_client.py
+
+_LOGGER = logging.getLogger(__name__)
+
+class TuyaSharingClient:
+    """Client with comprehensive debug logging."""
+
+    async def async_generate_qr_code(self) -> str:
+        """Generate QR code with debug logging."""
+        _LOGGER.debug(
+            "Generating QR code for SmartLife/Tuya auth (schema=%s, user_code=%s...)",
+            self.app_schema,
+            self.user_code[:4] if len(self.user_code) > 4 else "***",
+        )
+
+        try:
+            qr_code = await self._internal_generate_qr()
+            _LOGGER.info(
+                "QR code generated successfully for %s authentication",
+                self.app_schema,
+            )
+            return qr_code
+        except Exception as err:
+            _LOGGER.error(
+                "QR code generation failed: %s (schema=%s)",
+                err,
+                self.app_schema,
+            )
+            raise
+
+    async def async_poll_login_result(self, timeout: float = QR_LOGIN_TIMEOUT) -> TuyaSharingAuthResult:
+        """Poll with progress logging."""
+        _LOGGER.debug("Starting QR login poll (timeout=%ss)", timeout)
+        start_time = asyncio.get_event_loop().time()
+        poll_count = 0
+
+        while True:
+            poll_count += 1
+            elapsed = asyncio.get_event_loop().time() - start_time
+
+            if elapsed >= timeout:
+                _LOGGER.warning(
+                    "QR login timeout after %d polls (%.1fs)",
+                    poll_count,
+                    elapsed,
+                )
+                raise KKTTimeoutError(operation="qr_login", timeout=timeout)
+
+            success, result = await self._internal_poll()
+
+            if success:
+                _LOGGER.info(
+                    "QR login successful after %d polls (%.1fs)",
+                    poll_count,
+                    elapsed,
+                )
+                return self._parse_auth_result(result)
+
+            # Log every 10 polls to avoid spam
+            if poll_count % 10 == 0:
+                _LOGGER.debug(
+                    "Still waiting for QR scan... (poll=%d, elapsed=%.1fs)",
+                    poll_count,
+                    elapsed,
+                )
+
+            await asyncio.sleep(QR_LOGIN_POLL_INTERVAL)
+
+    async def async_get_devices(self) -> list[TuyaSharingDevice]:
+        """Get devices with detailed logging."""
+        _LOGGER.debug("Fetching devices from SmartLife/Tuya cloud")
+
+        devices = await self._internal_get_devices()
+
+        # Log device summary
+        categories = {}
+        for d in devices:
+            categories[d.category] = categories.get(d.category, 0) + 1
+
+        _LOGGER.info(
+            "Retrieved %d devices: %s",
+            len(devices),
+            ", ".join(f"{k}={v}" for k, v in categories.items()),
+        )
+
+        # Warn about devices without local key
+        no_key_devices = [d for d in devices if not d.local_key]
+        if no_key_devices:
+            _LOGGER.warning(
+                "%d devices have no local_key (may be hub devices): %s",
+                len(no_key_devices),
+                ", ".join(d.name for d in no_key_devices),
+            )
+
+        return devices
+```
+
+#### 13.4.2 Debug Logging Konfiguration
+
+```yaml
+# configuration.yaml - Empfohlene Debug-Konfiguration
+logger:
+  default: info
+  logs:
+    custom_components.kkt_kolbe: debug
+    custom_components.kkt_kolbe.clients.tuya_sharing_client: debug
+    tuya_sharing: warning  # SDK ist sehr verbose
+```
+
+### 13.5 Translations für Reauth & Repairs
+
+#### strings.json Erweiterungen
+
+```json
+{
+  "config": {
+    "step": {
+      "reauth_smartlife": {
+        "title": "SmartLife/Tuya Re-Authentifizierung",
+        "description": "Die Authentifizierung für **{device_name}** ist abgelaufen.\n\nBitte gib deinen User Code erneut ein und scanne den QR-Code.",
+        "data": {
+          "user_code": "User Code",
+          "app_schema": "App"
+        }
+      },
+      "reauth_smartlife_scan": {
+        "title": "QR-Code scannen",
+        "description": "Scanne den QR-Code mit der SmartLife/Tuya Smart App, um die Verbindung wiederherzustellen."
+      }
+    },
+    "abort": {
+      "reauth_successful": "Re-Authentifizierung erfolgreich! Die Verbindung wurde wiederhergestellt."
+    }
+  },
+  "issues": {
+    "smartlife_token_expired": {
+      "title": "SmartLife Token abgelaufen",
+      "description": "Die SmartLife/Tuya Authentifizierung für {device_name} ist abgelaufen.\n\nBitte starte die Re-Authentifizierung, um die Verbindung wiederherzustellen."
+    },
+    "smartlife_local_key_changed": {
+      "title": "Local Key geändert",
+      "description": "Der Local Key für {device_name} hat sich geändert (z.B. nach Gerät-Neukopplung in der App).\n\nDie Integration wird den neuen Key automatisch abrufen."
+    }
+  }
+}
+```
+
+### 13.6 Quality Tier Checkliste für SmartLife
+
+#### Bronze (Pflicht)
+- [ ] Config Flow mit QR-Code als Standard
+- [ ] Unique IDs für SmartLife-Geräte
+- [ ] RuntimeData mit Token Info
+- [ ] manifest.json mit `tuya-device-sharing-sdk`
+
+#### Silver (Produktion)
+- [ ] Reauth Flow: `async_step_reauth_smartlife`
+- [ ] Reauth Flow: `async_step_reauth_smartlife_scan`
+- [ ] Options Flow: Setup-Modus Wechsel
+- [ ] `async_unload_entry`: SmartLife Client Cleanup
+- [ ] Unit Tests: TuyaSharingClient
+- [ ] Unit Tests: Config Flow Steps
+- [ ] Token Refresh Handling
+
+#### Gold (Exzellenz)
+- [ ] Diagnostics: SmartLife Token Status
+- [ ] Repairs: `smartlife_token_expired`
+- [ ] Repairs: `smartlife_local_key_changed`
+- [ ] Vollständige DE Translations
+- [ ] Vollständige EN Translations
+- [ ] Debug Logging mit strukturierten Messages
+- [ ] Error History für SmartLife Fehler
 
 ---
 
