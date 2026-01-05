@@ -5,6 +5,163 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.0] - 2026-01-05
+
+### SmartLife Integration Release - QR-Code Setup ohne Developer Account
+
+Diese Major-Release bietet eine revolutionäre neue Einrichtungsmethode für KKT Kolbe Geräte über die SmartLife/Tuya Smart App - **ohne Developer Account erforderlich**!
+
+### Added
+
+#### **SmartLife/Tuya Smart QR-Code Setup ✨**
+- **Keine API-Konfiguration nötig**: Einfaches Scannen eines QR-Codes mit der SmartLife/Tuya Smart App
+- **TuyaSharing Client Integration**: Neue `TuyaSharing` Client für Home Assistant Integration (tuya-device-sharing-sdk)
+- **Parent-Child Entry Pattern**: Ein Account → mehrere Geräte
+  - Parent Entry speichert Account-Daten und Token
+  - Child Entries für jedes Gerät mit Referenz zum Parent
+  - Automatische Child-Cleanup bei Parent-Löschung
+- **Multi-Device Selection**: Alle KKT Kolbe Geräte des Accounts konfigurierbar
+- **QR-Code Scanning mit Progress**:
+  - `async_show_progress()` für QR-Code Polling (HA 2024.8+)
+  - Token wird nach erfolgreicher Authentifizierung abgerufen
+  - Timeout: 2 Minuten
+- **Reauth Flow**: Token-Erneuerung ohne Setup neu zu starten
+- **SmartLife-Spezifische Dokumentation**: Troubleshooting und FAQ für die neue Methode
+
+#### **Technische Features**
+- **KKTKolbeAccountRuntimeData Dataclass**: Structurierte Account-Daten
+- **_is_kkt_device() Helper** mit 4 Detection-Methoden:
+  1. Exakte KNOWN_DEVICES product_id Übereinstimmung
+  2. device_id_patterns Matching
+  3. Tuya Category Matching (yyj, dcl)
+  4. Keyword-basiertes Fallback Matching
+- **Entry-Type Dispatch**: Separate Handling für Account (parent) und Device (child) Entries
+
+#### **Neue Translations**
+- SmartLife Setup Flow (10 Steps): DE + EN
+- QR-Code Scan Progress Messages
+- Reauth Flow für Token-Erneuerung
+- Fehler- und Erfolgs-Meldungen
+
+### Changed
+
+#### **Setup-Methode Priority**
+SmartLife ist jetzt die **primäre** Setup-Methode:
+```
+1. SmartLife QR-Code (EMPFOHLEN) - Einfach, schnell, keine API nötig
+2. IoT Platform API - Vollständig, aber komplexer
+3. Lokale Eingabe - Fallback für Experten
+```
+
+#### **README & Dokumentation**
+- Komplett überarbeiteter Quick Start Guide
+- SmartLife Setup Step-by-Step (mit Screenshots)
+- API Setup weiterhin vollständig dokumentiert
+- Migration Guide von IoT Platform zu SmartLife
+
+#### **Dependencies**
+- `tuya-device-sharing-sdk>=0.2.0` hinzugefügt (neu)
+- `tinytuya>=1.14.0` (unverändert)
+- `pycryptodome>=3.19.0` (unverändert)
+- `aiohttp>=3.9.0` (unverändert)
+
+#### **manifest.json**
+```json
+{
+  "version": "4.0.0",
+  "requirements": [
+    "tinytuya>=1.14.0",
+    "pycryptodome>=3.19.0",
+    "aiohttp>=3.9.0",
+    "tuya-device-sharing-sdk>=0.2.0"
+  ],
+  "zeroconf": [
+    {"type": "_tuya._tcp.local."},
+    {"type": "_smartlife._tcp.local."}
+  ]
+}
+```
+
+### Technical Details
+
+#### **SmartLife Flow Architecture**
+```python
+# config_flow.py neuer SmartLife Flow
+async def async_step_smartlife_qr(self):
+    """SmartLife QR Code Setup"""
+    # 1. QR Code generieren mit Home Assistant Client ID
+    # 2. User scannt mit SmartLife App
+    # 3. Polling auf Token (max 120s)
+    # 4. Account Credentials speichern
+    # 5. Devices auswählen
+    # 6. Child Entries erstellen
+
+# const.py neue Constants
+SMARTLIFE_CLIENT_ID: Final = "HA_3y9q8zge868vdm7k"
+SMARTLIFE_SCHEMA: Final = "smartlife"
+TUYA_SMART_SCHEMA: Final = "tuyaSmart"
+QR_CODE_FORMAT: Final = "tuyaSmart--qrLogin?token={token}"
+QR_LOGIN_POLL_INTERVAL: Final = 2  # seconds
+QR_LOGIN_TIMEOUT: Final = 120  # seconds
+
+# Entry Types
+ENTRY_TYPE_ACCOUNT: Final = "account"
+ENTRY_TYPE_DEVICE: Final = "device"
+```
+
+#### **Dataclasses**
+```python
+@dataclass
+class KKTKolbeAccountRuntimeData:
+    """Runtime data for SmartLife Account Entry"""
+    user_code: str
+    token_info: dict
+    app_schema: str
+    devices: dict[str, dict] = field(default_factory=dict)
+```
+
+#### **Device Detection (4 Methods)**
+```python
+def _is_kkt_device(device: dict) -> bool:
+    """Prüfe ob Device KKT Kolbe Gerät ist"""
+    # 1. product_id in KNOWN_DEVICES
+    # 2. device_id Pattern Matching
+    # 3. Tuya Category (yyj, dcl)
+    # 4. Keywords (kkt, kolbe, hermes, hood, etc.)
+```
+
+### Migration von v3.2.0
+
+Bestehende Installationen mit IoT Platform API:
+1. **Funktionieren weiterhin** - Vollständige Abwärtskompatibilität
+2. **SmartLife als Alternative**: Neuer Flow für neue Geräte oder Reauth
+3. **Keine Zwangsmigration** - Benutzer können selbst wählen
+
+### Mindestanforderungen
+
+- Home Assistant 2024.8+ (für `async_show_progress`)
+- Tuya SmartLife oder Tuya Smart App auf dem Smartphone
+- Kein Developer Account erforderlich (✨ Hauptvorteil!)
+
+### Known Limitations
+
+- SmartLife Token gültig für ~3 Monate (Reauth Flow erforderlich)
+- QR Code ist auf 2 Minuten Gültig (Standard Tuya)
+- Parent Entry muss existent sein für Child Entries
+
+### Zusammenfassung
+
+| Feature | v3.2.0 | v4.0.0 |
+|---------|--------|--------|
+| IoT Platform API | ✅ | ✅ |
+| SmartLife QR-Code | ❌ | ✅ |
+| Setup Komplexität | Mittel | Niedrig |
+| Developer Account nötig | Ja | Nein (SmartLife) |
+| Parent-Child Pattern | ❌ | ✅ |
+| Reauth Support | Ja | Ja (erweitert) |
+
+---
+
 ## [3.2.0] - 2026-01-05
 
 ### ⚠️ BREAKING CHANGE - Unique ID Format
@@ -1721,6 +1878,8 @@ For changes prior to v1.5.16, please refer to the git commit history.
 
 ---
 
+[4.0.0]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v4.0.0
+[3.2.0]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v3.2.0
 [2.0.0-beta.1]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v2.0.0-beta.1
 [1.7.10]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.7.10
 [1.7.9]: https://github.com/moag1000/HA-kkt-kolbe-integration/releases/tag/v1.7.9

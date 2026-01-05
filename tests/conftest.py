@@ -230,3 +230,188 @@ def mock_setup_entry() -> Generator[AsyncMock, None, None]:
         return_value=True,
     ) as mock_setup:
         yield mock_setup
+
+
+# === SMARTLIFE FIXTURES ===
+
+
+@pytest.fixture
+def mock_smartlife_account_entry() -> MockConfigEntry:
+    """Create a mock SmartLife account config entry (parent entry)."""
+    return MockConfigEntry(
+        domain=DOMAIN,
+        title="SmartLife Account",
+        data={
+            "entry_type": "account",
+            "smartlife_user_code": "EU12345678",
+            "smartlife_app_schema": "smartlife",
+            "smartlife_token_info": {
+                "terminal_id": "terminal_001",
+                "endpoint": "https://openapi.tuyaeu.com",
+                "access_token": "access_token_abc123",
+                "refresh_token": "refresh_token_xyz789",
+                "expire_time": 7200,
+                "uid": "user_123456",
+                "user_code": "EU12345678",
+                "app_schema": "smartlife",
+                "timestamp": 1700000000,
+            },
+        },
+        unique_id="smartlife_account_user_123456",
+        version=1,
+    )
+
+
+@pytest.fixture
+def mock_smartlife_device_entry() -> MockConfigEntry:
+    """Create a mock SmartLife device config entry (child entry)."""
+    return MockConfigEntry(
+        domain=DOMAIN,
+        title="KKT HERMES Hood (SmartLife)",
+        data={
+            "entry_type": "device",
+            "device_id": "bf735dfe2ad64fba7cpyhn",
+            "ip_address": "192.168.1.100",
+            "local_key": "1234567890abcdef",
+            "integration_mode": "smartlife",
+            "product_name": "hermes_style_hood",
+            "device_type": "hermes_style_hood",
+            "smartlife_user_code": "EU12345678",
+            "smartlife_app_schema": "smartlife",
+            "parent_entry_id": "smartlife_account_user_123456",
+        },
+        unique_id="bf735dfe2ad64fba7cpyhn",
+        version=1,
+    )
+
+
+@pytest.fixture
+def mock_tuya_sharing_client() -> Generator[MagicMock, None, None]:
+    """Mock the TuyaSharingClient class for config flow tests."""
+    with patch(
+        "custom_components.kkt_kolbe.config_flow.TuyaSharingClient",
+        autospec=True,
+    ) as mock_client_class:
+        mock_client = MagicMock()
+        mock_client.user_code = "EU12345678"
+        mock_client.app_schema = "smartlife"
+        mock_client.is_authenticated = True
+
+        # Mock async methods
+        mock_client.async_generate_qr_code = AsyncMock(
+            return_value="tuyaSmart--qrLogin?token=test_qr_token"
+        )
+        mock_client.async_poll_login_result = AsyncMock(
+            return_value=MagicMock(
+                success=True,
+                user_id="user_123456",
+                terminal_id="terminal_001",
+                endpoint="https://openapi.tuyaeu.com",
+                access_token="access_token_abc",
+                refresh_token="refresh_token_xyz",
+                expire_time=7200,
+                timestamp=1700000000,
+            )
+        )
+
+        # Mock device list with KKT devices
+        mock_kkt_device = MagicMock()
+        mock_kkt_device.device_id = "bf735dfe2ad64fba7cpyhn"
+        mock_kkt_device.name = "KKT HERMES Hood"
+        mock_kkt_device.local_key = "1234567890abcdef"
+        mock_kkt_device.product_id = "ypaixllljc2dcpae"
+        mock_kkt_device.product_name = "KKT Kolbe HERMES"
+        mock_kkt_device.category = "yyj"
+        mock_kkt_device.ip = "192.168.1.100"
+        mock_kkt_device.online = True
+        mock_kkt_device.support_local = True
+        mock_kkt_device.kkt_device_type = "hermes_style_hood"
+        mock_kkt_device.kkt_product_name = "HERMES & STYLE"
+
+        mock_client.async_get_devices = AsyncMock(return_value=[mock_kkt_device])
+        mock_client.get_token_info_for_storage = MagicMock(
+            return_value={
+                "terminal_id": "terminal_001",
+                "endpoint": "https://openapi.tuyaeu.com",
+                "access_token": "access_token_abc",
+                "refresh_token": "refresh_token_xyz",
+                "expire_time": 7200,
+                "uid": "user_123456",
+                "user_code": "EU12345678",
+                "app_schema": "smartlife",
+                "timestamp": 1700000000,
+            }
+        )
+        mock_client.async_close = AsyncMock()
+
+        mock_client_class.return_value = mock_client
+        yield mock_client
+
+
+@pytest.fixture
+def mock_tuya_sharing_client_no_kkt() -> Generator[MagicMock, None, None]:
+    """Mock TuyaSharingClient that returns no KKT devices."""
+    with patch(
+        "custom_components.kkt_kolbe.config_flow.TuyaSharingClient",
+        autospec=True,
+    ) as mock_client_class:
+        mock_client = MagicMock()
+        mock_client.user_code = "EU12345678"
+        mock_client.app_schema = "smartlife"
+        mock_client.is_authenticated = True
+
+        mock_client.async_generate_qr_code = AsyncMock(
+            return_value="tuyaSmart--qrLogin?token=test_qr_token"
+        )
+        mock_client.async_poll_login_result = AsyncMock(
+            return_value=MagicMock(
+                success=True,
+                user_id="user_999999",
+                terminal_id="terminal_002",
+                endpoint="https://openapi.tuyaeu.com",
+                access_token="access_token_xyz",
+                refresh_token="refresh_token_abc",
+                expire_time=7200,
+                timestamp=1700000000,
+            )
+        )
+
+        # Return non-KKT device
+        mock_non_kkt_device = MagicMock()
+        mock_non_kkt_device.device_id = "other_device_123"
+        mock_non_kkt_device.name = "Generic Light"
+        mock_non_kkt_device.local_key = "abcdef1234567890"
+        mock_non_kkt_device.product_id = "generic_product"
+        mock_non_kkt_device.product_name = "Generic Smart Light"
+        mock_non_kkt_device.category = "dj"  # Light, not yyj/dcl
+        mock_non_kkt_device.ip = "192.168.1.200"
+        mock_non_kkt_device.online = True
+        mock_non_kkt_device.support_local = True
+        mock_non_kkt_device.kkt_device_type = None
+        mock_non_kkt_device.kkt_product_name = None
+
+        mock_client.async_get_devices = AsyncMock(return_value=[mock_non_kkt_device])
+        mock_client.async_close = AsyncMock()
+
+        mock_client_class.return_value = mock_client
+        yield mock_client
+
+
+@pytest.fixture
+def mock_tuya_sharing_device():
+    """Create a mock TuyaSharingDevice for testing."""
+    from custom_components.kkt_kolbe.clients.tuya_sharing_client import TuyaSharingDevice
+
+    return TuyaSharingDevice(
+        device_id="bf735dfe2ad64fba7cpyhn",
+        name="KKT HERMES Hood",
+        local_key="1234567890abcdef",
+        product_id="ypaixllljc2dcpae",
+        product_name="KKT Kolbe HERMES",
+        category="yyj",
+        ip="192.168.1.100",
+        online=True,
+        support_local=True,
+        kkt_device_type="hermes_style_hood",
+        kkt_product_name="HERMES & STYLE",
+    )
