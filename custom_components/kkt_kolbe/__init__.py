@@ -168,11 +168,69 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
     - Standalone device entries (manual setup, IoT Platform)
     - Child device entries (linked to a SmartLife account parent)
     """
+    from .const import CONF_SMARTLIFE_USER_CODE, CONF_SMARTLIFE_APP_SCHEMA, SETUP_MODE_SMARTLIFE
+
     # Discovery is already started in async_setup, no need to start again
 
     # Check integration mode (V2 config flow adds this)
+    setup_mode = entry.data.get("setup_mode", "manual")
     integration_mode = entry.data.get("integration_mode", "manual")
     api_enabled = entry.data.get("api_enabled", False)
+
+    # =========================================================================
+    # SmartLife Parent-Child: Get tokens from parent entry if applicable
+    # =========================================================================
+    smartlife_token_info: dict[str, Any] | None = None
+    parent_entry: ConfigEntry | None = None
+
+    if setup_mode == SETUP_MODE_SMARTLIFE:
+        parent_entry_id = entry.data.get("parent_entry_id")
+
+        if parent_entry_id:
+            # Find the parent account entry
+            parent_entry = hass.config_entries.async_get_entry(parent_entry_id)
+
+            if parent_entry is None:
+                _LOGGER.error(
+                    "SmartLife parent entry %s not found for device %s. "
+                    "The account may have been deleted.",
+                    parent_entry_id[:8], entry.entry_id[:8]
+                )
+                # Create repair issue
+                ir.async_create_issue(
+                    hass,
+                    DOMAIN,
+                    f"parent_entry_missing_{entry.entry_id}",
+                    is_fixable=False,
+                    severity=ir.IssueSeverity.ERROR,
+                    translation_key="parent_entry_missing",
+                    translation_placeholders={
+                        "device_name": entry.title,
+                        "parent_id": parent_entry_id[:8],
+                    },
+                )
+                raise ConfigEntryNotReady(
+                    f"SmartLife parent entry {parent_entry_id[:8]} not found"
+                )
+
+            # Get token info from parent
+            smartlife_token_info = parent_entry.data.get(CONF_SMARTLIFE_TOKEN_INFO)
+
+            if not smartlife_token_info:
+                _LOGGER.warning(
+                    "SmartLife parent entry %s has no token info",
+                    parent_entry_id[:8]
+                )
+
+            _LOGGER.debug(
+                "SmartLife device %s using tokens from parent %s",
+                entry.entry_id[:8], parent_entry_id[:8]
+            )
+        else:
+            _LOGGER.warning(
+                "SmartLife device %s has no parent_entry_id - tokens may be outdated",
+                entry.entry_id[:8]
+            )
 
     device = None
     api_client = None

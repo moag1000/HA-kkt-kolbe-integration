@@ -587,5 +587,15 @@
         }
       }
     }
+  },
+  "issues": {
+    "parent_entry_missing": {
+      "title": "SmartLife-Konto fehlt",
+      "description": "Das SmartLife-Konto für das Gerät **{device_name}** wurde gelöscht oder fehlt.\n\nDas Gerät kann ohne sein übergeordnetes Konto keine aktualisierten Tokens abrufen.\n\n**Lösung:** Entfernen Sie dieses Gerät und fügen Sie es erneut über die SmartLife-Einrichtung hinzu."
+    },
+    "smartlife_token_expired": {
+      "title": "SmartLife-Token abgelaufen",
+      "description": "Das SmartLife-Authentifizierungstoken ist abgelaufen.\n\n**Lösung:** Gehen Sie zu den Integrationseinstellungen und authentifizieren Sie sich erneut mit SmartLife."
+    }
   }
 }
