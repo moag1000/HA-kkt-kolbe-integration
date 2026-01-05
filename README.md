@@ -19,9 +19,36 @@
 
 Unterstützt Dunstabzugshauben und Induktionskochfelder über Tuya Local Protocol mit Cloud API Fallback.
 
-> **🤖 KI-Generiert:** Diese Integration wurde mit Anthropic's Claude entwickelt. Der Code ist Open Source und wurde ausgiebig getestet, aber **Verwendung erfolgt auf eigene Verantwortung** - besonders bei der Kochfeld-Steuerung!
+> **Neu in v4.0.0:** Setup jetzt noch einfacher - **kein Tuya Developer Account mehr nötig!** Einfach SmartLife App nutzen und QR-Code scannen.
 
-> **✨ Quality:** Diese Integration folgt Home Assistant Best Practices mit vollständiger Typ-Annotation, async I/O, robustem Error Handling, automatischer Wiederherstellung und Tests.
+> **KI-Generiert:** Diese Integration wurde mit Anthropic's Claude entwickelt. Der Code ist Open Source und wurde ausgiebig getestet, aber **Verwendung erfolgt auf eigene Verantwortung** - besonders bei der Kochfeld-Steuerung!
+
+> **Quality:** Diese Integration folgt Home Assistant Best Practices mit vollständiger Typ-Annotation, async I/O, robustem Error Handling, automatischer Wiederherstellung und Tests.
+
+---
+
+## Quick Start (Empfohlen)
+
+Die **einfachste Methode** - kein Tuya Developer Account erforderlich!
+
+1. **SmartLife** oder **Tuya Smart** App installieren und KKT-Geräte hinzufügen
+2. In der App: **Ich** → **Einstellungen** (Zahnrad) → **Konto und Sicherheit** → **User Code** kopieren
+3. In Home Assistant: **Einstellungen** → **Geräte & Dienste** → **Integration hinzufügen** → **KKT Kolbe**
+4. **SmartLife / Tuya Smart** als Setup-Methode auswählen (Standard)
+5. **User Code** eingeben und **QR-Code** mit der App scannen
+6. KKT Kolbe Gerät auswählen - **fertig!**
+
+**[Ausführliche SmartLife Setup-Anleitung →](docs/SMARTLIFE_SETUP.md)**
+
+### Setup-Methoden im Vergleich
+
+| Methode | Developer Account | Local Key | Schwierigkeit | Setup-Zeit |
+|---------|-------------------|-----------|---------------|------------|
+| **SmartLife QR-Code** (empfohlen) | Nein | Automatisch | Einfach | ~1 Min |
+| Smart Discovery (IoT Platform) | Ja | Automatisch | Mittel | ~15 Min |
+| Manual Setup | Nein | Manuell (tinytuya) | Schwer | ~5 Min |
+
+---
 
 ## 🚀 Unterstützte Geräte
 
@@ -92,7 +119,21 @@ Mit deiner Hilfe können wir diese Modelle zur Integration hinzufügen! 🙏
 
 ## ✨ Integration Features
 
-### 🆕 **Neu in v3.0.0: Home Assistant 2025.1+ Optimierungen** 🚀
+### 🆕 **Neu in v4.0.0: SmartLife App Integration** 🚀
+
+> **Kein Developer Account mehr nötig!** Setup in unter 1 Minute.
+
+#### **SmartLife / Tuya Smart App Setup**
+- ✅ **QR-Code Authentifizierung**: Einfaches Setup ohne Tuya IoT Platform
+- ✅ **Automatischer Local Key Abruf**: Kein manuelles Kopieren mehr nötig
+- ✅ **Keine API-Subscription**: Keine 30-Tage Trial die abläuft
+- ✅ **Automatische Token-Erneuerung**: Nahtlose Re-Authentifizierung
+
+**[Vollständige SmartLife Setup-Anleitung →](docs/SMARTLIFE_SETUP.md)**
+
+---
+
+### Home Assistant 2025.1+ Optimierungen
 
 > ⚠️ **Breaking Change:** Erfordert Home Assistant 2025.1.0 oder höher
 
@@ -103,16 +144,16 @@ Mit deiner Hilfe können wir diese Modelle zur Integration hinzufügen! 🙏
 - ✅ **Model ID aus KNOWN_DEVICES**: Bessere Geräteidentifikation in der UI
 
 #### **Verbesserungen**
-- 🔧 Timer, Filter-Tage, Power-Level werden als ganze Zahlen angezeigt
-- 🌡️ Temperatur-Sensoren zeigen 1 Dezimalstelle
-- 💾 Weniger Datenbank-Einträge für diagnostische Attribute
+- Timer, Filter-Tage, Power-Level werden als ganze Zahlen angezeigt
+- Temperatur-Sensoren zeigen 1 Dezimalstelle
+- Weniger Datenbank-Einträge für diagnostische Attribute
 
-#### **Reconfigure Flow** 🔧
+#### **Reconfigure Flow**
 Bestehende Geräte können jetzt über die UI neu konfiguriert werden:
-- 🔌 **Connection**: IP-Adresse und Local Key ändern
-- 📱 **Device Type**: Gerätetyp korrigieren
-- ☁️ **API Settings**: Cloud API aktivieren/deaktivieren
-- 🔧 **All Settings**: Alle Einstellungen auf einmal
+- **Connection**: IP-Adresse und Local Key ändern
+- **Device Type**: Gerätetyp korrigieren
+- **API Settings**: Cloud API aktivieren/deaktivieren
+- **All Settings**: Alle Einstellungen auf einmal
 
 ---
 
@@ -165,6 +206,7 @@ Fertige Automations-Vorlagen zum Importieren:
 
 ## 📚 Documentation & Examples
 
+- **[SmartLife Setup](docs/SMARTLIFE_SETUP.md)** - Einfaches Setup ohne Developer Account (empfohlen)
 - **[Blueprints](blueprints/README.md)** - One-click automation templates
 - **[Automation Examples](docs/AUTOMATION_EXAMPLES.md)** - 15+ ready-to-use automation examples
 - **[Use Cases](docs/USE_CASES.md)** - Practical scenarios and implementation guides
@@ -220,21 +262,40 @@ Fertige Automations-Vorlagen zum Importieren:
 
 ## 🔧 Konfiguration
 
-### 🚀 3-Wege Setup-Architektur (v2.0.0+)
+### 🚀 4-Wege Setup-Architektur (v4.0.0)
 
-Wähle bei der Installation eine der drei Setup-Methoden:
+Wähle bei der Installation eine der vier Setup-Methoden:
 
-#### **☁️ API-Only Setup** ✅ Empfohlen für mehrere Geräte
-**Gut geeignet für Haushalte mit mehreren KKT Geräten**
+#### **📱 SmartLife / Tuya Smart App** ✅ Empfohlen (Neu in v4.0.0)
+**Die einfachste Methode - kein Developer Account erforderlich!**
+
+1. Setup Method: **SmartLife/Tuya Smart App** wählen
+2. **User Code** aus der App eingeben
+3. **QR-Code** mit der App scannen
+4. Gerät auswählen - fertig!
+
+**Vorteile:**
+- Kein Tuya IoT Developer Account nötig
+- Keine API-Subscription die abläuft
+- Local Key wird automatisch abgerufen
+- Setup in unter 1 Minute
+- Automatische Token-Erneuerung
+
+**[Ausführliche Anleitung →](docs/SMARTLIFE_SETUP.md)**
+
+---
+
+#### **☁️ API-Only Setup (IoT Platform)**
+**Für Nutzer mit bestehendem Tuya Developer Account**
 
 **Erstes Gerät:**
-1. Setup Method: ☁️ API-Only wählen
+1. Setup Method: API-Only wählen
 2. TinyTuya Credentials eingeben (Client ID, Secret, Region)
 3. Device aus API-Discovery wählen
 4. Credentials werden automatisch gespeichert
 
 **Weitere Geräte:**
-1. Setup Method: ☁️ API-Only wählen
+1. Setup Method: API-Only wählen
 2. "Use Stored API Credentials" wählen
 3. Device aus Liste wählen
 4. Fertig
@@ -245,7 +306,7 @@ Wähle bei der Installation eine der drei Setup-Methoden:
 - API Keys nur einmal eingeben
 - Schnellerer Setup für weitere Geräte
 
-#### **🔍 Automatic Discovery** ✅ Empfohlen für Single Device
+#### **🔍 Automatic Discovery**
 Die Integration findet KKT Geräte automatisch im lokalen Netzwerk über mDNS.
 
 #### **🔧 Manual Local Setup**
@@ -254,7 +315,9 @@ Für erfahrene Nutzer mit spezifischen Anforderungen:
 - **Device ID**: 20-22 Zeichen Tuya Device ID
 - **Local Key**: 16+ Zeichen Local Key aus Tuya/Smart Life App
 
-### 🔑 Tuya API Setup - Vollstaendige Anleitung
+### 🔑 Tuya API Setup (Alternative Methode)
+
+> **Hinweis:** Die meisten Nutzer sollten die [SmartLife App Methode](#-smartlife--tuya-smart-app--empfohlen-neu-in-v400) verwenden. Diese Anleitung ist nur für Nutzer relevant, die bereits einen Tuya Developer Account haben oder erweiterte Debugging-Möglichkeiten benötigen.
 
 Die Integration unterstützt sowohl **Tuya IoT Core** als auch **Smart Home Industry** Projekte. Smart Home Industry ist für die meisten Nutzer die richtige Wahl.
 
@@ -416,9 +479,107 @@ logger:
 - **Device-spezifisch**: Konfigurationen sind modellspezifisch - andere KKT Modelle benötigen Anpassung
 - **Firmware-abhängig**: Verschiedene Firmware-Versionen können unterschiedliche DPs haben
 
+## ❓ Häufige Fragen (FAQ)
+
+### Brauche ich einen Tuya Developer Account?
+
+**Nein!** Seit Version 4.0.0 ist kein Tuya IoT Developer Account mehr erforderlich.
+
+Mit der neuen **SmartLife / Tuya Smart App Methode** kannst du:
+- Direkt über die App authentifizieren (QR-Code)
+- Local Keys automatisch abrufen
+- Ohne API-Subscription arbeiten
+
+Die einzige Voraussetzung ist die **SmartLife** oder **Tuya Smart** App auf deinem Smartphone.
+
+---
+
+### Wo finde ich den User Code?
+
+Der User Code ist in der SmartLife/Tuya Smart App unter:
+
+**Ich** → **Einstellungen** (Zahnrad-Symbol) → **Konto und Sicherheit** → **User Code**
+
+Der Code hat das Format: `XX12345678` (z.B. `EU12345678`)
+
+**[Detaillierte Anleitung mit Screenshots →](docs/SMARTLIFE_SETUP.md#wo-finde-ich-den-user-code)**
+
+---
+
+### Was ist der Unterschied zwischen SmartLife und Tuya Smart?
+
+Beide Apps sind funktional identisch und werden von Tuya entwickelt:
+
+| App | Icon | Funktionen |
+|-----|------|------------|
+| **SmartLife** | Grün | Identisch |
+| **Tuya Smart** | Rot | Identisch |
+
+Du kannst **beide Apps** für das Setup verwenden. Wichtig ist nur, dass du im Setup-Dialog die **gleiche App** auswählst, die du auf deinem Smartphone nutzt.
+
+---
+
+### Warum SmartLife statt Tuya IoT Platform?
+
+| Aspekt | SmartLife App | Tuya IoT Platform |
+|--------|---------------|-------------------|
+| **Developer Account** | Nicht nötig | Erforderlich |
+| **API-Subscription** | Nicht nötig | Trial läuft nach 30 Tagen ab |
+| **Setup-Zeit** | ~1 Minute | ~15 Minuten |
+| **Local Key** | Automatisch | Automatisch |
+| **Komplexität** | Einfach | Fortgeschritten |
+
+Die SmartLife Methode ist für **alle Nutzer empfohlen**, außer du hast bereits einen aktiven Tuya Developer Account.
+
+---
+
 ## 🐛 Troubleshooting
 
-### ⚠️ Häufige Probleme & Lösungen
+### 📱 SmartLife Setup Probleme
+
+#### **Problem: QR-Code wird nicht erkannt**
+
+**Lösungen:**
+1. Bildschirm-Helligkeit erhöhen
+2. Smartphone ca. 15-20 cm vom Bildschirm entfernen
+3. Sicherstellen, dass die im Setup gewählte App verwendet wird
+4. App auf neueste Version aktualisieren
+
+---
+
+#### **Problem: QR-Code abgelaufen / Timeout**
+
+Der QR-Code ist nur ca. 2 Minuten gültig.
+
+**Lösung:**
+1. Setup-Vorgang in Home Assistant abbrechen
+2. Erneut starten
+3. Neuen QR-Code zügig scannen
+
+---
+
+#### **Problem: User Code nicht gefunden**
+
+**Lösungen:**
+1. App im App Store / Play Store aktualisieren
+2. Alternative App versuchen (SmartLife statt Tuya Smart oder umgekehrt)
+3. Prüfen ob du in der richtigen Region eingeloggt bist
+
+**[Detaillierte Anleitung →](docs/SMARTLIFE_SETUP.md#wo-finde-ich-den-user-code)**
+
+---
+
+#### **Problem: "Token abgelaufen" / Re-Authentifizierung erforderlich**
+
+**Lösung:**
+1. In Home Assistant auf die Meldung klicken
+2. Reauth-Flow folgen
+3. User Code erneut eingeben
+4. Neuen QR-Code scannen
+
+---
+
+### ⚠️ Allgemeine Probleme & Lösungen
 
 #### **Problem: "Failed to connect" / "Device not responding"**
 
@@ -575,7 +736,7 @@ Für Support-Anfragen bitte folgende Infos bereitstellen:
 **1. System-Info:**
 ```yaml
 Home Assistant Version: 2025.x.x  # Mindestens 2025.1.0
-KKT Kolbe Integration Version: 3.0.0
+KKT Kolbe Integration Version: 4.0.0
 Installation Method: HACS / Manual
 Python Version: 3.12+
 ```
@@ -584,7 +745,7 @@ Python Version: 3.12+
 ```yaml
 Device Model: DH9509NP / IND7705HC / etc.
 Firmware Version: (aus Smart Life App)
-Setup Method: Discovery / Manual / API-Only
+Setup Method: SmartLife / Discovery / Manual / API-Only
 IP Address: 192.168.1.100
 ```
 
@@ -632,12 +793,19 @@ cat home-assistant.log | grep "kkt_kolbe"
 
 ## 📝 Changelog
 
-### v3.1.0 (Aktuell)
+### v4.0.0 (Aktuell) 🚀
+- **SmartLife / Tuya Smart App Integration** - Kein Developer Account mehr nötig!
+- QR-Code basierte Authentifizierung
+- Automatischer Local Key Abruf
+- Automatische Token-Erneuerung
+- Vereinfachtes Setup in unter 1 Minute
+
+### v3.1.0
 - Light Effects mit `effect_offset` für korrekte RGB-Modi Indizierung
 - **[Apple Home / HomeKit Dokumentation](docs/HOMEKIT.md)** mit Szenen-Setup
 - RGB Mode Select für HERMES & STYLE Hauben hinzugefügt
 
-### v3.0.0 🚀
+### v3.0.0
 - ⚠️ **Breaking**: Mindestversion Home Assistant 2025.1.0
 - Neue HA 2025 Features: `suggested_display_precision`, `_unrecorded_attributes`
 - Modernisierte Type-Annotations

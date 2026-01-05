@@ -238,6 +238,220 @@ Check the **Device Connected** and **Cloud API Connected** sensors in Home Assis
 
 ---
 
+### 9. SmartLife QR-Code Probleme
+
+**Problem: "QR-Code wird nicht angezeigt"**
+
+**Mögliche Ursachen:**
+- Netzwerkprobleme beim Laden des QR-Codes
+- Ungültiger oder abgelaufener User Code
+- Smart Life App nicht aktualisiert
+
+**Lösungen:**
+
+1. **User Code validieren:**
+   - Öffne Smart Life App
+   - Navigiere zu: Me → Settings → Account and Security → User Code
+   - Kopiere den Code exakt (keine Leerzeichen)
+   - Stelle sicher, dass der Code noch gültig ist (max. 24 Stunden)
+
+2. **Internetverbindung prüfen:**
+   - Stelle sicher, dass Home Assistant Zugriff auf das Internet hat
+   - Falls VPN/Proxy: Tuya Server-Verbindung prüfen
+   - Try opening the QR code URL directly in browser
+
+3. **App neu installieren:**
+   - Smart Life App deinstallieren und erneut installieren
+   - Bei Problemen: Tuya Smart App statt SmartLife versuchen
+
+---
+
+**Problem: "QR-Code Scan Timeout"**
+
+**Symptom:** Scan nicht innerhalb von 2 Minuten abgeschlossen
+
+**Ursachen:**
+- Scan dauert zu lange
+- QR-Code Session abgelaufen
+- Home Assistant verliert Verbindung
+
+**Lösungen:**
+
+1. **Erneut versuchen:**
+   - QR-Code erneut anzeigen
+   - In Home Assistant auf "Scan QR-Code" klicken
+   - QR-Code innerhalb von 2 Minuten scannen
+
+2. **App-Berechtigungen prüfen:**
+   - Kamera-Berechtigung für Smart Life App erteilt?
+   - iOS/Android: Einstellungen → Smart Life → Kamera aktivieren
+   - App neu starten
+
+3. **QR-Code direkt einscannen:**
+   - Falls Web-QR-Code nicht funktioniert: Manuell eingeben
+   - User Code direkt in Integration eingeben (Alternative)
+
+---
+
+**Problem: "Keine KKT Geräte gefunden"**
+
+**Symptom:** Nach erfolgreichem QR-Code Scan werden keine Geräte angezeigt
+
+**Ursache:** Geräte sind nicht in Smart Life App registriert
+
+**Lösungen:**
+
+1. **Geräte in Smart Life App registrieren:**
+   - Öffne Smart Life App
+   - Tippe "+" → Füge neues Gerät hinzu
+   - Folge den Schritten zur Geräte-Registrierung
+   - Stelle sicher, dass das KKT-Gerät online ist
+
+2. **Richtige Region auswählen:**
+   - Smart Life App: Me → Settings → Region
+   - Muss mit der Region des Geräts übereinstimmen
+   - EU-Geräte: Europa-Region
+   - Andere Regionen: Entsprechend auswählen
+
+3. **Cloud Account synchronisieren:**
+   - Tuya IoT Platform → Cloud → Devices
+   - Sind deine Geräte dort sichtbar?
+   - Falls nein: Account erneut verknüpfen
+
+---
+
+**Problem: "User Code nicht gefunden"**
+
+**Symptom:** Integration zeigt "User Code is invalid" oder ähnliche Fehler
+
+**Lösung - User Code richtig finden:**
+
+1. **In Smart Life App:**
+   ```
+   Me → Settings → Account and Security → User Code
+   ```
+   - Der Code wird hier angezeigt
+   - Kopiere ihn exakt (Groß-/Kleinschreibung beachten)
+   - Keine Leerzeichen oder Sonderzeichen
+
+2. **Unterschied zwischen SmartLife und Tuya Smart:**
+   - **SmartLife:** Me → Settings → Account and Security
+   - **Tuya Smart:** My → Settings → Account Security
+   - Die User Codes sind unterschiedlich!
+   - Verwende den Code aus der App, die du für die Integration nutzt
+
+3. **Code prüfen:**
+   - User Code muss alphanumerisch sein
+   - Mindestens 8-10 Zeichen
+   - Falls Code nicht sichtbar: App aktualisieren und erneut versuchen
+
+---
+
+### 10. Token-Erneuerung und Session-Probleme
+
+**Problem: "Token abgelaufen"**
+
+**Symptom:**
+- Gerät wird plötzlich nicht mehr aktualisiert
+- Keine neue Daten von Tuya Cloud API
+- "Authentication token expired" in Logs
+
+**Lösung:**
+
+1. **Integration neu hinzufügen:**
+   - Einstellungen → Geräte & Dienste
+   - KKT Kolbe Integration entfernen
+   - Home Assistant neu starten
+   - Integration erneut hinzufügen
+   - QR-Code neu scannen
+
+2. **Alternative - Reauth-Flow nutzen:**
+   - Falls Integration noch angezeigt wird
+   - Home Assistant zeigt Benachrichtigung
+   - Klicke auf "Re-authenticate"
+   - Scannen Sie den QR-Code erneut
+
+3. **Automatische Token-Erneuerung:**
+   - Token werden normalerweise automatisch erneuert
+   - Falls fehlerhaft: Debugs aktivieren
+   - Log prüfen auf "Token refresh failed"
+
+---
+
+**Problem: "Local Key hat sich geändert"**
+
+**Symptom:**
+- Integration funktioniert, aber "Authentication failed" in Logs
+- Gerät antwortet nicht mehr lokal
+
+**Ursachen:**
+- Gerät wurde in Smart Life App zurückgesetzt
+- Firmware Update durchgeführt
+- Local Key wurde regeneriert
+
+**Lösung:**
+
+1. **SmartLife Setup erneut durchführen:**
+   - Gerät in Smart Life App zurücksetzen
+   - Schalte das Gerät aus und wieder ein
+   - Warte 10 Sekunden
+   - Füge das Gerät erneut in Smart Life App hinzu
+
+2. **Local Key neu extrahieren:**
+   - Nutze TinyTuya Wizard: `python -m tinytuya wizard`
+   - Oder Tuya IoT Platform
+   - Neuen Local Key kopieren
+   - In Integration aktualisieren (Reauth-Flow)
+
+3. **Hybrid Mode verwenden:**
+   - Konfiguriere auch API-Credentials
+   - Cloud API funktioniert auch wenn Local Key falsch
+   - Fallback bei Local Connection Problemen
+
+---
+
+### 11. SmartLife vs. Tuya Smart App-Unterschiede
+
+**Problem: "Welche App soll ich verwenden?"**
+
+**Unterschiede zwischen den Apps:**
+
+| Aspekt | SmartLife | Tuya Smart |
+|--------|-----------|-----------|
+| **Region** | Europa, Amerika (preferred) | Asien, Global |
+| **Geräte-Zugriff** | Gleich | Gleich (anderer Server) |
+| **User Code** | Unterschiedlich | Unterschiedlich |
+| **API-Zugang** | EU Data Center | Variabel nach Region |
+| **KKT Kolbe Support** | Empfohlen | Funktioniert auch |
+
+**Empfehlung:**
+
+1. **Beste Wahl für KKT Kolbe:**
+   - Verwende die App, in der du das Gerät ursprünglich registriert hast
+   - Normalerweise: **SmartLife** für europäische Geräte
+   - Falls unsicher: Smart Life App bevorzugen
+
+2. **Falls dein Gerät in Tuya Smart registriert ist:**
+   - Verwende Tuya Smart App konsistent
+   - User Code aus Tuya Smart App nehmen
+   - API-Region auf "Asia" oder entsprechend einstellen
+
+3. **Falls Probleme auftreten:**
+   - Geräte in **beide Apps** hinzufügen
+   - QR-Code von der App scannen, die besser funktioniert
+   - Falls eine App nicht funktioniert: Zur anderen wechseln
+
+**Tipps zum Wechsel zwischen Apps:**
+
+```
+1. Gerät physisch zurücksetzen (Power-Zyklus)
+2. Neu in bevorzugter App registrieren
+3. QR-Code von neuer App scannen
+4. Integration mit neuem User Code aktualisieren
+```
+
+---
+
 ## 🔍 Debug Logging
 
 ### Enable Debug Logging
