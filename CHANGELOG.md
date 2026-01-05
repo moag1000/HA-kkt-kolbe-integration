@@ -5,6 +5,95 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.0] - 2026-01-05
+
+### ⚠️ BREAKING CHANGE - Unique ID Format
+
+Entity Unique IDs haben jetzt das DP (Data Point) eingeschlossen, um Kollisionen zu vermeiden:
+- **Alt**: `{entry_id}_{platform}_{name}` oder `{entry_id}_{platform}_zone{zone}_{name}`
+- **Neu**: `{entry_id}_{platform}_dp{dp}_{name}` oder `{entry_id}_{platform}_dp{dp}_zone{zone}_{name}`
+
+**Hinweis**: Bestehende Entities werden nach dem Update möglicherweise dupliziert angezeigt. Die alten Entities können manuell entfernt werden.
+
+### Added
+
+**Home Assistant 2025.12+ Features**
+- **retry_after Propagation**: Rate-Limiting Support mit automatischer Retry-Verzögerung
+  - `KKTRateLimitError` Exception mit `retry_after` Parameter
+  - `TuyaRateLimitError` erhält `retry_after` von der API-Backoff-Berechnung
+  - `UpdateFailed` wird mit `retry_after` für HA 2025.12+ Coordinators propagiert
+
+**Circuit Breaker mit Exponential Backoff**
+- Exponential Backoff mit Jitter: `base * 2^attempts ± 25%`
+- Circuit Breaker nach `DEFAULT_MAX_RECONNECT_ATTEMPTS` (10) Versuchen
+- `POLL_INTERVAL_UNREACHABLE` (300s) für den UNREACHABLE-Zustand
+- Circuit Breaker Retries erhöhen das Sleep-Intervall mit jedem Versuch
+- Neuer `DeviceState.UNREACHABLE` Zustand mit `_circuit_breaker_next_retry`
+
+**Erweiterte Diagnostics**
+- DPS-Wert-Diagnostics mit sanitisierten Werten (Typ-Info, keine echten Daten)
+- Error History Tracking (letzte 50 Fehler)
+- `MAX_ERROR_HISTORY` Konstante
+- `_record_error()` Methode im Coordinator
+- Alle Fehler werden mit Timestamp, Typ, Nachricht und Wiederherstellbarkeit protokolliert
+
+**Tests für neue Features**
+- `TestKKTRateLimitError` - Tests für Rate-Limit Exception
+- `test_coordinator_error_history` - Error History Tests
+- `test_coordinator_exponential_backoff` - Backoff Tests
+- `test_coordinator_circuit_breaker` - Circuit Breaker Tests
+- `test_coordinator_connection_info` - Connection Info Tests
+- `test_coordinator_reset_on_success` - Reset Tests
+
+### Changed
+
+**services.yaml - Standard HA Selectors**
+- `device_id` verwendet jetzt `device` Selector mit `integration: kkt_kolbe`
+- `entry_id` verwendet jetzt `config_entry` Selector mit `integration: kkt_kolbe`
+- Entity Filter Syntax korrigiert (Objekt-Format statt Array)
+- `type: password` für local_key Eingabe hinzugefügt
+
+**base_entity.py - Unique ID Format**
+- Unique ID enthält jetzt immer die DP-ID
+- Format: `{entry_id}_{platform}_dp{dp}[_zone{zone}]_{name}`
+- Verhindert Kollisionen bei Entities mit gleichem Namen aber unterschiedlichen DPs
+
+**coordinator.py - Verbesserte Fehlerbehandlung**
+- Alle Fehlerhandler tracken jetzt `_reconnect_attempts`
+- Circuit Breaker wird nach max Versuchen ausgelöst
+- `_reset_on_success()` Methode setzt alle Zähler zurück
+- `connection_info` Property enthält Circuit Breaker Status
+
+**hybrid_coordinator.py - Rate Limit Handling**
+- Fängt jetzt sowohl `KKTRateLimitError` als auch `TuyaRateLimitError`
+- `retry_after` wird via `getattr()` extrahiert für beide Exception-Typen
+
+**api/tuya_cloud_client.py - retry_after Support**
+- `_handle_rate_limit_error()` gibt jetzt Backoff-Zeit zurück
+- `TuyaRateLimitError` wird mit `retry_after` Parameter geworfen
+
+### Fixed
+
+- **Unique ID Kollisionen**: Zone-Entities mit gleichem Namen aber verschiedenen DPs haben jetzt eindeutige IDs
+- **TuyaRateLimitError Import**: `hybrid_coordinator.py` importiert jetzt `TuyaRateLimitError` von API
+- **Rate Limit Chain**: Komplette Kette von API → Coordinator → HA funktioniert jetzt
+
+### Technical Details
+
+```python
+# Neue Konstanten in const.py
+MAX_ERROR_HISTORY: Final = 50
+
+# Neue Poll-Intervall
+POLL_INTERVAL_UNREACHABLE = 300  # 5 Minuten
+
+# Neues Unique ID Format
+# Vorher: {entry_id}_sensor_zone1_temperature
+# Nachher: {entry_id}_sensor_dp101_zone1_temperature
+```
+
+---
+
 ## [3.1.0] - 2025-12-28
 
 ### Added

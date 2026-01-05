@@ -2,5 +2,6 @@
   "name": "KKT Kolbe Integration",
   "content_in_root": false,
   "country": ["DE", "AT", "CH"],
-  "homeassistant": "2025.1.0"
+  "homeassistant": "2025.12.0",
+  "render_readme": true
 }

@@ -21,19 +21,19 @@ reconnect_device:
   description: Manually reconnect an offline KKT Kolbe device
   fields:
     device_id:
-      name: Device ID
-      description: The Tuya device ID (optional if entry_id provided)
-      example: "bf1234567890abcdef"
+      name: Device
+      description: The KKT Kolbe device to reconnect
       required: false
       selector:
-        text:
+        device:
+          integration: kkt_kolbe
     entry_id:
-      name: Config Entry ID
-      description: The config entry ID (optional if device_id provided)
-      example: "1234567890abcdef"
+      name: Config Entry
+      description: The config entry (optional if device selected)
       required: false
       selector:
-        text:
+        config_entry:
+          integration: kkt_kolbe
 
 update_local_key:
   name: Update Local Key
@@ -41,25 +41,25 @@ update_local_key:
   fields:
     local_key:
       name: New Local Key
-      description: The new local key from Tuya/Smart Life app
-      example: "1234567890abcdef"
+      description: The new local key from Tuya/Smart Life app (16 hex characters)
       required: true
       selector:
         text:
+          type: password
     device_id:
-      name: Device ID
-      description: The Tuya device ID (optional if entry_id provided)
-      example: "bf1234567890abcdef"
+      name: Device
+      description: The KKT Kolbe device to update
       required: false
       selector:
-        text:
+        device:
+          integration: kkt_kolbe
     entry_id:
-      name: Config Entry ID
-      description: The config entry ID (optional if device_id provided)
-      example: "1234567890abcdef"
+      name: Config Entry
+      description: The config entry (optional if device selected)
       required: false
       selector:
-        text:
+        config_entry:
+          integration: kkt_kolbe
     force_reconnect:
       name: Force Reconnection
       description: Force immediate reconnection after key update
@@ -80,19 +80,19 @@ get_connection_status:
   description: Get the current connection status of KKT Kolbe devices
   fields:
     device_id:
-      name: Device ID
-      description: The Tuya device ID (optional, returns all if not specified)
-      example: "bf1234567890abcdef"
+      name: Device
+      description: Specific KKT Kolbe device (optional, returns all if not specified)
       required: false
       selector:
-        text:
+        device:
+          integration: kkt_kolbe
     entry_id:
-      name: Config Entry ID
-      description: The config entry ID (optional, returns all if not specified)
-      example: "1234567890abcdef"
+      name: Config Entry
+      description: Specific config entry (optional, returns all if not specified)
       required: false
       selector:
-        text:
+        config_entry:
+          integration: kkt_kolbe
 
 # Device Control Services
 set_cooking_timer:
@@ -106,8 +106,8 @@ set_cooking_timer:
       selector:
         entity:
           filter:
-            - integration: kkt_kolbe
-            - domain: number
+            integration: kkt_kolbe
+            domain: number
     timer_minutes:
       name: Timer Duration
       description: Timer duration in minutes (1-255)
@@ -130,8 +130,8 @@ set_zone_power:
       selector:
         entity:
           filter:
-            - integration: kkt_kolbe
-            - domain: number
+            integration: kkt_kolbe
+            domain: number
     power_level:
       name: Power Level
       description: Power level (0-25, 0 = off)
@@ -201,8 +201,8 @@ set_hood_fan_speed:
       selector:
         entity:
           filter:
-            - integration: kkt_kolbe
-            - domain: number
+            integration: kkt_kolbe
+            domain: number
     fan_speed:
       name: Fan Speed
       description: Fan speed level (0-5, 0 = off)
@@ -225,8 +225,8 @@ set_hood_lighting:
       selector:
         entity:
           filter:
-            - integration: kkt_kolbe
-            - domain: switch
+            integration: kkt_kolbe
+            domain: switch
     brightness:
       name: Brightness
       description: Light brightness level (1-5), omit to toggle
@@ -268,7 +268,7 @@ reset_filter_timer:
       selector:
         entity:
           filter:
-            - integration: kkt_kolbe
+            integration: kkt_kolbe
     confirm:
       name: Confirm Reset
       description: Confirm that filter has been changed

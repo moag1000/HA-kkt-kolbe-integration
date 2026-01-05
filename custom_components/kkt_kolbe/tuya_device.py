@@ -532,7 +532,12 @@ class KKTKolbeTuyaDevice:
         return self._status.get("dps", {}).get(str(dp), default)
 
     async def async_get_status(self) -> dict[str, Any]:
-        """Get current device status asynchronously with explicit status retrieval logic."""
+        """Get current device status asynchronously with explicit status retrieval logic.
+
+        Important: Tuya devices often send partial updates (delta updates).
+        TinyTuya internally merges these into a cached status.
+        This method returns the merged/cached data, not just the last partial update.
+        """
         await self.async_ensure_connected()
 
         if not self._device:
@@ -544,6 +549,8 @@ class KKTKolbeTuyaDevice:
 
         try:
             # Explicit status() call with timeout protection
+            # This triggers a status request and tinytuya internally merges
+            # the response with any cached data
             status = await asyncio.wait_for(
                 self._run_executor_job(self._device.status),
                 timeout=10.0
@@ -571,9 +578,44 @@ class KKTKolbeTuyaDevice:
                     reason="Status missing 'dps' field"
                 )
 
-            self._status = status
-            _LOGGER.debug(f"Retrieved status with {len(status.get('dps', {}))} data points")
-            dps: dict[str, Any] = self._status.get("dps", {})
+            # Try to get the merged/cached DPs from tinytuya
+            # TinyTuya maintains a dps_cache that contains all DPs seen so far
+            # This is crucial for devices that send partial updates (delta updates)
+            dps: dict[str, Any] = status.get("dps", {})
+            partial_update_count = len(dps)
+
+            # Debug: Log available cache attributes
+            _LOGGER.debug(
+                f"Cache check: dps_cache exists={hasattr(self._device, 'dps_cache')}, "
+                f"_cache exists={hasattr(self._device, '_cache')}"
+            )
+
+            # Check for dps_cache (merged DPs from all updates)
+            if hasattr(self._device, 'dps_cache'):
+                cached_dps = self._device.dps_cache
+                _LOGGER.debug(f"dps_cache content: {list(cached_dps.keys()) if cached_dps else 'empty'}")
+                if isinstance(cached_dps, dict) and len(cached_dps) > len(dps):
+                    _LOGGER.debug(
+                        f"Using merged dps_cache with {len(cached_dps)} data points "
+                        f"(partial update had {partial_update_count} DPs)"
+                    )
+                    dps = cached_dps
+
+            # Alternative: try _cache directly (tinytuya internal)
+            if hasattr(self._device, '_cache') and self._device._cache:
+                internal_cache = self._device._cache
+                if isinstance(internal_cache, dict) and 'dps' in internal_cache:
+                    cached_dps = internal_cache.get('dps', {})
+                    _LOGGER.debug(f"_cache['dps'] content: {list(cached_dps.keys()) if cached_dps else 'empty'}")
+                    if len(cached_dps) > len(dps):
+                        _LOGGER.debug(
+                            f"Using _cache['dps'] with {len(cached_dps)} data points "
+                            f"(current has {len(dps)} DPs)"
+                        )
+                        dps = cached_dps
+
+            self._status = {"dps": dps}  # Store for get_dp_value()
+            _LOGGER.debug(f"Retrieved status with {len(dps)} data points: {list(dps.keys())}")
             return dps
 
         except asyncio.CancelledError:

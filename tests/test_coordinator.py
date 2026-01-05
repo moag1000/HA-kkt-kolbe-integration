@@ -91,9 +91,63 @@ async def test_coordinator_data_update(
 
     await coordinator.async_refresh()
 
-    # Data should be updated
+    # Data should be updated with new merged cache structure
     assert coordinator.data is not None
-    assert "1" in coordinator.data or 1 in coordinator.data
+    # New format: {"dps": {...}, "source": "merged_cache", ...}
+    assert "dps" in coordinator.data
+    dps_data = coordinator.data.get("dps", coordinator.data)
+    assert "1" in dps_data or 1 in dps_data
+
+
+@pytest.mark.asyncio
+async def test_coordinator_dps_cache_merging(
+    hass: HomeAssistant,
+    mock_device,
+    mock_config_entry,
+) -> None:
+    """Test that coordinator merges partial DPS updates into cache."""
+    from custom_components.kkt_kolbe.coordinator import KKTKolbeUpdateCoordinator
+
+    mock_config_entry.add_to_hass(hass)
+
+    coordinator = KKTKolbeUpdateCoordinator(
+        hass=hass,
+        entry=mock_config_entry,
+        device=mock_device,
+    )
+
+    # First update: only DP 1 and 4
+    mock_device.async_get_status.return_value = {"1": True, "4": False}
+    await coordinator.async_refresh()
+
+    dps_data = coordinator.data.get("dps", {})
+    assert "1" in dps_data
+    assert "4" in dps_data
+    assert dps_data["1"] is True
+    assert dps_data["4"] is False
+
+    # Second update: only DP 10 (partial update)
+    mock_device.async_get_status.return_value = {"10": 3}
+    await coordinator.async_refresh()
+
+    # Cache should now contain all 3 DPs (merged)
+    dps_data = coordinator.data.get("dps", {})
+    assert "1" in dps_data, "DP 1 should still be in cache after partial update"
+    assert "4" in dps_data, "DP 4 should still be in cache after partial update"
+    assert "10" in dps_data, "DP 10 should be added from partial update"
+    assert dps_data["1"] is True
+    assert dps_data["4"] is False
+    assert dps_data["10"] == 3
+
+    # Third update: update existing DP
+    mock_device.async_get_status.return_value = {"1": False}
+    await coordinator.async_refresh()
+
+    # DP 1 should be updated, others preserved
+    dps_data = coordinator.data.get("dps", {})
+    assert dps_data["1"] is False, "DP 1 should be updated to False"
+    assert dps_data["4"] is False, "DP 4 should still be preserved"
+    assert dps_data["10"] == 3, "DP 10 should still be preserved"
 
 
 @pytest.mark.asyncio
@@ -287,3 +341,168 @@ async def test_hybrid_coordinator_alias() -> None:
     )
 
     assert HybridCoordinator is KKTKolbeHybridCoordinator
+
+
+@pytest.mark.asyncio
+async def test_coordinator_error_history(
+    hass: HomeAssistant,
+    mock_device,
+    mock_config_entry,
+) -> None:
+    """Test coordinator records errors in history."""
+    from custom_components.kkt_kolbe.coordinator import KKTKolbeUpdateCoordinator
+    from custom_components.kkt_kolbe.exceptions import KKTTimeoutError
+
+    mock_device.async_get_status.side_effect = KKTTimeoutError("Test timeout")
+    mock_config_entry.add_to_hass(hass)
+
+    coordinator = KKTKolbeUpdateCoordinator(
+        hass=hass,
+        entry=mock_config_entry,
+        device=mock_device,
+    )
+
+    # Trigger an update that will fail
+    await coordinator._async_update_data()
+
+    # Check error history
+    assert len(coordinator._error_history) > 0
+    assert coordinator._error_history[-1]["error_type"] == "timeout"
+    assert "Test timeout" in coordinator._error_history[-1]["message"]
+
+
+@pytest.mark.asyncio
+async def test_coordinator_exponential_backoff(
+    hass: HomeAssistant,
+    mock_device,
+    mock_config_entry,
+) -> None:
+    """Test coordinator applies exponential backoff."""
+    from custom_components.kkt_kolbe.coordinator import KKTKolbeUpdateCoordinator
+    from custom_components.kkt_kolbe.exceptions import KKTConnectionError
+
+    mock_device.async_get_status.side_effect = KKTConnectionError("Connection failed")
+    mock_device.is_connected = False
+    mock_config_entry.add_to_hass(hass)
+
+    coordinator = KKTKolbeUpdateCoordinator(
+        hass=hass,
+        entry=mock_config_entry,
+        device=mock_device,
+    )
+
+    initial_backoff = coordinator._current_backoff
+
+    # Trigger multiple failures
+    for _ in range(3):
+        await coordinator._async_update_data()
+
+    # Backoff should have increased
+    assert coordinator._current_backoff > initial_backoff
+    assert coordinator._reconnect_attempts >= 3
+
+
+@pytest.mark.asyncio
+async def test_coordinator_circuit_breaker(
+    hass: HomeAssistant,
+    mock_device,
+    mock_config_entry,
+) -> None:
+    """Test coordinator circuit breaker trips after max attempts."""
+    from custom_components.kkt_kolbe.coordinator import (
+        KKTKolbeUpdateCoordinator,
+        DeviceState,
+    )
+    from custom_components.kkt_kolbe.exceptions import KKTConnectionError
+
+    mock_device.async_get_status.side_effect = KKTConnectionError("Connection failed")
+    mock_device.is_connected = False
+    mock_config_entry.add_to_hass(hass)
+
+    coordinator = KKTKolbeUpdateCoordinator(
+        hass=hass,
+        entry=mock_config_entry,
+        device=mock_device,
+    )
+
+    # Override max attempts for faster test
+    coordinator._max_reconnect_attempts = 3
+
+    # Trigger failures to trip circuit breaker
+    for _ in range(5):
+        await coordinator._async_update_data()
+
+    # Circuit breaker should be tripped
+    assert coordinator._device_state == DeviceState.UNREACHABLE
+    assert coordinator._circuit_breaker_retries > 0
+    assert coordinator._circuit_breaker_next_retry is not None
+
+
+@pytest.mark.asyncio
+async def test_coordinator_connection_info(
+    hass: HomeAssistant,
+    mock_device,
+    mock_config_entry,
+) -> None:
+    """Test coordinator connection_info property."""
+    from custom_components.kkt_kolbe.coordinator import KKTKolbeUpdateCoordinator
+
+    mock_config_entry.add_to_hass(hass)
+
+    coordinator = KKTKolbeUpdateCoordinator(
+        hass=hass,
+        entry=mock_config_entry,
+        device=mock_device,
+    )
+
+    info = coordinator.connection_info
+
+    assert "state" in info
+    assert "consecutive_failures" in info
+    assert "is_connected" in info
+    assert "reconnect_attempts" in info
+    assert "current_backoff" in info
+    assert "circuit_breaker_retries" in info
+
+
+@pytest.mark.asyncio
+async def test_coordinator_reset_on_success(
+    hass: HomeAssistant,
+    mock_device,
+    mock_config_entry,
+) -> None:
+    """Test coordinator resets counters on successful update."""
+    from custom_components.kkt_kolbe.coordinator import (
+        KKTKolbeUpdateCoordinator,
+        DeviceState,
+    )
+    from custom_components.kkt_kolbe.exceptions import KKTConnectionError
+
+    mock_config_entry.add_to_hass(hass)
+
+    coordinator = KKTKolbeUpdateCoordinator(
+        hass=hass,
+        entry=mock_config_entry,
+        device=mock_device,
+    )
+
+    # First, cause some failures
+    mock_device.async_get_status.side_effect = KKTConnectionError("Test")
+    mock_device.is_connected = False
+    await coordinator._async_update_data()
+    await coordinator._async_update_data()
+
+    assert coordinator._consecutive_failures > 0
+    assert coordinator._reconnect_attempts > 0
+
+    # Now succeed
+    mock_device.async_get_status.side_effect = None
+    mock_device.async_get_status.return_value = {"1": True}
+    mock_device.is_connected = True
+    await coordinator._async_update_data()
+
+    # All counters should be reset
+    assert coordinator._consecutive_failures == 0
+    assert coordinator._reconnect_attempts == 0
+    assert coordinator._device_state == DeviceState.ONLINE
+    assert coordinator._circuit_breaker_retries == 0

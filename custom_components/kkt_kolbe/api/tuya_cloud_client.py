@@ -189,14 +189,18 @@ class TuyaCloudClient:
             self._request_times.append(current_time)
             self._last_request_time = current_time
 
-    def _handle_rate_limit_error(self) -> None:
-        """Handle rate limit error with exponential backoff."""
+    def _handle_rate_limit_error(self) -> int:
+        """Handle rate limit error with exponential backoff.
+
+        Returns the calculated backoff time in seconds for use with retry_after.
+        """
         if self._rate_limit_backoff == 0:
             self._rate_limit_backoff = RATE_LIMIT_BACKOFF_BASE
         else:
             self._rate_limit_backoff = min(self._rate_limit_backoff * 2, RATE_LIMIT_BACKOFF_MAX)
         self._rate_limit_until = time.time() + self._rate_limit_backoff
         _LOGGER.warning(f"Rate limit hit! Backing off for {self._rate_limit_backoff}s")
+        return int(self._rate_limit_backoff)
 
     def _reset_rate_limit_backoff(self) -> None:
         """Reset backoff after successful request."""
@@ -245,8 +249,8 @@ class TuyaCloudClient:
                             error_code
                         )
                     elif error_code == 1011:
-                        self._handle_rate_limit_error()
-                        raise TuyaRateLimitError(error_msg)
+                        retry_after = self._handle_rate_limit_error()
+                        raise TuyaRateLimitError(error_msg, retry_after=retry_after)
                     elif error_code == 1004:
                         raise TuyaAuthenticationError(
                             f"Sign validation failed. Possible causes:\n"

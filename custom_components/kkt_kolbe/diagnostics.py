@@ -1,13 +1,61 @@
 """Diagnostics support for KKT Kolbe integration."""
 from __future__ import annotations
 
+from datetime import datetime
 from typing import TYPE_CHECKING
 from typing import Any
 
 from homeassistant.core import HomeAssistant
 
+from .const import VERSION
+
 if TYPE_CHECKING:
     from . import KKTKolbeConfigEntry
+
+
+def _sanitize_dps_value(value: Any) -> dict[str, Any]:
+    """Sanitize a DPS value for diagnostics (keep type info, redact actual values)."""
+    if value is None:
+        return {"type": "null", "value": None}
+    elif isinstance(value, bool):
+        return {"type": "bool", "value": value}  # Booleans are safe to expose
+    elif isinstance(value, int):
+        # For integers, show range info instead of exact value
+        return {"type": "int", "range": f"{min(0, value)}-{max(100, value)}"}
+    elif isinstance(value, float):
+        return {"type": "float", "range": "numeric"}
+    elif isinstance(value, str):
+        # Show length and first char for strings (helps identify format)
+        return {"type": "str", "length": len(value), "preview": value[:1] + "..." if len(value) > 1 else value}
+    elif isinstance(value, (bytes, bytearray)):
+        return {"type": "bytes", "length": len(value)}
+    elif isinstance(value, dict):
+        return {"type": "dict", "keys": list(value.keys())}
+    elif isinstance(value, list):
+        return {"type": "list", "length": len(value)}
+    else:
+        return {"type": type(value).__name__, "value": "redacted"}
+
+
+def _get_dps_diagnostics(data: dict[str, Any] | None) -> dict[str, Any]:
+    """Get diagnostics for DPS data with sanitized values."""
+    if not data:
+        return {"available": False, "count": 0, "data_points": {}}
+
+    # Get the DPS dictionary - coordinator may return data with DPs under 'dps' key
+    dps_data = data.get("dps", data)
+
+    return {
+        "available": True,
+        "count": len(dps_data),
+        "source": data.get("source", "unknown"),
+        "timestamp": data.get("timestamp"),
+        "data_points": {
+            str(dp): _sanitize_dps_value(value)
+            for dp, value in dps_data.items()
+            if dp not in ("source", "timestamp", "available")
+        },
+    }
 
 
 async def async_get_config_entry_diagnostics(
@@ -23,6 +71,11 @@ async def async_get_config_entry_diagnostics(
 
     # Build diagnostics data
     diagnostics_data = {
+        "integration": {
+            "version": VERSION,
+            "domain": entry.domain,
+            "ha_minimum_version": "2025.12.0",
+        },
         "entry": {
             "title": entry.title,
             "version": entry.version,
@@ -43,6 +96,8 @@ async def async_get_config_entry_diagnostics(
         "coordinator": {},
         "device": {},
         "api": {},
+        "dps": {},
+        "error_history": [],
     }
 
     # Add coordinator diagnostics
@@ -93,6 +148,26 @@ async def async_get_config_entry_diagnostics(
             diagnostics_data["coordinator"]["available_data_points"] = list(
                 coordinator.data.keys()
             )
+
+        # Add detailed DPS diagnostics with sanitized values
+        diagnostics_data["dps"] = _get_dps_diagnostics(coordinator.data)
+
+        # Add DPS cache info if available
+        if hasattr(coordinator, "_dps_cache"):
+            diagnostics_data["dps"]["cache_count"] = len(coordinator._dps_cache)
+            diagnostics_data["dps"]["cached_dps"] = list(coordinator._dps_cache.keys())
+
+        # Add error history if tracked
+        if hasattr(coordinator, "_error_history"):
+            diagnostics_data["error_history"] = [
+                {
+                    "timestamp": err.get("timestamp").isoformat() if isinstance(err.get("timestamp"), datetime) else err.get("timestamp"),
+                    "error_type": err.get("error_type", "unknown"),
+                    "message": err.get("message", "")[:100],  # Truncate for privacy
+                    "recoverable": err.get("recoverable", True),
+                }
+                for err in coordinator._error_history[-10:]  # Last 10 errors
+            ]
 
     # Add device diagnostics
     if device:

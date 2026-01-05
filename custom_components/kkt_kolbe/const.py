@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Final
 
 # === VERSION ===
-VERSION: Final = "3.0.8"
+VERSION: Final = "3.2.0"
 
 # === CORE IDENTIFIERS ===
 DOMAIN: Final = "kkt_kolbe"
@@ -31,6 +31,9 @@ ADAPTIVE_UPDATE_INTERVAL_RECONNECTING: Final = 60  # 1 minute during reconnectio
 # === CIRCUIT BREAKER CONFIGURATION ===
 CIRCUIT_BREAKER_SLEEP_INTERVAL: Final = 3600  # 1 hour sleep when unreachable
 CIRCUIT_BREAKER_MAX_SLEEP_RETRIES: Final = 3  # Max retries per sleep cycle
+
+# === ERROR TRACKING ===
+MAX_ERROR_HISTORY: Final = 50  # Max number of errors to keep in history
 
 # === TCP KEEP-ALIVE CONFIGURATION ===
 TCP_KEEPALIVE_IDLE: Final = 60  # seconds before sending keepalive probes

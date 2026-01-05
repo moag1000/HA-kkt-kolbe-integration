@@ -23,6 +23,9 @@ from .device_types import get_device_entities
 if TYPE_CHECKING:
     from . import KKTKolbeConfigEntry
 
+# Limit parallel updates - 0 means unlimited (coordinator-based entities)
+PARALLEL_UPDATES = 0
+
 # Estimated watt per power level for induction cooktops
 # Level 0 = 0W, Level 25 = ~2500W per zone (typical for 7kW 5-zone cooktop)
 WATTS_PER_LEVEL = 100  # ~100W per level is a reasonable estimate

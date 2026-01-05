@@ -15,7 +15,9 @@ from homeassistant.helpers.update_coordinator import UpdateFailed
 from .api import TuyaAPIError
 from .api import TuyaCloudClient
 from .api import TuyaDeviceNotFoundError
+from .api import TuyaRateLimitError
 from .exceptions import KKTConnectionError
+from .exceptions import KKTRateLimitError
 from .exceptions import KKTTimeoutError
 from .tuya_device import KKTKolbeTuyaDevice
 
@@ -55,12 +57,20 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
         # Timestamp tracking for last successful update
         self._last_update_success_time: datetime | None = None
 
+        # DPS cache for merging partial updates
+        # Tuya devices often send delta/partial updates (only changed DPs)
+        # This cache accumulates all DPs seen so far
+        self._dps_cache: dict[str, Any] = {}
+
         super().__init__(
             hass,
             _LOGGER,
             config_entry=entry,
             name=f"KKT Kolbe {device_id[:8]} Hybrid",
             update_interval=update_interval,
+            # Prevent unnecessary state writes when data hasn't changed
+            # Critical performance optimization for high-frequency updates
+            always_update=False,
         )
 
     @property
@@ -105,6 +115,19 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
                     _LOGGER.debug("API communication successful as fallback")
 
                 return data
+            except (KKTRateLimitError, TuyaRateLimitError) as err:
+                # HA 2025.12+: Propagate rate limit with retry_after
+                retry_after = getattr(err, 'retry_after', None)
+                _LOGGER.warning(
+                    f"API rate limited for device {self.device_id[:8]}: "
+                    f"retry after {retry_after}s" if retry_after else "no retry_after specified"
+                )
+                if retry_after:
+                    raise UpdateFailed(
+                        f"Rate limited: retry after {retry_after}s",
+                        retry_after=retry_after,
+                    ) from err
+                raise UpdateFailed("Rate limited by Tuya API") from err
             except TuyaAPIError as err:
                 self.api_consecutive_errors += 1
                 _LOGGER.warning(
@@ -126,23 +149,42 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
         raise UpdateFailed("All communication methods failed and no cached data available")
 
     async def async_update_local(self) -> dict[str, Any]:
-        """Update data via local communication."""
+        """Update data via local communication.
+
+        Important: Tuya devices often send partial/delta updates (only changed DPs).
+        This method merges each partial update into a persistent cache, so all
+        previously seen DPs remain available even if not included in the latest update.
+        """
         if not self.local_device:
             raise KKTConnectionError("Local device not configured")
 
         _LOGGER.debug(f"Fetching data via local communication for {self.device_id[:8]}")
 
         try:
-            # Get current device status
-            status = await self.local_device.async_get_status()
+            # Get current device status (may be partial update)
+            partial_status = await self.local_device.async_get_status()
 
-            if not status:
+            if not partial_status:
                 raise KKTConnectionError("No data received from local device")
+
+            # Merge partial update into our cache
+            # This ensures we keep all DPs seen across multiple updates
+            partial_count = len(partial_status)
+            self._dps_cache.update(partial_status)
+
+            # Log if we're merging partial updates
+            if partial_count < len(self._dps_cache):
+                _LOGGER.debug(
+                    f"Device {self.device_id[:8]}: Merged {partial_count} DPs into cache "
+                    f"(total cached: {len(self._dps_cache)} DPs)"
+                )
+
+            _LOGGER.debug(f"Device {self.device_id[:8]} returning merged data with {len(self._dps_cache)} DPs: {list(self._dps_cache.keys())}")
 
             return {
                 "source": "local",
                 "timestamp": asyncio.get_running_loop().time(),
-                "dps": status,
+                "dps": self._dps_cache.copy(),
                 "available": True,
             }
 
@@ -150,7 +192,10 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
             raise KKTConnectionError(f"Local communication failed: {err}") from err
 
     async def async_update_via_api(self) -> dict[str, Any]:
-        """Update data via API communication."""
+        """Update data via API communication.
+
+        Also merges partial updates into the DPS cache for consistency.
+        """
         if not self.api_client:
             raise TuyaAPIError("API client not configured")
 
@@ -161,7 +206,7 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
             status_list = await self.api_client.get_device_status(self.device_id)
 
             # Convert API status format to DPS format
-            dps: dict[str, Any] = {}
+            api_dps: dict[str, Any] = {}
             for status_item in status_list:
                 if not isinstance(status_item, dict):
                     continue
@@ -176,13 +221,17 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
                     dp_mapping = await self._get_dp_mapping()
                     for dp_id, dp_code in dp_mapping.items():
                         if dp_code == code:
-                            dps[str(dp_id)] = value
+                            api_dps[str(dp_id)] = value
                             break
+
+            # Merge API data into cache as well
+            if api_dps:
+                self._dps_cache.update(api_dps)
 
             return {
                 "source": "api",
                 "timestamp": asyncio.get_running_loop().time(),
-                "dps": dps,
+                "dps": self._dps_cache.copy(),
                 "available": True,
                 "raw_api_status": status_list,
             }
