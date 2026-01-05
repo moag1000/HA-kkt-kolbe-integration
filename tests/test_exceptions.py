@@ -13,6 +13,7 @@ from custom_components.kkt_kolbe.exceptions import (
     KKTDiscoveryError,
     KKTServiceError,
     KKTDataPointError,
+    KKTRateLimitError,
 )
 
 
@@ -221,6 +222,47 @@ class TestKKTDataPointError:
         assert "data" in error_str or "point" in error_str or "failed" in error_str
 
 
+class TestKKTRateLimitError:
+    """Test the KKTRateLimitError exception (HA 2025.12+ feature)."""
+
+    def test_with_retry_after(self) -> None:
+        """Test with retry_after parameter."""
+        error = KKTRateLimitError(retry_after=60)
+        assert error.retry_after == 60
+        assert "60" in str(error)
+        assert error.translation_key == "rate_limit_exceeded"
+
+    def test_with_device_id(self) -> None:
+        """Test with device ID."""
+        error = KKTRateLimitError(
+            retry_after=30,
+            device_id="bf735dfe2ad64fba7cpyhn"
+        )
+        assert error.retry_after == 30
+        assert error.device_id == "bf735dfe2ad64fba7cpyhn"
+
+    def test_without_retry_after(self) -> None:
+        """Test without retry_after parameter."""
+        error = KKTRateLimitError()
+        assert error.retry_after is None
+        assert "rate limit" in str(error).lower()
+
+    def test_retry_after_in_placeholders(self) -> None:
+        """Test that retry_after is in translation placeholders."""
+        error = KKTRateLimitError(retry_after=120)
+        assert "retry_after" in error.translation_placeholders
+        assert error.translation_placeholders["retry_after"] == "120"
+
+    def test_custom_message(self) -> None:
+        """Test with custom message."""
+        error = KKTRateLimitError(
+            retry_after=45,
+            message="API quota exceeded"
+        )
+        assert error.retry_after == 45
+        assert "API quota exceeded" in str(error)
+
+
 class TestExceptionInheritance:
     """Test exception inheritance."""
 
@@ -235,6 +277,7 @@ class TestExceptionInheritance:
             KKTDiscoveryError(),
             KKTServiceError(),
             KKTDataPointError(),
+            KKTRateLimitError(),
         ]
         for exc in exceptions:
             assert isinstance(exc, KKTKolbeError)
@@ -250,6 +293,7 @@ class TestExceptionInheritance:
             KKTDiscoveryError(),
             KKTServiceError(),
             KKTDataPointError(),
+            KKTRateLimitError(),
         ]
         for exc in exceptions:
             assert hasattr(exc, "translation_key")

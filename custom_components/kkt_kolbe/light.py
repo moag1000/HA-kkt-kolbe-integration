@@ -32,6 +32,9 @@ from .device_types import get_device_entities
 if TYPE_CHECKING:
     from . import KKTKolbeConfigEntry
 
+# Limit parallel updates - 0 means unlimited (coordinator-based entities)
+PARALLEL_UPDATES = 0
+
 _LOGGER = logging.getLogger(__name__)
 
 

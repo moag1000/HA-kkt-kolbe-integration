@@ -264,6 +264,42 @@ class KKTServiceError(KKTKolbeError):
         )
 
 
+class KKTRateLimitError(KKTKolbeError):
+    """Tuya API rate limit exceeded.
+
+    Home Assistant 2025.12+ Feature:
+        This exception supports the retry_after parameter for DataUpdateCoordinator.
+        When raised, the coordinator will wait the specified time before retrying.
+    """
+
+    def __init__(
+        self,
+        retry_after: float | None = None,
+        device_id: str | None = None,
+        message: str | None = None,
+    ) -> None:
+        self.retry_after = retry_after
+        self.device_id = device_id
+
+        placeholders = {}
+        if retry_after:
+            placeholders["retry_after"] = str(int(retry_after))
+        if device_id:
+            placeholders["device_id"] = device_id[:8] if len(device_id) > 8 else device_id
+
+        if message is None:
+            if retry_after:
+                message = f"Rate limit exceeded. Retry after {int(retry_after)} seconds."
+            else:
+                message = "Rate limit exceeded"
+
+        super().__init__(
+            translation_key="rate_limit_exceeded",
+            translation_placeholders=placeholders,
+            message=message,
+        )
+
+
 class KKTDataPointError(KKTKolbeError):
     """KKT Kolbe data point operation failed."""
 

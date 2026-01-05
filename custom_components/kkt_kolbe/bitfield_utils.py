@@ -3,17 +3,94 @@ from __future__ import annotations
 
 import base64
 import logging
+import re
 from typing import Any
 
 _LOGGER = logging.getLogger(__name__)
 
-def decode_base64_to_bytes(base64_data: str) -> bytes:
-    """Decode Base64 string to bytes."""
-    try:
-        return base64.b64decode(base64_data)
-    except Exception as e:
-        _LOGGER.error(f"Failed to decode Base64 data '{base64_data}': {e}")
+
+def is_hex_string(data: str) -> bool:
+    """Check if a string is a hex-encoded byte string."""
+    # Hex strings have even length and only contain hex characters
+    if len(data) % 2 != 0:
+        return False
+    return bool(re.match(r'^[0-9a-fA-F]+$', data))
+
+
+def is_base64_string(data: str) -> bool:
+    """Check if a string is likely Base64-encoded."""
+    # Base64 strings have specific characteristics
+    if len(data) < 4:
+        return False
+    # Base64 uses A-Z, a-z, 0-9, +, /, and = for padding
+    if not re.match(r'^[A-Za-z0-9+/]+=*$', data):
+        return False
+    # Length should be multiple of 4 (with padding)
+    return len(data) % 4 == 0
+
+
+def decode_raw_data_to_bytes(raw_data: str | bytes | bytearray) -> bytes:
+    """
+    Decode RAW data to bytes, handling multiple formats.
+
+    Tuya devices can send RAW data in different formats:
+    1. Hex string: "0000001900" (local protocol)
+    2. Base64 string: "AAAAGQA=" (cloud API)
+    3. Raw bytes/bytearray (direct)
+
+    Args:
+        raw_data: The raw data in any supported format
+
+    Returns:
+        Decoded bytes
+    """
+    # Handle bytes/bytearray directly
+    if isinstance(raw_data, (bytes, bytearray)):
+        _LOGGER.debug(f"Raw data is bytes/bytearray: {raw_data.hex()}")
+        return bytes(raw_data)
+
+    # Handle string data
+    if isinstance(raw_data, str):
+        if not raw_data:
+            return b''
+
+        # Try hex string first (most common for local Tuya protocol)
+        if is_hex_string(raw_data):
+            try:
+                decoded = bytes.fromhex(raw_data)
+                _LOGGER.debug(f"Decoded hex string '{raw_data}' to bytes: {decoded.hex()}")
+                return decoded
+            except ValueError as e:
+                _LOGGER.debug(f"Hex decode failed for '{raw_data}': {e}")
+
+        # Try Base64 (common for cloud API)
+        if is_base64_string(raw_data):
+            try:
+                decoded = base64.b64decode(raw_data)
+                _LOGGER.debug(f"Decoded Base64 string '{raw_data}' to bytes: {decoded.hex()}")
+                return decoded
+            except Exception as e:
+                _LOGGER.debug(f"Base64 decode failed for '{raw_data}': {e}")
+
+        # Fallback: try Base64 anyway (some strings might not match pattern)
+        try:
+            decoded = base64.b64decode(raw_data)
+            _LOGGER.debug(f"Fallback Base64 decode of '{raw_data}' to bytes: {decoded.hex()}")
+            return decoded
+        except Exception:
+            pass
+
+        _LOGGER.warning(f"Could not decode raw data string '{raw_data}' (len={len(raw_data)})")
         return b''
+
+    _LOGGER.warning(f"Unsupported raw data type: {type(raw_data)}")
+    return b''
+
+
+def decode_base64_to_bytes(base64_data: str) -> bytes:
+    """Decode Base64 string to bytes (legacy function, use decode_raw_data_to_bytes instead)."""
+    return decode_raw_data_to_bytes(base64_data)
+
 
 def encode_bytes_to_base64(data: bytes) -> str:
     """Encode bytes to Base64 string."""
@@ -23,25 +100,41 @@ def encode_bytes_to_base64(data: bytes) -> str:
         _LOGGER.error(f"Failed to encode bytes to Base64: {e}")
         return ""
 
-def extract_zone_value_from_bitfield(base64_data: str, zone: int, bits_per_zone: int = 8) -> int:
+
+def encode_bytes_to_hex(data: bytes) -> str:
+    """Encode bytes to hex string (for local Tuya protocol)."""
+    try:
+        return data.hex()
+    except Exception as e:
+        _LOGGER.error(f"Failed to encode bytes to hex: {e}")
+        return ""
+
+
+def extract_zone_value_from_bitfield(raw_data: str | bytes | bytearray, zone: int, bits_per_zone: int = 8) -> int:
     """
     Extract zone-specific value from bitfield data.
 
+    Supports multiple data formats:
+    - Hex string: "0000001900" (local Tuya protocol)
+    - Base64 string: "AAAAGQA=" (cloud API)
+    - Raw bytes/bytearray
+
     Args:
-        base64_data: Base64 encoded bitfield data
+        raw_data: Encoded bitfield data (hex, Base64, or bytes)
         zone: Zone number (1-5)
         bits_per_zone: Number of bits per zone (default 8)
 
     Returns:
         Zone-specific value (0-255 for 8-bit zones)
     """
-    if not base64_data:
+    if not raw_data:
         return 0
 
     try:
-        # Decode Base64 to bytes
-        data = decode_base64_to_bytes(base64_data)
+        # Decode to bytes using unified decoder
+        data = decode_raw_data_to_bytes(raw_data)
         if not data:
+            _LOGGER.debug(f"Zone {zone}: No data after decoding raw_data (type={type(raw_data).__name__})")
             return 0
 
         # Calculate byte index for zone (zone 1 = index 0)
@@ -49,36 +142,42 @@ def extract_zone_value_from_bitfield(base64_data: str, zone: int, bits_per_zone:
 
         # Check if we have enough data
         if byte_index >= len(data):
-            _LOGGER.debug(f"Zone {zone} byte index {byte_index} exceeds data length {len(data)}")
+            _LOGGER.debug(f"Zone {zone} byte index {byte_index} exceeds data length {len(data)}, data hex: {data.hex()}")
             return 0
 
         # Extract byte value for the zone
         value = data[byte_index]
-        _LOGGER.debug(f"Zone {zone}: extracted value {value} from byte index {byte_index}")
+        _LOGGER.debug(f"Zone {zone}: extracted value {value} from byte index {byte_index}, full data hex: {data.hex()}")
         return value
 
     except Exception as e:
-        _LOGGER.error(f"Failed to extract zone {zone} value from bitfield '{base64_data}': {e}")
+        _LOGGER.error(f"Failed to extract zone {zone} value from bitfield (type={type(raw_data).__name__}): {e}")
         return 0
 
-def extract_zone_bit_from_bitfield(base64_data: str, zone: int) -> bool:
+def extract_zone_bit_from_bitfield(raw_data: str | bytes | bytearray, zone: int) -> bool:
     """
     Extract zone-specific bit from bitfield data (for boolean states).
 
+    Supports multiple data formats:
+    - Hex string: "1f" (local Tuya protocol)
+    - Base64 string (cloud API)
+    - Raw bytes/bytearray
+
     Args:
-        base64_data: Base64 encoded bitfield data
+        raw_data: Encoded bitfield data (hex, Base64, or bytes)
         zone: Zone number (1-5)
 
     Returns:
         True if zone bit is set, False otherwise
     """
-    if not base64_data:
+    if not raw_data:
         return False
 
     try:
-        # Decode Base64 to bytes
-        data = decode_base64_to_bytes(base64_data)
+        # Decode to bytes using unified decoder
+        data = decode_raw_data_to_bytes(raw_data)
         if not data:
+            _LOGGER.debug(f"Zone {zone}: No data after decoding for bit extraction")
             return False
 
         # For bit-based fields, zones are individual bits
@@ -89,36 +188,48 @@ def extract_zone_bit_from_bitfield(base64_data: str, zone: int) -> bool:
 
         # Check if we have enough data
         if byte_index >= len(data):
-            _LOGGER.debug(f"Zone {zone} byte index {byte_index} exceeds data length {len(data)}")
+            _LOGGER.debug(f"Zone {zone} byte index {byte_index} exceeds data length {len(data)}, data hex: {data.hex()}")
             return False
 
         # Extract bit value
         byte_value = data[byte_index]
         bit_value = bool(byte_value & (1 << bit_position))
-        _LOGGER.debug(f"Zone {zone}: extracted bit {bit_value} from byte {byte_value} bit position {bit_position}")
+        _LOGGER.debug(f"Zone {zone}: extracted bit {bit_value} from byte 0x{byte_value:02x} bit position {bit_position}")
         return bit_value
 
     except Exception as e:
-        _LOGGER.error(f"Failed to extract zone {zone} bit from bitfield '{base64_data}': {e}")
+        _LOGGER.error(f"Failed to extract zone {zone} bit from bitfield (type={type(raw_data).__name__}): {e}")
         return False
 
-def update_zone_value_in_bitfield(base64_data: str, zone: int, new_value: int, bits_per_zone: int = 8) -> str:
+def update_zone_value_in_bitfield(
+    raw_data: str | bytes | bytearray, zone: int, new_value: int,
+    bits_per_zone: int = 8, output_format: str = "base64"
+) -> str:
     """
     Update zone-specific value in bitfield data.
 
     Args:
-        base64_data: Base64 encoded bitfield data
+        raw_data: Encoded bitfield data (hex, Base64, or bytes)
         zone: Zone number (1-5)
         new_value: New value for the zone (0-255 for 8-bit zones)
         bits_per_zone: Number of bits per zone (default 8)
+        output_format: "base64" or "hex" (default: "base64" for cloud compatibility)
 
     Returns:
-        Updated Base64 encoded bitfield data
+        Updated encoded bitfield data in the specified format
     """
     try:
+        # Detect input format for output format matching
+        detected_format = output_format
+        if isinstance(raw_data, str) and raw_data:
+            if is_hex_string(raw_data):
+                detected_format = "hex"
+            elif is_base64_string(raw_data):
+                detected_format = "base64"
+
         # Decode existing data or create new
-        if base64_data:
-            data = bytearray(decode_base64_to_bytes(base64_data))
+        if raw_data:
+            data = bytearray(decode_raw_data_to_bytes(raw_data))
         else:
             data = bytearray(5)  # 5 zones = 5 bytes for 8-bit zones
 
@@ -130,31 +241,47 @@ def update_zone_value_in_bitfield(base64_data: str, zone: int, new_value: int, b
         # Update the zone value
         data[byte_index] = new_value & 0xFF  # Ensure 8-bit value
 
-        # Encode back to Base64
-        result = encode_bytes_to_base64(bytes(data))
-        _LOGGER.debug(f"Zone {zone}: updated value to {new_value}, new bitfield: {result}")
+        # Encode back in the detected or specified format
+        if detected_format == "hex":
+            result = encode_bytes_to_hex(bytes(data))
+        else:
+            result = encode_bytes_to_base64(bytes(data))
+
+        _LOGGER.debug(f"Zone {zone}: updated value to {new_value}, new bitfield ({detected_format}): {result}")
         return result
 
     except Exception as e:
-        _LOGGER.error(f"Failed to update zone {zone} value {new_value} in bitfield '{base64_data}': {e}")
-        return base64_data or ""
+        _LOGGER.error(f"Failed to update zone {zone} value {new_value} in bitfield: {e}")
+        return str(raw_data) if raw_data else ""
 
-def update_zone_bit_in_bitfield(base64_data: str, zone: int, new_value: bool) -> str:
+def update_zone_bit_in_bitfield(
+    raw_data: str | bytes | bytearray, zone: int, new_value: bool,
+    output_format: str = "base64"
+) -> str:
     """
     Update zone-specific bit in bitfield data.
 
     Args:
-        base64_data: Base64 encoded bitfield data
+        raw_data: Encoded bitfield data (hex, Base64, or bytes)
         zone: Zone number (1-5)
         new_value: New bit value for the zone
+        output_format: "base64" or "hex" (default: "base64" for cloud compatibility)
 
     Returns:
-        Updated Base64 encoded bitfield data
+        Updated encoded bitfield data in the specified format
     """
     try:
+        # Detect input format for output format matching
+        detected_format = output_format
+        if isinstance(raw_data, str) and raw_data:
+            if is_hex_string(raw_data):
+                detected_format = "hex"
+            elif is_base64_string(raw_data):
+                detected_format = "base64"
+
         # Decode existing data or create new
-        if base64_data:
-            data = bytearray(decode_base64_to_bytes(base64_data))
+        if raw_data:
+            data = bytearray(decode_raw_data_to_bytes(raw_data))
         else:
             data = bytearray(1)  # At least 1 byte for 5 bits
 
@@ -173,14 +300,18 @@ def update_zone_bit_in_bitfield(base64_data: str, zone: int, new_value: bool) ->
         else:
             data[byte_index] &= ~(1 << bit_position)  # Clear bit
 
-        # Encode back to Base64
-        result = encode_bytes_to_base64(bytes(data))
-        _LOGGER.debug(f"Zone {zone}: updated bit to {new_value}, new bitfield: {result}")
+        # Encode back in the detected or specified format
+        if detected_format == "hex":
+            result = encode_bytes_to_hex(bytes(data))
+        else:
+            result = encode_bytes_to_base64(bytes(data))
+
+        _LOGGER.debug(f"Zone {zone}: updated bit to {new_value}, new bitfield ({detected_format}): {result}")
         return result
 
     except Exception as e:
-        _LOGGER.error(f"Failed to update zone {zone} bit {new_value} in bitfield '{base64_data}': {e}")
-        return base64_data or ""
+        _LOGGER.error(f"Failed to update zone {zone} bit {new_value} in bitfield: {e}")
+        return str(raw_data) if raw_data else ""
 
 # Bitfield configuration for IND7705HC data points
 BITFIELD_CONFIG: dict[int, dict[str, Any]] = {

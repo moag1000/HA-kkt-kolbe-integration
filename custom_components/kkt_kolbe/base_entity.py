@@ -78,15 +78,17 @@ class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
 
     def _setup_entity_attributes(self) -> None:
         """Set up common entity attributes."""
-        # Generate unique ID
+        # Generate unique ID - ALWAYS include DP to prevent collisions
+        # Format: {entry_id}_{platform}_dp{dp}[_zone{zone}]_{name}
+        # Including DP ensures uniqueness even for entities with same name but different data points
         if self._zone is not None:
             self._attr_unique_id = (
-                f"{self._entry.entry_id}_{self._platform}_zone{self._zone}_"
+                f"{self._entry.entry_id}_{self._platform}_dp{self._dp}_zone{self._zone}_"
                 f"{self._name.lower().replace(' ', '_')}"
             )
         else:
             self._attr_unique_id = (
-                f"{self._entry.entry_id}_{self._platform}_"
+                f"{self._entry.entry_id}_{self._platform}_dp{self._dp}_"
                 f"{self._name.lower().replace(' ', '_')}"
             )
 
