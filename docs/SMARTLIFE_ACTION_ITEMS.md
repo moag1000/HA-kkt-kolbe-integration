@@ -59,33 +59,61 @@
   - "Erweiterte Optionen" für Developer/Manual
 
 ### 3.2 SmartLife Flow Steps
-> Referenz: Plan Section 5.3-5.5
+> Referenz: Plan Section 5.3
 
-- [ ] `async_step_smartlife_scan()` - QR-Code anzeigen, auf Scan warten
-- [ ] `async_step_smartlife_select_device()` - Gerät aus Liste wählen
+- [ ] `async_step_smartlife_scan()` - QR-Code mit Progress Indicator
+  - [ ] `async_show_progress()` mit `progress_task` (HA 2024.8+)
+  - [ ] Background Task für Polling
+  - [ ] Timeout-Handling
+- [ ] `async_step_smartlife_select_device()` - **Ein** Gerät auswählen (nicht Multi-Select!)
 - [ ] `async_step_smartlife_manual_ip()` - IP manuell eingeben (falls nötig)
 
 ### 3.3 Reauth Flow
-> Referenz: Plan Section 13.2.1
+> Referenz: Plan Section 5.2, 13.2.1
 
 - [ ] `async_step_reauth()` - Dispatch nach Setup-Modus
 - [ ] `async_step_reauth_smartlife()` - User Code erneut eingeben
 - [ ] `async_step_reauth_smartlife_scan()` - QR-Code erneut scannen
 
+### 3.4 Reconfigure Flow (NEU)
+> Referenz: Plan Section 5.3.4
+
+- [ ] `async_step_reconfigure()` - Menü für Änderungen
+  - [ ] SmartLife Token erneuern
+  - [ ] IP-Adresse ändern
+  - [ ] Local Key ändern
+
+### 3.5 Error Handling
+> Referenz: Plan Section 5.3.3
+
+- [ ] `ConfigEntryNotReady` für Netzwerkfehler
+- [ ] `ConfigEntryAuthFailed` für Token/Key-Fehler
+
 ---
 
-## Phase 4: Translations
+## Phase 4: Translations & Accessibility
 
 ### 4.1 Deutsche Übersetzungen
-> Referenz: Plan Section 5.6
+> Referenz: Plan Section 5.3.5, 5.6
 
 - [ ] `strings.json` erweitern (Config Flow Steps)
+  - [ ] `data_description` für alle Felder (Accessibility!)
+  - [ ] Klare, handlungsorientierte Fehlermeldungen
+  - [ ] `progress_action` für QR-Scan Step
 - [ ] `translations/de.json` erweitern
 
 ### 4.2 Englische Übersetzungen
 > Referenz: Plan Section 5.6
 
 - [ ] `translations/en.json` erweitern
+
+### 4.3 Accessibility Checkliste
+> Referenz: Plan Section 5.3.5
+
+- [ ] Alle Formularfelder haben `data_description`
+- [ ] Fehlermeldungen sind spezifisch und handlungsorientiert
+- [ ] QR-Code Timeout: 2 Minuten (ausreichend Zeit)
+- [ ] Alternative zum QR-Code vorhanden (manueller Weg)
 
 ---
 
