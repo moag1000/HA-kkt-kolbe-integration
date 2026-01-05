@@ -70,6 +70,28 @@ body:
     validations:
       required: true
 
+  - type: dropdown
+    id: setup_mode
+    attributes:
+      label: Setup Mode
+      description: How did you set up the integration?
+      options:
+        - SmartLife/Tuya Smart App (QR-Code)
+        - Tuya IoT Platform (Developer Account)
+        - Manual Setup (Device ID + Local Key)
+        - Unknown / Don't remember
+    validations:
+      required: true
+
+  - type: input
+    id: smartlife_token_status
+    attributes:
+      label: SmartLife Token Status (if applicable)
+      description: Check in HA Developer Tools > States for the token expiry
+      placeholder: "e.g., Token expires in 30 days"
+    validations:
+      required: false
+
   - type: input
     id: model
     attributes:

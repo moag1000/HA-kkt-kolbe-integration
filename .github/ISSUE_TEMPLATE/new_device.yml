@@ -12,6 +12,8 @@ body:
 
         **Wichtig:** Du brauchst Zugang zur [Tuya IoT Platform](https://iot.tuya.com/) um die Gerätedaten auszulesen.
 
+        **Tipp:** Falls du keinen Tuya IoT Platform Account hast, kannst du auch die **SmartLife/Tuya Smart App** nutzen, um dein Gerät zu entdecken. Die Integration unterstuetzt jetzt auch das einfache QR-Code Setup ueber die SmartLife App!
+
   - type: input
     id: model
     attributes:

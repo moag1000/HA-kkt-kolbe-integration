@@ -1,5 +1,13 @@
 # tinytuya Cloud API Capabilities
 
+> **💡 Hinweis: Es gibt jetzt eine einfachere Methode!**
+>
+> Seit Version 4.0.0 können Sie die **SmartLife QR-Code Methode** verwenden,
+> die **keinen Developer Account** erfordert. Siehe [SmartLife Setup Guide](../docs/SMARTLIFE_SETUP.md).
+>
+> Diese Anleitung beschreibt die manuelle Methode über die Tuya IoT Platform,
+> die für fortgeschrittene Nutzer oder Entwickler interessant sein kann.
+
 Based on the official tinytuya documentation (https://github.com/jasonacox/tinytuya), the library **does** support cloud API access to Tuya devices in addition to its local control capabilities. Here's a summary of tinytuya's cloud API features:
 
 ## Cloud API Support
