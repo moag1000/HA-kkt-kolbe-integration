@@ -21,25 +21,23 @@ from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api_manager import GlobalAPIManager
-from .const import (
-    CONF_SMARTLIFE_APP_SCHEMA,
-    CONF_SMARTLIFE_TOKEN_INFO,
-    CONF_SMARTLIFE_USER_CODE,
-    DOMAIN,
-    ENTRY_TYPE_ACCOUNT,
-    ENTRY_TYPE_DEVICE,
-    QR_LOGIN_TIMEOUT,
-    SETUP_MODE_IOT_PLATFORM,
-    SETUP_MODE_MANUAL,
-    SETUP_MODE_SMARTLIFE,
-    SMARTLIFE_SCHEMA,
-    TUYA_SMART_SCHEMA,
-)
+from .const import CONF_SMARTLIFE_APP_SCHEMA
+from .const import CONF_SMARTLIFE_TOKEN_INFO
+from .const import CONF_SMARTLIFE_USER_CODE
+from .const import DOMAIN
+from .const import ENTRY_TYPE_ACCOUNT
+from .const import ENTRY_TYPE_DEVICE
+from .const import QR_LOGIN_TIMEOUT
+from .const import SETUP_MODE_SMARTLIFE
+from .const import SMARTLIFE_SCHEMA
+from .const import TUYA_HA_SCHEMA
+from .const import TUYA_SMART_SCHEMA
 from .device_types import CATEGORY_COOKTOP
 from .device_types import CATEGORY_HOOD
 from .device_types import KNOWN_DEVICES
 from .discovery import async_start_discovery
 from .discovery import get_discovered_devices
+from .flows.options import KKTKolbeOptionsFlow  # Import the correct OptionsFlow
 from .smart_discovery import SmartDiscovery
 from .smart_discovery import SmartDiscoveryResult
 from .smart_discovery import async_get_configured_device_ids
@@ -223,7 +221,7 @@ def _is_kkt_device(device: Any) -> tuple[bool, str | None]:
         - (True, None) = KKT device but unknown/new model
         - (False, None) = Not a KKT device
     """
-    from .device_types import find_device_by_device_id, find_device_by_product_name
+    from .device_types import find_device_by_device_id
 
     # Method 1: Match by product_id (most accurate - exact match in KNOWN_DEVICES)
     if hasattr(device, 'product_id') and device.product_id:
@@ -1133,7 +1131,8 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
 
             if setup_method == "smartlife":
                 # SmartLife QR-Code Setup (NEW - Default)
-                return await self.async_step_smartlife_user_code()
+                # First check if existing account can be reused
+                return await self.async_step_smartlife_check_existing()
             elif setup_method == "smart_discovery":
                 return await self.async_step_smart_discovery()
             elif setup_method == "discovery":
@@ -1185,6 +1184,134 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
     # SmartLife / Tuya Smart QR-Code Authentication Flow
     # =========================================================================
 
+    async def async_step_smartlife_check_existing(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Check for existing SmartLife accounts and offer to reuse them.
+
+        This prevents users from having to re-authenticate when adding
+        additional devices from the same SmartLife account.
+        """
+        # Find existing SmartLife Account entries
+        existing_accounts: list[ConfigEntry] = []
+        for entry in self.hass.config_entries.async_entries(DOMAIN):
+            if entry.data.get("entry_type") == ENTRY_TYPE_ACCOUNT:
+                existing_accounts.append(entry)
+
+        # If no existing accounts, go directly to user code input
+        if not existing_accounts:
+            return await self.async_step_smartlife_user_code()
+
+        # Handle user selection
+        if user_input is not None:
+            selected = user_input.get("account_choice")
+
+            if selected == "new_account":
+                # User wants to create a new account
+                return await self.async_step_smartlife_user_code()
+            else:
+                # User selected an existing account - find it and use its tokens
+                for entry in existing_accounts:
+                    if entry.entry_id == selected:
+                        self._existing_account_entry = entry
+                        return await self.async_step_smartlife_use_existing()
+
+                # Entry not found (shouldn't happen)
+                return await self.async_step_smartlife_user_code()
+
+        # Build options list with existing accounts
+        options = []
+        for entry in existing_accounts:
+            # Get account info for display
+            token_info = entry.data.get(CONF_SMARTLIFE_TOKEN_INFO, {})
+            has_token = bool(token_info.get("access_token"))
+
+            status = "✓ Active" if has_token else "⚠ Re-auth needed"
+            label = f"{entry.title} ({status})"
+
+            options.append({
+                "value": entry.entry_id,
+                "label": label,
+            })
+
+        # Add option to create new account
+        options.append({
+            "value": "new_account",
+            "label": "➕ Create new SmartLife account",
+        })
+
+        schema = vol.Schema({
+            vol.Required("account_choice"): selector.selector({
+                "select": {
+                    "options": options,
+                    "mode": "list",
+                }
+            }),
+        })
+
+        return self.async_show_form(
+            step_id="smartlife_check_existing",
+            data_schema=schema,
+            description_placeholders={
+                "account_count": str(len(existing_accounts)),
+            },
+        )
+
+    async def async_step_smartlife_use_existing(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Use existing SmartLife account to add a new device.
+
+        Loads tokens from existing account entry and proceeds to device selection.
+        """
+        from .clients.tuya_sharing_client import TuyaSharingClient
+
+        if not hasattr(self, '_existing_account_entry') or not self._existing_account_entry:
+            return await self.async_step_smartlife_user_code()
+
+        entry = self._existing_account_entry
+        token_info = entry.data.get(CONF_SMARTLIFE_TOKEN_INFO, {})
+
+        # Check if tokens are valid
+        if not token_info.get("access_token"):
+            # No tokens - need re-auth
+            _LOGGER.warning(
+                "SmartLife account %s has no valid tokens, requiring re-auth",
+                entry.title
+            )
+            return await self.async_step_smartlife_user_code()
+
+        try:
+            # Use the classmethod to properly restore the client with all fields
+            self._smartlife_client = await TuyaSharingClient.async_from_stored_tokens(
+                hass=self.hass,
+                token_info=token_info,
+            )
+
+            # Store info for device creation
+            self._smartlife_user_code = token_info.get("user_code", "")
+            self._smartlife_app_schema = token_info.get("app_schema", TUYA_HA_SCHEMA)
+
+            # Get auth result from the restored client
+            self._smartlife_auth_result = self._smartlife_client._auth_result
+
+            _LOGGER.info(
+                "Restored SmartLife client from existing account: %s (user_id=%s...)",
+                entry.title,
+                self._smartlife_auth_result.user_id[:8] if self._smartlife_auth_result.user_id else "unknown"
+            )
+
+            # Go directly to device selection
+            return await self.async_step_smartlife_select_devices()
+
+        except Exception as exc:
+            _LOGGER.error(
+                "Failed to restore SmartLife client from account %s: %s",
+                entry.title, exc
+            )
+            # Fall back to new auth
+            return await self.async_step_smartlife_user_code()
+
     async def async_step_smartlife_user_code(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
@@ -1192,38 +1319,32 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
 
         User provides their User Code from the SmartLife/Tuya Smart app:
         App -> Me -> Settings -> Account and Security -> User Code
+
+        The integration will automatically try both SmartLife and Tuya Smart
+        schemas to find the correct one.
         """
         errors: dict[str, str] = {}
 
         if user_input is not None:
             user_code = user_input.get("user_code", "").strip()
-            app_schema = user_input.get("app_schema", SMARTLIFE_SCHEMA)
 
-            # Validate user code format (typically starts with region code like EU, US, CN)
-            if not user_code or len(user_code) < 8:
+            # Validate user code format - minimum 6 characters
+            # User codes can be 6-10+ chars (e.g., "Cx1i1Zh", "EU12345678")
+            if not user_code or len(user_code) < 6:
                 errors["user_code"] = "invalid_user_code"
             else:
-                # Store for later steps
+                # Store for later steps - will auto-detect correct schema
                 self._smartlife_user_code = user_code
-                self._smartlife_app_schema = app_schema
+                self._smartlife_app_schema = None  # Will be auto-detected
 
                 # Proceed to QR code scan step
                 return await self.async_step_smartlife_scan()
 
-        # Show user code input form
+        # Show user code input form (simplified - no schema selection needed)
         schema = vol.Schema({
             vol.Required("user_code"): selector.selector({
                 "text": {
                     "type": "text",
-                }
-            }),
-            vol.Required("app_schema", default=SMARTLIFE_SCHEMA): selector.selector({
-                "select": {
-                    "options": [
-                        {"value": SMARTLIFE_SCHEMA, "label": "SmartLife (Europe, Americas)"},
-                        {"value": TUYA_SMART_SCHEMA, "label": "Tuya Smart (Asia, Global)"},
-                    ],
-                    "mode": "list",
                 }
             }),
         })
@@ -1243,112 +1364,133 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
     async def async_step_smartlife_scan(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Handle QR code generation and scanning step.
+        """Handle QR code generation and display step.
 
-        Generates a QR code for the user to scan with their SmartLife/Tuya Smart app.
-        Uses async_show_progress for HA 2024.8+ with background polling.
+        Shows QR code using QrCodeSelector (like Tuya core integration).
+        User scans with SmartLife/Tuya Smart app, then we poll for result.
         """
         from .clients.tuya_sharing_client import TuyaSharingClient
-        from .exceptions import KKTAuthenticationError, KKTConnectionError, KKTTimeoutError
+        from .exceptions import KKTAuthenticationError
+        from .exceptions import KKTConnectionError
 
-        if user_input is not None:
-            # User cancelled or wants to go back
-            if user_input.get("cancel"):
-                if self._smartlife_scan_task and not self._smartlife_scan_task.done():
-                    self._smartlife_scan_task.cancel()
+        # Initialize client and generate QR code if not already done
+        if not self._smartlife_qr_code:
+            if not self._smartlife_user_code:
                 return await self.async_step_smartlife_user_code()
 
-        # Check if we already have a pending scan task
-        if self._smartlife_scan_task is not None:
-            if self._smartlife_scan_task.done():
-                # Task completed - check result
+            # Auto-detect schema by trying haauthorize (official HA), SmartLife and Tuya Smart
+            # haauthorize is required for the tuya-device-sharing-sdk Manager API
+            schemas_to_try = [TUYA_HA_SCHEMA, SMARTLIFE_SCHEMA, TUYA_SMART_SCHEMA]
+            last_error: Exception | None = None
+            working_schema: str | None = None
+
+            for schema in schemas_to_try:
                 try:
-                    auth_result = self._smartlife_scan_task.result()
-                    if auth_result and auth_result.success:
-                        self._smartlife_auth_result = auth_result
-                        _LOGGER.info("SmartLife QR code scan successful for user %s", auth_result.user_id)
-                        return self.async_show_progress_done(next_step_id="smartlife_select_devices")
-                    else:
-                        error_msg = getattr(auth_result, 'error_message', 'Authentication failed')
-                        _LOGGER.warning("SmartLife authentication failed: %s", error_msg)
-                        return self.async_show_progress_done(next_step_id="smartlife_scan_failed")
-                except asyncio.CancelledError:
-                    _LOGGER.debug("SmartLife scan task was cancelled")
-                    return self.async_show_progress_done(next_step_id="smartlife_user_code")
-                except KKTTimeoutError:
-                    _LOGGER.warning("SmartLife QR code scan timed out")
-                    return self.async_show_progress_done(next_step_id="smartlife_scan_timeout")
-                except (KKTAuthenticationError, KKTConnectionError) as err:
-                    _LOGGER.error("SmartLife authentication error: %s", err)
-                    return self.async_show_progress_done(next_step_id="smartlife_scan_failed")
-                except Exception as err:
-                    _LOGGER.exception("Unexpected error during SmartLife scan: %s", err)
-                    return self.async_show_progress_done(next_step_id="smartlife_scan_failed")
-            else:
-                # Task still running - continue showing progress
-                return self.async_show_progress(
-                    step_id="smartlife_scan",
-                    progress_action="smartlife_scanning",
-                    progress_task=self._smartlife_scan_task,
+                    _LOGGER.debug("Trying app schema: %s for user code %s...", schema, self._smartlife_user_code[:4])
+                    self._smartlife_client = TuyaSharingClient(
+                        hass=self.hass,
+                        user_code=self._smartlife_user_code,
+                        app_schema=schema,
+                    )
+
+                    # Generate QR code
+                    self._smartlife_qr_code = await self._smartlife_client.async_generate_qr_code()
+                    working_schema = schema
+                    self._smartlife_app_schema = schema
+                    _LOGGER.info(
+                        "Generated SmartLife QR code with %s schema for user code %s...",
+                        schema, self._smartlife_user_code[:4]
+                    )
+                    break  # Success - exit loop
+
+                except KKTAuthenticationError as err:
+                    _LOGGER.debug("Schema %s failed for user code: %s", schema, err)
+                    last_error = err
+                    continue
+                except KKTConnectionError as err:
+                    _LOGGER.debug("Connection failed with schema %s: %s", schema, err)
+                    last_error = err
+                    continue
+
+            # If no schema worked, return to user code input
+            if working_schema is None:
+                _LOGGER.error(
+                    "Failed to generate QR code with both schemas - invalid user code: %s",
+                    last_error
+                )
+                return self.async_show_form(
+                    step_id="smartlife_user_code",
+                    data_schema=vol.Schema({
+                        vol.Required("user_code", default=self._smartlife_user_code or ""): selector.selector({
+                            "text": {"type": "text"}
+                        }),
+                    }),
+                    errors={"user_code": "invalid_user_code"},
                     description_placeholders={
-                        "qr_code_url": self._smartlife_qr_code or "",
-                        "timeout": str(QR_LOGIN_TIMEOUT),
+                        "error_details": str(last_error) if last_error else "Unknown error",
                     },
                 )
 
-        # Initialize client and generate QR code
-        if not self._smartlife_user_code:
-            return await self.async_step_smartlife_user_code()
+        # User clicked "I've scanned" - check login result
+        if user_input is not None:
+            return await self.async_step_smartlife_check_login()
 
-        try:
-            self._smartlife_client = TuyaSharingClient(
-                hass=self.hass,
-                user_code=self._smartlife_user_code,
-                app_schema=self._smartlife_app_schema,
-            )
+        # Build QR code data string (like Tuya: "tuyaSmart--qrLogin?token=XXX")
+        # Our QR code URL from tuya-device-sharing-sdk is already the full URL
+        qr_data = self._smartlife_qr_code
 
-            # Generate QR code
-            self._smartlife_qr_code = await self._smartlife_client.async_generate_qr_code()
-            _LOGGER.info("Generated SmartLife QR code for user code %s...", self._smartlife_user_code[:4])
-
-        except KKTAuthenticationError as err:
-            _LOGGER.error("Failed to generate QR code - invalid user code: %s", err)
-            return self.async_show_form(
-                step_id="smartlife_scan",
-                errors={"base": "invalid_user_code"},
-                description_placeholders={
-                    "error_details": str(err),
-                },
-            )
-        except KKTConnectionError as err:
-            _LOGGER.error("Failed to connect to Tuya cloud: %s", err)
-            return self.async_show_form(
-                step_id="smartlife_scan",
-                errors={"base": "cannot_connect"},
-                description_placeholders={
-                    "error_details": str(err),
-                },
-            )
-
-        # Start background polling task
-        async def poll_for_login() -> Any:
-            """Background task to poll for QR code scan result."""
-            return await self._smartlife_client.async_poll_login_result(
-                timeout=QR_LOGIN_TIMEOUT,
-            )
-
-        self._smartlife_scan_task = self.hass.async_create_task(poll_for_login())
-
-        # Show progress with QR code
-        return self.async_show_progress(
+        # Show form with QR code selector
+        return self.async_show_form(
             step_id="smartlife_scan",
-            progress_action="smartlife_scanning",
-            progress_task=self._smartlife_scan_task,
+            data_schema=vol.Schema({
+                vol.Optional("qr_code"): selector.QrCodeSelector(
+                    config=selector.QrCodeSelectorConfig(
+                        data=qr_data,
+                        scale=5,
+                        error_correction_level=selector.QrErrorCorrectionLevel.QUARTILE,
+                    )
+                ),
+            }),
             description_placeholders={
-                "qr_code_url": self._smartlife_qr_code,
                 "timeout": str(QR_LOGIN_TIMEOUT),
             },
         )
+
+    async def async_step_smartlife_check_login(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Check if QR code was scanned and login successful."""
+        from .exceptions import KKTAuthenticationError
+        from .exceptions import KKTConnectionError
+        from .exceptions import KKTTimeoutError
+
+        if not self._smartlife_client:
+            return await self.async_step_smartlife_user_code()
+
+        try:
+            # Poll for login result (with shorter timeout since user claims to have scanned)
+            auth_result = await self._smartlife_client.async_poll_login_result(
+                timeout=30,  # 30 seconds should be enough after user clicked
+            )
+
+            if auth_result and auth_result.success:
+                self._smartlife_auth_result = auth_result
+                _LOGGER.info("SmartLife QR code scan successful for user %s", auth_result.user_id)
+                return await self.async_step_smartlife_select_devices()
+            else:
+                error_msg = getattr(auth_result, 'error_message', 'Authentication failed')
+                _LOGGER.warning("SmartLife authentication failed: %s", error_msg)
+                return await self.async_step_smartlife_scan_failed()
+
+        except KKTTimeoutError:
+            _LOGGER.warning("SmartLife QR code scan check timed out")
+            return await self.async_step_smartlife_scan_timeout()
+        except (KKTAuthenticationError, KKTConnectionError) as err:
+            _LOGGER.error("SmartLife authentication error: %s", err)
+            return await self.async_step_smartlife_scan_failed()
+        except Exception as err:
+            _LOGGER.exception("Unexpected error during SmartLife login check: %s", err)
+            return await self.async_step_smartlife_scan_failed()
 
     async def async_step_smartlife_scan_timeout(
         self, user_input: dict[str, Any] | None = None
@@ -1412,7 +1554,6 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
         Fetches all devices from the account, filters for KKT Kolbe devices,
         and allows user to select which ones to add.
         """
-        from .clients.tuya_sharing_client import TuyaSharingDevice
         from .exceptions import KKTConnectionError
 
         errors: dict[str, str] = {}
@@ -1484,13 +1625,8 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                         }),
                         errors={"base": "no_kkt_devices_found"},
                         description_placeholders={
-                            "device_count": "0",
-                            "all_device_count": str(len(all_devices)),
-                            "fallback_hint": (
-                                "No KKT Kolbe devices were found in your SmartLife account. "
-                                "You can try Manual Setup instead, or check that your devices "
-                                "are properly added to the SmartLife/Tuya Smart app."
-                            ),
+                            "kkt_device_count": "0",
+                            "account_info": f"Found {len(all_devices)} device(s), but none are KKT Kolbe devices.",
                         },
                     )
 
@@ -1498,9 +1634,11 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                 _LOGGER.error("Failed to fetch devices: %s", err)
                 return self.async_show_form(
                     step_id="smartlife_select_devices",
+                    data_schema=vol.Schema({}),  # Empty schema to show error
                     errors={"base": "cannot_connect"},
                     description_placeholders={
-                        "error_details": str(err),
+                        "kkt_device_count": "0",
+                        "account_info": f"Error: {err}",
                     },
                 )
 
@@ -1640,8 +1778,9 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
         The Account Entry is created programmatically first, then the Device Entry
         is returned via async_create_entry().
         """
-        from homeassistant.config_entries import ConfigEntry, SOURCE_USER
-        import uuid
+
+        from homeassistant.config_entries import SOURCE_USER
+        from homeassistant.config_entries import ConfigEntry
 
         if not self._smartlife_client or not self._smartlife_auth_result:
             _LOGGER.error("SmartLife client not initialized - cannot create entries")
@@ -1687,9 +1826,10 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                 CONF_SMARTLIFE_TOKEN_INFO: token_info,
             }
 
-            # Create ConfigEntry for account
+            # Create ConfigEntry for account (HA 2025.x compatible)
+            # IMPORTANT: version must match VERSION = 2 at class level
             account_entry = ConfigEntry(
-                version=1,
+                version=2,
                 minor_version=1,
                 domain=DOMAIN,
                 title=f"SmartLife Account ({self._smartlife_user_code[:8]}...)",
@@ -1697,6 +1837,8 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                 source=SOURCE_USER,
                 options={},
                 unique_id=account_unique_id,
+                discovery_keys={},  # Required in HA 2024.12+
+                subentries_data={},  # Required in HA 2024.12+
             )
 
             # Add entry to Home Assistant
@@ -1757,9 +1899,28 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             "device_type": device_type,
         }
 
-        # Add IP if available
-        if device.ip:
+        # Try to get LOCAL IP from UDP discovery (SmartLife API returns PUBLIC IP)
+        local_ip = None
+        discovered_devices = get_discovered_devices()
+        if discovered_devices and device.device_id in discovered_devices:
+            discovered = discovered_devices[device.device_id]
+            local_ip = discovered.get("ip")
+            _LOGGER.info(
+                "Using discovered local IP %s for device %s (API had %s)",
+                local_ip, device.device_id[:8], device.ip
+            )
+
+        # Use local IP if found, otherwise fall back to API IP (might be public)
+        if local_ip:
+            device_data[CONF_IP_ADDRESS] = local_ip
+        elif device.ip and _is_private_ip(device.ip):
+            # Only use API IP if it's actually a private IP
             device_data[CONF_IP_ADDRESS] = device.ip
+        else:
+            _LOGGER.warning(
+                "No local IP found for device %s - local communication may not work",
+                device.device_id[:8]
+            )
 
         # Note: Tokens are stored in Account Entry only (not duplicated in device)
         # Device Entry references parent_entry_id to get tokens when needed
@@ -3060,220 +3221,3 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             _LOGGER.debug("Connection test failed: %s", exc)
             return False
 
-
-class KKTKolbeOptionsFlow(OptionsFlow):
-    """Handle KKT Kolbe options flow."""
-
-    def __init__(self):
-        """Initialize options flow."""
-        # No longer store config_entry manually - use self.config_entry property
-        # This property is automatically provided by the OptionsFlow parent class
-        pass
-
-    async def async_step_init(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Manage the options."""
-        errors: dict[str, str] = {}
-
-        if user_input is not None:
-            # Validate options
-            validation_errors = await self._validate_options(user_input)
-            if not validation_errors:
-                return self.async_create_entry(title="", data=user_input)
-            else:
-                errors.update(validation_errors)
-
-        # Get current settings from config_entry
-        current_interval = self.config_entry.options.get(CONF_SCAN_INTERVAL, 30)
-        current_debug = self.config_entry.options.get("enable_debug_logging", False)
-        current_advanced = self.config_entry.options.get("enable_advanced_entities", True)
-        current_naming = self.config_entry.options.get("zone_naming_scheme", "zone")
-        self.config_entry.data.get(CONF_ACCESS_TOKEN, self.config_entry.data.get("local_key", ""))
-
-        # Get current API settings
-        current_api_enabled = self.config_entry.data.get("api_enabled", False)
-        current_client_id = self.config_entry.data.get("api_client_id", "")
-        self.config_entry.data.get("api_client_secret", "")
-        current_endpoint = self.config_entry.data.get("api_endpoint", "https://openapi.tuyaeu.com")
-
-        options_schema = vol.Schema({
-            vol.Optional(CONF_SCAN_INTERVAL, default=current_interval): selector.selector({
-                "number": {
-                    "min": 10, "max": 300, "step": 5,
-                    "unit_of_measurement": "seconds",
-                    "mode": "slider"
-                }
-            }),
-            vol.Optional("new_local_key", default=""): selector.selector({
-                "text": {
-                    "type": "password"
-                }
-            }),
-            vol.Optional("api_enabled", default=current_api_enabled): bool,
-            vol.Optional("api_client_id", default=current_client_id): selector.selector({
-                "text": {}
-            }),
-            vol.Optional("api_client_secret", default=""): selector.selector({
-                "text": {
-                    "type": "password"
-                }
-            }),
-            vol.Optional("api_endpoint", default=current_endpoint): selector.selector({
-                "select": {
-                    "options": [
-                        {"value": "https://openapi.tuyaeu.com", "label": "Europe (EU)"},
-                        {"value": "https://openapi.tuyaus.com", "label": "United States (US)"},
-                        {"value": "https://openapi.tuyacn.com", "label": "China (CN)"},
-                        {"value": "https://openapi.tuyain.com", "label": "India (IN)"}
-                    ],
-                    "mode": "dropdown"
-                }
-            }),
-            vol.Optional("enable_debug_logging", default=current_debug): bool,
-            vol.Optional("enable_advanced_entities", default=current_advanced): bool,
-            vol.Optional("zone_naming_scheme", default=current_naming): selector.selector({
-                "select": {
-                    "options": [
-                        {"value": "zone", "label": "Zone 1, Zone 2, ..."},
-                        {"value": "numeric", "label": "1, 2, 3, ..."},
-                        {"value": "custom", "label": "Custom Names"}
-                    ],
-                    "mode": "dropdown"
-                }
-            }),
-            vol.Optional("test_connection", default=True): bool,
-        })
-
-        return self.async_show_form(
-            step_id="init",
-            data_schema=options_schema,
-            errors=errors,
-            description_placeholders={
-                "device_name": self.config_entry.title,
-                "current_interval": current_interval
-            }
-        )
-
-    async def _validate_options(self, options: dict[str, Any]) -> dict[str, str]:
-        """Validate options."""
-        errors = {}
-
-        # Handle new local key update
-        new_local_key = options.get("new_local_key", "").strip()
-        if new_local_key:
-            # Validate local key format (16 characters, alphanumeric + special chars)
-            if len(new_local_key) != 16:
-                errors["new_local_key"] = "invalid_local_key_length"
-            else:
-                # Test the new local key
-                try:
-                    device_id = self.config_entry.data.get(CONF_DEVICE_ID) or self.config_entry.data.get("device_id")
-                    ip_address = self.config_entry.data.get(CONF_IP_ADDRESS) or self.config_entry.data.get("ip_address") or self.config_entry.data.get("host")
-
-                    if device_id and ip_address:
-                        # Lazy import to avoid blocking
-                        from .tuya_device import KKTKolbeTuyaDevice
-
-                        # Test new local key with temporary device instance
-                        test_device = KKTKolbeTuyaDevice(
-                            device_id=device_id,
-                            ip_address=ip_address,
-                            local_key=new_local_key,
-                            hass=self.hass,  # Pass hass for proper executor job scheduling
-                        )
-
-                        if await test_device.async_test_connection():
-                            # Update the config entry with new local key
-                            new_data = self.config_entry.data.copy()
-                            new_data[CONF_ACCESS_TOKEN] = new_local_key
-                            new_data["local_key"] = new_local_key
-
-                            # Update config entry directly
-                            self.hass.config_entries.async_update_entry(
-                                self.config_entry, data=new_data
-                            )
-
-                            # Trigger service to update coordinator
-                            await self.hass.services.async_call(
-                                DOMAIN,
-                                "update_local_key",
-                                {
-                                    "device_id": device_id,
-                                    "local_key": new_local_key,
-                                    "force_reconnect": True
-                                }
-                            )
-
-                            _LOGGER.info(f"Local key successfully updated for device {device_id}")
-                        else:
-                            errors["new_local_key"] = "local_key_test_failed"
-                    else:
-                        errors["new_local_key"] = "missing_device_info"
-
-                except Exception as exc:
-                    errors["new_local_key"] = "local_key_test_failed"
-                    _LOGGER.error(f"Local key test failed: {exc}")
-
-        # Handle API settings update
-        api_enabled = options.get("api_enabled", False)
-        if api_enabled:
-            client_id = options.get("api_client_id", "").strip()
-            client_secret = options.get("api_client_secret", "").strip()
-
-            if not client_id:
-                errors["api_client_id"] = "api_client_id_required"
-            elif len(client_id) < 10:
-                errors["api_client_id"] = "api_client_id_invalid"
-
-            if not client_secret:
-                errors["api_client_secret"] = "api_client_secret_required"
-            elif len(client_secret) < 20:
-                errors["api_client_secret"] = "api_client_secret_invalid"
-
-            # If API credentials are provided, test them
-            if client_id and client_secret and not errors:
-                try:
-                    from .api import TuyaCloudClient
-
-                    api_client = TuyaCloudClient(
-                        client_id=client_id,
-                        client_secret=client_secret,
-                        endpoint=options.get("api_endpoint", "https://openapi.tuyaeu.com")
-                    )
-
-                    # Test API connection
-                    if not await api_client.test_connection():
-                        errors["api_client_secret"] = "api_test_failed"
-                    else:
-                        # Update config entry with API settings
-                        device_id = self.config_entry.data.get(CONF_DEVICE_ID) or self.config_entry.data.get("device_id")
-                        new_data = self.config_entry.data.copy()
-                        new_data["api_enabled"] = True
-                        new_data["api_client_id"] = client_id
-                        new_data["api_client_secret"] = client_secret
-                        new_data["api_endpoint"] = options.get("api_endpoint", "https://openapi.tuyaeu.com")
-
-                        self.hass.config_entries.async_update_entry(
-                            self.config_entry, data=new_data
-                        )
-                        _LOGGER.info(f"API credentials updated for device {device_id}")
-
-                except Exception as exc:
-                    errors["api_client_secret"] = "api_test_failed"
-                    _LOGGER.error(f"API test failed: {exc}")
-
-        # Test connection if requested
-        if options.get("test_connection", False):
-            try:
-                coordinator = self.hass.data[DOMAIN][self.config_entry.entry_id]["coordinator"]
-                await coordinator.async_refresh()
-
-                if not coordinator.last_update_success:
-                    errors["base"] = "connection_test_failed"
-
-            except Exception as exc:
-                errors["base"] = "connection_test_failed"
-                _LOGGER.debug("Connection test failed: %s", exc)
-
-        return errors

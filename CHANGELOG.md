@@ -5,13 +5,24 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [4.0.0] - 2026-01-05
+## [4.0.0] - 2026-01-06
 
 ### SmartLife Integration Release - QR-Code Setup ohne Developer Account
 
 Diese Major-Release bietet eine revolutionäre neue Einrichtungsmethode für KKT Kolbe Geräte über die SmartLife/Tuya Smart App - **ohne Developer Account erforderlich**!
 
 ### Added
+
+#### **Auto-Power-On für Dunstabzugshauben ✨**
+- **Automatisches Einschalten**: Hood wird automatisch eingeschaltet (DP 1), bevor Lüftergeschwindigkeit oder Licht gesteuert werden
+- **Intelligente Zustandsanzeige**: Fan und Licht zeigen "aus" an, wenn die Haube komplett ausgeschaltet ist
+- **Verzögerung**: 0.5 Sekunden Wartezeit nach dem Einschalten, bevor weitere Befehle gesendet werden
+- **Gilt für alle Hauben-Typen**: HERMES, ECCO, SOLO und andere
+
+#### **SmartLife Account Wiederverwendung**
+- **Existing Account Selection**: Beim Hinzufügen neuer Geräte kann ein bestehender SmartLife Account gewählt werden
+- **Keine Re-Authentifizierung nötig**: Tokens werden aus dem Parent Entry wiederverwendet
+- **Token Persistence Fix**: Erneuerte Tokens werden jetzt korrekt im Config Entry gespeichert
 
 #### **SmartLife/Tuya Smart QR-Code Setup ✨**
 - **Keine API-Konfiguration nötig**: Einfaches Scannen eines QR-Codes mit der SmartLife/Tuya Smart App

@@ -71,6 +71,58 @@ type KKTKolbeConfigEntry = ConfigEntry[KKTKolbeRuntimeData]
 type KKTKolbeAccountConfigEntry = ConfigEntry[KKTKolbeAccountRuntimeData]
 
 
+async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+    """Migrate config entry to a new version.
+
+    This function is called when Home Assistant detects that a config entry
+    was created with an older VERSION than the current config_flow.py VERSION.
+
+    Version History:
+    - Version 1: Original config entry format (device entries only)
+    - Version 2: Added SmartLife support with entry_type (account/device) and setup_mode
+    """
+    _LOGGER.info(
+        "Migrating KKT Kolbe config entry %s from version %s to version 2",
+        config_entry.entry_id,
+        config_entry.version,
+    )
+
+    if config_entry.version == 1:
+        # Migrate from version 1 to version 2
+        new_data = dict(config_entry.data)
+
+        # Add entry_type if missing (all v1 entries were device entries)
+        if "entry_type" not in new_data:
+            new_data["entry_type"] = ENTRY_TYPE_DEVICE
+
+        # Add setup_mode if missing (v1 was manual mode only)
+        if "setup_mode" not in new_data:
+            # Determine setup_mode based on existing fields
+            if new_data.get("api_enabled"):
+                new_data["setup_mode"] = "iot_platform"
+                new_data["integration_mode"] = "hybrid"
+            else:
+                new_data["setup_mode"] = "manual"
+                new_data["integration_mode"] = "manual"
+
+        # HA 2025+: version cannot be set directly, must use async_update_entry
+        # Pass both version and data to async_update_entry
+        hass.config_entries.async_update_entry(
+            config_entry,
+            data=new_data,
+            version=2,
+        )
+
+        _LOGGER.info(
+            "Migration of %s complete: entry_type=%s, setup_mode=%s",
+            config_entry.entry_id,
+            new_data.get("entry_type"),
+            new_data.get("setup_mode"),
+        )
+
+    return True
+
+
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up the KKT Kolbe component from YAML configuration."""
     # Start automatic discovery when Home Assistant starts
@@ -168,20 +220,27 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
     - Standalone device entries (manual setup, IoT Platform)
     - Child device entries (linked to a SmartLife account parent)
     """
-    from .const import CONF_SMARTLIFE_USER_CODE, CONF_SMARTLIFE_APP_SCHEMA, SETUP_MODE_SMARTLIFE
+    from .const import SETUP_MODE_SMARTLIFE
 
     # Discovery is already started in async_setup, no need to start again
 
     # Check integration mode (V2 config flow adds this)
     setup_mode = entry.data.get("setup_mode", "manual")
-    integration_mode = entry.data.get("integration_mode", "manual")
     api_enabled = entry.data.get("api_enabled", False)
+
+    # Determine integration_mode based on setup_mode if not explicitly set
+    # SmartLife entries should NOT default to "manual" mode
+    if setup_mode == SETUP_MODE_SMARTLIFE:
+        integration_mode = entry.data.get("integration_mode", "smartlife")
+    else:
+        integration_mode = entry.data.get("integration_mode", "manual")
 
     # =========================================================================
     # SmartLife Parent-Child: Get tokens from parent entry if applicable
     # =========================================================================
     smartlife_token_info: dict[str, Any] | None = None
     parent_entry: ConfigEntry | None = None
+    smartlife_client: Any = None  # TuyaSharingClient for cloud fallback
 
     if setup_mode == SETUP_MODE_SMARTLIFE:
         parent_entry_id = entry.data.get("parent_entry_id")
@@ -221,6 +280,42 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
                     "SmartLife parent entry %s has no token info",
                     parent_entry_id[:8]
                 )
+            else:
+                # Create TuyaSharingClient from stored tokens for cloud fallback
+                try:
+                    from .clients.tuya_sharing_client import TuyaSharingClient
+                    smartlife_client = await TuyaSharingClient.async_from_stored_tokens(
+                        hass, smartlife_token_info
+                    )
+
+                    # Register token persistence callback to update parent entry
+                    # when tokens are refreshed by the SDK
+                    async def update_parent_tokens(new_token_info: dict) -> None:
+                        """Persist refreshed tokens to parent config entry."""
+                        if parent_entry:
+                            _LOGGER.info(
+                                "Persisting refreshed SmartLife tokens to parent entry %s",
+                                parent_entry.entry_id[:8]
+                            )
+                            new_data = dict(parent_entry.data)
+                            new_data[CONF_SMARTLIFE_TOKEN_INFO] = new_token_info
+                            hass.config_entries.async_update_entry(
+                                parent_entry, data=new_data
+                            )
+
+                    smartlife_client.set_token_update_callback(update_parent_tokens)
+
+                    _LOGGER.info(
+                        "SmartLife client restored from stored tokens for device %s",
+                        entry.entry_id[:8]
+                    )
+                except Exception as err:
+                    _LOGGER.warning(
+                        "Could not restore SmartLife client from tokens: %s. "
+                        "Cloud fallback will not be available.",
+                        err
+                    )
+                    smartlife_client = None
 
             _LOGGER.debug(
                 "SmartLife device %s using tokens from parent %s",
@@ -286,7 +381,27 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
             raise ValueError("Local key not found in config entry data")
 
     # Initialize appropriate coordinator based on mode
-    if integration_mode in ["hybrid", "api_discovery"] and (device or api_client):
+    # SmartLife mode uses HybridCoordinator with smartlife_client for cloud fallback
+    if setup_mode == SETUP_MODE_SMARTLIFE and (device or smartlife_client):
+        from .hybrid_coordinator import KKTKolbeHybridCoordinator
+
+        coordinator = KKTKolbeHybridCoordinator(
+            hass=hass,
+            device_id=device_id,
+            local_device=device,
+            api_client=None,  # Not using IoT Platform API
+            smartlife_client=smartlife_client,  # Cloud fallback via SmartLife
+            prefer_local=True,  # Always prefer local for SmartLife
+            entry=entry,
+            device_type=entry.data.get("device_type"),
+        )
+        _LOGGER.info(
+            "Hybrid coordinator initialized for SmartLife mode "
+            "(local=%s, cloud_fallback=%s)",
+            device is not None,
+            smartlife_client is not None,
+        )
+    elif integration_mode in ["hybrid", "api_discovery"] and (device or api_client):
         from .hybrid_coordinator import KKTKolbeHybridCoordinator
 
         coordinator = KKTKolbeHybridCoordinator(
@@ -294,8 +409,10 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
             device_id=device_id,
             local_device=device,
             api_client=api_client,
+            smartlife_client=None,  # Not using SmartLife
             prefer_local=(integration_mode == "hybrid"),
             entry=entry,
+            device_type=entry.data.get("device_type"),
         )
         _LOGGER.info(f"Hybrid coordinator initialized in {integration_mode} mode")
     elif device:
@@ -445,7 +562,8 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
         # Perform initial data fetch if at least one connection method works
         # Use timeout to prevent indefinite hang during setup
         FIRST_REFRESH_TIMEOUT = 60  # seconds
-        if connection_successful or integration_mode in ["hybrid", "api_discovery"]:
+        # Allow initial refresh for modes with cloud fallback even if local fails
+        if connection_successful or integration_mode in ["hybrid", "api_discovery", "smartlife"]:
             try:
                 await asyncio.wait_for(
                     coordinator.async_config_entry_first_refresh(),

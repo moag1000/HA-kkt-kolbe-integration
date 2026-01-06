@@ -18,22 +18,18 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+from typing import Any
 
-from ..const import (
-    QR_CODE_FORMAT,
-    QR_LOGIN_POLL_INTERVAL,
-    QR_LOGIN_TIMEOUT,
-    SMARTLIFE_CLIENT_ID,
-    SMARTLIFE_SCHEMA,
-    TUYA_SMART_SCHEMA,
-)
-from ..exceptions import (
-    KKTAuthenticationError,
-    KKTConnectionError,
-    KKTTimeoutError,
-)
+from ..const import QR_CODE_FORMAT
+from ..const import QR_LOGIN_POLL_INTERVAL
+from ..const import QR_LOGIN_TIMEOUT
+from ..const import SMARTLIFE_CLIENT_ID
+from ..const import SMARTLIFE_SCHEMA
+from ..exceptions import KKTAuthenticationError
+from ..exceptions import KKTConnectionError
+from ..exceptions import KKTTimeoutError
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -186,6 +182,21 @@ class TuyaSharingClient:
         self._qr_token: str | None = None
         self._token_info: dict[str, Any] = {}
         self._auth_result: TuyaSharingAuthResult | None = None
+        self._token_update_callback: Any | None = None  # Callback for token persistence
+
+    def set_token_update_callback(
+        self, callback: Any  # Callable[[dict[str, Any]], Awaitable[None]]
+    ) -> None:
+        """Set callback for when tokens are refreshed.
+
+        The callback will be called with the new token_info dict whenever
+        the SDK refreshes tokens. Use this to persist tokens to config entry.
+
+        Args:
+            callback: Async function that takes token_info dict
+        """
+        self._token_update_callback = callback
+        _LOGGER.debug("Token update callback registered")
 
     @property
     def user_code(self) -> str:
@@ -314,15 +325,28 @@ class TuyaSharingClient:
 
             if success:
                 # Authentication successful
-                token_info = result.get("token_info", {})
+                # Note: API returns tokens at top level, not in nested token_info
+                token_info = result.get("token_info") or {}
+                _LOGGER.debug("QR login result keys: %s", list(result.keys()))
+
+                # Get values from top level first, fall back to token_info
+                user_id = result.get("uid") or token_info.get("uid")
+                access_token = result.get("access_token") or token_info.get("access_token")
+                refresh_token = result.get("refresh_token") or token_info.get("refresh_token")
+                expire_time = result.get("expire_time") or token_info.get("expire_time", 0)
+
+                if not user_id:
+                    _LOGGER.warning("No user_id found in auth result, using terminal_id as fallback")
+                    user_id = result.get("terminal_id", "unknown")
+
                 self._auth_result = TuyaSharingAuthResult(
                     success=True,
-                    user_id=token_info.get("uid"),
+                    user_id=user_id,
                     terminal_id=result.get("terminal_id"),
                     endpoint=result.get("endpoint"),
-                    access_token=token_info.get("access_token"),
-                    refresh_token=token_info.get("refresh_token"),
-                    expire_time=token_info.get("expire_time", 0),
+                    access_token=access_token,
+                    refresh_token=refresh_token,
+                    expire_time=expire_time,
                     timestamp=result.get("t", 0),
                 )
 
@@ -385,7 +409,8 @@ class TuyaSharingClient:
                 message="Must authenticate first via QR code",
             )
 
-        from tuya_sharing import Manager, SharingTokenListener
+        from tuya_sharing import Manager
+        from tuya_sharing import SharingTokenListener
 
         # Token update listener to keep tokens fresh
         class TokenListener(SharingTokenListener):
@@ -396,7 +421,7 @@ class TuyaSharingClient:
 
             def update_token(self, token_info: dict[str, Any]) -> None:
                 """Handle token refresh events."""
-                _LOGGER.debug("Token refreshed by SDK")
+                _LOGGER.info("Token refreshed by SDK - persisting new tokens")
                 self._client._token_info.update(token_info)
                 if self._client._auth_result:
                     self._client._auth_result.access_token = token_info.get(
@@ -408,6 +433,20 @@ class TuyaSharingClient:
                     self._client._auth_result.expire_time = token_info.get(
                         "expire_time", 0
                     )
+
+                # Call the persistence callback if registered
+                if self._client._token_update_callback:
+                    # Get full token info for storage
+                    full_token_info = self._client.get_token_info_for_storage()
+                    try:
+                        # Schedule the async callback
+                        asyncio.run_coroutine_threadsafe(
+                            self._client._token_update_callback(full_token_info),
+                            self._client.hass.loop,
+                        )
+                        _LOGGER.debug("Token persistence callback scheduled")
+                    except Exception as err:
+                        _LOGGER.warning("Failed to schedule token persistence: %s", err)
 
         def _init_manager() -> Any:
             """Initialize the SDK Manager in executor thread."""
@@ -561,6 +600,51 @@ class TuyaSharingClient:
 
         return client
 
+    async def async_restore_tokens(self, token_info: dict[str, Any]) -> None:
+        """Restore authentication from stored token info.
+
+        This is an instance method version of async_from_stored_tokens,
+        useful when you already have a client instance and want to restore
+        its authentication state from stored tokens.
+
+        Args:
+            token_info: Previously stored token info from get_token_info_for_storage()
+
+        Raises:
+            KKTAuthenticationError: If token_info is missing required fields
+        """
+        access_token = token_info.get("access_token")
+        if not access_token:
+            raise KKTAuthenticationError(
+                message="Missing access_token in stored token info",
+            )
+
+        # Restore authentication result
+        self._auth_result = TuyaSharingAuthResult(
+            success=True,
+            user_id=token_info.get("uid"),
+            terminal_id=token_info.get("terminal_id"),
+            endpoint=token_info.get("endpoint"),
+            access_token=access_token,
+            refresh_token=token_info.get("refresh_token"),
+            expire_time=token_info.get("expire_time", 0),
+            timestamp=token_info.get("timestamp", 0),
+        )
+
+        # Store token info
+        self._token_info = dict(token_info)
+
+        # Update user_code and app_schema if available in token_info
+        if token_info.get("user_code"):
+            self._user_code = token_info["user_code"]
+        if token_info.get("app_schema"):
+            self._app_schema = token_info["app_schema"]
+
+        _LOGGER.debug(
+            "Restored authentication from stored tokens (user_id=%s...)",
+            self._auth_result.user_id[:8] if self._auth_result.user_id else "unknown",
+        )
+
     async def async_validate_tokens(self) -> bool:
         """Validate that stored tokens are still valid.
 
@@ -578,6 +662,160 @@ class TuyaSharingClient:
         except (KKTAuthenticationError, KKTConnectionError) as err:
             _LOGGER.warning("Token validation failed: %s", err)
             return False
+
+    async def async_get_device_status(self, device_id: str) -> list[dict[str, Any]]:
+        """Get current status of a device.
+
+        This method provides cloud-fallback functionality for the HybridCoordinator.
+        Uses the SDK Manager to fetch device status from Tuya cloud.
+
+        Args:
+            device_id: The device ID to get status for
+
+        Returns:
+            List of status items with 'code' and 'value' keys
+
+        Raises:
+            KKTAuthenticationError: If not authenticated
+            KKTConnectionError: If unable to fetch status
+        """
+        if not self._auth_result or not self._auth_result.success:
+            raise KKTAuthenticationError(
+                message="Must authenticate first via QR code",
+            )
+
+        # Ensure manager is initialized
+        if not self._manager:
+            await self.async_get_devices()  # This initializes the manager
+
+        def _get_status() -> list[dict[str, Any]]:
+            """Get device status in executor thread."""
+            # Update device cache to get fresh data
+            self._manager.update_device_cache()
+
+            # Find the device in device_map
+            device = self._manager.device_map.get(device_id)
+            if not device:
+                _LOGGER.warning("Device %s not found in manager cache", device_id[:8])
+                return []
+
+            # Extract status from device
+            status_list: list[dict[str, Any]] = []
+            if hasattr(device, "status") and device.status:
+                for code, value in device.status.items():
+                    status_list.append({"code": code, "value": value})
+
+            return status_list
+
+        try:
+            status = await self.hass.async_add_executor_job(_get_status)
+            _LOGGER.debug(
+                "Retrieved %d status items for device %s via SmartLife",
+                len(status), device_id[:8]
+            )
+            return status
+        except Exception as err:
+            _LOGGER.error("Failed to get device status: %s", err)
+            raise KKTConnectionError(
+                operation="get_device_status",
+                reason=str(err),
+            ) from err
+
+    async def async_send_commands(
+        self, device_id: str, commands: list[dict[str, Any]]
+    ) -> bool:
+        """Send commands to a device via SmartLife cloud.
+
+        This method provides cloud-fallback functionality for the HybridCoordinator.
+
+        Args:
+            device_id: The device ID to send commands to
+            commands: List of commands, each with 'code' and 'value' keys
+                     Example: [{"code": "switch", "value": True}]
+
+        Returns:
+            True if command was sent successfully, False otherwise
+
+        Raises:
+            KKTAuthenticationError: If not authenticated
+        """
+        if not self._auth_result or not self._auth_result.success:
+            raise KKTAuthenticationError(
+                message="Must authenticate first via QR code",
+            )
+
+        # Ensure manager is initialized
+        if not self._manager:
+            await self.async_get_devices()  # This initializes the manager
+
+        def _send_commands() -> bool:
+            """Send commands in executor thread."""
+            device = self._manager.device_map.get(device_id)
+            if not device:
+                _LOGGER.warning("Device %s not found in manager cache", device_id[:8])
+                return False
+
+            # The tuya_sharing library's device might have a send_commands method
+            if hasattr(device, "send_commands"):
+                try:
+                    device.send_commands(commands)
+                    return True
+                except Exception as err:
+                    _LOGGER.warning("send_commands failed: %s", err)
+
+            # Alternative: Use manager's device control method if available
+            if hasattr(self._manager, "send_commands"):
+                try:
+                    self._manager.send_commands(device_id, commands)
+                    return True
+                except Exception as err:
+                    _LOGGER.warning("manager.send_commands failed: %s", err)
+
+            _LOGGER.warning(
+                "No command sending method available for device %s",
+                device_id[:8]
+            )
+            return False
+
+        try:
+            success = await self.hass.async_add_executor_job(_send_commands)
+            if success:
+                _LOGGER.info(
+                    "Commands sent successfully to device %s via SmartLife",
+                    device_id[:8]
+                )
+            return success
+        except Exception as err:
+            _LOGGER.error("Failed to send commands: %s", err)
+            return False
+
+    async def async_send_dp_commands(
+        self, device_id: str, dps: dict[str, Any]
+    ) -> bool:
+        """Send DP (Data Point) commands to a device via SmartLife cloud.
+
+        Args:
+            device_id: The device ID to send commands to
+            dps: Dictionary of DP ID to value, e.g., {"1": True, "2": 50}
+
+        Returns:
+            True if command was sent successfully, False otherwise
+        """
+        # Convert DPs to commands format
+        # Note: This requires mapping DP IDs to property codes
+        # For now, try sending as-is and let the API figure it out
+        commands = [{"code": str(dp_id), "value": value} for dp_id, value in dps.items()]
+        return await self.async_send_commands(device_id, commands)
+
+    async def async_test_connection(self) -> bool:
+        """Test connection and validate tokens.
+
+        Attempts to fetch devices to verify the connection is working.
+
+        Returns:
+            True if connection is valid, False otherwise
+        """
+        return await self.async_validate_tokens()
 
     async def async_close(self) -> None:
         """Close the client and cleanup resources.

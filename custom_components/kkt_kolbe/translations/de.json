@@ -11,21 +11,32 @@
           "setup_method": "Wählen Sie Ihre bevorzugte Einrichtungsmethode"
         }
       },
-      "smartlife_user_code": {
-        "title": "SmartLife Benutzercode",
-        "description": "Geben Sie Ihren SmartLife/Tuya Smart App Benutzercode ein.\n\n**So finden Sie Ihren Benutzercode:**\n1. Öffnen Sie die SmartLife oder Tuya Smart App\n2. Gehen Sie zu **Profil** (unten rechts)\n3. Tippen Sie auf das **Einstellungen**-Symbol (oben rechts)\n4. Wählen Sie **Konto und Sicherheit**\n5. Finden Sie Ihren **Benutzercode** unten\n\nDer Benutzercode ist eine eindeutige Kennung für Ihr Konto.",
+      "smartlife_check_existing": {
+        "title": "SmartLife Konto",
+        "description": "{account_count} vorhandene(s) SmartLife-Konto(en) gefunden.\n\nSie können ein vorhandenes Konto verwenden, um weitere Geräte ohne erneute Authentifizierung hinzuzufügen, oder ein neues Konto erstellen.",
         "data": {
-          "user_code": "Benutzercode",
-          "app_schema": "App auswählen"
+          "account_choice": "Konto auswählen"
         },
         "data_description": {
-          "user_code": "Ihr Benutzercode aus der SmartLife/Tuya Smart App (zu finden unter Profil > Einstellungen > Konto und Sicherheit)",
-          "app_schema": "Wählen Sie welche App Sie verwenden"
+          "account_choice": "Wählen Sie ein vorhandenes Konto oder erstellen Sie ein neues"
+        }
+      },
+      "smartlife_user_code": {
+        "title": "SmartLife Benutzercode",
+        "description": "Geben Sie Ihren SmartLife/Tuya Smart App Benutzercode ein.\n\n**So finden Sie Ihren Benutzercode:**\n1. Öffnen Sie die SmartLife oder Tuya Smart App\n2. Gehen Sie zu **Profil** (unten rechts)\n3. Tippen Sie auf das **Einstellungen**-Symbol (oben rechts)\n4. Wählen Sie **Konto und Sicherheit**\n5. Finden Sie Ihren **Benutzercode** unten\n\n**Hinweis:** Funktioniert mit SmartLife und Tuya Smart Apps - das richtige Schema wird automatisch erkannt.",
+        "data": {
+          "user_code": "Benutzercode"
+        },
+        "data_description": {
+          "user_code": "Ihr Benutzercode aus der SmartLife/Tuya Smart App (zu finden unter Profil > Einstellungen > Konto und Sicherheit)"
         }
       },
       "smartlife_scan": {
         "title": "QR-Code scannen",
-        "description": "Scannen Sie diesen QR-Code mit Ihrer SmartLife oder Tuya Smart App.\n\n**Anleitung:**\n1. Öffnen Sie die SmartLife/Tuya Smart App\n2. Tippen Sie auf **Profil** (unten rechts)\n3. Tippen Sie auf das **Scan**-Symbol (oben rechts)\n4. Scannen Sie den unten angezeigten QR-Code\n5. Bestätigen Sie die Anmeldung in der App\n\nWarte auf Scan und Bestätigung..."
+        "description": "Scannen Sie diesen QR-Code mit Ihrer SmartLife oder Tuya Smart App:\n\n**Anleitung:**\n1. Öffnen Sie die SmartLife/Tuya Smart App\n2. Tippen Sie auf **Profil** (unten rechts)\n3. Tippen Sie auf das **Scan**-Symbol (oben rechts)\n4. Scannen Sie den QR-Code oben\n5. **Bestätigen Sie die Anmeldung** in der App\n6. Klicken Sie unten auf **Absenden**",
+        "data": {
+          "qr_code": ""
+        }
       },
       "smartlife_scan_timeout": {
         "title": "Zeitüberschreitung",
@@ -455,6 +466,62 @@
     "step": {
       "init": {
         "title": "KKT Kolbe Optionen",
+        "description": "Konfigurieren Sie Optionen für {device_name}.\n\nAktuelles Aktualisierungsintervall: {current_interval} Sekunden\n\n[Dokumentation](https://github.com/moag1000/HA-kkt-kolbe-integration)",
+        "data": {
+          "scan_interval": "Aktualisierungsintervall",
+          "new_local_key": "Neuer Local Key",
+          "api_enabled": "TinyTuya Cloud API aktivieren",
+          "api_client_id": "API Client ID",
+          "api_client_secret": "API Client Secret",
+          "api_endpoint": "API-Endpunkt Region",
+          "enable_debug_logging": "Debug-Protokollierung aktivieren",
+          "enable_advanced_entities": "Erweiterte Entitäten aktivieren",
+          "zone_naming_scheme": "Zonenbenennung",
+          "test_connection": "Verbindung testen"
+        },
+        "data_description": {
+          "new_local_key": "Neuen Local Key eingeben, wenn das Gerät zurückgesetzt wurde (16 Zeichen)",
+          "api_enabled": "TinyTuya Cloud API für Hybrid-Modus aktivieren",
+          "api_client_id": "Access ID von der Tuya IoT Platform",
+          "api_client_secret": "Access Secret von der Tuya IoT Platform",
+          "api_endpoint": "Wählen Sie Ihren regionalen API-Endpunkt",
+          "enable_debug_logging": "Detaillierte Protokollierung zur Fehlerbehebung aktivieren",
+          "enable_advanced_entities": "Alle Entitäten anzeigen (Lüftergeschwindigkeit, RGB-Modus, Filterstatus)",
+          "zone_naming_scheme": "Benennung von Multi-Zonen-Entitäten",
+          "test_connection": "Geräteverbindung nach Änderungen testen"
+        }
+      },
+      "smartlife_account": {
+        "title": "SmartLife Account Optionen",
+        "description": "Konfigurieren Sie Optionen für SmartLife Account ({account_name}).\n\nTokens werden automatisch vom SDK aktualisiert.",
+        "data": {
+          "enable_debug_logging": "Debug-Protokollierung aktivieren"
+        },
+        "data_description": {
+          "enable_debug_logging": "Detaillierte Protokollierung zur Fehlerbehebung aktivieren"
+        }
+      },
+      "smartlife_device": {
+        "title": "SmartLife Geräte-Optionen",
+        "description": "Konfigurieren Sie Optionen für {device_name}.\n\nAktuelles Aktualisierungsintervall: {current_interval} Sekunden",
+        "data": {
+          "scan_interval": "Aktualisierungsintervall",
+          "new_local_key": "Neuer Local Key",
+          "enable_debug_logging": "Debug-Protokollierung aktivieren",
+          "enable_advanced_entities": "Erweiterte Entitäten aktivieren",
+          "zone_naming_scheme": "Zonenbenennung",
+          "test_connection": "Verbindung testen"
+        },
+        "data_description": {
+          "new_local_key": "Neuen Local Key eingeben, wenn das Gerät zurückgesetzt wurde (16 Zeichen)",
+          "enable_debug_logging": "Detaillierte Protokollierung zur Fehlerbehebung aktivieren",
+          "enable_advanced_entities": "Alle Entitäten anzeigen (Lüftergeschwindigkeit, RGB-Modus, Filterstatus)",
+          "zone_naming_scheme": "Benennung von Multi-Zonen-Entitäten",
+          "test_connection": "Geräteverbindung nach Änderungen testen"
+        }
+      },
+      "device": {
+        "title": "KKT Kolbe Geräte-Optionen",
         "description": "Konfigurieren Sie Optionen für {device_name}.\n\nAktuelles Aktualisierungsintervall: {current_interval} Sekunden\n\n[Dokumentation](https://github.com/moag1000/HA-kkt-kolbe-integration)",
         "data": {
           "scan_interval": "Aktualisierungsintervall",

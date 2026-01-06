@@ -8,9 +8,15 @@ Supports:
 - Simple on/off lights
 - Lights with brightness control
 - Lights with effect modes (RGB presets)
+
+Auto-Power-On Feature:
+For range hoods (Dunstabzugshauben), the main power (DP 1) must be on
+before the light can be controlled. This module automatically turns on
+the hood if it's off when turning on the light.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import TYPE_CHECKING
 from typing import Any
@@ -36,6 +42,10 @@ if TYPE_CHECKING:
 PARALLEL_UPDATES = 0
 
 _LOGGER = logging.getLogger(__name__)
+
+# Auto-Power-On configuration for range hoods
+HOOD_POWER_DP = 1  # DP 1 is the main power switch for all hoods
+POWER_ON_DELAY = 0.5  # Delay in seconds after turning on before setting light
 
 
 async def async_setup_entry(
@@ -125,9 +135,47 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
             self._name, self._dp_id, self._brightness_dp, self._effect_dp, self._effect_list
         )
 
+    def _is_hood_powered_on(self) -> bool:
+        """Check if the hood main power (DP 1) is on.
+
+        For range hoods, DP 1 controls the main power switch.
+        Light can only be controlled when the hood is powered on.
+
+        Returns:
+            True if the hood is powered on, False otherwise.
+        """
+        power_value = self._get_data_point_value(HOOD_POWER_DP)
+        # Handle None or non-boolean values
+        if power_value is None:
+            return False
+        return bool(power_value)
+
+    async def _async_ensure_hood_power_on(self) -> None:
+        """Ensure hood is powered on before controlling light.
+
+        For range hoods, the main power (DP 1) must be on before
+        the light can be controlled. This method automatically
+        turns on the hood if it's off and waits for it to be ready.
+        """
+        if not self._is_hood_powered_on():
+            _LOGGER.info(
+                "KKTKolbeLight [%s]: Hood is off, turning on before setting light",
+                self._name
+            )
+            await self._async_set_data_point(HOOD_POWER_DP, True)
+            # Wait for the hood to power on before setting light
+            await asyncio.sleep(POWER_ON_DELAY)
+
     @property
     def is_on(self) -> bool | None:
-        """Return true if the light is on."""
+        """Return true if the light is on.
+
+        Note: If the hood main power (DP 1) is off, the light is always off
+        regardless of the light DP value.
+        """
+        # If hood is powered off, light is definitely off
+        if not self._is_hood_powered_on():
+            return False
         value = self._get_data_point_value()
         if value is None:
             return None
@@ -135,8 +183,15 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
 
     @property
     def brightness(self) -> int | None:
-        """Return the brightness of the light (0-255)."""
+        """Return the brightness of the light (0-255).
+
+        Note: If the hood main power (DP 1) is off, brightness is None.
+        """
         if not self._brightness_dp:
+            return None
+
+        # If hood is powered off, no brightness
+        if not self._is_hood_powered_on():
             return None
 
         # Get brightness from coordinator data
@@ -185,7 +240,14 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
         self.async_write_ha_state()
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        """Turn on the light."""
+        """Turn on the light.
+
+        Auto-Power-On: For range hoods, automatically turns on the hood
+        (DP 1) if it's off before controlling the light.
+        """
+        # Ensure hood is powered on first (Auto-Power-On feature)
+        await self._async_ensure_hood_power_on()
+
         # Handle effect if provided
         if ATTR_EFFECT in kwargs and self._effect_dp:
             effect = kwargs[ATTR_EFFECT]
