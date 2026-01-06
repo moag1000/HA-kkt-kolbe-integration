@@ -281,6 +281,9 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
 
         Auto-Work-Mode: For devices like SOLO HCM, automatically sets
         work_mode to default (e.g., "white") before turning on the light.
+
+        Note: Light must be turned ON first before setting effect/brightness,
+        as most devices require the light to be on before accepting mode changes.
         """
         # Ensure hood is powered on first (Auto-Power-On feature)
         await self._async_ensure_hood_power_on()
@@ -288,22 +291,22 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
         # Ensure work_mode is set (Auto-Work-Mode feature for SOLO HCM etc.)
         await self._async_ensure_work_mode()
 
-        # Handle effect if provided
+        # Turn on the light FIRST (required before setting effect/brightness)
+        await self._async_set_data_point(self._dp_id, True)
+        self._log_entity_state("Turn On", f"DP {self._dp_id} set to True")
+
+        # Handle effect AFTER light is on
         if ATTR_EFFECT in kwargs and self._effect_dp:
             effect = kwargs[ATTR_EFFECT]
             await self._set_effect(effect)
 
-        # Handle brightness if provided and supported
+        # Handle brightness AFTER light is on
         if ATTR_BRIGHTNESS in kwargs and self._brightness_dp:
             brightness = kwargs[ATTR_BRIGHTNESS]
             # Scale from 0-255 to device range
             device_brightness = int((brightness / 255) * self._max_brightness)
             await self._async_set_data_point(self._brightness_dp, device_brightness)
             self._log_entity_state("Set Brightness", f"Brightness: {device_brightness}")
-
-        # Turn on the light
-        await self._async_set_data_point(self._dp_id, True)
-        self._log_entity_state("Turn On", f"DP {self._dp_id} set to True")
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the light."""
