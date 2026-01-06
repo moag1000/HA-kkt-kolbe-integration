@@ -18,11 +18,12 @@
 
 ---
 
-## Highlights
+## Highlights v4.0.0
 
 - **Kein Developer Account nötig** - Setup via SmartLife/Tuya Smart App
+- **Auto-Power-On** - Hood schaltet automatisch ein bei Fan/Licht-Steuerung
+- **Account Wiederverwendung** - Neue Geräte ohne Re-Authentifizierung
 - **Lokale Steuerung** - Tuya Protocol ohne Cloud-Abhängigkeit
-- **Gold Tier Quality** - Home Assistant Best Practices
 - **4 Dunstabzugshauben + 1 Kochfeld** unterstützt
 
 > **Hinweis:** Diese Integration wurde mit [Claude Code](https://claude.ai/code) entwickelt. Der Quellcode ist vollständig einsehbar. Verwendung auf eigene Verantwortung.
@@ -97,7 +98,7 @@ Hast du ein VIVA oder SANDRA Modell? → [Issue öffnen](https://github.com/moag
 
 | Komponente | Version |
 |------------|---------|
-| Home Assistant | ≥ 2025.1.0 |
+| Home Assistant | ≥ 2025.12.0 |
 | Python | ≥ 3.12 |
 
 ---
