@@ -245,6 +245,7 @@ KNOWN_DEVICES = {
     # KKT Kolbe SOLO HCM Hood - Based on ECCO HCM structure (verified via Things Data Model)
     # Model ID: edjszs (similar to ECCO HCM edjsx0)
     # Features: 9 fan speeds (0-9), RGB lighting, dual filter monitoring, timer
+    # Note: Some units respond to DP 4 for light, others to DP 104 - both are exposed
     "solo_hcm_hood": {
         "model_id": "edjszs",
         "category": CATEGORY_HOOD,
@@ -260,7 +261,7 @@ KNOWN_DEVICES = {
             7: "switch_wash",         # Setting/Wash mode
             102: "fan_speed",         # Fan speed (0-9)
             103: "day",               # Carbon filter days remaining (0-250)
-            104: "switch_led_1",      # LED light
+            104: "switch_led_1",      # LED light (alternative to DP 4)
             105: "countdown_1",       # Countdown timer (0-60 min)
             106: "switch_led",        # Confirm
             107: "colour_data",       # RGB color data (string, max 255)
@@ -284,14 +285,19 @@ KNOWN_DEVICES = {
                     "effect_dp": 108,
                     "effect_numeric": False,
                     "effects": ["white", "colour", "scene", "music"]
+                },
+                # LED Light as alternative (some SOLO HCM units respond to DP 104 instead of DP 4)
+                {
+                    "dp": 104,
+                    "name": "LED Light",
+                    "icon": "mdi:led-strip"
                 }
             ],
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
-                # RGB and LED lights as advanced switches (use main Light entity for Siri)
+                # RGB light as switch
                 {"dp": 6, "name": "RGB Light", "device_class": "switch", "icon": "mdi:palette", "advanced": True, "entity_category": "config"},
                 {"dp": 7, "name": "Wash Mode", "device_class": "switch", "icon": "mdi:spray-bottle", "advanced": True, "entity_category": "config"},
-                {"dp": 104, "name": "LED Light", "device_class": "switch", "icon": "mdi:led-strip", "advanced": True, "entity_category": "config"},
                 {"dp": 106, "name": "Confirm", "device_class": "switch", "icon": "mdi:check", "entity_category": "config", "advanced": True}
             ],
             "select": [
