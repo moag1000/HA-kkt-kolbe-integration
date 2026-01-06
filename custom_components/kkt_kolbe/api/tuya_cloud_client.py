@@ -317,10 +317,13 @@ class TuyaCloudClient:
                 "model": device.get("model"),
                 "uuid": device.get("uuid"),
                 "time_zone": device.get("timeZone"),  # camelCase → snake_case
+                "icon": device.get("icon"),  # Device icon path from Tuya
             }
         else:
-            # v1.0 already uses snake_case
-            normalized = device
+            # v1.0 already uses snake_case, but ensure icon is included
+            normalized = dict(device)
+            if "icon" not in normalized:
+                normalized["icon"] = device.get("icon")
 
         return normalized
 

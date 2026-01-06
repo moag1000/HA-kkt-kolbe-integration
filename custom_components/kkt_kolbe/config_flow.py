@@ -622,6 +622,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                     self._device_info["local_key"] = api_device.get("local_key")
                     self._device_info["product_id"] = api_device.get("product_id")
                     self._device_info["tuya_category"] = api_device.get("category")
+                    self._device_info["icon_url"] = api_device.get("icon")  # Tuya device icon
 
                     # Use API name (user-configured name) or product_name
                     api_name = api_device.get("name") or api_device.get("product_name")
@@ -706,6 +707,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                 "product_id": self._device_info.get("product_id"),
                 "device_type": self._device_info.get("device_type", "auto"),
                 "integration_mode": "hybrid",
+                "icon_url": self._device_info.get("icon_url"),  # Tuya device icon
             }
 
             # Store API credentials if available (for persistence after restart)
@@ -797,6 +799,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                         "product_id": self._device_info.get("product_id"),
                         "device_type": self._device_info.get("device_type", "auto"),
                         "integration_mode": "hybrid" if has_api else "manual",
+                        "icon_url": self._device_info.get("icon_url"),  # Tuya device icon
                     }
 
                     # Store API credentials if available (for persistence after restart)
@@ -907,6 +910,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                                     self._device_info["local_key"] = api_device.get("local_key")
                                     self._device_info["product_id"] = api_device.get("product_id")
                                     self._device_info["tuya_category"] = api_device.get("category")
+                                    self._device_info["icon_url"] = api_device.get("icon")  # Tuya device icon
 
                                     api_name = api_device.get("name") or api_device.get("product_name")
                                     if api_name:
@@ -1016,6 +1020,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                         "product_name": product_name,
                         "device_type": device_type,
                         "integration_mode": "hybrid" if result.api_enriched else "manual",
+                        "icon_url": getattr(result, "icon_url", None),  # Tuya device icon
                     }
 
                     # If API was used for enrichment, store credentials persistently
@@ -1897,6 +1902,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             "product_id": device.product_id,
             "product_name": device.kkt_device_type or device.product_id,
             "device_type": device_type,
+            "icon_url": getattr(device, "icon", None),  # Tuya device icon URL
         }
 
         # Try to get LOCAL IP from UDP discovery (SmartLife API returns PUBLIC IP)
@@ -3102,6 +3108,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                 "device_type": self._device_info.get("device_type", "auto"),
                 "product_id": self._device_info.get("product_id"),
                 "integration_mode": "hybrid" if has_api else "manual",
+                "icon_url": self._device_info.get("icon_url"),  # Tuya device icon
             }
 
             # Store API credentials if available (for persistence after restart)

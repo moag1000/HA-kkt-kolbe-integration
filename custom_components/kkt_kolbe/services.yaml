@@ -276,3 +276,16 @@ reset_filter_timer:
       default: false
       selector:
         boolean:
+
+# Icon Management
+download_device_icons:
+  name: Download Device Icons
+  description: Download device icons from Tuya Cloud. Icons are saved to /config/www/kkt_kolbe/icons/ and can be used as device pictures in Home Assistant (Settings → Devices → [Device] → Change Picture → /local/kkt_kolbe/icons/{device_id}.png)
+  fields:
+    force:
+      name: Force Redownload
+      description: Redownload icons even if they already exist
+      required: false
+      default: false
+      selector:
+        boolean:

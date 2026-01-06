@@ -715,6 +715,20 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
         )
         _LOGGER.info(f"Updated device registry: sw_version={sw_version}, hw_version={hw_version}")
 
+    # Download device icon from Tuya Cloud if available
+    icon_url = entry.data.get("icon_url")
+    if icon_url:
+        from .helpers.icon_downloader import download_icon
+        try:
+            local_icon_path = await download_icon(hass, device_id, icon_url)
+            if local_icon_path:
+                _LOGGER.info(
+                    "Device icon downloaded for %s: %s",
+                    device_id[:8], local_icon_path
+                )
+        except Exception as err:
+            _LOGGER.warning("Failed to download device icon: %s", err)
+
     # Load only the platforms needed for this specific device
     await hass.config_entries.async_forward_entry_setups(entry, platforms)
 

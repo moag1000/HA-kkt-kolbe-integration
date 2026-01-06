@@ -5,6 +5,13 @@ from .device_detection import detect_device_type_from_product_key
 from .device_detection import enrich_device_info
 from .device_detection import get_device_type_options
 from .entity_factory import async_setup_platform_entities
+from .icon_downloader import build_full_icon_url
+from .icon_downloader import download_all_icons
+from .icon_downloader import download_icon
+from .icon_downloader import get_downloaded_icon_path
+from .icon_downloader import get_icon_storage_path
+from .icon_downloader import get_icon_url_for_device
+from .icon_downloader import list_downloaded_icons
 from .entity_factory import create_entities_from_config
 from .entity_factory import create_single_entity_from_config
 from .entity_factory import get_coordinator_from_entry
@@ -60,6 +67,14 @@ __all__ = [
     "async_setup_platform_entities",
     "get_coordinator_from_entry",
     "get_device_info_from_entry",
+    # Icon Downloader
+    "download_icon",
+    "download_all_icons",
+    "get_icon_storage_path",
+    "get_icon_url_for_device",
+    "build_full_icon_url",
+    "get_downloaded_icon_path",
+    "list_downloaded_icons",
     # Schema Constants
     "API_ENDPOINTS",
     "API_ENDPOINT_OPTIONS",

@@ -33,6 +33,7 @@ SERVICE_RECONNECT_DEVICE = "reconnect_device"
 SERVICE_UPDATE_LOCAL_KEY = "update_local_key"
 SERVICE_GET_CONNECTION_STATUS = "get_connection_status"
 SERVICE_RESCAN_DEVICES = "rescan_devices"
+SERVICE_DOWNLOAD_DEVICE_ICONS = "download_device_icons"
 
 
 async def async_setup_services(hass: HomeAssistant) -> None:
@@ -735,6 +736,90 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         DOMAIN, SERVICE_RESCAN_DEVICES, handle_rescan_devices
     )
 
+    async def handle_download_device_icons(service: ServiceCall) -> None:
+        """Download device icons from Tuya Cloud for all configured devices.
+
+        This service downloads the device product icons from Tuya Cloud
+        and saves them locally to /config/www/kkt_kolbe/icons/.
+
+        Users can then set device pictures in HA UI using:
+        /local/kkt_kolbe/icons/{device_id}.png
+        """
+        force_redownload = service.data.get("force", False)
+
+        try:
+            from .helpers.icon_downloader import download_icon
+            from .helpers.icon_downloader import get_icon_url_for_device
+            from .helpers.icon_downloader import list_downloaded_icons
+
+            downloaded = []
+            skipped = []
+            failed = []
+
+            # Iterate through all device entries
+            for entry_id, entry_data in hass.data.get(DOMAIN, {}).items():
+                if entry_data.get("entry_type") == "account":
+                    continue  # Skip account entries
+
+                config_entry = hass.config_entries.async_get_entry(entry_id)
+                if not config_entry:
+                    continue
+
+                device_id = config_entry.data.get("device_id")
+                icon_url = config_entry.data.get("icon_url")
+
+                if not device_id:
+                    continue
+
+                if icon_url:
+                    result = await download_icon(hass, device_id, icon_url, force=force_redownload)
+                    if result:
+                        downloaded.append({
+                            "device_id": device_id,
+                            "local_url": result,
+                            "device_name": config_entry.data.get("device_name", device_id[:8]),
+                        })
+                    else:
+                        failed.append(device_id)
+                else:
+                    skipped.append(device_id)
+
+            # Fire event with results
+            hass.bus.async_fire(
+                f"{DOMAIN}_icons_downloaded",
+                {
+                    "downloaded": len(downloaded),
+                    "skipped": len(skipped),
+                    "failed": len(failed),
+                    "icons": downloaded,
+                }
+            )
+
+            # Log summary
+            _LOGGER.info(
+                "Device icon download complete: %d downloaded, %d skipped (no URL), %d failed",
+                len(downloaded), len(skipped), len(failed)
+            )
+
+            # Also list all downloaded icons
+            all_icons = list_downloaded_icons(hass)
+            if all_icons:
+                _LOGGER.info(
+                    "Available device icons in /config/www/kkt_kolbe/icons/: %s",
+                    ", ".join(icon["device_id"][:8] for icon in all_icons)
+                )
+
+        except Exception as err:
+            _LOGGER.error(f"Failed to download device icons: {err}")
+            hass.bus.async_fire(
+                f"{DOMAIN}_icons_downloaded",
+                {"error": str(err), "downloaded": 0, "skipped": 0, "failed": 0}
+            )
+
+    hass.services.async_register(
+        DOMAIN, SERVICE_DOWNLOAD_DEVICE_ICONS, handle_download_device_icons
+    )
+
     _LOGGER.info("KKT Kolbe services registered successfully")
 
 
@@ -753,6 +838,7 @@ async def async_unload_services(hass: HomeAssistant) -> None:
         SERVICE_UPDATE_LOCAL_KEY,
         SERVICE_GET_CONNECTION_STATUS,
         SERVICE_RESCAN_DEVICES,
+        SERVICE_DOWNLOAD_DEVICE_ICONS,
     ]
 
     for service in services_to_remove:
