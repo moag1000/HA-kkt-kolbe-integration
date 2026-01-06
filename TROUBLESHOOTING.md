@@ -520,8 +520,8 @@ Für Support-Anfragen bitte folgende Infos bereitstellen:
 
 ### 1. System-Info
 ```yaml
-Home Assistant Version: 2025.x.x  # Mindestens 2025.1.0
-KKT Kolbe Integration Version: 3.0.0
+Home Assistant Version: 2025.x.x  # Mindestens 2025.12.0
+KKT Kolbe Integration Version: 4.0.0
 Installation Method: HACS / Manual
 Python Version: 3.12+
 ```
