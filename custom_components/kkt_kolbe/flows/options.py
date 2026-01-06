@@ -4,14 +4,18 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import voluptuous as vol
 from homeassistant.config_entries import OptionsFlow
 from homeassistant.const import CONF_ACCESS_TOKEN
 from homeassistant.const import CONF_DEVICE_ID
 from homeassistant.const import CONF_IP_ADDRESS
 from homeassistant.const import CONF_SCAN_INTERVAL
 from homeassistant.data_entry_flow import FlowResult
+from homeassistant.helpers import selector
 
 from ..const import DOMAIN
+from ..const import ENTRY_TYPE_ACCOUNT
+from ..const import SETUP_MODE_SMARTLIFE
 from ..helpers import get_options_schema
 from ..helpers import validate_api_credentials
 
@@ -30,16 +34,117 @@ class KKTKolbeOptionsFlow(OptionsFlow):
     async def async_step_init(
         self, user_input: dict[str, Any | None] | None = None
     ) -> FlowResult:
-        """Manage the options."""
+        """Manage the options - routes to appropriate step based on entry type."""
+        # Determine entry type
+        entry_type = self.config_entry.data.get("entry_type")
+        setup_mode = self.config_entry.data.get("setup_mode")
+
+        # SmartLife Account Entry - minimal options
+        if entry_type == ENTRY_TYPE_ACCOUNT:
+            return await self.async_step_smartlife_account(user_input)
+
+        # SmartLife Device Entry - device options without IoT Platform API
+        if setup_mode == SETUP_MODE_SMARTLIFE:
+            return await self.async_step_smartlife_device(user_input)
+
+        # Manual/IoT Platform Device Entry - full options
+        return await self.async_step_device(user_input)
+
+    async def async_step_smartlife_account(
+        self, user_input: dict[str, Any | None] | None = None
+    ) -> FlowResult:
+        """Options for SmartLife Account entries."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            # Validate options
+            # SmartLife accounts have minimal options
+            return self.async_create_entry(title="", data=user_input)
+
+        # SmartLife Account only needs minimal options
+        # Token refresh is handled automatically by the SDK
+        schema = vol.Schema({
+            vol.Optional(
+                "enable_debug_logging",
+                default=self.config_entry.options.get("enable_debug_logging", False)
+            ): bool,
+        })
+
+        return self.async_show_form(
+            step_id="smartlife_account",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders={
+                "account_name": self.config_entry.title,
+            }
+        )
+
+    async def async_step_smartlife_device(
+        self, user_input: dict[str, Any | None] | None = None
+    ) -> FlowResult:
+        """Options for SmartLife Device entries (no IoT Platform API options)."""
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
             validation_errors = await self._validate_options(user_input)
             if not validation_errors:
                 return self.async_create_entry(title="", data=user_input)
-            else:
-                errors.update(validation_errors)
+            errors.update(validation_errors)
+
+        current_interval = self.config_entry.options.get(CONF_SCAN_INTERVAL, 30)
+        current_debug = self.config_entry.options.get("enable_debug_logging", False)
+        current_advanced = self.config_entry.options.get("enable_advanced_entities", True)
+        current_naming = self.config_entry.options.get("zone_naming_scheme", "zone")
+
+        # SmartLife Device schema - NO IoT Platform API fields
+        schema = vol.Schema({
+            vol.Optional(CONF_SCAN_INTERVAL, default=current_interval): selector.selector({
+                "number": {
+                    "min": 10,
+                    "max": 300,
+                    "step": 5,
+                    "unit_of_measurement": "seconds",
+                    "mode": "slider"
+                }
+            }),
+            vol.Optional("new_local_key", default=""): selector.selector({
+                "text": {"type": "password"}
+            }),
+            vol.Optional("enable_debug_logging", default=current_debug): bool,
+            vol.Optional("enable_advanced_entities", default=current_advanced): bool,
+            vol.Optional("zone_naming_scheme", default=current_naming): selector.selector({
+                "select": {
+                    "options": [
+                        {"value": "zone", "label": "Zone 1, Zone 2, ..."},
+                        {"value": "numeric", "label": "1, 2, 3, ..."},
+                        {"value": "custom", "label": "Custom Names"}
+                    ],
+                    "mode": "dropdown"
+                }
+            }),
+            vol.Optional("test_connection", default=True): bool,
+        })
+
+        return self.async_show_form(
+            step_id="smartlife_device",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders={
+                "device_name": self.config_entry.title,
+                "current_interval": str(current_interval),
+            }
+        )
+
+    async def async_step_device(
+        self, user_input: dict[str, Any | None] | None = None
+    ) -> FlowResult:
+        """Options for Manual/IoT Platform Device entries (full options)."""
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            validation_errors = await self._validate_options(user_input)
+            if not validation_errors:
+                return self.async_create_entry(title="", data=user_input)
+            errors.update(validation_errors)
 
         # Get current settings from config_entry
         current_interval = self.config_entry.options.get(CONF_SCAN_INTERVAL, 30)
@@ -52,7 +157,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
         current_client_id = self.config_entry.data.get("api_client_id", "")
         current_endpoint = self.config_entry.data.get("api_endpoint", "https://openapi.tuyaeu.com")
 
-        # Build options schema using helper
+        # Build full options schema using helper (includes IoT Platform API)
         options_schema = get_options_schema(
             current_interval=current_interval,
             current_debug=current_debug,
@@ -64,7 +169,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
         )
 
         return self.async_show_form(
-            step_id="init",
+            step_id="device",
             data_schema=options_schema,
             errors=errors,
             description_placeholders={

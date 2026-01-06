@@ -3,12 +3,85 @@
     "step": {
       "user": {
         "title": "KKT Kolbe Integration Einrichtung",
-        "description": "Wählen Sie die Einrichtungsmethode für KKT Kolbe Geräte.\n\n**Empfohlen:** Smart Discovery (automatische Erkennung mit API-Unterstützung)",
+        "description": "Wählen Sie die Einrichtungsmethode für KKT Kolbe Geräte.\n\n**Empfohlen:** SmartLife (kein Entwicklerkonto erforderlich)",
         "data": {
           "setup_method": "Einrichtungsmethode"
         },
         "data_description": {
           "setup_method": "Wählen Sie Ihre bevorzugte Einrichtungsmethode"
+        }
+      },
+      "smartlife_check_existing": {
+        "title": "SmartLife Konto",
+        "description": "{account_count} vorhandene(s) SmartLife-Konto(en) gefunden.\n\nSie können ein vorhandenes Konto verwenden, um weitere Geräte ohne erneute Authentifizierung hinzuzufügen, oder ein neues Konto erstellen.",
+        "data": {
+          "account_choice": "Konto auswählen"
+        },
+        "data_description": {
+          "account_choice": "Wählen Sie ein vorhandenes Konto oder erstellen Sie ein neues"
+        }
+      },
+      "smartlife_user_code": {
+        "title": "SmartLife Benutzercode",
+        "description": "Geben Sie Ihren SmartLife/Tuya Smart App Benutzercode ein.\n\n**So finden Sie Ihren Benutzercode:**\n1. Öffnen Sie die SmartLife oder Tuya Smart App\n2. Gehen Sie zu **Profil** (unten rechts)\n3. Tippen Sie auf das **Einstellungen**-Symbol (oben rechts)\n4. Wählen Sie **Konto und Sicherheit**\n5. Finden Sie Ihren **Benutzercode** unten\n\n**Hinweis:** Funktioniert mit SmartLife und Tuya Smart Apps - das richtige Schema wird automatisch erkannt.",
+        "data": {
+          "user_code": "Benutzercode"
+        },
+        "data_description": {
+          "user_code": "Ihr Benutzercode aus der SmartLife/Tuya Smart App (zu finden unter Profil > Einstellungen > Konto und Sicherheit)"
+        }
+      },
+      "smartlife_scan": {
+        "title": "QR-Code scannen",
+        "description": "Scannen Sie diesen QR-Code mit Ihrer SmartLife oder Tuya Smart App:\n\n**Anleitung:**\n1. Öffnen Sie die SmartLife/Tuya Smart App\n2. Tippen Sie auf **Profil** (unten rechts)\n3. Tippen Sie auf das **Scan**-Symbol (oben rechts)\n4. Scannen Sie den QR-Code oben\n5. **Bestätigen Sie die Anmeldung** in der App\n6. Klicken Sie unten auf **Absenden**",
+        "data": {
+          "qr_code": ""
+        }
+      },
+      "smartlife_scan_timeout": {
+        "title": "Zeitüberschreitung",
+        "description": "Der QR-Code-Scan ist abgelaufen. Dies kann passieren, wenn:\n- Der QR-Code nicht rechtzeitig gescannt wurde\n- Die Anmeldung nicht in der App bestätigt wurde\n\nMöchten Sie es erneut versuchen?",
+        "data": {
+          "retry": "Neuen QR-Code generieren",
+          "back": "Zurück zur Benutzercode-Eingabe"
+        },
+        "data_description": {
+          "retry": "Einen neuen QR-Code generieren und erneut scannen",
+          "back": "Zurückgehen um einen anderen Benutzercode einzugeben"
+        }
+      },
+      "smartlife_scan_failed": {
+        "title": "Authentifizierung fehlgeschlagen",
+        "description": "Die SmartLife-Authentifizierung ist fehlgeschlagen. Dies kann passieren, wenn:\n- Der falsche Benutzercode eingegeben wurde\n- Der QR-Code-Scan abgebrochen wurde\n- Ein Netzwerkfehler aufgetreten ist\n\nMöchten Sie es erneut versuchen?",
+        "data": {
+          "retry": "Erneut versuchen",
+          "back": "Zurück zur Benutzercode-Eingabe"
+        },
+        "data_description": {
+          "retry": "Einen neuen QR-Code generieren und erneut versuchen",
+          "back": "Zurückgehen um einen anderen Benutzercode einzugeben"
+        }
+      },
+      "smartlife_select_devices": {
+        "title": "Gerät auswählen",
+        "description": "{kkt_device_count} KKT Kolbe Gerät(e) in Ihrem SmartLife-Konto gefunden.\n\n{account_info}\n\nWählen Sie das Gerät aus, das Sie zu Home Assistant hinzufügen möchten.\n\n**Wichtig:** Pro Setup-Durchlauf wird nur **ein Gerät** hinzugefügt. Um mehrere Geräte hinzuzufügen, führen Sie diese Einrichtung für jedes weitere Gerät erneut aus.",
+        "data": {
+          "selected_devices": "KKT Kolbe Gerät",
+          "use_manual": "Stattdessen manuelle Geräte-ID-Eingabe verwenden"
+        },
+        "data_description": {
+          "selected_devices": "Wählen Sie das KKT Kolbe Gerät zum Hinzufügen (ein Gerät pro Setup)",
+          "use_manual": "Falls Ihr Gerät nicht aufgelistet ist, verwenden Sie die manuelle Konfiguration"
+        }
+      },
+      "smartlife_select_device_type": {
+        "title": "Gerätetyp auswählen",
+        "description": "Das Gerät **{device_name}** konnte nicht automatisch identifiziert werden.\n\nBitte wählen Sie den korrekten Gerätetyp aus der Liste unten.\n\n**Tipp:** Wenn Ihr spezifisches Modell nicht aufgeführt ist, wählen Sie 'Default Hood - Generische Dunstabzugshaube' für grundlegende Funktionalität.",
+        "data": {
+          "device_type": "Gerätetyp"
+        },
+        "data_description": {
+          "device_type": "Wählen Sie das Modell, das zu Ihrem KKT Kolbe Gerät passt"
         }
       },
       "smart_discovery": {
@@ -344,6 +417,9 @@
         }
       }
     },
+    "progress": {
+      "smartlife_scanning": "Warte auf QR-Code-Scan..."
+    },
     "error": {
       "cannot_connect": "Verbindung zum Gerät fehlgeschlagen. Prüfen Sie IP-Adresse und Netzwerk.",
       "invalid_auth": "Ungültiger Local Key oder Authentifizierung fehlgeschlagen. Überprüfen Sie den 16-stelligen Schlüssel.",
@@ -361,11 +437,16 @@
       "api_error": "API-Fehler aufgetreten",
       "unknown_api_error": "Unbekannter API-Fehler aufgetreten",
       "analysis_failed": "Geräteanalyse fehlgeschlagen",
-      "no_kkt_devices_found": "Keine KKT Kolbe Geräte in Ihrem Tuya-Konto gefunden",
+      "no_kkt_devices_found": "Keine KKT Kolbe Geräte in Ihrem SmartLife-Konto gefunden",
       "missing_local_details": "Bitte geben Sie lokale Verbindungsdetails an",
       "no_devices_found": "Keine Geräte im Netzwerk gefunden. Stellen Sie sicher, dass das Gerät eingeschaltet ist.",
       "api_client_id_invalid": "Access ID muss mindestens 10 Zeichen haben",
-      "api_client_secret_invalid": "Access Secret muss mindestens 20 Zeichen haben"
+      "api_client_secret_invalid": "Access Secret muss mindestens 20 Zeichen haben",
+      "invalid_user_code": "Ungültiger Benutzercode. Bitte überprüfen Sie den Benutzercode in Ihrer SmartLife/Tuya Smart App.",
+      "no_devices_selected": "Bitte wählen Sie mindestens ein Gerät zum Hinzufügen aus.",
+      "smartlife_not_authenticated": "SmartLife-Authentifizierung nicht abgeschlossen. Bitte starten Sie die Einrichtung erneut.",
+      "all_devices_configured": "Alle gefundenen Geräte sind bereits konfiguriert.",
+      "no_devices_created": "Keine Geräte wurden erstellt. Bitte überprüfen Sie die Protokolle für Details."
     },
     "abort": {
       "already_configured": "Gerät ist bereits konfiguriert",
@@ -375,13 +456,72 @@
       "reauth_successful": "Erneute Authentifizierung erfolgreich. Die Integration wurde neu geladen.",
       "reauth_failed": "Erneute Authentifizierung fehlgeschlagen",
       "reconfigure_failed": "Neukonfiguration fehlgeschlagen. Eintrag nicht gefunden.",
-      "reconfigure_successful": "Konfiguration erfolgreich aktualisiert. Die Integration wurde neu geladen."
+      "reconfigure_successful": "Konfiguration erfolgreich aktualisiert. Die Integration wurde neu geladen.",
+      "smartlife_not_authenticated": "SmartLife-Authentifizierung wurde nicht abgeschlossen. Bitte starten Sie die Einrichtung erneut.",
+      "all_devices_configured": "Alle KKT Kolbe Geräte in Ihrem SmartLife-Konto sind bereits konfiguriert.",
+      "no_devices_created": "Keine Geräte wurden erstellt. Dies kann passieren, wenn alle ausgewählten Geräte bereits konfiguriert sind."
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "KKT Kolbe Optionen",
+        "description": "Konfigurieren Sie Optionen für {device_name}.\n\nAktuelles Aktualisierungsintervall: {current_interval} Sekunden\n\n[Dokumentation](https://github.com/moag1000/HA-kkt-kolbe-integration)",
+        "data": {
+          "scan_interval": "Aktualisierungsintervall",
+          "new_local_key": "Neuer Local Key",
+          "api_enabled": "TinyTuya Cloud API aktivieren",
+          "api_client_id": "API Client ID",
+          "api_client_secret": "API Client Secret",
+          "api_endpoint": "API-Endpunkt Region",
+          "enable_debug_logging": "Debug-Protokollierung aktivieren",
+          "enable_advanced_entities": "Erweiterte Entitäten aktivieren",
+          "zone_naming_scheme": "Zonenbenennung",
+          "test_connection": "Verbindung testen"
+        },
+        "data_description": {
+          "new_local_key": "Neuen Local Key eingeben, wenn das Gerät zurückgesetzt wurde (16 Zeichen)",
+          "api_enabled": "TinyTuya Cloud API für Hybrid-Modus aktivieren",
+          "api_client_id": "Access ID von der Tuya IoT Platform",
+          "api_client_secret": "Access Secret von der Tuya IoT Platform",
+          "api_endpoint": "Wählen Sie Ihren regionalen API-Endpunkt",
+          "enable_debug_logging": "Detaillierte Protokollierung zur Fehlerbehebung aktivieren",
+          "enable_advanced_entities": "Alle Entitäten anzeigen (Lüftergeschwindigkeit, RGB-Modus, Filterstatus)",
+          "zone_naming_scheme": "Benennung von Multi-Zonen-Entitäten",
+          "test_connection": "Geräteverbindung nach Änderungen testen"
+        }
+      },
+      "smartlife_account": {
+        "title": "SmartLife Account Optionen",
+        "description": "Konfigurieren Sie Optionen für SmartLife Account ({account_name}).\n\nTokens werden automatisch vom SDK aktualisiert.",
+        "data": {
+          "enable_debug_logging": "Debug-Protokollierung aktivieren"
+        },
+        "data_description": {
+          "enable_debug_logging": "Detaillierte Protokollierung zur Fehlerbehebung aktivieren"
+        }
+      },
+      "smartlife_device": {
+        "title": "SmartLife Geräte-Optionen",
+        "description": "Konfigurieren Sie Optionen für {device_name}.\n\nAktuelles Aktualisierungsintervall: {current_interval} Sekunden",
+        "data": {
+          "scan_interval": "Aktualisierungsintervall",
+          "new_local_key": "Neuer Local Key",
+          "enable_debug_logging": "Debug-Protokollierung aktivieren",
+          "enable_advanced_entities": "Erweiterte Entitäten aktivieren",
+          "zone_naming_scheme": "Zonenbenennung",
+          "test_connection": "Verbindung testen"
+        },
+        "data_description": {
+          "new_local_key": "Neuen Local Key eingeben, wenn das Gerät zurückgesetzt wurde (16 Zeichen)",
+          "enable_debug_logging": "Detaillierte Protokollierung zur Fehlerbehebung aktivieren",
+          "enable_advanced_entities": "Alle Entitäten anzeigen (Lüftergeschwindigkeit, RGB-Modus, Filterstatus)",
+          "zone_naming_scheme": "Benennung von Multi-Zonen-Entitäten",
+          "test_connection": "Geräteverbindung nach Änderungen testen"
+        }
+      },
+      "device": {
+        "title": "KKT Kolbe Geräte-Optionen",
         "description": "Konfigurieren Sie Optionen für {device_name}.\n\nAktuelles Aktualisierungsintervall: {current_interval} Sekunden\n\n[Dokumentation](https://github.com/moag1000/HA-kkt-kolbe-integration)",
         "data": {
           "scan_interval": "Aktualisierungsintervall",
@@ -513,6 +653,16 @@
           "strong": "Stark"
         }
       }
+    }
+  },
+  "issues": {
+    "parent_entry_missing": {
+      "title": "SmartLife-Konto fehlt",
+      "description": "Das SmartLife-Konto für das Gerät **{device_name}** wurde gelöscht oder fehlt.\n\nDas Gerät kann ohne sein übergeordnetes Konto keine aktualisierten Tokens abrufen.\n\n**Lösung:** Entfernen Sie dieses Gerät und fügen Sie es erneut über die SmartLife-Einrichtung hinzu."
+    },
+    "smartlife_token_expired": {
+      "title": "SmartLife-Token abgelaufen",
+      "description": "Das SmartLife-Authentifizierungstoken ist abgelaufen.\n\n**Lösung:** Gehen Sie zu den Integrationseinstellungen und authentifizieren Sie sich erneut mit SmartLife."
     }
   }
 }

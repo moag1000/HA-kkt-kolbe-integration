@@ -4,12 +4,85 @@
     "step": {
       "user": {
         "title": "KKT Kolbe Integration Setup",
-        "description": "Choose your setup method for KKT Kolbe devices.",
+        "description": "Choose your setup method for KKT Kolbe devices.\n\n**Recommended:** SmartLife (no developer account required)",
         "data": {
           "setup_method": "Setup Method"
         },
         "data_description": {
           "setup_method": "Choose your preferred setup method"
+        }
+      },
+      "smartlife_check_existing": {
+        "title": "SmartLife Account",
+        "description": "Found {account_count} existing SmartLife account(s).\n\nYou can use an existing account to add more devices without re-authenticating, or create a new account.",
+        "data": {
+          "account_choice": "Select Account"
+        },
+        "data_description": {
+          "account_choice": "Choose an existing account or create a new one"
+        }
+      },
+      "smartlife_user_code": {
+        "title": "SmartLife User Code",
+        "description": "Enter your SmartLife/Tuya Smart App User Code.\n\n**How to find your User Code:**\n1. Open the SmartLife or Tuya Smart App\n2. Go to **Profile** (bottom right)\n3. Tap the **Settings** icon (top right)\n4. Select **Account and Security**\n5. Find your **User Code** at the bottom\n\n**Note:** Works with both SmartLife and Tuya Smart apps - the correct schema is auto-detected.",
+        "data": {
+          "user_code": "User Code"
+        },
+        "data_description": {
+          "user_code": "Your User Code from the SmartLife/Tuya Smart App (found in Profile > Settings > Account and Security)"
+        }
+      },
+      "smartlife_scan": {
+        "title": "Scan QR Code",
+        "description": "Scan this QR code with your SmartLife or Tuya Smart App:\n\n**Instructions:**\n1. Open the SmartLife/Tuya Smart App\n2. Tap **Profile** (bottom right)\n3. Tap the **Scan** icon (top right)\n4. Scan the QR code above\n5. **Confirm the login** in the app\n6. Click **Submit** below",
+        "data": {
+          "qr_code": ""
+        }
+      },
+      "smartlife_scan_timeout": {
+        "title": "Scan Timeout",
+        "description": "The QR code scan timed out. This can happen if:\n- The QR code was not scanned in time\n- The login was not confirmed in the app\n\nWould you like to try again?",
+        "data": {
+          "retry": "Generate new QR code",
+          "back": "Back to User Code entry"
+        },
+        "data_description": {
+          "retry": "Generate a new QR code and try scanning again",
+          "back": "Go back to enter a different User Code"
+        }
+      },
+      "smartlife_scan_failed": {
+        "title": "Authentication Failed",
+        "description": "The SmartLife authentication failed. This can happen if:\n- The wrong User Code was entered\n- The QR code scan was cancelled\n- There was a network error\n\nWould you like to try again?",
+        "data": {
+          "retry": "Try again",
+          "back": "Back to User Code entry"
+        },
+        "data_description": {
+          "retry": "Generate a new QR code and try again",
+          "back": "Go back to enter a different User Code"
+        }
+      },
+      "smartlife_select_devices": {
+        "title": "Select Device",
+        "description": "Found {kkt_device_count} KKT Kolbe device(s) in your SmartLife account.\n\n{account_info}\n\nSelect the device you want to add to Home Assistant.\n\n**Important:** Only **one device** is added per setup. To add multiple devices, run this setup again for each additional device.",
+        "data": {
+          "selected_devices": "KKT Kolbe Device",
+          "use_manual": "Use manual device ID entry instead"
+        },
+        "data_description": {
+          "selected_devices": "Select the KKT Kolbe device to add (one device per setup)",
+          "use_manual": "If your device is not listed, use manual configuration"
+        }
+      },
+      "smartlife_select_device_type": {
+        "title": "Select Device Type",
+        "description": "The device **{device_name}** could not be automatically identified.\n\nPlease select the correct device type from the list below.\n\n**Tip:** If your specific model is not listed, select 'Default Hood - Generic Range Hood' for basic functionality.",
+        "data": {
+          "device_type": "Device Type"
+        },
+        "data_description": {
+          "device_type": "Select the model that matches your KKT Kolbe device"
         }
       },
       "manual_config": {
@@ -341,6 +414,9 @@
         }
       }
     },
+    "progress": {
+      "smartlife_scanning": "Waiting for QR code scan..."
+    },
     "error": {
       "missing_required_fields": "Please fill in all required fields",
       "api_connection_failed": "Could not connect to Tuya Cloud API",
@@ -350,11 +426,16 @@
       "device_not_found": "Selected device not found",
       "discovery_failed": "Device discovery failed",
       "analysis_failed": "Device analysis failed",
-      "no_kkt_devices_found": "No KKT Kolbe devices found",
+      "no_kkt_devices_found": "No KKT Kolbe devices found in your SmartLife account",
       "missing_local_details": "Please provide local connection details",
       "no_devices_found": "No devices were found. Make sure your device is powered on and connected to the network.",
       "invalid_local_key": "Invalid local key. Must be 16 characters.",
-      "invalid_auth": "Authentication failed. Please check your local key."
+      "invalid_auth": "Authentication failed. Please check your local key.",
+      "invalid_user_code": "Invalid User Code. Please check the User Code in your SmartLife/Tuya Smart App.",
+      "no_devices_selected": "Please select at least one device to add.",
+      "smartlife_not_authenticated": "SmartLife authentication not completed. Please start the setup again.",
+      "all_devices_configured": "All discovered devices are already configured.",
+      "no_devices_created": "No devices were created. Please check the logs for details."
     },
     "abort": {
       "already_configured": "Device is already configured",
@@ -363,7 +444,10 @@
       "reauth_failed": "Reauthentication failed. Entry not found.",
       "reauth_successful": "Reauthentication successful. The integration has been reloaded.",
       "reconfigure_failed": "Reconfiguration failed. Entry not found.",
-      "reconfigure_successful": "Configuration updated successfully. The integration has been reloaded."
+      "reconfigure_successful": "Configuration updated successfully. The integration has been reloaded.",
+      "smartlife_not_authenticated": "SmartLife authentication was not completed. Please start the setup again.",
+      "all_devices_configured": "All KKT Kolbe devices in your SmartLife account are already configured.",
+      "no_devices_created": "No devices were created. This may happen if all selected devices are already configured."
     }
   },
   "options": {
@@ -407,6 +491,16 @@
       "connection_test_failed": "Connection test failed. Please check your device settings",
       "invalid_region": "Invalid region selected",
       "invalid_local_key": "Local key must be exactly 16 characters"
+    }
+  },
+  "issues": {
+    "parent_entry_missing": {
+      "title": "SmartLife Account Missing",
+      "description": "The SmartLife account for device **{device_name}** was deleted or is missing.\n\nThe device cannot retrieve updated tokens without its parent account.\n\n**To fix:** Remove this device and add it again using the SmartLife setup."
+    },
+    "smartlife_token_expired": {
+      "title": "SmartLife Token Expired",
+      "description": "The SmartLife authentication token has expired.\n\n**To fix:** Go to the integration settings and re-authenticate with SmartLife."
     }
   }
 }

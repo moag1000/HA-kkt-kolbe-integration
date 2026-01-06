@@ -7,9 +7,15 @@ control rather than multiple switches.
 Supports two modes:
 1. Enum mode: Speed values like "off", "low", "middle", "high", "strong"
 2. Numeric mode: Speed values 0-9 (for SOLO HCM, ECCO HCM hoods)
+
+Auto-Power-On Feature:
+For range hoods (Dunstabzugshauben), the main power (DP 1) must be on
+before fan speed can be set. This module automatically turns on the hood
+if it's off when setting fan speed.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 import math
 from typing import TYPE_CHECKING
@@ -39,6 +45,10 @@ _LOGGER = logging.getLogger(__name__)
 
 # Default fan speed mapping for KKT Kolbe hoods
 DEFAULT_SPEED_LIST = ["off", "low", "middle", "high", "strong"]
+
+# Auto-Power-On configuration for range hoods
+HOOD_POWER_DP = 1  # DP 1 is the main power switch for all hoods
+POWER_ON_DELAY = 0.5  # Delay in seconds after turning on before setting fan speed
 
 
 async def async_setup_entry(
@@ -133,6 +143,37 @@ class KKTKolbeFan(KKTBaseEntity, FanEntity):
         # Initialize state from coordinator data
         self._update_cached_state()
 
+    def _is_hood_powered_on(self) -> bool:
+        """Check if the hood main power (DP 1) is on.
+
+        For range hoods, DP 1 controls the main power switch.
+        Fan speed and light can only be controlled when the hood is powered on.
+
+        Returns:
+            True if the hood is powered on, False otherwise.
+        """
+        power_value = self._get_data_point_value(HOOD_POWER_DP)
+        # Handle None or non-boolean values
+        if power_value is None:
+            return False
+        return bool(power_value)
+
+    async def _async_ensure_hood_power_on(self) -> None:
+        """Ensure hood is powered on before setting fan speed.
+
+        For range hoods, the main power (DP 1) must be on before
+        fan speed can be controlled. This method automatically
+        turns on the hood if it's off and waits for it to be ready.
+        """
+        if not self._is_hood_powered_on():
+            _LOGGER.info(
+                "KKTKolbeFan [%s]: Hood is off, turning on before setting fan speed",
+                self._name
+            )
+            await self._async_set_data_point(HOOD_POWER_DP, True)
+            # Wait for the hood to power on before setting fan speed
+            await asyncio.sleep(POWER_ON_DELAY)
+
     def _update_cached_state(self) -> None:
         """Update the cached state from coordinator data."""
         speed_value = self._get_data_point_value()
@@ -196,12 +237,25 @@ class KKTKolbeFan(KKTBaseEntity, FanEntity):
 
     @property
     def is_on(self) -> bool | None:
-        """Return true if the fan is on."""
+        """Return true if the fan is on.
+
+        Note: If the hood main power (DP 1) is off, the fan is always off
+        regardless of the fan speed DP value.
+        """
+        # If hood is powered off, fan is definitely off
+        if not self._is_hood_powered_on():
+            return False
         return self._cached_state
 
     @property
     def percentage(self) -> int | None:
-        """Return the current speed percentage (0-100)."""
+        """Return the current speed percentage (0-100).
+
+        Note: If the hood main power (DP 1) is off, percentage is always 0.
+        """
+        # If hood is powered off, percentage is 0
+        if not self._is_hood_powered_on():
+            return 0
         return self._cached_percentage
 
     @property
@@ -223,7 +277,13 @@ class KKTKolbeFan(KKTBaseEntity, FanEntity):
 
         If percentage is provided, set that speed.
         Otherwise, restore the last non-off speed.
+
+        Auto-Power-On: For range hoods, automatically turns on the hood
+        (DP 1) if it's off before setting fan speed.
         """
+        # Ensure hood is powered on first (Auto-Power-On feature)
+        await self._async_ensure_hood_power_on()
+
         if percentage is not None:
             await self.async_set_percentage(percentage)
         else:
@@ -258,10 +318,16 @@ class KKTKolbeFan(KKTBaseEntity, FanEntity):
             - 22% = 2
             - ...
             - 100% = 9
+
+        Auto-Power-On: For range hoods, automatically turns on the hood
+        (DP 1) if it's off before setting fan speed (non-zero percentage only).
         """
         if percentage == 0:
             await self.async_turn_off()
             return
+
+        # Ensure hood is powered on first (Auto-Power-On feature)
+        await self._async_ensure_hood_power_on()
 
         if self._numeric_mode:
             # Convert percentage to 1-9

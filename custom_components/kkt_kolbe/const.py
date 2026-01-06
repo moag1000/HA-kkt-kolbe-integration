@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Final
 
 # === VERSION ===
-VERSION: Final = "3.2.0"
+VERSION: Final = "4.0.0"
 
 # === CORE IDENTIFIERS ===
 DOMAIN: Final = "kkt_kolbe"
@@ -108,3 +108,33 @@ RGB_MODES: Final[dict[int, str]] = {
     8: "Cyan",
     9: "Grass Green",
 }
+
+# === SMARTLIFE/TUYA SHARING CONFIGURATION ===
+# Client ID for Home Assistant integration (authorized by Tuya for tuya-device-sharing-sdk)
+# This is the same client ID used by the official Tuya HA integration
+SMARTLIFE_CLIENT_ID: Final = "HA_3y9q4ak7g4ephrvke"
+
+# App schemas
+# Note: "haauthorize" is required for the tuya-device-sharing-sdk Manager
+SMARTLIFE_SCHEMA: Final = "smartlife"
+TUYA_SMART_SCHEMA: Final = "tuyaSmart"
+TUYA_HA_SCHEMA: Final = "haauthorize"  # Required for Manager API access
+
+# QR Code configuration
+QR_CODE_FORMAT: Final = "tuyaSmart--qrLogin?token={token}"
+QR_LOGIN_POLL_INTERVAL: Final = 2  # seconds
+QR_LOGIN_TIMEOUT: Final = 120  # seconds (2 minutes)
+
+# SmartLife Config Keys
+CONF_SMARTLIFE_USER_CODE: Final = "smartlife_user_code"
+CONF_SMARTLIFE_TOKEN_INFO: Final = "smartlife_token_info"
+CONF_SMARTLIFE_APP_SCHEMA: Final = "smartlife_app_schema"
+
+# Setup modes
+SETUP_MODE_MANUAL: Final = "manual"
+SETUP_MODE_SMARTLIFE: Final = "smartlife"
+SETUP_MODE_IOT_PLATFORM: Final = "iot_platform"
+
+# Entry types for Parent-Child pattern
+ENTRY_TYPE_ACCOUNT: Final = "account"
+ENTRY_TYPE_DEVICE: Final = "device"
