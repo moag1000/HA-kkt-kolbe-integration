@@ -19,6 +19,14 @@ Diese Integration bringt **KKT Kolbe Dunstabzugshauben** und **Induktionskochfel
 - Local Key wird automatisch erkannt
 - Setup in unter 1 Minute
 
+🔄 **Auto-Power-On für Dunstabzugshauben**
+- Hood wird automatisch eingeschaltet wenn Fan/Licht gesteuert wird
+- Intelligente Zustandsanzeige (Fan/Licht zeigen "aus" wenn Hood aus)
+
+🔑 **SmartLife Account Wiederverwendung**
+- Neue Geräte ohne Re-Authentifizierung hinzufügen
+- Token werden automatisch aktualisiert
+
 ### Unterstützte Geräte
 
 #### Dunstabzugshauben
