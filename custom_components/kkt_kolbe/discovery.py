@@ -34,6 +34,21 @@ DISCOVERY_TIMEOUT = 6  # seconds
 DEVICE_CACHE_MAX_AGE = 3600  # Remove devices not seen for 1 hour
 DEVICE_CACHE_MAX_SIZE = 50  # Maximum number of cached devices
 
+# Log rate limiting - prevent excessive logging
+_last_log_time: dict[str, float] = {}
+LOG_COOLDOWN = 300  # Only log same message every 5 minutes
+
+
+def _should_log(key: str) -> bool:
+    """Check if we should log this message (rate limiting)."""
+    current_time = time.time()
+    last_time = _last_log_time.get(key, 0)
+    if current_time - last_time > LOG_COOLDOWN:
+        _last_log_time[key] = current_time
+        return True
+    return False
+
+
 # Tuya devices often advertise these mDNS service types
 TUYA_SERVICE_TYPES = [
     "_tuya._tcp.local.",
@@ -76,21 +91,25 @@ class TuyaUDPDiscovery(asyncio.DatagramProtocol):
     def datagram_received(self, data: bytes, addr: tuple[str, int]) -> None:
         """Process received UDP datagram from Tuya device."""
         try:
-            _LOGGER.debug(f"RAW UDP received from {addr[0]}: length={len(data)}, data={data.hex()[:100]}...")
+            # Only log raw UDP data at TRACE level equivalent (debug with explicit check)
+            # _LOGGER.debug(f"RAW UDP received from {addr[0]}: length={len(data)}")
 
             # Try to decrypt the message using LocalTuya approach
             decrypted = self._decrypt_udp_message(data)
             if decrypted:
                 try:
                     device_info = json.loads(decrypted.decode())
-                    _LOGGER.debug(f"TUYA DEVICE FOUND via UDP from {addr[0]}: {device_info}")
+                    # Removed frequent debug log - device info logged below if KKT
 
                     # Add IP address from UDP source
                     device_info["ip"] = addr[0]
 
                     # Check if this could be a KKT device
                     if self._is_potential_kkt_device(device_info):
-                        _LOGGER.info(f"KKT Device discovered: {device_info.get('gwId', 'unknown')} at {device_info['ip']}")
+                        device_id = device_info.get('gwId', 'unknown')
+                        # Rate-limit discovery logs (same device broadcasts frequently)
+                        if _should_log(f"udp_discover_{device_id}"):
+                            _LOGGER.info(f"KKT Device discovered via UDP: {device_id[:8]}... at {device_info['ip']}")
 
                         # DIRECT FIX: Add device to global discovery instance
                         global _discovery_instance
@@ -121,19 +140,17 @@ class TuyaUDPDiscovery(asyncio.DatagramProtocol):
                             }
                             _discovery_instance.discovered_devices[device_id] = formatted_device
                             _discovery_instance._update_device_last_seen(device_id)
-                            _LOGGER.debug(f"Added device {device_id} to discovered_devices")
+                            # Removed frequent debug log
 
                         # Also call callback
                         self.devices_found_callback(device_info)
                     else:
-                        _LOGGER.debug(f"Non-KKT Tuya device: {device_info.get('gwId', 'unknown')}")
+                        pass  # Silently ignore non-KKT devices
 
-                except json.JSONDecodeError as e:
-                    _LOGGER.warning(f"Decrypted data is not valid JSON: {e}")
-                    _LOGGER.warning(f"Raw decrypted data: {decrypted.hex() if isinstance(decrypted, bytes) else decrypted}")
+                except json.JSONDecodeError:
+                    pass  # Silently ignore invalid JSON (common for non-Tuya UDP traffic)
             else:
-                _LOGGER.debug(f"Could not decrypt UDP data from {addr[0]} (length={len(data)})")
-                _LOGGER.debug(f"Full hex dump: {data.hex()}")
+                pass  # Silently ignore unencryptable data (common for non-Tuya UDP traffic)
 
         except Exception as e:
             _LOGGER.error(f"Failed to process UDP message from {addr}: {e}", exc_info=True)
@@ -183,7 +200,6 @@ class TuyaUDPDiscovery(asyncio.DatagramProtocol):
 
         # Exact match first
         if gw_id in known_device_ids:
-            _LOGGER.info(f"Found known KKT device via UDP: {gw_id}")
             return True
 
         # Check patterns (first 18 chars) for flexibility
@@ -194,17 +210,15 @@ class TuyaUDPDiscovery(asyncio.DatagramProtocol):
 
         for pattern in known_patterns:
             if gw_id.startswith(pattern):
-                _LOGGER.info(f"Found KKT device via UDP pattern match: {gw_id}")
                 return True
 
-        # TEMPORARY: Accept any Tuya device starting with 'bf' for debugging
-        # This helps identify actual device IDs in your network
+        # Accept any Tuya device starting with 'bf' (common KKT prefix)
         if gw_id and len(gw_id) >= 20 and gw_id.startswith('bf'):
-            _LOGGER.warning(f"Unknown Tuya device found (could be KKT): {gw_id} - please check if this is your KKT device!")
-            return True  # Temporarily accept for identification
+            # Only log unknown devices once per session
+            if _should_log(f"unknown_tuya_{gw_id}"):
+                _LOGGER.debug(f"Unknown Tuya device (could be KKT): {gw_id[:12]}...")
+            return True
 
-        # Log all Tuya devices for debugging
-        _LOGGER.debug(f"Non-KKT Tuya device found via UDP: {gw_id}")
         return False
 
 class KKTKolbeDiscovery(ServiceListener):
@@ -389,10 +403,10 @@ class KKTKolbeDiscovery(ServiceListener):
                 # Use callback to schedule in the main event loop
                 if hasattr(self, '_discovery_callback'):
                     self._discovery_callback(formatted_device)
-                else:
-                    _LOGGER.warning("No discovery callback available for UDP device")
 
-                _LOGGER.info(f"Added UDP discovered KKT device: {device_id}")
+                # Rate-limited log for device additions
+                if _should_log(f"added_udp_{device_id}"):
+                    _LOGGER.debug(f"Added UDP discovered KKT device: {device_id[:8]}...")
 
         except Exception as e:
             _LOGGER.error(f"Failed to process UDP device: {e}")
@@ -475,7 +489,9 @@ class KKTKolbeDiscovery(ServiceListener):
                     # Trigger Home Assistant discovery flow
                     await self._async_trigger_discovery(device_info)
 
-                    _LOGGER.info(f"Discovered KKT Kolbe device: {device_info}")
+                    # Rate-limited log for mDNS discoveries
+                    if _should_log(f"mdns_discover_{device_id}"):
+                        _LOGGER.info(f"Discovered KKT device via mDNS: {device_id[:8]}... at {device_info.get('ip')}")
 
         except Exception as e:
             _LOGGER.error(f"Error processing discovered service {name}: {e}")
@@ -485,7 +501,7 @@ class KKTKolbeDiscovery(ServiceListener):
         if not info:
             return False
 
-        _LOGGER.debug(f"Checking device: {info.name} at {info.parsed_addresses()}")
+        # Removed verbose debug log
 
         # Extract device ID from TXT records first
         device_id = None
@@ -504,19 +520,16 @@ class KKTKolbeDiscovery(ServiceListener):
 
         # Check if device ID matches Tuya pattern
         if device_id and device_id.startswith('bf') and len(device_id) >= 20:
-            _LOGGER.info(f"Found potential Tuya device with ID: {device_id}")
             return self._check_tuya_device_info(info)
 
         # Fallback: Check service name for Tuya pattern (less reliable)
         name_lower = info.name.lower()
         if name_lower.startswith('bf') and len(name_lower) >= 20:
-            _LOGGER.info(f"Found potential Tuya device by name: {info.name}")
             return self._check_tuya_device_info(info)
 
         # Check device name for KKT patterns (fallback)
         for pattern in KKT_PATTERNS:
             if pattern in name_lower:
-                _LOGGER.info(f"Found KKT device by name pattern '{pattern}': {info.name}")
                 return True
 
         # Check TXT records for device information
@@ -542,25 +555,16 @@ class KKTKolbeDiscovery(ServiceListener):
             # Check for known model IDs
             model = txt_data.get('model', '') or txt_data.get('md', '')
             if model in MODELS:
-                _LOGGER.info(f"Found KKT device by model ID '{model}': {info.name}")
                 return True
 
             # Also check device ID patterns if available
             device_id = txt_data.get('id', '') or txt_data.get('devid', '') or txt_data.get('device_id', '')
-            if device_id:
-                _LOGGER.debug(f"Found device with ID: {device_id}")
-
-            # Log all TXT data for debugging
-            _LOGGER.debug(f"Device TXT data: {txt_data}")
 
         return False
 
     def _check_tuya_device_info(self, info) -> bool:
         """Check if a Tuya device is a KKT Kolbe device by TXT records."""
         if not hasattr(info, 'properties') or not info.properties:
-            # If no TXT records, we can't identify it as KKT
-            # But log it for manual verification
-            _LOGGER.info(f"Tuya device without TXT records: {info.name} - manual check required")
             return False
 
         txt_data = {}
@@ -574,36 +578,28 @@ class KKTKolbeDiscovery(ServiceListener):
             except (UnicodeDecodeError, AttributeError):
                 continue
 
-        _LOGGER.debug(f"Tuya device TXT data: {txt_data}")
-
         # Check for known model IDs in TXT records
         model = txt_data.get('model', '') or txt_data.get('md', '') or txt_data.get('productid', '')
         device_id = txt_data.get('id', '') or txt_data.get('devid', '') or txt_data.get('device_id', '')
 
         # Check if this matches known KKT models
         if model in MODELS:
-            _LOGGER.info(f"Found KKT device by model ID '{model}': {info.name}")
             return True
 
-        # Check if device ID matches known KKT device IDs (from your test)
+        # Check if device ID matches known KKT device IDs
         known_kkt_device_patterns = [
-            'bf735dfe2ad64fba7c',  # HERMES & STYLE pattern from your test
+            'bf735dfe2ad64fba7c',  # HERMES & STYLE pattern
             'bf5592b47738c5b46e',  # IND7705HC pattern
         ]
 
         for pattern in known_kkt_device_patterns:
             if device_id.startswith(pattern):
-                _LOGGER.info(f"Found KKT device by device ID pattern '{pattern}': {info.name}")
                 return True
 
-        # TEMPORARY: Accept any Tuya device for debugging
-        # This helps identify actual device IDs in your network
+        # Accept any Tuya device starting with 'bf' (common KKT prefix)
         if device_id and len(device_id) >= 20 and device_id.startswith('bf'):
-            _LOGGER.warning(f"Unknown Tuya device found via mDNS (could be KKT): {info.name} - DeviceID: {device_id} - please check if this is your KKT device!")
-            return True  # Temporarily accept for identification
+            return True
 
-        # For debugging: log all Tuya devices for manual verification
-        _LOGGER.info(f"Unidentified Tuya device: {info.name} - Model: {model}, DeviceID: {device_id}")
         return False
 
     def _extract_device_info(self, info: AsyncServiceInfo) -> dict[str, Any] | None:
@@ -682,11 +678,8 @@ class KKTKolbeDiscovery(ServiceListener):
                 if flow_result is not None:
                     await flow_result
 
-            except Exception as flow_error:
-                _LOGGER.debug(f"Discovery flow creation failed: {flow_error}")
-                # This is not critical, discovery still works manually
-
-            _LOGGER.info(f"Triggered automatic discovery for KKT device: {device_info['name']}")
+            except Exception:
+                pass  # Discovery flow creation is non-critical
 
         except Exception as e:
             _LOGGER.error(f"Failed to trigger discovery: {e}", exc_info=True)
