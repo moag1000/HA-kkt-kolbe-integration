@@ -2,83 +2,96 @@
 
 <div align="center">
   <img src="https://raw.githubusercontent.com/moag1000/HA-kkt-kolbe-integration/main/icon.png" alt="KKT Kolbe Logo" width="128" height="128">
+
+  **Home Assistant Integration für KKT Kolbe Küchengeräte**
+
+  [![GitHub Release][releases-shield]][releases]
+  [![HACS][hacsbadge]][hacs]
+  [![License][license-shield]][license-url]
+
+  *Dunstabzugshauben und Induktionskochfelder lokal steuern*
 </div>
 
-[![GitHub Release][releases-shield]][releases]
-[![hacs][hacsbadge]][hacs]
-[![License][license-shield]][license-url]
+---
 
-## Home Assistant Integration für KKT Kolbe Geräte
+## Highlights v4.0.0
 
-Diese Integration bringt **KKT Kolbe Dunstabzugshauben** und **Induktionskochfelder** in Home Assistant mit einfachem SmartLife/Tuya Smart Setup.
+- **Kein Developer Account nötig** - Setup via SmartLife/Tuya Smart App
+- **Auto-Power-On** - Hood schaltet automatisch ein bei Fan/Licht-Steuerung
+- **Account Wiederverwendung** - Neue Geräte ohne Re-Authentifizierung
+- **Lokale Steuerung** - Tuya Protocol ohne Cloud-Abhängigkeit
 
-### Highlights v4.0.0
+---
 
-✨ **QR-Code Setup mit SmartLife/Tuya Smart App**
-- Kein Developer Account erforderlich
-- Local Key wird automatisch erkannt
-- Setup in unter 1 Minute
+## Quick Start
 
-🔄 **Auto-Power-On für Dunstabzugshauben**
-- Hood wird automatisch eingeschaltet wenn Fan/Licht gesteuert wird
-- Intelligente Zustandsanzeige (Fan/Licht zeigen "aus" wenn Hood aus)
+```
+1. SmartLife/Tuya Smart App → KKT-Gerät hinzufügen
+2. App: Ich → Einstellungen → Konto und Sicherheit → User Code kopieren
+3. Home Assistant: Integration hinzufügen → "KKT Kolbe"
+4. User Code eingeben → QR-Code mit App scannen → Fertig!
+```
 
-🔑 **SmartLife Account Wiederverwendung**
-- Neue Geräte ohne Re-Authentifizierung hinzufügen
-- Token werden automatisch aktualisiert
+---
 
-### Unterstützte Geräte
+## Unterstützte Geräte
 
-#### Dunstabzugshauben
-- **HERMES & STYLE** - 5-Stufen Lüfter, RGB Beleuchtung, Timer
-- **HERMES** - 5-Stufen Lüfter, RGB Beleuchtung, Filterverwaltung
-- **ECCO HCM** - 9-Stufen Lüfter, Multi-Light Control, Wasch-Modus
-- **SOLO HCM** - Lüfter, Beleuchtung, Wasch-Modus
+### Dunstabzugshauben
 
-#### Induktionskochfeld
-- **IND7705HC** - 5 Kochzonen, Timer pro Zone, Kindersicherung
+| Modell | Lüfter | Licht | RGB | Timer |
+|--------|--------|-------|-----|-------|
+| **HERMES & STYLE** | 5 Stufen | ✅ | 10 Modi | ✅ |
+| **HERMES** | 5 Stufen | ✅ | 10 Modi | ✅ |
+| **ECCO HCM** | 9 Stufen | Multi | 4 Modi | ✅ |
+| **SOLO HCM** | 5 Stufen | ✅ | - | ✅ |
 
-### Installation
+### Induktionskochfeld
 
-1. **HACS** → **Integrations** → **Custom repositories**
-2. Repository: `https://github.com/moag1000/HA-kkt-kolbe-integration`
-3. Kategorie: `Integration`
-4. **Installieren** → **Home Assistant neustarten**
-5. **Einstellungen** → **Geräte & Dienste** → **Integration hinzufügen** → **KKT Kolbe**
+| Modell | Zonen | Features |
+|--------|-------|----------|
+| **IND7705HC** | 5 | Power, Timer, Temp, Boost, Flex |
 
-### Setup-Methoden
+---
 
-#### SmartLife/Tuya Smart (Empfohlen)
-- Einfaches QR-Code Setup
-- Kein Tuya Developer Account nötig
-- Local Key automatisch abgerufen
-- Multi-Device Support
-- Automatische Geräteerkennung
+## Installation (HACS)
 
-#### Manuelle Konfiguration
-- IP-Adresse, Device ID, Local Key manuell eingeben
-- Für Experten ohne Cloud-Zugang
+1. **HACS** → **Integrations** → ⋮ → **Custom repositories**
+2. URL: `https://github.com/moag1000/HA-kkt-kolbe-integration`
+3. Kategorie: **Integration** → Installieren → Neustarten
 
-#### IoT Platform (Fortgeschritten)
-- Für bestehende Tuya Developer Accounts
-- Erweiterte Debugging-Möglichkeiten
+---
 
-Weitere Details im [SmartLife Setup Guide](https://github.com/moag1000/HA-kkt-kolbe-integration/blob/main/docs/SMARTLIFE_SETUP.md).
+## Setup-Methoden
 
-### Hinweis
+| Methode | Developer Account | Empfohlen |
+|---------|-------------------|-----------|
+| **SmartLife QR-Code** | Nein | ✅ |
+| IoT Platform API | Ja | - |
+| Manual (tinytuya) | Nein | - |
 
-Diese Integration wurde mit Claude (Anthropic) entwickelt. Der Code ist Open Source und getestet, aber **Verwendung erfolgt auf eigene Verantwortung** - besonders bei der Kochfeld-Steuerung.
+---
 
-### Links
+## Voraussetzungen
+
+| Komponente | Version |
+|------------|---------|
+| Home Assistant | ≥ 2025.12.0 |
+| Python | ≥ 3.12 |
+
+---
+
+## Links
 
 - [Vollständige Dokumentation](https://github.com/moag1000/HA-kkt-kolbe-integration#readme)
 - [SmartLife Setup Guide](https://github.com/moag1000/HA-kkt-kolbe-integration/blob/main/docs/SMARTLIFE_SETUP.md)
+- [Troubleshooting](https://github.com/moag1000/HA-kkt-kolbe-integration/blob/main/TROUBLESHOOTING.md)
 - [Bug Reports](https://github.com/moag1000/HA-kkt-kolbe-integration/issues)
-- [Releases](https://github.com/moag1000/HA-kkt-kolbe-integration/releases)
 
 ---
 
 **Version**: 4.0.0 | **Lizenz**: MIT | **Autor**: [@moag1000](https://github.com/moag1000)
+
+> Entwickelt mit [Claude Code](https://claude.ai/code) - Verwendung auf eigene Verantwortung.
 
 [hacs]: https://github.com/hacs/integration
 [hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
