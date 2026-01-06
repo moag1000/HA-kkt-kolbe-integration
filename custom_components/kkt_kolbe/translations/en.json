@@ -11,21 +11,32 @@
           "setup_method": "Choose your preferred setup method"
         }
       },
-      "smartlife_user_code": {
-        "title": "SmartLife User Code",
-        "description": "Enter your SmartLife/Tuya Smart App User Code.\n\n**How to find your User Code:**\n1. Open the SmartLife or Tuya Smart App\n2. Go to **Profile** (bottom right)\n3. Tap the **Settings** icon (top right)\n4. Select **Account and Security**\n5. Find your **User Code** at the bottom\n\nThe User Code is a unique identifier for your account.",
+      "smartlife_check_existing": {
+        "title": "SmartLife Account",
+        "description": "Found {account_count} existing SmartLife account(s).\n\nYou can use an existing account to add more devices without re-authenticating, or create a new account.",
         "data": {
-          "user_code": "User Code",
-          "app_schema": "Select App"
+          "account_choice": "Select Account"
         },
         "data_description": {
-          "user_code": "Your User Code from the SmartLife/Tuya Smart App (found in Profile > Settings > Account and Security)",
-          "app_schema": "Select which app you are using"
+          "account_choice": "Choose an existing account or create a new one"
+        }
+      },
+      "smartlife_user_code": {
+        "title": "SmartLife User Code",
+        "description": "Enter your SmartLife/Tuya Smart App User Code.\n\n**How to find your User Code:**\n1. Open the SmartLife or Tuya Smart App\n2. Go to **Profile** (bottom right)\n3. Tap the **Settings** icon (top right)\n4. Select **Account and Security**\n5. Find your **User Code** at the bottom\n\n**Note:** Works with both SmartLife and Tuya Smart apps - the correct schema is auto-detected.",
+        "data": {
+          "user_code": "User Code"
+        },
+        "data_description": {
+          "user_code": "Your User Code from the SmartLife/Tuya Smart App (found in Profile > Settings > Account and Security)"
         }
       },
       "smartlife_scan": {
         "title": "Scan QR Code",
-        "description": "Scan this QR code with your SmartLife or Tuya Smart App.\n\n**Instructions:**\n1. Open the SmartLife/Tuya Smart App\n2. Tap **Profile** (bottom right)\n3. Tap the **Scan** icon (top right)\n4. Scan the QR code displayed below\n5. Confirm the login in the app\n\nWaiting for you to scan and confirm..."
+        "description": "Scan this QR code with your SmartLife or Tuya Smart App:\n\n**Instructions:**\n1. Open the SmartLife/Tuya Smart App\n2. Tap **Profile** (bottom right)\n3. Tap the **Scan** icon (top right)\n4. Scan the QR code above\n5. **Confirm the login** in the app\n6. Click **Submit** below",
+        "data": {
+          "qr_code": ""
+        }
       },
       "smartlife_scan_timeout": {
         "title": "Scan Timeout",
@@ -382,6 +393,62 @@
     "step": {
       "init": {
         "title": "KKT Kolbe Options",
+        "description": "Configure options for {device_name}.\n\nCurrent Update Interval: {current_interval} seconds\n\n[Documentation](https://github.com/moag1000/HA-kkt-kolbe-integration)",
+        "data": {
+          "scan_interval": "Update Interval",
+          "new_local_key": "New Local Key",
+          "api_enabled": "Enable TinyTuya Cloud API",
+          "api_client_id": "API Client ID",
+          "api_client_secret": "API Client Secret",
+          "api_endpoint": "API Endpoint Region",
+          "enable_debug_logging": "Enable Debug Logging",
+          "enable_advanced_entities": "Enable Advanced Entities",
+          "zone_naming_scheme": "Zone Naming Scheme",
+          "test_connection": "Test Connection"
+        },
+        "data_description": {
+          "new_local_key": "Enter new local key if device was reset (16 characters)",
+          "api_enabled": "Enable TinyTuya Cloud API for hybrid mode",
+          "api_client_id": "Access ID from Tuya IoT Platform",
+          "api_client_secret": "Access Secret from Tuya IoT Platform",
+          "api_endpoint": "Select your regional API endpoint",
+          "enable_debug_logging": "Enable detailed logging for troubleshooting",
+          "enable_advanced_entities": "Show all entities (Fan Speed, RGB Mode, Filter Status)",
+          "zone_naming_scheme": "How to name multi-zone entities",
+          "test_connection": "Test device connection after changes"
+        }
+      },
+      "smartlife_account": {
+        "title": "SmartLife Account Options",
+        "description": "Configure options for SmartLife Account ({account_name}).\n\nTokens are automatically refreshed by the SDK.",
+        "data": {
+          "enable_debug_logging": "Enable Debug Logging"
+        },
+        "data_description": {
+          "enable_debug_logging": "Enable detailed logging for troubleshooting"
+        }
+      },
+      "smartlife_device": {
+        "title": "SmartLife Device Options",
+        "description": "Configure options for {device_name}.\n\nCurrent Update Interval: {current_interval} seconds",
+        "data": {
+          "scan_interval": "Update Interval",
+          "new_local_key": "New Local Key",
+          "enable_debug_logging": "Enable Debug Logging",
+          "enable_advanced_entities": "Enable Advanced Entities",
+          "zone_naming_scheme": "Zone Naming Scheme",
+          "test_connection": "Test Connection"
+        },
+        "data_description": {
+          "new_local_key": "Enter new local key if device was reset (16 characters)",
+          "enable_debug_logging": "Enable detailed logging for troubleshooting",
+          "enable_advanced_entities": "Show all entities (Fan Speed, RGB Mode, Filter Status)",
+          "zone_naming_scheme": "How to name multi-zone entities",
+          "test_connection": "Test device connection after changes"
+        }
+      },
+      "device": {
+        "title": "KKT Kolbe Device Options",
         "description": "Configure options for {device_name}.\n\nCurrent Update Interval: {current_interval} seconds\n\n[Documentation](https://github.com/moag1000/HA-kkt-kolbe-integration)",
         "data": {
           "scan_interval": "Update Interval",

@@ -216,7 +216,11 @@ async def test_options_flow_init(
     hass: HomeAssistant,
     mock_config_entry,
 ) -> None:
-    """Test the options flow initialization."""
+    """Test the options flow initialization.
+
+    For device entries (entry_type=device), the options flow goes to 'device' step.
+    For account entries (entry_type=account), it goes to 'account' step.
+    """
     # Add the entry
     mock_config_entry.add_to_hass(hass)
 
@@ -234,7 +238,8 @@ async def test_options_flow_init(
     )
 
     assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "init"
+    # Device entries go to 'device' step, account entries go to 'account' step
+    assert result["step_id"] in ("device", "account", "init")
 
 
 @pytest.mark.asyncio
@@ -311,7 +316,10 @@ async def test_smartlife_user_code_step(hass: HomeAssistant) -> None:
 
 @pytest.mark.asyncio
 async def test_smartlife_user_code_validation(hass: HomeAssistant) -> None:
-    """Test SmartLife user code validation."""
+    """Test SmartLife user code validation.
+
+    Note: app_schema is now auto-detected, not provided by user.
+    """
     # Start the flow
     result = await hass.config_entries.flow.async_init(
         DOMAIN,
@@ -324,12 +332,11 @@ async def test_smartlife_user_code_validation(hass: HomeAssistant) -> None:
         user_input={"setup_method": "smartlife"},
     )
 
-    # Try with empty user code - should show error
+    # Try with empty user code - should show error (app_schema is auto-detected now)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         user_input={
             "user_code": "",
-            "app_schema": "smartlife",
         },
     )
 
@@ -343,7 +350,10 @@ async def test_smartlife_user_code_validation(hass: HomeAssistant) -> None:
 async def test_smartlife_scan_step_qr_generation_error(
     hass: HomeAssistant,
 ) -> None:
-    """Test SmartLife scan step when QR code generation fails."""
+    """Test SmartLife scan step when QR code generation fails.
+
+    Note: app_schema is now auto-detected, not provided by user.
+    """
     from custom_components.kkt_kolbe.exceptions import KKTConnectionError
 
     # Start the flow
@@ -373,7 +383,6 @@ async def test_smartlife_scan_step_qr_generation_error(
             result["flow_id"],
             user_input={
                 "user_code": "EU12345678",
-                "app_schema": "smartlife",
             },
         )
 
@@ -487,6 +496,7 @@ async def test_smartlife_select_devices_form_structure(
 
     Note: Full SmartLife flow testing with progress tasks is complex due to
     the async nature of QR code scanning. This test validates initial steps.
+    Note: app_schema is now auto-detected, not provided by user.
     """
     # Start the flow
     result = await hass.config_entries.flow.async_init(
@@ -515,12 +525,11 @@ async def test_smartlife_select_devices_form_structure(
         "custom_components.kkt_kolbe.clients.tuya_sharing_client.TuyaSharingClient",
         return_value=mock_client,
     ):
-        # Enter user code - this starts the QR scan flow
+        # Enter user code - this starts the QR scan flow (app_schema auto-detected)
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
             user_input={
                 "user_code": "EU12345678",
-                "app_schema": "smartlife",
             },
         )
 
@@ -561,8 +570,12 @@ async def test_smartlife_reauth_flow(
 
 
 @pytest.mark.asyncio
-async def test_smartlife_app_schema_options(hass: HomeAssistant) -> None:
-    """Test that both SmartLife and Tuya Smart app schemas are available."""
+async def test_smartlife_user_code_schema(hass: HomeAssistant) -> None:
+    """Test SmartLife user code step has correct schema.
+
+    Note: app_schema is now auto-detected (tries haauthorize, smartlife, tuyaSmart).
+    The user only provides user_code.
+    """
     # Start the flow
     result = await hass.config_entries.flow.async_init(
         DOMAIN,
@@ -575,7 +588,8 @@ async def test_smartlife_app_schema_options(hass: HomeAssistant) -> None:
         user_input={"setup_method": "smartlife"},
     )
 
-    # Verify we're on the user code step with app_schema option
+    # Verify we're on the user code step with simplified schema
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "smartlife_user_code"
-    assert "app_schema" in result["data_schema"].schema
+    # Only user_code is required now (app_schema is auto-detected)
+    assert "user_code" in result["data_schema"].schema

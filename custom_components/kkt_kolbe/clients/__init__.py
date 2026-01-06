@@ -6,11 +6,9 @@ This module provides clients for different Tuya authentication methods:
 """
 from __future__ import annotations
 
-from .tuya_sharing_client import (
-    TuyaSharingAuthResult,
-    TuyaSharingClient,
-    TuyaSharingDevice,
-)
+from .tuya_sharing_client import TuyaSharingAuthResult
+from .tuya_sharing_client import TuyaSharingClient
+from .tuya_sharing_client import TuyaSharingDevice
 
 __all__ = [
     "TuyaSharingAuthResult",

@@ -16,6 +16,8 @@ def mock_runtime_data():
     """Create mock runtime data."""
     coordinator = MagicMock()
     coordinator.data = {
+        1: True,     # Hood power on (required for Auto-Power-On feature)
+        "1": True,   # Also string key
         4: True,     # Light on
         "4": True,   # Also string key
         5: 128,      # Brightness at 50%

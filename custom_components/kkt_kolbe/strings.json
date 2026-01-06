@@ -12,21 +12,32 @@
           "setup_method": "Choose your preferred setup method"
         }
       },
-      "smartlife_user_code": {
-        "title": "SmartLife User Code",
-        "description": "Enter your SmartLife/Tuya Smart App User Code.\n\n**How to find your User Code:**\n1. Open the SmartLife or Tuya Smart App\n2. Go to **Profile** (bottom right)\n3. Tap the **Settings** icon (top right)\n4. Select **Account and Security**\n5. Find your **User Code** at the bottom\n\nThe User Code is a unique identifier for your account.",
+      "smartlife_check_existing": {
+        "title": "SmartLife Account",
+        "description": "Found {account_count} existing SmartLife account(s).\n\nYou can use an existing account to add more devices without re-authenticating, or create a new account.",
         "data": {
-          "user_code": "User Code",
-          "app_schema": "Select App"
+          "account_choice": "Select Account"
         },
         "data_description": {
-          "user_code": "Your User Code from the SmartLife/Tuya Smart App (found in Profile > Settings > Account and Security)",
-          "app_schema": "Select which app you are using"
+          "account_choice": "Choose an existing account or create a new one"
+        }
+      },
+      "smartlife_user_code": {
+        "title": "SmartLife User Code",
+        "description": "Enter your SmartLife/Tuya Smart App User Code.\n\n**How to find your User Code:**\n1. Open the SmartLife or Tuya Smart App\n2. Go to **Profile** (bottom right)\n3. Tap the **Settings** icon (top right)\n4. Select **Account and Security**\n5. Find your **User Code** at the bottom\n\n**Note:** Works with both SmartLife and Tuya Smart apps - the correct schema is auto-detected.",
+        "data": {
+          "user_code": "User Code"
+        },
+        "data_description": {
+          "user_code": "Your User Code from the SmartLife/Tuya Smart App (found in Profile > Settings > Account and Security)"
         }
       },
       "smartlife_scan": {
         "title": "Scan QR Code",
-        "description": "Scan this QR code with your SmartLife or Tuya Smart App.\n\n**Instructions:**\n1. Open the SmartLife/Tuya Smart App\n2. Tap **Profile** (bottom right)\n3. Tap the **Scan** icon (top right)\n4. Scan the QR code displayed below\n5. Confirm the login in the app\n\nWaiting for you to scan and confirm..."
+        "description": "Scan this QR code with your SmartLife or Tuya Smart App:\n\n**Instructions:**\n1. Open the SmartLife/Tuya Smart App\n2. Tap **Profile** (bottom right)\n3. Tap the **Scan** icon (top right)\n4. Scan the QR code above\n5. **Confirm the login** in the app\n6. Click **Submit** below",
+        "data": {
+          "qr_code": ""
+        }
       },
       "smartlife_scan_timeout": {
         "title": "Scan Timeout",
