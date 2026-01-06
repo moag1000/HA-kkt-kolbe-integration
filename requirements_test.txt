@@ -7,3 +7,4 @@ zeroconf>=0.131.0
 pycryptodome>=3.19.0
 tinytuya>=1.14.0
 aiohttp>=3.9.0
+tuya-device-sharing-sdk>=0.2.0
