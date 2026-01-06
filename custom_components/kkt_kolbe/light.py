@@ -46,6 +46,7 @@ _LOGGER = logging.getLogger(__name__)
 # Auto-Power-On configuration for range hoods
 HOOD_POWER_DP = 1  # DP 1 is the main power switch for all hoods
 POWER_ON_DELAY = 0.5  # Delay in seconds after turning on before setting light
+WORK_MODE_DELAY = 0.3  # Delay in seconds after setting work_mode before setting light
 
 
 async def async_setup_entry(
@@ -107,6 +108,10 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
         # Offset for numeric effects (e.g., 1 if device uses 0=off, 1=first effect)
         self._effect_offset = light_config.get("effect_offset", 0)
 
+        # Auto-Work-Mode configuration (for devices that need work_mode set before light works)
+        self._work_mode_dp = light_config.get("work_mode_dp")
+        self._work_mode_default = light_config.get("work_mode_default", "white")
+
         # Determine color modes
         if self._brightness_dp:
             self._attr_supported_color_modes = {ColorMode.BRIGHTNESS}
@@ -131,8 +136,8 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
         self._attr_icon = light_config.get("icon", "mdi:lightbulb")
 
         _LOGGER.info(
-            "KKTKolbeLight [%s] initialized - dp: %d, brightness_dp: %s, effect_dp: %s, effects: %s",
-            self._name, self._dp_id, self._brightness_dp, self._effect_dp, self._effect_list
+            "KKTKolbeLight [%s] initialized - dp: %d, brightness_dp: %s, effect_dp: %s, effects: %s, work_mode_dp: %s",
+            self._name, self._dp_id, self._brightness_dp, self._effect_dp, self._effect_list, self._work_mode_dp
         )
 
     def _is_hood_powered_on(self) -> bool:
@@ -165,6 +170,35 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
             await self._async_set_data_point(HOOD_POWER_DP, True)
             # Wait for the hood to power on before setting light
             await asyncio.sleep(POWER_ON_DELAY)
+
+    async def _async_ensure_work_mode(self) -> None:
+        """Ensure work_mode is set to default before turning on light.
+
+        For devices like SOLO HCM, the work_mode (e.g., DP 108) must be set
+        to a valid mode (e.g., "white") before the light will respond.
+        Without this, the light may just blink on the device but not turn on.
+
+        Auto-Work-Mode Feature: Automatically sets work_mode to default
+        (typically "white") when turning on the light.
+        """
+        if not self._work_mode_dp:
+            return
+
+        # Check current work_mode
+        current_mode = None
+        if self.coordinator.data:
+            dps_data = self.coordinator.data.get("dps", self.coordinator.data)
+            current_mode = dps_data.get(str(self._work_mode_dp))
+
+        # Only set if not already set to a valid mode
+        if current_mode is None or current_mode == "":
+            _LOGGER.info(
+                "KKTKolbeLight [%s]: Setting work_mode (DP %d) to '%s' before turning on light",
+                self._name, self._work_mode_dp, self._work_mode_default
+            )
+            await self._async_set_data_point(self._work_mode_dp, self._work_mode_default)
+            # Wait for work_mode to be applied before setting light
+            await asyncio.sleep(WORK_MODE_DELAY)
 
     @property
     def is_on(self) -> bool | None:
@@ -244,9 +278,15 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
 
         Auto-Power-On: For range hoods, automatically turns on the hood
         (DP 1) if it's off before controlling the light.
+
+        Auto-Work-Mode: For devices like SOLO HCM, automatically sets
+        work_mode to default (e.g., "white") before turning on the light.
         """
         # Ensure hood is powered on first (Auto-Power-On feature)
         await self._async_ensure_hood_power_on()
+
+        # Ensure work_mode is set (Auto-Work-Mode feature for SOLO HCM etc.)
+        await self._async_ensure_work_mode()
 
         # Handle effect if provided
         if ATTR_EFFECT in kwargs and self._effect_dp:

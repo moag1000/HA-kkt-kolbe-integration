@@ -278,19 +278,25 @@ KNOWN_DEVICES = {
             },
             "light": [
                 # Main light with RGB mode effects for HomeKit/Siri
+                # Auto-Work-Mode: Sets work_mode to "white" before turning on light
                 {
                     "dp": 4,
                     "name": "Light",
                     "icon": "mdi:lightbulb",
                     "effect_dp": 108,
                     "effect_numeric": False,
-                    "effects": ["white", "colour", "scene", "music"]
+                    "effects": ["white", "colour", "scene", "music"],
+                    "work_mode_dp": 108,
+                    "work_mode_default": "white"
                 },
                 # LED Light as alternative (some SOLO HCM units respond to DP 104 instead of DP 4)
+                # Auto-Work-Mode: Sets work_mode to "white" before turning on light
                 {
                     "dp": 104,
                     "name": "LED Light",
-                    "icon": "mdi:led-strip"
+                    "icon": "mdi:led-strip",
+                    "work_mode_dp": 108,
+                    "work_mode_default": "white"
                 }
             ],
             "switch": [
@@ -347,21 +353,32 @@ KNOWN_DEVICES = {
             },
             "light": [
                 # Main light with RGB mode effects for HomeKit/Siri
+                # Auto-Work-Mode: Sets work_mode to "white" before turning on light
                 {
                     "dp": 4,
                     "name": "Light",
                     "icon": "mdi:lightbulb",
                     "effect_dp": 108,
                     "effect_numeric": False,
-                    "effects": ["white", "colour", "scene", "music"]
+                    "effects": ["white", "colour", "scene", "music"],
+                    "work_mode_dp": 108,
+                    "work_mode_default": "white"
+                },
+                # LED Light as alternative (some units respond to DP 104 instead of DP 4)
+                # Auto-Work-Mode: Sets work_mode to "white" before turning on light
+                {
+                    "dp": 104,
+                    "name": "LED Light",
+                    "icon": "mdi:led-strip",
+                    "work_mode_dp": 108,
+                    "work_mode_default": "white"
                 }
             ],
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
-                # RGB and LED lights as advanced switches (use main Light entity for Siri)
+                # RGB light as switch (use main Light entity for Siri)
                 {"dp": 6, "name": "RGB Light", "device_class": "switch", "icon": "mdi:palette", "advanced": True, "entity_category": "config"},
                 {"dp": 7, "name": "Wash Mode", "device_class": "switch", "icon": "mdi:spray-bottle", "advanced": True, "entity_category": "config"},
-                {"dp": 104, "name": "LED Light", "device_class": "switch", "icon": "mdi:led-strip", "advanced": True, "entity_category": "config"},
                 {"dp": 106, "name": "Confirm", "device_class": "switch", "icon": "mdi:check", "entity_category": "config", "advanced": True}
             ],
             "select": [
