@@ -697,14 +697,14 @@
               "ip_address": "Die aktuelle IP-Adresse des Geräts",
               "fetch_from_cloud": "Aktivieren Sie diese Option, um den Local Key automatisch abzurufen (erfordert SmartLife-Konto-Verknüpfung)",
               "local_key": "16-stelliger Local Key (nur erforderlich, wenn automatischer Abruf deaktiviert ist)"
-            },
-            "errors": {
-              "required": "Dieses Feld ist erforderlich",
-              "invalid_device_id": "Geräte-ID muss mindestens 20 Zeichen haben",
-              "invalid_local_key": "Local Key muss exakt 16 Zeichen haben",
-              "cloud_fetch_failed": "Local Key konnte nicht aus der Cloud abgerufen werden. Bitte manuell eingeben oder SmartLife-Konto prüfen."
             }
           }
+        },
+        "error": {
+          "required": "Dieses Feld ist erforderlich",
+          "invalid_device_id": "Geräte-ID muss mindestens 20 Zeichen haben",
+          "invalid_local_key": "Local Key muss exakt 16 Zeichen haben",
+          "cloud_fetch_failed": "Local Key konnte nicht aus der Cloud abgerufen werden. Bitte manuell eingeben oder SmartLife-Konto prüfen."
         }
       }
     }

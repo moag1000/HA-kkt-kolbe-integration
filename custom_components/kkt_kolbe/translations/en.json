@@ -623,14 +623,14 @@
               "ip_address": "Current IP address of the device",
               "fetch_from_cloud": "Automatically fetch the local key from your SmartLife account",
               "local_key": "16-character local key (only needed if not fetching from cloud)"
-            },
-            "errors": {
-              "required": "This field is required",
-              "invalid_device_id": "Device ID must be at least 20 characters",
-              "invalid_local_key": "Local key must be exactly 16 characters",
-              "cloud_fetch_failed": "Failed to fetch local key from cloud. Please enter manually or check your SmartLife account."
             }
           }
+        },
+        "error": {
+          "required": "This field is required",
+          "invalid_device_id": "Device ID must be at least 20 characters",
+          "invalid_local_key": "Local key must be exactly 16 characters",
+          "cloud_fetch_failed": "Failed to fetch local key from cloud. Please enter manually or check your SmartLife account."
         }
       }
     }
