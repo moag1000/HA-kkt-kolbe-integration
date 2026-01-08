@@ -63,17 +63,35 @@ CATEGORY_HOOD: Final = "yyj"  # Dunstabzugshaube
 CATEGORY_COOKTOP: Final = "dcl"  # Induktionskochfeld
 
 # === DEVICE MODELS ===
+# Model codes are stable identifiers - device IDs change when re-adding to Tuya/SmartLife!
 MODELS: Final[dict[str, dict[str, str]]] = {
+    # Hoods (Dunstabzugshauben)
     "e1k6i0zo": {
         "name": "HERMES & STYLE",
         "category": CATEGORY_HOOD,
         "product_id": "ypaixllljc2dcpae",
     },
-    "IND7705HC": {
+    "edjszs": {
+        "name": "SOLO HCM",
+        "category": CATEGORY_HOOD,
+        "product_id": "bgvbvjwomgbisd8x",
+    },
+    "edjsx0": {
+        "name": "ECCO HCM",
+        "category": CATEGORY_HOOD,
+        "product_id": "gwdgkteknzvsattn",
+    },
+    # Cooktops (Induktionskochfelder)
+    "e1kc5q64": {
         "name": "IND7705HC",
         "category": CATEGORY_COOKTOP,
         "product_id": "p8volecsgzdyun29",
     },
+}
+
+# Reverse lookup: Product ID -> Model code
+PRODUCT_ID_TO_MODEL: Final[dict[str, str]] = {
+    v["product_id"]: k for k, v in MODELS.items()
 }
 
 # === FAN SPEED MAPPINGS ===

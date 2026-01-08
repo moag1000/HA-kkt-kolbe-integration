@@ -39,7 +39,11 @@ class KKTKolbeTuyaDevice:
         self.device_id = device_id
         self.ip_address = ip_address
         self.local_key = local_key
+        self._local_key_bytes: bytes | None = None  # Cached latin1-encoded key
         self.version = version
+
+        # Debug: Log local_key encoding details
+        self._debug_local_key_encoding(local_key)
         self._device: Any = None
         self._status: dict[str, Any] = {}
         self._connected = False
@@ -57,6 +61,68 @@ class KKTKolbeTuyaDevice:
             "protocol_version_detected": None,
         }
         # Don't connect in __init__ - will be done async
+
+    def _debug_local_key_encoding(self, local_key: str) -> None:
+        """Log detailed encoding information for debugging local_key issues."""
+        try:
+            key_len = len(local_key)
+
+            # Encode with different encodings
+            try:
+                utf8_bytes = local_key.encode("utf-8")
+                utf8_hex = utf8_bytes.hex()
+                utf8_len = len(utf8_bytes)
+            except Exception as e:
+                utf8_hex = f"ERROR: {e}"
+                utf8_len = -1
+
+            try:
+                latin1_bytes = local_key.encode("latin1")
+                latin1_hex = latin1_bytes.hex()
+                latin1_len = len(latin1_bytes)
+                # Cache for later use
+                self._local_key_bytes = latin1_bytes
+            except Exception as e:
+                latin1_hex = f"ERROR: {e}"
+                latin1_len = -1
+
+            # Check for non-ASCII characters
+            non_ascii = [c for c in local_key if ord(c) > 127]
+            has_non_ascii = len(non_ascii) > 0
+
+            # Check for special characters
+            special_chars = [c for c in local_key if not c.isalnum()]
+
+            _LOGGER.info(
+                "LOCAL_KEY ENCODING DEBUG for device %s:\n"
+                "  String length: %d (expected: 16)\n"
+                "  UTF-8 bytes: %d, hex: %s\n"
+                "  Latin1 bytes: %d, hex: %s\n"
+                "  Has non-ASCII: %s (chars: %s)\n"
+                "  Special chars: %s\n"
+                "  Char codes: %s\n"
+                "  Key (masked): %s...%s",
+                self.device_id[:8] if hasattr(self, 'device_id') else "???",
+                key_len,
+                utf8_len, utf8_hex[:40] + "..." if len(utf8_hex) > 40 else utf8_hex,
+                latin1_len, latin1_hex[:40] + "..." if len(latin1_hex) > 40 else latin1_hex,
+                has_non_ascii, non_ascii[:5] if has_non_ascii else "none",
+                special_chars,
+                [ord(c) for c in local_key],
+                local_key[:2] if key_len >= 2 else "?",
+                local_key[-2:] if key_len >= 2 else "?"
+            )
+
+            # Warn if UTF-8 and Latin1 produce different lengths
+            if utf8_len != latin1_len:
+                _LOGGER.warning(
+                    "LOCAL_KEY ENCODING MISMATCH: UTF-8 (%d bytes) != Latin1 (%d bytes). "
+                    "This may cause connection failures!",
+                    utf8_len, latin1_len
+                )
+
+        except Exception as e:
+            _LOGGER.error("Error debugging local_key encoding: %s", e)
 
     def _handle_task_result(self, task: asyncio.Task[Any]) -> None:
         """Handle completed async task results and log errors."""
@@ -202,197 +268,294 @@ class KKTKolbeTuyaDevice:
             else:
                 return await loop.run_in_executor(None, func)
 
+    def _get_key_variants(self) -> list[tuple[str, str]]:
+        """Generate local_key variants to try for encoding issues.
+
+        Returns a list of (key_variant, description) tuples.
+        Some devices have keys that were incorrectly encoded/decoded.
+        """
+        variants = [(self.local_key, "original")]
+
+        # If key has non-ASCII characters, try re-encoding
+        if any(ord(c) > 127 for c in self.local_key):
+            try:
+                # Try latin1->utf8 re-encoding
+                latin1_fixed = self.local_key.encode("latin1").decode("utf-8")
+                if latin1_fixed != self.local_key:
+                    variants.append((latin1_fixed, "latin1->utf8"))
+            except (UnicodeDecodeError, UnicodeEncodeError):
+                pass
+
+            try:
+                # Try utf8->latin1 re-encoding
+                utf8_fixed = self.local_key.encode("utf-8").decode("latin1")
+                if utf8_fixed != self.local_key:
+                    variants.append((utf8_fixed, "utf8->latin1"))
+            except (UnicodeDecodeError, UnicodeEncodeError):
+                pass
+
+        return variants
+
+    def _is_error_914(self, status: Any) -> bool:
+        """Check if status response is Error 914 (key/version check failed)."""
+        if isinstance(status, dict):
+            err_code = status.get("Err", status.get("err", ""))
+            return str(err_code) == "914"
+        return False
+
+    async def _try_connect_with_key(self, local_key: str, version: float) -> tuple[Any, dict | None]:
+        """Try to connect with a specific key and version.
+
+        Returns (device, status) tuple. Device is None if connection failed.
+        """
+        test_device = None
+        try:
+            test_device = await self._run_executor_job(
+                lambda: tinytuya.Device(
+                    dev_id=self.device_id,
+                    address=self.ip_address,
+                    local_key=local_key,
+                    version=version
+                )
+            )
+
+            # Configure device with LocalTuya-style settings
+            test_device.set_socketPersistent(True)
+            test_device.set_socketNODELAY(True)
+            test_device.set_socketTimeout(3)
+            test_device.set_socketRetryLimit(1)
+
+            # Get status with timeout
+            test_status = await asyncio.wait_for(
+                self._run_executor_job(test_device.status),
+                timeout=3.0
+            )
+
+            return test_device, test_status
+
+        except (TimeoutError, asyncio.TimeoutError):
+            if test_device:
+                try:
+                    test_device.close()
+                except Exception:
+                    pass
+            return None, None
+
+        except Exception as e:
+            if test_device:
+                try:
+                    test_device.close()
+                except Exception:
+                    pass
+            raise
+
     async def _perform_connection(self) -> None:
         """Perform the actual connection logic."""
+        # Get key variants to try (for encoding issues)
+        key_variants = self._get_key_variants()
+        error_914_count = 0
+
         # LocalTuya-inspired authentication with enhanced protocol detection
         if self.version == "auto":
             _LOGGER.info(f"Auto-detecting Tuya protocol version for {self.ip_address}")
-            # LocalTuya order: 3.3 default first, then 3.4, 3.1, 3.2 (proven compatibility)
-            tested_versions = []
 
+            # Try each version with each key variant
             for test_version in [3.3, 3.4, 3.1, 3.2]:
-                _LOGGER.debug(f"Testing protocol version {test_version} for device {self.device_id[:8]}")
-                tested_versions.append(test_version)
-                test_device = None
+                for key_variant, key_desc in key_variants:
+                    _LOGGER.debug(
+                        f"Testing version {test_version} with {key_desc} key for device {self.device_id[:8]}"
+                    )
+                    test_device = None
 
-                try:
-                    # Create device with shorter timeout
-                    test_device = await self._run_executor_job(
-                        lambda v=test_version: tinytuya.Device(
-                            dev_id=self.device_id,
-                            address=self.ip_address,
-                            local_key=self.local_key,
-                            version=float(v)  # Use float like LocalTuya
+                    try:
+                        test_device, test_status = await self._try_connect_with_key(
+                            key_variant, float(test_version)
                         )
-                    )
 
-                    # Configure device with LocalTuya-style settings
-                    test_device.set_socketPersistent(True)
-                    test_device.set_socketNODELAY(True)
-                    test_device.set_socketTimeout(3)  # Reduced from 5 to 3
-                    test_device.set_socketRetryLimit(1)  # Reduced from 3 to 1
+                        if test_status is None:
+                            _LOGGER.debug(f"Version {test_version} ({key_desc}) timeout")
+                            continue
 
-                    # Enhanced validation with explicit status() call
-                    # Use shorter timeout (3s instead of 5s)
-                    test_status = await asyncio.wait_for(
-                        self._run_executor_job(test_device.status),
-                        timeout=3.0
-                    )
+                        # Check for Error 914
+                        if self._is_error_914(test_status):
+                            error_914_count += 1
+                            _LOGGER.debug(
+                                f"Error 914 with version {test_version} ({key_desc} key) - "
+                                f"device key/version check failed"
+                            )
+                            if test_device:
+                                try:
+                                    test_device.close()
+                                except Exception:
+                                    pass
+                            continue
 
-                    # Skip DPS detection to save time
-                    # It's optional and adds 3s per attempt
+                        # Check for valid DPS response
+                        if (test_status and isinstance(test_status, dict) and
+                            "dps" in test_status and test_status["dps"] and
+                            len(test_status["dps"]) > 0):
 
-                    # LocalTuya-style validation: Check for datapoints like LocalTuya does
-                    if (test_status and isinstance(test_status, dict) and
-                        "dps" in test_status and test_status["dps"] and
-                        len(test_status["dps"]) > 0):
-                        self.version = str(test_version)
-                        self._connection_stats["protocol_version_detected"] = str(test_version)
-                        _LOGGER.info(f"Detected Tuya protocol version: {test_version}")
-                        self._device = test_device
-                        self._connected = True
-                        return
-                    else:
-                        # Invalid response, cleanup and try next
+                            self.version = str(test_version)
+                            self._connection_stats["protocol_version_detected"] = str(test_version)
+
+                            # If we used a variant key, update local_key
+                            if key_variant != self.local_key:
+                                _LOGGER.warning(
+                                    f"Connection successful with {key_desc} key variant! "
+                                    f"Original key had encoding issues."
+                                )
+                                self.local_key = key_variant
+
+                            _LOGGER.info(f"Detected Tuya protocol version: {test_version}")
+                            self._device = test_device
+                            self._connected = True
+                            return
+                        else:
+                            # Invalid response, cleanup and try next
+                            if test_device:
+                                try:
+                                    test_device.close()
+                                except Exception:
+                                    pass
+
+                    except asyncio.CancelledError:
                         if test_device:
                             try:
                                 test_device.close()
                             except Exception:
-                                pass  # Ignore cleanup errors
+                                pass
+                        _LOGGER.warning(f"Protocol detection cancelled for version {test_version}")
+                        raise
+
+                    except Exception as e:
+                        if test_device:
+                            try:
+                                test_device.close()
+                            except Exception:
+                                pass
+
+                        # Check if this is an authentication error
+                        error_msg = str(e).lower()
+                        if any(keyword in error_msg for keyword in ["decrypt", "encrypt", "hmac", "key", "auth"]):
+                            _LOGGER.error(f"Authentication error detected: {e}")
+                            raise KKTAuthenticationError(
+                                device_id=self.device_id,
+                                message=f"Authentication failed - invalid local key: {e}"
+                            ) from e
+
+                        _LOGGER.debug(f"Version {test_version} ({key_desc}) failed: {type(e).__name__}")
+                        continue
+
+            # If we reach here, auto-detection failed
+            if error_914_count > 0:
+                _LOGGER.error(
+                    f"Protocol auto-detection failed for device at {self.ip_address}\n"
+                    f"Got Error 914 {error_914_count} times - this indicates:\n"
+                    f"  - Local key is incorrect or has encoding issues\n"
+                    f"  - Device may have been re-paired (key changed)\n"
+                    f"  - Try using tinytuya wizard to get fresh key\n"
+                    f"Key variants tried: {[desc for _, desc in key_variants]}"
+                )
+            else:
+                _LOGGER.error(
+                    f"Protocol auto-detection failed for device at {self.ip_address}\n"
+                    f"Tested versions: 3.3, 3.4, 3.1, 3.2\n"
+                    f"Common causes:\n"
+                    f"  1. Device is offline or unreachable\n"
+                    f"  2. Incorrect local key (check Tuya IoT Platform)\n"
+                    f"  3. Device uses unsupported protocol version\n"
+                    f"  4. Firewall blocking connection on port 6668\n"
+                    f"Recommendation: Verify device is online and local key is correct"
+                )
+            raise KKTConnectionError(
+                operation="auto_detect",
+                device_id=self.device_id[:8],
+                reason=f"Device not responding to any Tuya protocol version (3.1-3.4). "
+                       f"Error 914 count: {error_914_count}. Check device connectivity and local key."
+            )
+        else:
+            # Use specified version with key variants for encoding issues
+            version_float = float(self.version) if self.version != "auto" else 3.3
+            error_914_seen = False
+
+            for key_variant, key_desc in key_variants:
+                try:
+                    test_device, test_status = await self._try_connect_with_key(
+                        key_variant, version_float
+                    )
+
+                    if test_status is None:
+                        _LOGGER.debug(f"Version {version_float} ({key_desc}) timeout")
+                        continue
+
+                    # Check for Error 914
+                    if self._is_error_914(test_status):
+                        error_914_seen = True
+                        _LOGGER.debug(
+                            f"Error 914 with version {version_float} ({key_desc} key)"
+                        )
+                        if test_device:
+                            try:
+                                test_device.close()
+                            except Exception:
+                                pass
+                        continue
+
+                    # Check for valid DPS response
+                    if (test_status and isinstance(test_status, dict) and
+                        "dps" in test_status and test_status["dps"]):
+
+                        # If we used a variant key, update local_key
+                        if key_variant != self.local_key:
+                            _LOGGER.warning(
+                                f"Connection successful with {key_desc} key variant! "
+                                f"Original key had encoding issues."
+                            )
+                            self.local_key = key_variant
+
+                        self._device = test_device
+                        self._connected = True
+                        _LOGGER.info(
+                            f"Connected to device at {self.ip_address} using version {self.version}"
+                        )
+                        return
+                    else:
+                        # Invalid response
+                        if test_device:
+                            try:
+                                test_device.close()
+                            except Exception:
+                                pass
 
                 except asyncio.CancelledError:
-                    # Cleanup on cancellation
-                    if test_device:
-                        try:
-                            test_device.close()
-                        except Exception:
-                            pass  # Ignore cleanup errors
-                    _LOGGER.warning(f"Protocol detection cancelled for version {test_version}")
-                    raise  # Re-raise to propagate cancellation
-
-                except TimeoutError:
-                    # Cleanup on timeout
-                    if test_device:
-                        try:
-                            test_device.close()
-                        except Exception:
-                            pass  # Ignore cleanup errors
-                    _LOGGER.debug(f"Version {test_version} timeout - trying next")
-                    continue
+                    raise
 
                 except Exception as e:
-                    # Cleanup on error
-                    if test_device:
-                        try:
-                            test_device.close()
-                        except Exception:
-                            pass  # Ignore cleanup errors
-
                     # Check if this is an authentication error
                     error_msg = str(e).lower()
                     if any(keyword in error_msg for keyword in ["decrypt", "encrypt", "hmac", "key", "auth"]):
-                        # This looks like an authentication error
                         _LOGGER.error(f"Authentication error detected: {e}")
                         raise KKTAuthenticationError(
                             device_id=self.device_id,
                             message=f"Authentication failed - invalid local key: {e}"
                         ) from e
-
-                    _LOGGER.debug(f"Version {test_version} failed: {type(e).__name__} - trying next")
+                    _LOGGER.debug(f"Version {version_float} ({key_desc}) failed: {e}")
                     continue
 
-            # If we reach here, auto-detection failed
-            _LOGGER.error(
-                f"Protocol auto-detection failed for device at {self.ip_address}\n"
-                f"Tested versions: 3.3, 3.4, 3.1, 3.2\n"
-                f"Common causes:\n"
-                f"  1. Device is offline or unreachable\n"
-                f"  2. Incorrect local key (check Tuya IoT Platform)\n"
-                f"  3. Device uses unsupported protocol version\n"
-                f"  4. Firewall blocking connection on port 6668\n"
-                f"Recommendation: Verify device is online and local key is correct"
-            )
-            raise KKTConnectionError(
-                operation="auto_detect",
-                device_id=self.device_id[:8],
-                reason="Device not responding to any Tuya protocol version (3.1-3.4). Check device connectivity and local key."
-            )
-        else:
-            # Use specified version with LocalTuya-style configuration
-            version_float = float(self.version) if self.version != "auto" else 3.3
-            self._device = await self._run_executor_job(
-                lambda: tinytuya.Device(
-                    dev_id=self.device_id,
-                    address=self.ip_address,
-                    local_key=self.local_key,
-                    version=version_float
-                )
-            )
-            # Apply LocalTuya-style socket configuration (consistent with auto-detection)
-            self._device.set_socketPersistent(True)
-            self._device.set_socketNODELAY(True)
-            self._device.set_socketTimeout(3)  # Match auto-detection timeout
-            self._device.set_socketRetryLimit(1)  # Match auto-detection retry limit
-
-            # Validate connection by testing status
-            try:
-                test_status = await asyncio.wait_for(
-                    self._run_executor_job(self._device.status),
-                    timeout=3.0
-                )
-
-                if not (test_status and isinstance(test_status, dict) and
-                        "dps" in test_status and test_status["dps"]):
-                    # Invalid response
-                    try:
-                        self._device.close()
-                    except Exception:
-                        pass  # Ignore cleanup errors
-                    raise KKTConnectionError(
-                        operation="validate_connection",
-                        device_id=self.device_id[:8],
-                        reason=f"Device did not return valid status for version {version_float}"
-                    )
-
-                self._connected = True
-                _LOGGER.info(f"Connected to device at {self.ip_address} using version {self.version}")
-
-            except TimeoutError as timeout_err:
-                if self._device:
-                    try:
-                        self._device.close()
-                    except Exception:
-                        pass  # Ignore cleanup errors
-                self._device = None
+            # All key variants failed
+            if error_914_seen:
                 raise KKTConnectionError(
                     operation="validate_connection",
                     device_id=self.device_id[:8],
-                    reason=f"Timeout validating connection with version {version_float}"
-                ) from timeout_err
-            except Exception as e:
-                # Cleanup on error
-                if self._device:
-                    try:
-                        self._device.close()
-                    except Exception:
-                        pass  # Ignore cleanup errors
-                self._device = None
-
-                # Check if this is an authentication error
-                error_msg = str(e).lower()
-                if any(keyword in error_msg for keyword in ["decrypt", "encrypt", "hmac", "key", "auth"]):
-                    _LOGGER.error(f"Authentication error detected: {e}")
-                    raise KKTAuthenticationError(
-                        device_id=self.device_id,
-                        message=f"Authentication failed - invalid local key: {e}"
-                    ) from e
-
-                # Otherwise raise as connection error
+                    reason=f"Error 914: Device rejected all key variants for version {version_float}. "
+                           f"Key may be incorrect or have unsupported encoding."
+                )
+            else:
                 raise KKTConnectionError(
                     operation="validate_connection",
                     device_id=self.device_id[:8],
-                    reason=f"Failed to validate connection: {e}"
-                ) from e
+                    reason=f"Device did not return valid status for version {version_float}"
+                )
 
     async def async_ensure_connected(self) -> None:
         """Ensure device is connected (async) with proper error handling."""

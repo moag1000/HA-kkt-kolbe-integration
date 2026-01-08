@@ -53,15 +53,32 @@ class KKTKolbeOptionsFlow(OptionsFlow):
     async def async_step_smartlife_account(
         self, user_input: dict[str, Any | None] | None = None
     ) -> FlowResult:
-        """Options for SmartLife Account entries."""
+        """Options for SmartLife Account entries - menu based."""
+        if user_input is not None:
+            # Handle menu selection
+            if user_input.get("next_step_id") == "renew_token":
+                return await self.async_step_renew_token()
+            elif user_input.get("next_step_id") == "account_settings":
+                return await self.async_step_account_settings()
+
+        # Show menu with options
+        return self.async_show_menu(
+            step_id="smartlife_account",
+            menu_options=["renew_token", "account_settings"],
+            description_placeholders={
+                "account_name": self.config_entry.title,
+            }
+        )
+
+    async def async_step_account_settings(
+        self, user_input: dict[str, Any | None] | None = None
+    ) -> FlowResult:
+        """Settings for SmartLife Account entries."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            # SmartLife accounts have minimal options
             return self.async_create_entry(title="", data=user_input)
 
-        # SmartLife Account only needs minimal options
-        # Token refresh is handled automatically by the SDK
         schema = vol.Schema({
             vol.Optional(
                 "enable_debug_logging",
@@ -70,10 +87,97 @@ class KKTKolbeOptionsFlow(OptionsFlow):
         })
 
         return self.async_show_form(
-            step_id="smartlife_account",
+            step_id="account_settings",
             data_schema=schema,
             errors=errors,
             description_placeholders={
+                "account_name": self.config_entry.title,
+            }
+        )
+
+    async def async_step_renew_token(
+        self, user_input: dict[str, Any | None] | None = None
+    ) -> FlowResult:
+        """Renew SmartLife token via QR code scan."""
+        errors: dict[str, str] = {}
+
+        # Initialize QR code generation
+        if not hasattr(self, "_qr_code_url") or self._qr_code_url is None:
+            try:
+                from ..clients.tuya_sharing_client import TuyaSharingClient
+                from ..const import SMARTLIFE_SCHEMA
+
+                # Get user_code from config entry
+                user_code = self.config_entry.data.get("smartlife_user_code", "")
+                if not user_code:
+                    errors["base"] = "qr_code_failed"
+                    _LOGGER.error("No user_code found in config entry for token renewal")
+                else:
+                    # Create new client for QR code generation
+                    self._smartlife_client = TuyaSharingClient(
+                        self.hass, user_code=user_code, app_schema=SMARTLIFE_SCHEMA
+                    )
+                    # Generate QR code - returns string like "tuyaSmart--qrLogin?token=xxx"
+                    from urllib.parse import quote
+                    qr_code_string = await self._smartlife_client.async_generate_qr_code()
+                    # Convert to QR code image URL using qrserver.com API
+                    encoded_qr = quote(qr_code_string, safe="")
+                    self._qr_code_url = f"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={encoded_qr}"
+                    _LOGGER.info("QR code generated for token renewal, token length: %d", len(qr_code_string))
+
+            except Exception as err:
+                errors["base"] = "qr_code_failed"
+                _LOGGER.error("Failed to generate QR code: %s", err)
+
+        if user_input is not None:
+            # User clicked "I scanned the QR code"
+            try:
+                # Poll for authentication result
+                auth_result = await self._smartlife_client.async_poll_login_result()
+
+                if auth_result.success:
+                    # Get new token info
+                    new_token_info = self._smartlife_client.get_token_info_for_storage()
+
+                    # Update config entry with new tokens
+                    new_data = dict(self.config_entry.data)
+                    new_data["smartlife_token_info"] = new_token_info
+
+                    self.hass.config_entries.async_update_entry(
+                        self.config_entry, data=new_data
+                    )
+
+                    _LOGGER.info("SmartLife tokens successfully renewed")
+
+                    # Clean up
+                    self._qr_code_url = None
+                    self._smartlife_client = None
+
+                    # Reload the integration to use new tokens
+                    await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+
+                    return self.async_create_entry(title="", data={})
+                else:
+                    errors["base"] = "auth_failed"
+                    _LOGGER.error("Token renewal failed: %s", auth_result.error_message)
+
+            except Exception as err:
+                errors["base"] = "auth_failed"
+                _LOGGER.error("Token renewal failed: %s", err)
+
+        # Show QR code form or error
+        qr_url = getattr(self, "_qr_code_url", None) or ""
+
+        if not qr_url and not errors:
+            # QR generation failed but no specific error was set
+            errors["base"] = "qr_code_failed"
+
+        return self.async_show_form(
+            step_id="renew_token",
+            data_schema=vol.Schema({}),
+            errors=errors,
+            description_placeholders={
+                "qr_code_url": qr_url if qr_url else "https://via.placeholder.com/200?text=QR+Error",
                 "account_name": self.config_entry.title,
             }
         )

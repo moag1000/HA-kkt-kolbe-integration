@@ -19,6 +19,8 @@ from zeroconf import ServiceListener
 from zeroconf.asyncio import AsyncServiceInfo
 from zeroconf.asyncio import AsyncZeroconf
 
+from homeassistant.helpers import issue_registry as ir
+
 from .const import DOMAIN
 from .const import MODELS
 
@@ -61,12 +63,15 @@ TUYA_SERVICE_TYPES = [
 ]
 
 # KKT Kolbe specific patterns in device names/info
+# Using "kkt " with space to avoid false positives (e.g. "Markkt")
 KKT_PATTERNS = [
-    "kkt",
-    "kolbe",
-    "hermes",
-    "style",
-    "ind7705hc",
+    "kkt ",      # "KKT Kolbe..." - with space to avoid false matches
+    "kolbe",     # Manufacturer name
+    "hermes",    # HERMES & STYLE
+    "ind7705",   # IND7705HC cooktop
+    "ind8000",   # IND8000 cooktop
+    "solo hcm",  # SOLO HCM hood
+    "ecco hcm",  # ECCO HCM hood
 ]
 
 
@@ -189,35 +194,51 @@ class TuyaUDPDiscovery(asyncio.DatagramProtocol):
         return None
 
     def _is_potential_kkt_device(self, device_info: dict[str, Any]) -> bool:
-        """Check if UDP discovered device could be KKT Kolbe."""
-        gw_id = device_info.get("gwId", "")
+        """Check if UDP discovered device could be KKT Kolbe.
 
-        # Check against known KKT device ID patterns
-        known_device_ids = [
-            'bf735dfe2ad64fba7cpyhn',  # HERMES & STYLE (user's exact device ID)
-            'bf5592b47738c5b46e',      # IND7705HC
+        IMPORTANT: Device IDs change when re-adding devices to Tuya/SmartLife,
+        so we identify KKT devices by product_id/product_key, NOT by device ID.
+        """
+        # Known KKT Kolbe product IDs and model codes (stable identifiers)
+        # Device IDs change when re-adding to Tuya/SmartLife - these don't!
+        known_product_ids = [
+            # Product IDs
+            'ypaixllljc2dcpae',  # HERMES & STYLE
+            'bgvbvjwomgbisd8x',  # SOLO HCM
+            'gwdgkteknzvsattn',  # ECCO HCM
+            'p8volecsgzdyun29',  # IND7705HC
+            # Model codes
+            'e1k6i0zo',         # HERMES & STYLE
+            'edjszs',           # SOLO HCM
+            'edjsx0',           # ECCO HCM
+            'e1kc5q64',         # IND7705HC
         ]
 
-        # Exact match first
-        if gw_id in known_device_ids:
+        # Check product key/ID first (most reliable)
+        product_key = (
+            device_info.get("productKey") or
+            device_info.get("productId") or
+            device_info.get("product_key") or
+            device_info.get("product_id") or
+            ""
+        )
+
+        if product_key and product_key.lower() in [p.lower() for p in known_product_ids]:
             return True
 
-        # Check patterns (first 18 chars) for flexibility
-        known_patterns = [
-            'bf735dfe2ad64fba7c',  # HERMES & STYLE pattern
-            'bf5592b47738c5b46e',  # IND7705HC pattern
-        ]
+        # Check for KKT patterns in product name
+        product_name = (
+            device_info.get("productName") or
+            device_info.get("product_name") or
+            ""
+        ).lower()
 
-        for pattern in known_patterns:
-            if gw_id.startswith(pattern):
+        for pattern in KKT_PATTERNS:
+            if pattern in product_name:
                 return True
 
-        # Accept any Tuya device starting with 'bf' (common KKT prefix)
-        if gw_id and len(gw_id) >= 20 and gw_id.startswith('bf'):
-            # Only log unknown devices once per session
-            if _should_log(f"unknown_tuya_{gw_id}"):
-                _LOGGER.debug(f"Unknown Tuya device (could be KKT): {gw_id[:12]}...")
-            return True
+        # Do NOT use device ID prefix matching - device IDs are not stable!
+        # Devices change ID when re-added to Tuya/SmartLife
 
         return False
 
@@ -378,12 +399,12 @@ class KKTKolbeDiscovery(ServiceListener):
             # Convert UDP device info to our format
             device_id = device_info.get("gwId", "")
             if device_id:
-                # Extract product name from UDP data if available
-                product_name = (
-                    device_info.get("productName") or
+                # Extract product key from UDP data (stable identifier for device matching)
+                product_key = (
                     device_info.get("productKey") or
+                    device_info.get("productName") or
                     device_info.get("product_name") or
-                    "KKT Kolbe Device"
+                    ""
                 )
 
                 formatted_device = {
@@ -392,7 +413,8 @@ class KKTKolbeDiscovery(ServiceListener):
                     "ip": device_info.get("ip"),  # Use consistent "ip" key
                     "name": f"KKT Device {device_id}",
                     "discovered_via": "UDP",
-                    "product_name": product_name,
+                    "productKey": product_key,  # Keep original productKey for device ID change detection
+                    "product_name": product_key or "KKT Kolbe Device",
                     "device_type": "auto"
                 }
 
@@ -563,7 +585,11 @@ class KKTKolbeDiscovery(ServiceListener):
         return False
 
     def _check_tuya_device_info(self, info) -> bool:
-        """Check if a Tuya device is a KKT Kolbe device by TXT records."""
+        """Check if a Tuya device is a KKT Kolbe device by TXT records.
+
+        IMPORTANT: Device IDs change when re-adding devices to Tuya/SmartLife,
+        so we identify KKT devices by model/product_id, NOT by device ID.
+        """
         if not hasattr(info, 'properties') or not info.properties:
             return False
 
@@ -580,25 +606,37 @@ class KKTKolbeDiscovery(ServiceListener):
 
         # Check for known model IDs in TXT records
         model = txt_data.get('model', '') or txt_data.get('md', '') or txt_data.get('productid', '')
-        device_id = txt_data.get('id', '') or txt_data.get('devid', '') or txt_data.get('device_id', '')
+        product_key = txt_data.get('productkey', '') or txt_data.get('product_key', '')
+
+        # Known KKT Kolbe product IDs and model codes (stable identifiers)
+        # Device IDs change when re-adding to Tuya/SmartLife - these don't!
+        known_product_ids = [
+            # Product IDs
+            'ypaixllljc2dcpae',  # HERMES & STYLE
+            'bgvbvjwomgbisd8x',  # SOLO HCM
+            'gwdgkteknzvsattn',  # ECCO HCM
+            'p8volecsgzdyun29',  # IND7705HC
+            # Model codes
+            'e1k6i0zo',         # HERMES & STYLE
+            'edjszs',           # SOLO HCM
+            'edjsx0',           # ECCO HCM
+            'e1kc5q64',         # IND7705HC
+        ]
 
         # Check if this matches known KKT models
         if model in MODELS:
             return True
 
-        # Check if device ID matches known KKT device IDs
-        known_kkt_device_patterns = [
-            'bf735dfe2ad64fba7c',  # HERMES & STYLE pattern
-            'bf5592b47738c5b46e',  # IND7705HC pattern
-        ]
-
-        for pattern in known_kkt_device_patterns:
-            if device_id.startswith(pattern):
-                return True
-
-        # Accept any Tuya device starting with 'bf' (common KKT prefix)
-        if device_id and len(device_id) >= 20 and device_id.startswith('bf'):
+        # Check product key/ID
+        if product_key and product_key.lower() in [p.lower() for p in known_product_ids]:
             return True
+
+        # Check model against known product IDs
+        if model and model.lower() in [p.lower() for p in known_product_ids]:
+            return True
+
+        # Do NOT use device ID prefix matching - device IDs are not stable!
+        # Devices change ID when re-added to Tuya/SmartLife
 
         return False
 
@@ -650,6 +688,11 @@ class KKTKolbeDiscovery(ServiceListener):
         try:
             # Extract device_id from UDP discovery data (gwId) or use existing device_id
             device_id = device_info.get("device_id") or device_info.get("gwId")
+            product_id = device_info.get("productKey") or device_info.get("product_id")
+            new_ip = device_info.get("ip")
+
+            # Check for device ID change by matching product_id
+            await self._check_device_id_changed(product_id, device_id, new_ip)
 
             discovery_info = {
                 "host": device_info["ip"],  # Use ip but keep "host" key for compatibility
@@ -683,6 +726,88 @@ class KKTKolbeDiscovery(ServiceListener):
 
         except Exception as e:
             _LOGGER.error(f"Failed to trigger discovery: {e}", exc_info=True)
+
+    async def _check_device_id_changed(
+        self, product_id: str | None, new_device_id: str | None, new_ip: str | None
+    ) -> None:
+        """Check if a discovered device has a different ID than configured.
+
+        This detects when a device was re-added to Tuya/SmartLife and got a new device_id.
+        Since product_id stays the same, we can match by product_id and detect the change.
+        """
+        _LOGGER.debug(
+            "Checking device ID change: product_id=%s, new_device_id=%s, new_ip=%s",
+            product_id, new_device_id[:12] + "..." if new_device_id else None, new_ip
+        )
+
+        if not product_id or not new_device_id:
+            _LOGGER.debug("Skipping device ID check - missing product_id or device_id")
+            return
+
+        # Find config entries with matching product_id but different device_id
+        config_entries = self.hass.config_entries.async_entries(DOMAIN)
+        _LOGGER.debug("Found %d KKT config entries to check", len(config_entries))
+
+        for entry in config_entries:
+            entry_product_id = entry.data.get("product_id")
+            entry_device_id = entry.data.get("device_id")
+            entry_type = entry.data.get("entry_type")
+
+            # Skip account entries
+            if entry_type == "account":
+                continue
+
+            _LOGGER.debug(
+                "Checking entry %s: product_id=%s, device_id=%s",
+                entry.title, entry_product_id, entry_device_id[:12] + "..." if entry_device_id else None
+            )
+
+            # Check if product_id matches but device_id is different
+            if entry_product_id and entry_product_id == product_id:
+                if entry_device_id and entry_device_id != new_device_id:
+                    # Device ID has changed! Create repair issue
+                    issue_id = f"device_id_changed_{entry.entry_id}"
+
+                    # Only create issue once (check if already exists)
+                    if _should_log(f"device_id_changed_{entry.entry_id}"):
+                        _LOGGER.warning(
+                            "Device ID change detected for %s: %s -> %s (IP: %s -> %s)",
+                            entry.title,
+                            entry_device_id[:12] + "...",
+                            new_device_id[:12] + "...",
+                            entry.data.get("ip_address", "unknown"),
+                            new_ip or "unknown",
+                        )
+
+                        try:
+                            _LOGGER.info("Creating repair issue for device_id_changed_%s", entry.entry_id[:8])
+                            ir.async_create_issue(
+                            self.hass,
+                            DOMAIN,
+                            issue_id,
+                            is_fixable=True,
+                            severity=ir.IssueSeverity.WARNING,
+                            translation_key="device_id_changed",
+                            translation_placeholders={
+                                "entry_title": entry.title,
+                                "old_device_id": entry_device_id[:12] + "...",
+                                "new_device_id": new_device_id[:12] + "...",
+                                "old_ip": entry.data.get("ip_address", "unknown"),
+                                "new_ip": new_ip or "unknown",
+                            },
+                            data={
+                                "entry_id": entry.entry_id,
+                                "entry_title": entry.title,
+                                "old_device_id": entry_device_id,
+                                "new_device_id": new_device_id,
+                                "old_ip": entry.data.get("ip_address"),
+                                "new_ip": new_ip,
+                            },
+                            )
+                            _LOGGER.info("Repair issue created successfully")
+                        except Exception as e:
+                            _LOGGER.error("Failed to create repair issue: %s", e, exc_info=True)
+                    return  # Only one match per product_id expected
 
     def remove_service(self, zc, type_: str, name: str) -> None:
         """Called when a service is removed."""

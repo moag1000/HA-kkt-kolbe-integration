@@ -75,8 +75,14 @@ async def async_setup_entry(
             # Regular sensor
             entities.append(KKTKolbeSensor(coordinator, entry, config))
 
+    # Add connection mode sensor for HybridCoordinator
+    from .hybrid_coordinator import KKTKolbeHybridCoordinator
+    if isinstance(coordinator, KKTKolbeHybridCoordinator):
+        entities.append(KKTKolbeConnectionSensor(coordinator, entry))
+
     if entities:
         async_add_entities(entities)
+
 
 class KKTKolbeSensor(KKTBaseEntity, SensorEntity):
     """Representation of a KKT Kolbe sensor."""
@@ -359,3 +365,129 @@ class KKTKolbeActiveZonesSensor(KKTBaseEntity, SensorEntity):
     def native_value(self) -> int | None:
         """Return the number of active zones."""
         return self._cached_value
+
+
+class KKTKolbeConnectionSensor(SensorEntity):
+    """Sensor that shows the current connection mode (local/api/smartlife)."""
+
+    # Attributes that change frequently - don't record in database
+    _unrecorded_attributes = frozenset({
+        "last_update_timestamp",
+        "token_expires_in_seconds",
+        "local_errors",
+        "api_errors",
+    })
+
+    def __init__(
+        self,
+        coordinator: Any,
+        entry: ConfigEntry,
+    ) -> None:
+        """Initialize the connection sensor."""
+        from homeassistant.helpers.entity import EntityCategory
+
+        self.coordinator = coordinator
+        self._entry = entry
+        self._attr_has_entity_name = True
+        self._attr_translation_key = "connection_mode"
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        self._attr_icon = "mdi:connection"
+
+        # Unique ID based on entry
+        device_id = entry.data.get("device_id", entry.entry_id)
+        self._attr_unique_id = f"{entry.entry_id}_connection_mode"
+
+        # Device info
+        from .const import DOMAIN
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, device_id)},
+        }
+
+    @property
+    def native_value(self) -> str | None:
+        """Return the current connection mode."""
+        if hasattr(self.coordinator, "current_mode"):
+            mode = self.coordinator.current_mode
+            # Translate to user-friendly names
+            mode_names = {
+                "local": "Local (LAN)",
+                "api": "Cloud (IoT API)",
+                "smartlife": "Cloud (SmartLife)",
+            }
+            return mode_names.get(mode, mode)
+        return "Unknown"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return additional connection details."""
+        attrs = {}
+
+        if hasattr(self.coordinator, "local_available"):
+            attrs["local_available"] = self.coordinator.local_available
+        if hasattr(self.coordinator, "api_available"):
+            attrs["api_available"] = self.coordinator.api_available
+        if hasattr(self.coordinator, "smartlife_available"):
+            attrs["smartlife_available"] = self.coordinator.smartlife_available
+        if hasattr(self.coordinator, "local_consecutive_errors"):
+            attrs["local_errors"] = self.coordinator.local_consecutive_errors
+        if hasattr(self.coordinator, "api_consecutive_errors"):
+            attrs["api_errors"] = self.coordinator.api_consecutive_errors
+        if hasattr(self.coordinator, "prefer_local"):
+            attrs["prefer_local"] = self.coordinator.prefer_local
+
+        # SmartLife specific attributes
+        if hasattr(self.coordinator, "data") and self.coordinator.data:
+            data = self.coordinator.data
+            # Show raw SmartLife property codes if available
+            if "raw_smartlife_status" in data:
+                raw_status = data["raw_smartlife_status"]
+                if isinstance(raw_status, list):
+                    codes = [item.get("code") for item in raw_status if isinstance(item, dict)]
+                    attrs["smartlife_property_codes"] = codes
+                    attrs["smartlife_properties_count"] = len(codes)
+            # Show source of last update
+            if "source" in data:
+                attrs["last_update_source"] = data["source"]
+            # Show timestamp
+            if "timestamp" in data:
+                attrs["last_update_timestamp"] = data["timestamp"]
+
+        # Token status from SmartLife client
+        if hasattr(self.coordinator, "smartlife_client") and self.coordinator.smartlife_client:
+            client = self.coordinator.smartlife_client
+            if hasattr(client, "is_authenticated"):
+                attrs["smartlife_authenticated"] = client.is_authenticated
+            if hasattr(client, "_token_info") and client._token_info:
+                token_info = client._token_info
+                if "expire_time" in token_info:
+                    import time
+                    expire_time = token_info["expire_time"]
+                    now = int(time.time())
+                    attrs["token_expires_in_seconds"] = max(0, expire_time - now)
+                    attrs["token_valid"] = expire_time > now
+
+        # Tuya IoT Platform API specific attributes
+        if hasattr(self.coordinator, "api_client") and self.coordinator.api_client:
+            api_client = self.coordinator.api_client
+            attrs["api_connected"] = True
+            # Show raw API status if available
+            if hasattr(self.coordinator, "data") and self.coordinator.data:
+                if "raw_api_status" in self.coordinator.data:
+                    raw_api = self.coordinator.data["raw_api_status"]
+                    if isinstance(raw_api, list):
+                        api_codes = [item.get("code") for item in raw_api if isinstance(item, dict)]
+                        attrs["api_property_codes"] = api_codes
+                        attrs["api_properties_count"] = len(api_codes)
+            # API endpoint info
+            if hasattr(api_client, "endpoint"):
+                attrs["api_endpoint"] = api_client.endpoint
+            if hasattr(api_client, "client_id"):
+                # Only show first 8 chars for security
+                attrs["api_client_id"] = api_client.client_id[:8] + "..." if api_client.client_id else None
+
+        return attrs
+
+    @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        return self.coordinator.last_update_success

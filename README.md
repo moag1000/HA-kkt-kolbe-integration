@@ -18,8 +18,9 @@
 
 ---
 
-## Highlights v4.0.0
+## Highlights v4.1.0
 
+- **Device ID Change Repair** - Automatische Erkennung & Reparatur bei Gerätewechsel
 - **Kein Developer Account nötig** - Setup via SmartLife/Tuya Smart App
 - **Auto-Power-On** - Hood schaltet automatisch ein bei Fan/Licht-Steuerung
 - **Account Wiederverwendung** - Neue Geräte ohne Re-Authentifizierung

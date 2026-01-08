@@ -420,7 +420,19 @@
       },
       "smartlife_account": {
         "title": "SmartLife Account Options",
-        "description": "Configure options for SmartLife Account ({account_name}).\n\nTokens are automatically refreshed by the SDK.",
+        "description": "Choose an action for SmartLife Account ({account_name}).",
+        "menu_options": {
+          "renew_token": "Renew Token (Re-authenticate)",
+          "account_settings": "Account Settings"
+        }
+      },
+      "renew_token": {
+        "title": "Renew SmartLife Token",
+        "description": "Scan this QR code with the **SmartLife** or **Tuya Smart** app to renew the authentication token.\n\n[![QR Code]({qr_code_url})]({qr_code_url})\n\nAfter scanning, click **Submit** to complete the renewal."
+      },
+      "account_settings": {
+        "title": "SmartLife Account Settings",
+        "description": "Configure settings for SmartLife Account ({account_name}).",
         "data": {
           "enable_debug_logging": "Enable Debug Logging"
         },
@@ -486,7 +498,9 @@
       "api_client_secret_invalid": "API Client Secret must be at least 20 characters",
       "api_test_failed": "Failed to connect to TinyTuya Cloud API. Verify credentials.",
       "invalid_region": "Invalid region selected",
-      "invalid_local_key": "Local key must be exactly 16 characters"
+      "invalid_local_key": "Local key must be exactly 16 characters",
+      "qr_code_failed": "Failed to generate QR code. Please try again later.",
+      "auth_failed": "Authentication failed. Please scan the QR code again and confirm in the app."
     }
   },
   "selector": {
@@ -590,6 +604,35 @@
     "smartlife_token_expired": {
       "title": "SmartLife Token Expired",
       "description": "The SmartLife authentication token has expired.\n\n**To fix:** Go to the integration settings and re-authenticate with SmartLife."
+    },
+    "device_id_changed": {
+      "title": "Device ID Changed",
+      "fix_flow": {
+        "step": {
+          "update_device": {
+            "title": "Update Device Information",
+            "description": "The device **{entry_title}** appears to have a new Device ID.\n\nThis happens when a device is removed and re-added to Tuya/SmartLife.\n\n**Old Device ID:** {old_device_id}\n**Detected New ID:** {new_device_id}\n**Old IP:** {old_ip}\n**Detected New IP:** {new_ip}\n\nEnable 'Fetch from Cloud' to automatically retrieve the new local key, or enter it manually.",
+            "data": {
+              "device_id": "New Device ID",
+              "ip_address": "IP Address",
+              "fetch_from_cloud": "Fetch Local Key from SmartLife",
+              "local_key": "Local Key (if not fetching from cloud)"
+            },
+            "data_description": {
+              "device_id": "The new 20+ character device ID",
+              "ip_address": "Current IP address of the device",
+              "fetch_from_cloud": "Automatically fetch the local key from your SmartLife account",
+              "local_key": "16-character local key (only needed if not fetching from cloud)"
+            },
+            "errors": {
+              "required": "This field is required",
+              "invalid_device_id": "Device ID must be at least 20 characters",
+              "invalid_local_key": "Local key must be exactly 16 characters",
+              "cloud_fetch_failed": "Failed to fetch local key from cloud. Please enter manually or check your SmartLife account."
+            }
+          }
+        }
+      }
     }
   }
 }

@@ -200,6 +200,7 @@ async def _async_setup_account_entry(
         "user_code": user_code,
         "app_schema": app_schema,
         "child_entry_ids": child_entry_ids,
+        "_previous_options": dict(entry.options),  # For update listener comparison
     }
 
     _LOGGER.info(
@@ -360,6 +361,90 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
     ip_address = entry.data.get(CONF_IP_ADDRESS) or entry.data.get("ip_address") or entry.data.get("host")
     device_id = entry.data.get(CONF_DEVICE_ID) or entry.data.get("device_id")
     local_key = entry.data.get(CONF_ACCESS_TOKEN) or entry.data.get("local_key")
+
+    # For SmartLife mode: Sync local_key from SmartLife API (may have been rotated)
+    # Note: We already fetched devices during smartlife_client setup, so use cached data
+    if setup_mode == SETUP_MODE_SMARTLIFE and smartlife_client and device_id:
+        try:
+            # Get fresh device data including current local_key from SmartLife
+            # The client should already have device cache from previous calls
+            _LOGGER.debug("Syncing local_key from SmartLife for device %s", device_id[:8])
+            smartlife_devices = await smartlife_client.async_get_devices()
+            _LOGGER.debug("Got %d devices from SmartLife", len(smartlife_devices))
+
+            for sl_device in smartlife_devices:
+                if sl_device.device_id == device_id:
+                    fresh_local_key = sl_device.local_key
+                    fresh_ip = sl_device.ip
+                    _LOGGER.debug(
+                        "Found device %s in SmartLife: local_key=%s, ip=%s",
+                        device_id[:8],
+                        "PRESENT" if fresh_local_key else "MISSING",
+                        fresh_ip
+                    )
+
+                    # Check if local_key has changed
+                    if fresh_local_key and fresh_local_key != local_key:
+                        _LOGGER.warning(
+                            "SmartLife local_key differs from stored key for device %s. "
+                            "Updating config entry with fresh key (stored length: %d, fresh length: %d)",
+                            device_id[:8], len(local_key) if local_key else 0, len(fresh_local_key)
+                        )
+                        local_key = fresh_local_key
+
+                        # Update config entry with fresh local_key
+                        new_data = dict(entry.data)
+                        new_data["local_key"] = fresh_local_key
+                        new_data[CONF_ACCESS_TOKEN] = fresh_local_key
+                        hass.config_entries.async_update_entry(entry, data=new_data)
+                    elif fresh_local_key:
+                        # Log masked key comparison for debugging
+                        stored_masked = f"{local_key[:3]}...{local_key[-3:]}" if local_key and len(local_key) >= 6 else "???"
+                        fresh_masked = f"{fresh_local_key[:3]}...{fresh_local_key[-3:]}" if len(fresh_local_key) >= 6 else "???"
+                        _LOGGER.debug(
+                            "SmartLife local_key matches stored key for device %s "
+                            "(length: %d, stored: %s, fresh: %s)",
+                            device_id[:8], len(fresh_local_key), stored_masked, fresh_masked
+                        )
+
+                    # Also update IP if changed - but ONLY if it's a private/local IP!
+                    # SmartLife often returns the public/external IP which won't work for LAN
+                    if fresh_ip and fresh_ip != ip_address:
+                        # Check if fresh_ip is a private IP (safe for local communication)
+                        import ipaddress
+                        try:
+                            ip_obj = ipaddress.ip_address(fresh_ip)
+                            if ip_obj.is_private:
+                                _LOGGER.info(
+                                    "SmartLife local IP for device %s: %s -> %s",
+                                    device_id[:8], ip_address, fresh_ip
+                                )
+                                ip_address = fresh_ip
+                                new_data = dict(entry.data)
+                                new_data[CONF_IP_ADDRESS] = fresh_ip
+                                new_data["ip_address"] = fresh_ip
+                                hass.config_entries.async_update_entry(entry, data=new_data)
+                            else:
+                                _LOGGER.debug(
+                                    "SmartLife returned public IP %s for device %s - ignoring "
+                                    "(using stored local IP %s instead)",
+                                    fresh_ip, device_id[:8], ip_address
+                                )
+                        except ValueError:
+                            _LOGGER.debug("Invalid IP from SmartLife: %s", fresh_ip)
+
+                    break
+            else:
+                _LOGGER.warning(
+                    "Device %s not found in SmartLife device list. Using stored key.",
+                    device_id[:8]
+                )
+        except Exception as err:
+            _LOGGER.warning(
+                "Could not sync local_key from SmartLife for device %s: %s (%s). "
+                "Using stored key.",
+                device_id[:8] if device_id else "unknown", type(err).__name__, err
+            )
 
     if ip_address and device_id and local_key:
         from .tuya_device import KKTKolbeTuyaDevice
@@ -673,6 +758,7 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
         "product_name": product_name,
         "device_type": effective_device_type,
         "integration_mode": integration_mode,
+        "_previous_options": dict(entry.options),  # For update listener comparison
     }
 
     # Register device in device registry with version info
@@ -744,9 +830,31 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
     return True
 
 async def async_options_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Handle options update - reload the integration when options change."""
-    _LOGGER.info(f"Options updated for {entry.title}, reloading integration")
-    await hass.config_entries.async_reload(entry.entry_id)
+    """Handle options update - reload the integration when options change.
+
+    Note: This listener is called for ANY config entry update (data or options).
+    We only want to reload when OPTIONS change, not when data changes (like IP updates).
+    """
+    # Get the stored previous options to compare
+    domain_data = hass.data.get(DOMAIN, {})
+    entry_data = domain_data.get(entry.entry_id, {})
+    previous_options = entry_data.get("_previous_options")
+    current_options = dict(entry.options)
+
+    # Store current options for next comparison
+    if entry.entry_id in domain_data and isinstance(domain_data[entry.entry_id], dict):
+        domain_data[entry.entry_id]["_previous_options"] = current_options
+
+    # Only reload if options actually changed
+    if previous_options is not None and previous_options != current_options:
+        _LOGGER.info(f"Options updated for {entry.title}, reloading integration")
+        await hass.config_entries.async_reload(entry.entry_id)
+    elif previous_options is None:
+        # First call after setup - just store options, don't reload
+        _LOGGER.debug(f"Options listener initialized for {entry.title}")
+    else:
+        # Data changed but options are the same - no reload needed
+        _LOGGER.debug(f"Config entry data updated for {entry.title} (no reload needed)")
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

@@ -566,13 +566,18 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
         # Check if device is already configured (without setting unique_id yet)
         configured_ids = await async_get_configured_device_ids(self.hass)
         if device_id in configured_ids:
-            _LOGGER.debug(f"Zeroconf: Device {device_id[:8]} already configured, updating IP")
-            # Update IP address for existing entry
+            # Only update IP if it actually changed
             for entry in self.hass.config_entries.async_entries(DOMAIN):
                 if entry.data.get("device_id") == device_id:
-                    self.hass.config_entries.async_update_entry(
-                        entry, data={**entry.data, CONF_IP_ADDRESS: host}
-                    )
+                    current_ip = entry.data.get(CONF_IP_ADDRESS) or entry.data.get("ip_address")
+                    if current_ip != host:
+                        _LOGGER.info(
+                            "Zeroconf: Device %s IP changed from %s to %s, updating",
+                            device_id[:8], current_ip, host
+                        )
+                        self.hass.config_entries.async_update_entry(
+                            entry, data={**entry.data, CONF_IP_ADDRESS: host, "ip_address": host}
+                        )
                     break
             return self.async_abort(reason="already_configured")
 

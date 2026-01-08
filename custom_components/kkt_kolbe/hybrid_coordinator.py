@@ -292,6 +292,19 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
 
             # Convert SmartLife status format to DPS format
             smartlife_dps: dict[str, Any] = {}
+
+            # DEBUG: Log all raw property codes AND values from SmartLife
+            raw_codes = [item.get("code") for item in status_list if isinstance(item, dict)]
+            _LOGGER.info(f"SmartLife raw property codes for {self.device_id[:8]}: {raw_codes}")
+            # Log full status items to see if there are sub-properties (e.g., for RGB)
+            for item in status_list:
+                if isinstance(item, dict):
+                    _LOGGER.info(
+                        "SmartLife %s: code=%s, value=%s (type=%s)",
+                        self.device_id[:8], item.get("code"), item.get("value"),
+                        type(item.get("value")).__name__
+                    )
+
             for status_item in status_list:
                 if not isinstance(status_item, dict):
                     continue

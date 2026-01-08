@@ -5,6 +5,44 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.0] - 2026-01-08
+
+### Device ID Change Repair Flow
+
+Diese Release fügt einen wichtigen Repair Flow hinzu, der automatisch erkennt wenn sich die Device-ID eines Gerätes geändert hat (z.B. nach Neuaufnahme in Tuya/SmartLife).
+
+### Added
+
+#### **Device ID Change Detection & Repair ✨**
+- **Automatische Erkennung**: Integration erkennt wenn ein konfiguriertes Gerät im Netzwerk mit neuer Device-ID auftaucht
+- **Repair Issue**: Home Assistant zeigt automatisch eine Reparatur-Option an
+- **One-Click Fix**: Neue Device-ID, IP-Adresse und Local Key werden automatisch aktualisiert
+- **Cloud Key Fetch**: Local Key kann automatisch aus SmartLife Cloud geholt werden
+- **Device Registry Cleanup**: Altes Device wird automatisch entfernt (keine Duplikate)
+
+#### **Verbesserte Geräteerkennung**
+- **Product-ID basiert**: Erkennung basiert jetzt auf stabiler Product-ID statt wechselnder Device-ID
+- **Alle KKT Modelle**: HERMES & STYLE, SOLO HCM, ECCO HCM, IND7705HC mit Product-IDs registriert
+- **Sichere Pattern-Matching**: "kkt " (mit Leerzeichen) verhindert False-Positives
+
+### Changed
+
+#### **Discovery Logic**
+- Device-Erkennung prüft Product-ID und Model-Code anstatt Device-ID Prefix
+- `_check_device_id_changed()` vergleicht konfigurierte vs. entdeckte Geräte nach Product-ID
+
+#### **Repair Flow**
+- `DeviceIdChangedRepairFlow` Klasse für automatische Konfigurationsaktualisierung
+- Vollständige DE/EN Übersetzungen für Repair-Dialog
+- Fehler-Translations für `cloud_fetch_failed`, `invalid_device_id`, etc.
+
+### Fixed
+
+- Device Registry Duplikate bei Device-ID Änderung
+- TuyaSharingClient korrekte Initialisierung mit stored tokens
+
+---
+
 ## [4.0.0] - 2026-01-06
 
 ### SmartLife Integration Release - QR-Code Setup ohne Developer Account

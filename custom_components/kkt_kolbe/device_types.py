@@ -304,7 +304,8 @@ KNOWN_DEVICES = {
                 # RGB light as switch
                 {"dp": 6, "name": "RGB Light", "device_class": "switch", "icon": "mdi:palette", "advanced": True, "entity_category": "config"},
                 {"dp": 7, "name": "Wash Mode", "device_class": "switch", "icon": "mdi:spray-bottle", "advanced": True, "entity_category": "config"},
-                {"dp": 106, "name": "Confirm", "device_class": "switch", "icon": "mdi:check", "entity_category": "config", "advanced": True}
+                # Note: Tuya calls this "Confirm" but it's actually a side light (red) on some units
+                {"dp": 106, "name": "Side Light", "device_class": "switch", "icon": "mdi:wall-sconce-flat", "advanced": True}
             ],
             "select": [
                 # RGB Mode as select (backup, advanced) - use Light effects instead
@@ -379,7 +380,8 @@ KNOWN_DEVICES = {
                 # RGB light as switch (use main Light entity for Siri)
                 {"dp": 6, "name": "RGB Light", "device_class": "switch", "icon": "mdi:palette", "advanced": True, "entity_category": "config"},
                 {"dp": 7, "name": "Wash Mode", "device_class": "switch", "icon": "mdi:spray-bottle", "advanced": True, "entity_category": "config"},
-                {"dp": 106, "name": "Confirm", "device_class": "switch", "icon": "mdi:check", "entity_category": "config", "advanced": True}
+                # Note: Tuya calls this "Confirm" but it's actually a side light (red) on some units
+                {"dp": 106, "name": "Side Light", "device_class": "switch", "icon": "mdi:wall-sconce-flat", "advanced": True}
             ],
             "select": [
                 # RGB Mode as select (backup, advanced) - use Light effects instead

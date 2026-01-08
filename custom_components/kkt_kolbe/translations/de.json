@@ -493,7 +493,19 @@
       },
       "smartlife_account": {
         "title": "SmartLife Account Optionen",
-        "description": "Konfigurieren Sie Optionen für SmartLife Account ({account_name}).\n\nTokens werden automatisch vom SDK aktualisiert.",
+        "description": "Wählen Sie eine Option für den SmartLife Account ({account_name}).",
+        "menu_options": {
+          "renew_token": "Token erneuern (Neu authentifizieren)",
+          "account_settings": "Account-Einstellungen"
+        }
+      },
+      "renew_token": {
+        "title": "SmartLife Token erneuern",
+        "description": "Scannen Sie diesen QR-Code mit der **SmartLife** App um Ihre Authentifizierung zu erneuern.\n\n**Anleitung:**\n1. Öffnen Sie die SmartLife App\n2. Tippen Sie auf Ihr Profil (unten rechts)\n3. Tippen Sie auf das Scan-Symbol (oben rechts)\n4. Scannen Sie den Code unten\n5. Bestätigen Sie in der App\n6. Klicken Sie unten auf 'Absenden'\n\n![QR Code]({qr_code_url})\n\n**Account:** {account_name}"
+      },
+      "account_settings": {
+        "title": "SmartLife Account-Einstellungen",
+        "description": "Konfigurieren Sie Einstellungen für SmartLife Account ({account_name}).",
         "data": {
           "enable_debug_logging": "Debug-Protokollierung aktivieren"
         },
@@ -559,7 +571,9 @@
       "api_client_secret_invalid": "API Client Secret muss mindestens 20 Zeichen haben",
       "api_test_failed": "Verbindung zur TinyTuya Cloud API fehlgeschlagen. Überprüfen Sie die Zugangsdaten.",
       "invalid_region": "Ungültige Region ausgewählt",
-      "invalid_local_key": "Local Key muss exakt 16 Zeichen lang sein"
+      "invalid_local_key": "Local Key muss exakt 16 Zeichen lang sein",
+      "qr_code_failed": "QR-Code konnte nicht generiert werden. Bitte versuchen Sie es später erneut.",
+      "auth_failed": "Authentifizierung fehlgeschlagen. Bitte scannen Sie den QR-Code erneut."
     }
   },
   "selector": {
@@ -663,6 +677,36 @@
     "smartlife_token_expired": {
       "title": "SmartLife-Token abgelaufen",
       "description": "Das SmartLife-Authentifizierungstoken ist abgelaufen.\n\n**Lösung:** Gehen Sie zu den Integrationseinstellungen und authentifizieren Sie sich erneut mit SmartLife."
+    },
+    "device_id_changed": {
+      "title": "Geräte-ID hat sich geändert",
+      "description": "Das Gerät **{entry_title}** wurde im Netzwerk mit einer neuen Geräte-ID erkannt.\n\n**Alte Geräte-ID:** {old_device_id}\n**Neue Geräte-ID:** {new_device_id}\n**Neue IP-Adresse:** {new_ip}\n\nDies passiert typischerweise, wenn ein Gerät in der Tuya/SmartLife-App entfernt und erneut hinzugefügt wurde. Die Konfiguration muss aktualisiert werden, um das Gerät weiterhin zu steuern.",
+      "fix_flow": {
+        "step": {
+          "update_device": {
+            "title": "Gerätekonfiguration aktualisieren",
+            "description": "Das Gerät **{entry_title}** hat eine neue Geräte-ID.\n\n**Alte Geräte-ID:** {old_device_id}\n**Erkannte neue Geräte-ID:** {new_device_id}\n**Alte IP:** {old_ip}\n**Erkannte neue IP:** {new_ip}\n\nBitte bestätigen Sie die neue Geräte-ID und IP-Adresse, und geben Sie den neuen Local Key ein (oder lassen Sie ihn automatisch aus der Cloud abrufen).",
+            "data": {
+              "device_id": "Neue Geräte-ID",
+              "ip_address": "Neue IP-Adresse",
+              "fetch_from_cloud": "Local Key automatisch aus SmartLife Cloud abrufen",
+              "local_key": "Local Key (manuell, falls nicht aus Cloud)"
+            },
+            "data_description": {
+              "device_id": "Die neue 20+ stellige Geräte-ID",
+              "ip_address": "Die aktuelle IP-Adresse des Geräts",
+              "fetch_from_cloud": "Aktivieren Sie diese Option, um den Local Key automatisch abzurufen (erfordert SmartLife-Konto-Verknüpfung)",
+              "local_key": "16-stelliger Local Key (nur erforderlich, wenn automatischer Abruf deaktiviert ist)"
+            },
+            "errors": {
+              "required": "Dieses Feld ist erforderlich",
+              "invalid_device_id": "Geräte-ID muss mindestens 20 Zeichen haben",
+              "invalid_local_key": "Local Key muss exakt 16 Zeichen haben",
+              "cloud_fetch_failed": "Local Key konnte nicht aus der Cloud abgerufen werden. Bitte manuell eingeben oder SmartLife-Konto prüfen."
+            }
+          }
+        }
+      }
     }
   }
 }

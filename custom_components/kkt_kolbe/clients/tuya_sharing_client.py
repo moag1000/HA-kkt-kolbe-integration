@@ -333,7 +333,20 @@ class TuyaSharingClient:
                 user_id = result.get("uid") or token_info.get("uid")
                 access_token = result.get("access_token") or token_info.get("access_token")
                 refresh_token = result.get("refresh_token") or token_info.get("refresh_token")
-                expire_time = result.get("expire_time") or token_info.get("expire_time", 0)
+                raw_expire_time = result.get("expire_time") or token_info.get("expire_time", 0)
+
+                # Convert relative expire_time to absolute Unix timestamp if needed
+                # Tuya API returns expire_time as seconds until expiry (e.g., 7200 for 2 hours)
+                # We need to store as absolute timestamp for proper comparison later
+                import time
+                if raw_expire_time < 1000000000:  # Less than year 2001 = probably relative
+                    expire_time = int(time.time()) + raw_expire_time
+                    _LOGGER.debug(
+                        "Converted relative expire_time %d to absolute timestamp %d",
+                        raw_expire_time, expire_time
+                    )
+                else:
+                    expire_time = raw_expire_time
 
                 if not user_id:
                     _LOGGER.warning("No user_id found in auth result, using terminal_id as fallback")
@@ -422,6 +435,19 @@ class TuyaSharingClient:
             def update_token(self, token_info: dict[str, Any]) -> None:
                 """Handle token refresh events."""
                 _LOGGER.info("Token refreshed by SDK - persisting new tokens")
+
+                # Convert relative expire_time to absolute timestamp if needed
+                import time
+                raw_expire_time = token_info.get("expire_time", 0)
+                if raw_expire_time < 1000000000:  # Less than year 2001 = probably relative
+                    absolute_expire_time = int(time.time()) + raw_expire_time
+                    token_info = dict(token_info)  # Copy to avoid modifying original
+                    token_info["expire_time"] = absolute_expire_time
+                    _LOGGER.debug(
+                        "Converted relative expire_time %d to absolute timestamp %d",
+                        raw_expire_time, absolute_expire_time
+                    )
+
                 self._client._token_info.update(token_info)
                 if self._client._auth_result:
                     self._client._auth_result.access_token = token_info.get(
