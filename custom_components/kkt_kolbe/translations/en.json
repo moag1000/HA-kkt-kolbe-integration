@@ -559,6 +559,12 @@
       },
       "current_temperature": {
         "name": "Current Temperature"
+      },
+      "connection_mode": {
+        "name": "Connection Mode"
+      },
+      "smartlife_device_info": {
+        "name": "SmartLife Device Info"
       }
     },
     "binary_sensor": {

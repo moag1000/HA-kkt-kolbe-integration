@@ -242,6 +242,7 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
     smartlife_token_info: dict[str, Any] | None = None
     parent_entry: ConfigEntry | None = None
     smartlife_client: Any = None  # TuyaSharingClient for cloud fallback
+    smartlife_extended_info: dict[str, Any] = {}  # Extended device info from SmartLife
 
     if setup_mode == SETUP_MODE_SMARTLIFE:
         parent_entry_id = entry.data.get("parent_entry_id")
@@ -432,6 +433,20 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
                                 )
                         except ValueError:
                             _LOGGER.debug("Invalid IP from SmartLife: %s", fresh_ip)
+
+                    # Store extended device info in local variable for later use
+                    smartlife_extended_info = {
+                        "uuid": sl_device.uuid,
+                        "create_time": sl_device.create_time,
+                        "active_time": sl_device.active_time,
+                        "update_time": sl_device.update_time,
+                        "time_zone": sl_device.time_zone,
+                        "icon": sl_device.icon,
+                    }
+                    _LOGGER.debug(
+                        "Retrieved extended SmartLife info for %s: uuid=%s, icon=%s",
+                        device_id[:8], sl_device.uuid, sl_device.icon
+                    )
 
                     break
             else:
@@ -758,6 +773,7 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
         "product_name": product_name,
         "device_type": effective_device_type,
         "integration_mode": integration_mode,
+        "smartlife_extended_info": smartlife_extended_info,
         "_previous_options": dict(entry.options),  # For update listener comparison
     }
 
@@ -768,7 +784,10 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
 
     device_registry = dr.async_get(hass)
 
-    # Determine software version - prefer detected protocol version
+    # Use extended SmartLife info from earlier retrieval
+    extended_info = smartlife_extended_info
+
+    # Determine software version from Tuya protocol or integration version
     sw_version = f"v{INTEGRATION_VERSION}"  # Default fallback
     if device and hasattr(device, 'version') and device.version and device.version != "auto":
         sw_version = f"Tuya Protocol {device.version}"
@@ -782,6 +801,14 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
     elif device_id:
         hw_version = device_id[:8].upper()
 
+    # Get serial number from SmartLife UUID if available
+    serial_number = extended_info.get("uuid")
+
+    # Build configuration URL
+    config_url = None
+    if ip_address:
+        config_url = f"http://{ip_address}"
+
     device_entry = device_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
         identifiers={(DOMAIN, device_id)},
@@ -790,19 +817,30 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
         model=device_info.get("model_id", device_info.get("name", "Unknown")),
         sw_version=sw_version,
         hw_version=hw_version,
+        serial_number=serial_number,
+        configuration_url=config_url,
     )
 
-    # Update existing device entry if sw/hw version was previously Unknown
-    if device_entry.sw_version == "Unknown" or device_entry.hw_version == "Unknown":
-        device_registry.async_update_device(
-            device_entry.id,
-            sw_version=sw_version,
-            hw_version=hw_version,
-        )
-        _LOGGER.info(f"Updated device registry: sw_version={sw_version}, hw_version={hw_version}")
+    # Update existing device entry with extended info
+    update_kwargs = {}
+    if device_entry.sw_version == "Unknown" or device_entry.sw_version != sw_version:
+        update_kwargs["sw_version"] = sw_version
+    if device_entry.hw_version == "Unknown" or device_entry.hw_version != hw_version:
+        update_kwargs["hw_version"] = hw_version
+    if serial_number and device_entry.serial_number != serial_number:
+        update_kwargs["serial_number"] = serial_number
+    if config_url and device_entry.configuration_url != config_url:
+        update_kwargs["configuration_url"] = config_url
 
-    # Download device icon from Tuya Cloud if available
-    icon_url = entry.data.get("icon_url")
+    if update_kwargs:
+        device_registry.async_update_device(device_entry.id, **update_kwargs)
+        _LOGGER.info(
+            "Updated device registry for %s: %s",
+            device_id[:8], update_kwargs
+        )
+
+    # Download device icon from SmartLife or stored URL
+    icon_url = extended_info.get("icon") or entry.data.get("icon_url")
     if icon_url:
         from .helpers.icon_downloader import download_icon
         try:

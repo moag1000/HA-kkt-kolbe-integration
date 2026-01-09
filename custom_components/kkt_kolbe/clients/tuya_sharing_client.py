@@ -950,6 +950,138 @@ class TuyaSharingClient:
             _LOGGER.debug("Failed to get firmware info: %s", err)
             return None
 
+    async def async_get_device_specifications(
+        self, device_id: str
+    ) -> dict[str, Any] | None:
+        """Get device specifications via SmartLife API.
+
+        Calls the SmartLife specifications endpoint to get device
+        functions, status ranges, and potentially version info.
+
+        Args:
+            device_id: The device ID to get specifications for
+
+        Returns:
+            Dict with specifications, or None if not available
+        """
+        if not self._auth_result or not self._auth_result.success:
+            return None
+
+        if not self._manager:
+            await self.async_get_devices()
+
+        def _get_specifications() -> dict[str, Any] | None:
+            """Get specifications in executor thread."""
+            if not hasattr(self._manager, "customer_api"):
+                return None
+
+            try:
+                # SmartLife specifications endpoint
+                response = self._manager.customer_api.get(
+                    f"/v1.1/m/life/{device_id}/specifications",
+                    None
+                )
+                _LOGGER.info(
+                    "SmartLife specifications for %s: %s",
+                    device_id[:8], response
+                )
+                return response
+            except Exception as err:
+                _LOGGER.info(
+                    "SmartLife specifications API failed for %s: %s",
+                    device_id[:8], err
+                )
+                return None
+
+        try:
+            response = await self.hass.async_add_executor_job(_get_specifications)
+
+            if response is None:
+                return None
+
+            if isinstance(response, dict):
+                if response.get("success") is False:
+                    error_msg = response.get("msg", "Unknown")
+                    error_code = response.get("code", "?")
+                    _LOGGER.info(
+                        "SmartLife specifications not available for %s: %s (%s)",
+                        device_id[:8], error_msg, error_code
+                    )
+                    return None
+                return response.get("result") or response
+
+            return None
+
+        except Exception as err:
+            _LOGGER.info("Failed to get specifications: %s", err)
+            return None
+
+    async def async_get_device_status_details(
+        self, device_id: str
+    ) -> dict[str, Any] | None:
+        """Get device status details via SmartLife API.
+
+        Calls the SmartLife status endpoint to get device strategy
+        information and local support details.
+
+        Args:
+            device_id: The device ID to get status for
+
+        Returns:
+            Dict with status details, or None if not available
+        """
+        if not self._auth_result or not self._auth_result.success:
+            return None
+
+        if not self._manager:
+            await self.async_get_devices()
+
+        def _get_status() -> dict[str, Any] | None:
+            """Get status in executor thread."""
+            if not hasattr(self._manager, "customer_api"):
+                return None
+
+            try:
+                # SmartLife status endpoint
+                response = self._manager.customer_api.get(
+                    f"/v1.0/m/life/devices/{device_id}/status",
+                    None
+                )
+                _LOGGER.info(
+                    "SmartLife status details for %s: %s",
+                    device_id[:8], response
+                )
+                return response
+            except Exception as err:
+                _LOGGER.info(
+                    "SmartLife status API failed for %s: %s",
+                    device_id[:8], err
+                )
+                return None
+
+        try:
+            response = await self.hass.async_add_executor_job(_get_status)
+
+            if response is None:
+                return None
+
+            if isinstance(response, dict):
+                if response.get("success") is False:
+                    error_msg = response.get("msg", "Unknown")
+                    error_code = response.get("code", "?")
+                    _LOGGER.info(
+                        "SmartLife status not available for %s: %s (%s)",
+                        device_id[:8], error_msg, error_code
+                    )
+                    return None
+                return response.get("result") or response
+
+            return None
+
+        except Exception as err:
+            _LOGGER.info("Failed to get status details: %s", err)
+            return None
+
     async def async_get_device_info(
         self, device_id: str
     ) -> dict[str, Any] | None:
