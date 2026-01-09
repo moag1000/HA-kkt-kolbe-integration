@@ -80,6 +80,20 @@ async def async_setup_entry(
     if isinstance(coordinator, KKTKolbeHybridCoordinator):
         entities.append(KKTKolbeConnectionSensor(coordinator, entry))
 
+    # Add SmartLife info sensor if extended info is available
+    from .const import DOMAIN
+    entry_data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
+    smartlife_extended_info = entry_data.get("smartlife_extended_info", {})
+    if smartlife_extended_info and smartlife_extended_info.get("uuid"):
+        entities.append(
+            KKTKolbeSmartLifeInfoSensor(coordinator, entry, smartlife_extended_info)
+        )
+        _LOGGER.info(
+            "Added SmartLife info sensor for device %s (UUID: %s)",
+            entry.data.get("device_id", "unknown")[:8],
+            smartlife_extended_info.get("uuid"),
+        )
+
     if entities:
         async_add_entities(entities)
 
@@ -489,5 +503,139 @@ class KKTKolbeConnectionSensor(SensorEntity):
 
     @property
     def available(self) -> bool:
-        """Return True if entity is available."""
+        """Return True if entity is available.
+
+        The connection sensor should be more resilient than regular entities.
+        It shows connection status info which is still useful even if the
+        last coordinator update failed. Only mark unavailable if the
+        coordinator has no data at all.
+        """
+        # More resilient: available if coordinator exists and has any data
+        # Even if last_update_success is False, we can still show connection status
+        if self.coordinator is None:
+            return False
+        # Available if we have any data or if we can read connection mode
+        if hasattr(self.coordinator, "current_mode") and self.coordinator.current_mode:
+            return True
+        if hasattr(self.coordinator, "data") and self.coordinator.data:
+            return True
         return self.coordinator.last_update_success
+
+
+class KKTKolbeSmartLifeInfoSensor(SensorEntity):
+    """Sensor that exposes extended SmartLife device information.
+
+    Shows device info like UUID, creation time, active time, update time,
+    timezone, and icon URL that were retrieved from the SmartLife API.
+    """
+
+    # These attributes change very rarely - avoid recording every update
+    _unrecorded_attributes = frozenset({
+        "create_time",
+        "active_time",
+        "update_time",
+        "time_zone",
+        "icon_url",
+    })
+
+    def __init__(
+        self,
+        coordinator: Any,
+        entry: ConfigEntry,
+        extended_info: dict[str, Any],
+    ) -> None:
+        """Initialize the SmartLife info sensor."""
+        from homeassistant.helpers.entity import EntityCategory
+
+        self.coordinator = coordinator
+        self._entry = entry
+        self._extended_info = extended_info
+        self._attr_has_entity_name = True
+        self._attr_translation_key = "smartlife_device_info"
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        self._attr_icon = "mdi:cloud-check-outline"
+
+        # Unique ID based on entry
+        device_id = entry.data.get("device_id", entry.entry_id)
+        self._device_id = device_id
+        self._attr_unique_id = f"{entry.entry_id}_smartlife_info"
+
+        # Device info
+        from .const import DOMAIN
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, device_id)},
+        }
+
+    @property
+    def entity_picture(self) -> str | None:
+        """Return the device icon as entity picture.
+
+        Uses the icon downloaded from Tuya Cloud, stored locally
+        in www/kkt_kolbe/icons/{device_id}.png
+        """
+        # Only return picture if we have an icon URL (means download was attempted)
+        if self._extended_info.get("icon"):
+            return f"/local/kkt_kolbe/icons/{self._device_id}.png"
+        return None
+
+    @property
+    def native_value(self) -> str | None:
+        """Return the device UUID as the main state."""
+        return self._extended_info.get("uuid")
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return extended SmartLife device info as attributes."""
+        attrs = {}
+
+        # Creation time (when device was added to SmartLife)
+        create_time = self._extended_info.get("create_time")
+        if create_time:
+            # Convert Unix timestamp to ISO datetime
+            try:
+                from datetime import datetime
+                from datetime import timezone
+                dt = datetime.fromtimestamp(create_time, tz=timezone.utc)
+                attrs["create_time"] = dt.isoformat()
+            except (ValueError, TypeError):
+                attrs["create_time"] = create_time
+
+        # Active time (last time device was active)
+        active_time = self._extended_info.get("active_time")
+        if active_time:
+            try:
+                from datetime import datetime
+                from datetime import timezone
+                dt = datetime.fromtimestamp(active_time, tz=timezone.utc)
+                attrs["active_time"] = dt.isoformat()
+            except (ValueError, TypeError):
+                attrs["active_time"] = active_time
+
+        # Update time (last status update)
+        update_time = self._extended_info.get("update_time")
+        if update_time:
+            try:
+                from datetime import datetime
+                from datetime import timezone
+                dt = datetime.fromtimestamp(update_time, tz=timezone.utc)
+                attrs["update_time"] = dt.isoformat()
+            except (ValueError, TypeError):
+                attrs["update_time"] = update_time
+
+        # Time zone
+        time_zone = self._extended_info.get("time_zone")
+        if time_zone:
+            attrs["time_zone"] = time_zone
+
+        # Icon URL
+        icon = self._extended_info.get("icon")
+        if icon:
+            attrs["icon_url"] = icon
+
+        return attrs
+
+    @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        # Always available if extended info was retrieved
+        return bool(self._extended_info)

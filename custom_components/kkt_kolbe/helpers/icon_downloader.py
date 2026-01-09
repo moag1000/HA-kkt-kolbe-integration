@@ -107,19 +107,40 @@ async def download_icon(
         _LOGGER.debug("Icon for device %s already exists", device_id[:8])
         return get_icon_url_for_device(device_id)
 
+    _LOGGER.info(
+        "Attempting to download icon for device %s with path: %s",
+        device_id[:8], icon_path[:50] if icon_path else "None"
+    )
+
     # Try different base URLs
     for base_url in TUYA_IMAGE_BASE_URLS:
         full_url = build_full_icon_url(icon_path, base_url)
+        _LOGGER.debug("Trying icon URL: %s", full_url)
 
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(full_url, timeout=aiohttp.ClientTimeout(total=30)) as response:
+                    _LOGGER.debug("Icon download response: HTTP %s from %s", response.status, full_url)
                     if response.status == 200:
                         content = await response.read()
 
                         # Verify it's actually an image
+                        # Note: Tuya CDN often returns application/octet-stream for images
                         content_type = response.headers.get("content-type", "")
-                        if not content_type.startswith("image/"):
+
+                        # Check magic bytes for PNG/JPEG if content-type is generic
+                        is_valid_image = content_type.startswith("image/")
+                        if not is_valid_image and content_type in ("application/octet-stream", "binary/octet-stream", ""):
+                            # Check PNG magic bytes: 89 50 4E 47
+                            # Check JPEG magic bytes: FF D8 FF
+                            if content[:4] == b'\x89PNG' or content[:3] == b'\xff\xd8\xff':
+                                is_valid_image = True
+                                _LOGGER.debug(
+                                    "Detected image from magic bytes despite content-type: %s",
+                                    content_type
+                                )
+
+                        if not is_valid_image:
                             _LOGGER.debug(
                                 "URL %s returned non-image content type: %s",
                                 full_url, content_type
@@ -137,9 +158,9 @@ async def download_icon(
                         )
                         return get_icon_url_for_device(device_id)
                     else:
-                        _LOGGER.debug(
-                            "Failed to download from %s: HTTP %s",
-                            full_url, response.status
+                        _LOGGER.info(
+                            "Icon download failed from %s: HTTP %s",
+                            base_url, response.status
                         )
         except asyncio.TimeoutError:
             _LOGGER.debug("Timeout downloading from %s", full_url)

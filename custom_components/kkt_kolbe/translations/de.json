@@ -501,7 +501,7 @@
       },
       "renew_token": {
         "title": "SmartLife Token erneuern",
-        "description": "Scannen Sie diesen QR-Code mit der **SmartLife** App um Ihre Authentifizierung zu erneuern.\n\n**Anleitung:**\n1. Öffnen Sie die SmartLife App\n2. Tippen Sie auf Ihr Profil (unten rechts)\n3. Tippen Sie auf das Scan-Symbol (oben rechts)\n4. Scannen Sie den Code unten\n5. Bestätigen Sie in der App\n6. Klicken Sie unten auf 'Absenden'\n\n![QR Code]({qr_code_url})\n\n**Account:** {account_name}"
+        "description": "Scannen Sie diesen QR-Code mit der **SmartLife** App um Ihre Authentifizierung zu erneuern.\n\n**Anleitung:**\n1. Öffnen Sie die SmartLife App\n2. Tippen Sie auf Ihr Profil (unten rechts)\n3. Tippen Sie auf das Scan-Symbol (oben rechts)\n4. Scannen Sie den Code unten\n5. Bestätigen Sie in der App\n6. Klicken Sie unten auf 'Absenden'\n\n![QR Code]({qr_code_url})"
       },
       "account_settings": {
         "title": "SmartLife Account-Einstellungen",
@@ -632,6 +632,12 @@
       },
       "current_temperature": {
         "name": "Aktuelle Temperatur"
+      },
+      "connection_mode": {
+        "name": "Verbindungsmodus"
+      },
+      "smartlife_device_info": {
+        "name": "SmartLife Geräteinformationen"
       }
     },
     "binary_sensor": {
