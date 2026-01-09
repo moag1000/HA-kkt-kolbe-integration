@@ -55,6 +55,12 @@ class TuyaSharingDevice:
         ip: Local IP address if available
         online: Whether device is currently online
         support_local: Whether device supports local control
+        uuid: Unique device identifier (different from device_id)
+        active_time: Last pairing timestamp (Unix epoch)
+        create_time: First pairing timestamp (Unix epoch)
+        update_time: Last status update timestamp (Unix epoch)
+        time_zone: Device timezone string
+        icon: Device icon URL
         kkt_device_type: Detected KKT device type key (set during filtering)
         kkt_product_name: Matched product name (set during filtering)
     """
@@ -68,6 +74,13 @@ class TuyaSharingDevice:
     ip: str | None = None
     online: bool = False
     support_local: bool = True
+    # Extended device info from SmartLife
+    uuid: str | None = None
+    active_time: int | None = None
+    create_time: int | None = None
+    update_time: int | None = None
+    time_zone: str | None = None
+    icon: str | None = None
     # Fields set during KKT device detection
     kkt_device_type: str | None = None
     kkt_product_name: str | None = None
@@ -92,6 +105,13 @@ class TuyaSharingDevice:
             ip=getattr(device, "ip", None),
             online=getattr(device, "online", False),
             support_local=getattr(device, "support_local", True),
+            # Extended device info
+            uuid=getattr(device, "uuid", None),
+            active_time=getattr(device, "active_time", None),
+            create_time=getattr(device, "create_time", None),
+            update_time=getattr(device, "update_time", None),
+            time_zone=getattr(device, "time_zone", None),
+            icon=getattr(device, "icon", None),
         )
 
 
@@ -521,6 +541,17 @@ class TuyaSharingClient:
                     device.category,
                     device.online,
                 )
+                # Log extended info if available
+                if device.uuid or device.create_time:
+                    _LOGGER.debug(
+                        "  Extended info: uuid=%s, create_time=%s, "
+                        "active_time=%s, update_time=%s, tz=%s",
+                        device.uuid,
+                        device.create_time,
+                        device.active_time,
+                        device.update_time,
+                        device.time_zone,
+                    )
             else:
                 _LOGGER.warning(
                     "Device '%s' (%s...): local_key NOT available - "
@@ -832,6 +863,151 @@ class TuyaSharingClient:
         # For now, try sending as-is and let the API figure it out
         commands = [{"code": str(dp_id), "value": value} for dp_id, value in dps.items()]
         return await self.async_send_commands(device_id, commands)
+
+    async def async_get_firmware_info(
+        self, device_id: str
+    ) -> list[dict[str, Any]] | None:
+        """Get firmware information for a device via SmartLife API.
+
+        This attempts to call the Tuya firmware upgrade-info endpoint
+        using the SmartLife authentication. Note: This may not work
+        if the SmartLife token lacks permission for this endpoint.
+
+        Args:
+            device_id: The device ID to get firmware info for
+
+        Returns:
+            List of firmware module info dicts, or None if not available.
+            Each dict contains: module_type, current_version, upgrade_status,
+            last_upgrade_time, module_desc, control_type
+        """
+        if not self._auth_result or not self._auth_result.success:
+            _LOGGER.warning("Cannot get firmware info: not authenticated")
+            return None
+
+        # Ensure manager is initialized
+        if not self._manager:
+            await self.async_get_devices()
+
+        def _get_firmware() -> dict[str, Any] | None:
+            """Get firmware info in executor thread."""
+            if not hasattr(self._manager, "customer_api"):
+                _LOGGER.warning("Manager has no customer_api attribute")
+                return None
+
+            try:
+                # Try the standard Tuya firmware endpoint
+                response = self._manager.customer_api.get(
+                    f"/v1.0/iot-03/devices/{device_id}/upgrade-infos",
+                    None
+                )
+                _LOGGER.debug(
+                    "Firmware API response for %s: %s",
+                    device_id[:8], response
+                )
+                return response
+            except Exception as err:
+                _LOGGER.debug(
+                    "Firmware API call failed for %s: %s",
+                    device_id[:8], err
+                )
+                return None
+
+        try:
+            response = await self.hass.async_add_executor_job(_get_firmware)
+
+            if response is None:
+                return None
+
+            # Check if response indicates success
+            if isinstance(response, dict):
+                if response.get("success") is False:
+                    error_code = response.get("code", "unknown")
+                    error_msg = response.get("msg", "Unknown error")
+                    _LOGGER.info(
+                        "Firmware API not available for SmartLife token: %s (%s)",
+                        error_msg, error_code
+                    )
+                    return None
+
+                # Extract result
+                result = response.get("result")
+                if isinstance(result, list):
+                    _LOGGER.info(
+                        "Got firmware info for %s: %d modules",
+                        device_id[:8], len(result)
+                    )
+                    return result
+
+            # If response is directly a list
+            if isinstance(response, list):
+                return response
+
+            _LOGGER.debug("Unexpected firmware response format: %s", type(response))
+            return None
+
+        except Exception as err:
+            _LOGGER.debug("Failed to get firmware info: %s", err)
+            return None
+
+    async def async_get_device_info(
+        self, device_id: str
+    ) -> dict[str, Any] | None:
+        """Get extended device information via SmartLife API.
+
+        Attempts to call additional Tuya API endpoints to get more
+        device metadata than what's available in the standard device list.
+
+        Args:
+            device_id: The device ID to get info for
+
+        Returns:
+            Dict with device info, or None if not available
+        """
+        if not self._auth_result or not self._auth_result.success:
+            return None
+
+        if not self._manager:
+            await self.async_get_devices()
+
+        def _get_device_info() -> dict[str, Any] | None:
+            """Get device info in executor thread."""
+            if not hasattr(self._manager, "customer_api"):
+                return None
+
+            try:
+                response = self._manager.customer_api.get(
+                    f"/v1.0/devices/{device_id}",
+                    None
+                )
+                _LOGGER.debug(
+                    "Device info API response for %s: %s",
+                    device_id[:8], response
+                )
+                return response
+            except Exception as err:
+                _LOGGER.debug(
+                    "Device info API call failed for %s: %s",
+                    device_id[:8], err
+                )
+                return None
+
+        try:
+            response = await self.hass.async_add_executor_job(_get_device_info)
+
+            if response is None:
+                return None
+
+            if isinstance(response, dict):
+                if response.get("success") is False:
+                    return None
+                return response.get("result") or response
+
+            return None
+
+        except Exception as err:
+            _LOGGER.debug("Failed to get device info: %s", err)
+            return None
 
     async def async_test_connection(self) -> bool:
         """Test connection and validate tokens.
