@@ -473,6 +473,54 @@ class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
             )
             raise
 
+    async def _async_suppress_fan_auto_start(self) -> None:
+        """Suppress fan auto-start after hood power-on.
+
+        When a hood is freshly powered on, the firmware automatically starts
+        the fan. This method sends a fan-off command to prevent that behavior
+        when the user only wants the light or power switch.
+
+        Only active when the 'disable_fan_auto_start' option is enabled.
+        """
+        if not self._entry.options.get("disable_fan_auto_start", False):
+            return
+
+        # Lazy imports (existing pattern from _build_device_info)
+        from .device_types import KNOWN_DEVICES
+        from .device_types import get_device_entity_config
+        from .const import CATEGORY_HOOD
+
+        # Determine lookup key from entry data
+        device_type = self._entry.data.get("device_type", "")
+        product_name = self._entry.data.get("product_name", "")
+        lookup_key = device_type if device_type not in ("auto", None, "") else product_name
+
+        # Verify this is a hood device
+        device_info = KNOWN_DEVICES.get(lookup_key)
+        if not device_info or device_info.get("category") != CATEGORY_HOOD:
+            return
+
+        # Get fan entity config to determine the correct DP and value type
+        fan_config = get_device_entity_config(lookup_key, "fan")
+        if not fan_config:
+            return
+
+        fan_dp = fan_config.get("dp")
+        if fan_dp is None:
+            return
+
+        # Send fan-off: enum mode uses "off", numeric mode uses 0
+        if fan_config.get("numeric", False):
+            off_value = 0
+        else:
+            off_value = "off"
+
+        _LOGGER.info(
+            "Suppressing fan auto-start: sending DP %d = %s for %s",
+            fan_dp, off_value, self._attr_unique_id
+        )
+        await self._async_set_data_point(fan_dp, off_value)
+
     def _log_entity_state(self, action: str, additional_info: str = "") -> None:
         """Log entity state changes for debugging."""
         if _LOGGER.isEnabledFor(logging.DEBUG):

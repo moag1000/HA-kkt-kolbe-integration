@@ -154,6 +154,7 @@ def get_default_options() -> dict[str, Any]:
     return {
         "enable_advanced_entities": True,
         "enable_debug_logging": False,
+        "disable_fan_auto_start": False,
     }
 
 

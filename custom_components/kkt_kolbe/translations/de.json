@@ -477,6 +477,7 @@
           "enable_debug_logging": "Debug-Protokollierung aktivieren",
           "enable_advanced_entities": "Erweiterte Entitäten aktivieren",
           "zone_naming_scheme": "Zonenbenennung",
+          "disable_fan_auto_start": "Automatischen Lüfterstart deaktivieren",
           "test_connection": "Verbindung testen"
         },
         "data_description": {
@@ -488,6 +489,7 @@
           "enable_debug_logging": "Detaillierte Protokollierung zur Fehlerbehebung aktivieren",
           "enable_advanced_entities": "Alle Entitäten anzeigen (Lüftergeschwindigkeit, RGB-Modus, Filterstatus)",
           "zone_naming_scheme": "Benennung von Multi-Zonen-Entitäten",
+          "disable_fan_auto_start": "Beim Einschalten des Lichts oder der Stromversorgung wird der automatische Lüfterstart verhindert (nur Dunstabzugshauben)",
           "test_connection": "Geräteverbindung nach Änderungen testen"
         }
       },
@@ -522,6 +524,7 @@
           "enable_debug_logging": "Debug-Protokollierung aktivieren",
           "enable_advanced_entities": "Erweiterte Entitäten aktivieren",
           "zone_naming_scheme": "Zonenbenennung",
+          "disable_fan_auto_start": "Automatischen Lüfterstart deaktivieren",
           "test_connection": "Verbindung testen"
         },
         "data_description": {
@@ -529,6 +532,7 @@
           "enable_debug_logging": "Detaillierte Protokollierung zur Fehlerbehebung aktivieren",
           "enable_advanced_entities": "Alle Entitäten anzeigen (Lüftergeschwindigkeit, RGB-Modus, Filterstatus)",
           "zone_naming_scheme": "Benennung von Multi-Zonen-Entitäten",
+          "disable_fan_auto_start": "Beim Einschalten des Lichts oder der Stromversorgung wird der automatische Lüfterstart verhindert (nur Dunstabzugshauben)",
           "test_connection": "Geräteverbindung nach Änderungen testen"
         }
       },
@@ -545,6 +549,7 @@
           "enable_debug_logging": "Debug-Protokollierung aktivieren",
           "enable_advanced_entities": "Erweiterte Entitäten aktivieren",
           "zone_naming_scheme": "Zonenbenennung",
+          "disable_fan_auto_start": "Automatischen Lüfterstart deaktivieren",
           "test_connection": "Verbindung testen"
         },
         "data_description": {
@@ -556,6 +561,7 @@
           "enable_debug_logging": "Detaillierte Protokollierung zur Fehlerbehebung aktivieren",
           "enable_advanced_entities": "Alle Entitäten anzeigen (Lüftergeschwindigkeit, RGB-Modus, Filterstatus)",
           "zone_naming_scheme": "Benennung von Multi-Zonen-Entitäten",
+          "disable_fan_auto_start": "Beim Einschalten des Lichts oder der Stromversorgung wird der automatische Lüfterstart verhindert (nur Dunstabzugshauben)",
           "test_connection": "Geräteverbindung nach Änderungen testen"
         }
       }

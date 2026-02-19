@@ -155,12 +155,15 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
             return False
         return bool(power_value)
 
-    async def _async_ensure_hood_power_on(self) -> None:
+    async def _async_ensure_hood_power_on(self) -> bool:
         """Ensure hood is powered on before controlling light.
 
         For range hoods, the main power (DP 1) must be on before
         the light can be controlled. This method automatically
         turns on the hood if it's off and waits for it to be ready.
+
+        Returns:
+            True if the hood was just turned on, False if it was already on.
         """
         if not self._is_hood_powered_on():
             _LOGGER.info(
@@ -170,6 +173,8 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
             await self._async_set_data_point(HOOD_POWER_DP, True)
             # Wait for the hood to power on before setting light
             await asyncio.sleep(POWER_ON_DELAY)
+            return True
+        return False
 
     async def _async_ensure_work_mode(self) -> None:
         """Ensure work_mode is set to default before turning on light.
@@ -286,7 +291,11 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
         as most devices require the light to be on before accepting mode changes.
         """
         # Ensure hood is powered on first (Auto-Power-On feature)
-        await self._async_ensure_hood_power_on()
+        hood_was_off = await self._async_ensure_hood_power_on()
+
+        # Suppress fan auto-start if hood was just turned on
+        if hood_was_off:
+            await self._async_suppress_fan_auto_start()
 
         # Ensure work_mode is set (Auto-Work-Mode feature for SOLO HCM etc.)
         await self._async_ensure_work_mode()

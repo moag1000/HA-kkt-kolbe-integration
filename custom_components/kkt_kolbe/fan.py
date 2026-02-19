@@ -158,12 +158,15 @@ class KKTKolbeFan(KKTBaseEntity, FanEntity):
             return False
         return bool(power_value)
 
-    async def _async_ensure_hood_power_on(self) -> None:
+    async def _async_ensure_hood_power_on(self) -> bool:
         """Ensure hood is powered on before setting fan speed.
 
         For range hoods, the main power (DP 1) must be on before
         fan speed can be controlled. This method automatically
         turns on the hood if it's off and waits for it to be ready.
+
+        Returns:
+            True if the hood was just turned on, False if it was already on.
         """
         if not self._is_hood_powered_on():
             _LOGGER.info(
@@ -173,6 +176,8 @@ class KKTKolbeFan(KKTBaseEntity, FanEntity):
             await self._async_set_data_point(HOOD_POWER_DP, True)
             # Wait for the hood to power on before setting fan speed
             await asyncio.sleep(POWER_ON_DELAY)
+            return True
+        return False
 
     def _update_cached_state(self) -> None:
         """Update the cached state from coordinator data."""

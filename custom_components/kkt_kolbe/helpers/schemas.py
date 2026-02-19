@@ -470,6 +470,7 @@ def get_options_schema(
     current_api_enabled: bool = False,
     current_client_id: str = "",
     current_endpoint: str = DEFAULT_API_ENDPOINT,
+    current_fan_suppress: bool = False,
 ) -> vol.Schema:
     """Get schema for options flow.
 
@@ -517,6 +518,7 @@ def get_options_schema(
                 "mode": "dropdown"
             }
         }),
+        vol.Optional("disable_fan_auto_start", default=current_fan_suppress): bool,
         vol.Optional("test_connection", default=True): bool,
     })
 

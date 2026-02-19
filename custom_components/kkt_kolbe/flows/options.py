@@ -198,6 +198,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
         current_debug = self.config_entry.options.get("enable_debug_logging", False)
         current_advanced = self.config_entry.options.get("enable_advanced_entities", True)
         current_naming = self.config_entry.options.get("zone_naming_scheme", "zone")
+        current_fan_suppress = self.config_entry.options.get("disable_fan_auto_start", False)
 
         # SmartLife Device schema - NO IoT Platform API fields
         schema = vol.Schema({
@@ -225,6 +226,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
                     "mode": "dropdown"
                 }
             }),
+            vol.Optional("disable_fan_auto_start", default=current_fan_suppress): bool,
             vol.Optional("test_connection", default=True): bool,
         })
 
@@ -255,6 +257,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
         current_debug = self.config_entry.options.get("enable_debug_logging", False)
         current_advanced = self.config_entry.options.get("enable_advanced_entities", True)
         current_naming = self.config_entry.options.get("zone_naming_scheme", "zone")
+        current_fan_suppress = self.config_entry.options.get("disable_fan_auto_start", False)
 
         # Get current API settings
         current_api_enabled = self.config_entry.data.get("api_enabled", False)
@@ -270,6 +273,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
             current_api_enabled=current_api_enabled,
             current_client_id=current_client_id,
             current_endpoint=current_endpoint,
+            current_fan_suppress=current_fan_suppress,
         )
 
         return self.async_show_form(

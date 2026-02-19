@@ -398,6 +398,7 @@
           "enable_debug_logging": "Enable Debug Logging",
           "enable_advanced_entities": "Enable Advanced Entities",
           "zone_naming_scheme": "Zone Naming Scheme",
+          "disable_fan_auto_start": "Disable Fan Auto-Start",
           "test_connection": "Test Connection"
         },
         "data_description": {
@@ -410,6 +411,7 @@
           "enable_debug_logging": "Enable detailed logging for troubleshooting",
           "enable_advanced_entities": "Show additional diagnostic entities",
           "zone_naming_scheme": "How to name multi-zone entities",
+          "disable_fan_auto_start": "When turning on the light or power, prevent the fan from starting automatically (hood devices only)",
           "test_connection": "Test device connection after changes"
         }
       }
@@ -464,6 +466,7 @@
           "enable_debug_logging": "Enable Debug Logging",
           "enable_advanced_entities": "Enable Advanced Entities",
           "zone_naming_scheme": "Zone Naming Scheme",
+          "disable_fan_auto_start": "Disable Fan Auto-Start",
           "test_connection": "Test Connection"
         },
         "data_description": {
@@ -475,6 +478,7 @@
           "enable_debug_logging": "Enable detailed logging for troubleshooting",
           "enable_advanced_entities": "Show additional diagnostic entities",
           "zone_naming_scheme": "How to name multi-zone entities",
+          "disable_fan_auto_start": "When turning on the light or power, prevent the fan from starting automatically (hood devices only)",
           "test_connection": "Test device connection after changes"
         }
       }

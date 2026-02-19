@@ -1,6 +1,7 @@
 """Switch platform for KKT Kolbe devices."""
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import TYPE_CHECKING
 from typing import Any
@@ -21,6 +22,10 @@ if TYPE_CHECKING:
 PARALLEL_UPDATES = 0
 
 _LOGGER = logging.getLogger(__name__)
+
+# Hood power switch configuration
+HOOD_POWER_DP = 1  # DP 1 is the main power switch for all hoods
+POWER_ON_DELAY = 0.5  # Delay in seconds after turning on before sending fan-off
 
 
 async def async_setup_entry(
@@ -112,6 +117,11 @@ class KKTKolbeSwitch(KKTBaseEntity, SwitchEntity):
         """Turn the switch on."""
         await self._async_set_data_point(self._dp, True)
         self._log_entity_state("Turn On", f"DP {self._dp} set to True")
+
+        # For hood power switch (DP 1): suppress fan auto-start
+        if self._dp == HOOD_POWER_DP:
+            await asyncio.sleep(POWER_ON_DELAY)
+            await self._async_suppress_fan_auto_start()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the switch off."""
