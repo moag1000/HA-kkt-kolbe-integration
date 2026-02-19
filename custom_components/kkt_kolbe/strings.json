@@ -256,7 +256,7 @@
       },
       "zeroconf_api_credentials": {
         "title": "Configure Tuya Cloud API",
-        "description": "Enter your Tuya IoT Platform credentials to automatically fetch device keys.\n\n**Device:** {device_name}\n**Device ID:** {device_id}...\n\nGet credentials from: https://iot.tuya.com",
+        "description": "Enter your Tuya IoT Platform credentials to automatically fetch device keys.\n\n**Device:** {device_name}\n**Device ID:** {device_id}...\n\nGet credentials from: [{tuya_iot_url}]({tuya_iot_url})",
         "data": {
           "api_client_id": "Access ID",
           "api_client_secret": "Access Secret",

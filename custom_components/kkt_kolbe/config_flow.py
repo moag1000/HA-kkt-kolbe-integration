@@ -24,13 +24,16 @@ from .api_manager import GlobalAPIManager
 from .const import CONF_SMARTLIFE_APP_SCHEMA
 from .const import CONF_SMARTLIFE_TOKEN_INFO
 from .const import CONF_SMARTLIFE_USER_CODE
+from .const import DOCUMENTATION_URL
 from .const import DOMAIN
 from .const import ENTRY_TYPE_ACCOUNT
 from .const import ENTRY_TYPE_DEVICE
 from .const import QR_LOGIN_TIMEOUT
+from .const import SETUP_GUIDE_URL
 from .const import SETUP_MODE_SMARTLIFE
 from .const import SMARTLIFE_SCHEMA
 from .const import TUYA_HA_SCHEMA
+from .const import TUYA_IOT_URL
 from .const import TUYA_SMART_SCHEMA
 from .device_types import CATEGORY_COOKTOP
 from .device_types import CATEGORY_HOOD
@@ -44,6 +47,13 @@ from .smart_discovery import async_get_configured_device_ids
 from .tuya_device import KKTKolbeTuyaDevice
 
 _LOGGER = logging.getLogger(__name__)
+
+# Reusable description_placeholders dict for steps with URL references
+_URL_PLACEHOLDERS = {
+    "documentation_url": DOCUMENTATION_URL,
+    "setup_guide_url": SETUP_GUIDE_URL,
+    "tuya_iot_url": TUYA_IOT_URL,
+}
 
 
 def _is_private_ip(ip_str: str | None) -> bool:
@@ -870,6 +880,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                 "device_id": self._device_info.get("device_id", "Unknown")[:8],
                 "ip_address": self._device_info.get("ip", "Unknown"),
                 "api_hint": api_hint,
+                **_URL_PLACEHOLDERS,
             },
         )
 
@@ -984,6 +995,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             description_placeholders={
                 "device_name": self._device_info.get("name", "Unknown"),
                 "device_id": self._device_info.get("device_id", "Unknown")[:8],
+                **_URL_PLACEHOLDERS,
             },
         )
 
@@ -2052,11 +2064,12 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
         placeholders = {
             "device_name": self._reauth_entry.title,
             "device_id": self._reauth_entry.data.get("device_id", "Unknown"),
+            **_URL_PLACEHOLDERS,
         }
 
         # Add setup guide link for API reauth
         if is_api_mode:
-            placeholders["setup_info"] = "📚 Setup Guide: https://github.com/moag1000/HA-kkt-kolbe-integration#-tuya-api-setup---vollstaendige-anleitung\n🔗 Tuya IoT Platform: https://iot.tuya.com"
+            placeholders["setup_info"] = f"Setup Guide: {SETUP_GUIDE_URL}\nTuya IoT Platform: {TUYA_IOT_URL}"
 
         return self.async_show_form(
             step_id="reauth_confirm",
@@ -2726,7 +2739,8 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             data_schema=STEP_API_ONLY_DATA_SCHEMA,
             errors=errors,
             description_placeholders={
-                "setup_info": "Configure TinyTuya Cloud API for device discovery\n\n📚 Setup Guide: https://github.com/moag1000/HA-kkt-kolbe-integration#-tuya-api-setup---vollstaendige-anleitung\n🔗 Tuya IoT Platform: https://iot.tuya.com"
+                "setup_info": f"Configure TinyTuya Cloud API for device discovery\n\nSetup Guide: {SETUP_GUIDE_URL}\nTuya IoT Platform: {TUYA_IOT_URL}",
+                **_URL_PLACEHOLDERS,
             }
         )
 
@@ -2983,7 +2997,8 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             data_schema=STEP_API_ONLY_DATA_SCHEMA,
             errors=errors,
             description_placeholders={
-                "setup_info": "Enter new TinyTuya Cloud API credentials\n\n📚 Setup Guide: https://github.com/moag1000/HA-kkt-kolbe-integration#-tuya-api-setup---vollstaendige-anleitung\n🔗 Tuya IoT Platform: https://iot.tuya.com"
+                "setup_info": f"Enter new TinyTuya Cloud API credentials\n\nSetup Guide: {SETUP_GUIDE_URL}\nTuya IoT Platform: {TUYA_IOT_URL}",
+                **_URL_PLACEHOLDERS,
             }
         )
 
@@ -3047,7 +3062,8 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             description_placeholders={
                 "device_name": self._device_info.get("name", "Unknown"),
                 "device_id": self._device_info.get("device_id", "Unknown")[:8],
-                "ip_address": self._device_info.get("ip", "Unknown")
+                "ip_address": self._device_info.get("ip", "Unknown"),
+                **_URL_PLACEHOLDERS,
             }
         )
 

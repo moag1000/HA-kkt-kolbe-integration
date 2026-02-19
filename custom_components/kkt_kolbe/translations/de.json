@@ -129,7 +129,7 @@
       },
       "manual_config": {
         "title": "Manuelle Konfiguration",
-        "description": "Gerätedaten manuell eingeben.\n\n**So erhalten Sie den Local Key:**\nSie müssen die Tuya IoT Platform einrichten, um den Local Key abzurufen.\n\n[Einrichtungsanleitung](https://github.com/moag1000/HA-kkt-kolbe-integration#-tuya-api-setup---vollstaendige-anleitung) | [Tuya IoT Platform](https://iot.tuya.com)",
+        "description": "Gerätedaten manuell eingeben.\n\n**So erhalten Sie den Local Key:**\nSie müssen die Tuya IoT Platform einrichten, um den Local Key abzurufen.\n\n[Einrichtungsanleitung]({setup_guide_url}) | [Tuya IoT Platform]({tuya_iot_url})",
         "data": {
           "device_id": "Geräte-ID",
           "host": "IP-Adresse",
@@ -143,7 +143,7 @@
       },
       "authentication": {
         "title": "Geräte-Authentifizierung",
-        "description": "Geben Sie den Local Key für Ihr Gerät ein.\n\n**Gerät:** {device_name}\n**Geräte-ID:** {device_id}\n**IP-Adresse:** {ip_address}\n\n**So erhalten Sie den Local Key:**\nDer Local Key wird von der Tuya IoT Platform abgerufen. Folgen Sie unserer Einrichtungsanleitung für den API-Zugang.\n\n[Einrichtungsanleitung](https://github.com/moag1000/HA-kkt-kolbe-integration#-tuya-api-setup---vollstaendige-anleitung) | [Tuya IoT Platform](https://iot.tuya.com)",
+        "description": "Geben Sie den Local Key für Ihr Gerät ein.\n\n**Gerät:** {device_name}\n**Geräte-ID:** {device_id}\n**IP-Adresse:** {ip_address}\n\n**So erhalten Sie den Local Key:**\nDer Local Key wird von der Tuya IoT Platform abgerufen. Folgen Sie unserer Einrichtungsanleitung für den API-Zugang.\n\n[Einrichtungsanleitung]({setup_guide_url}) | [Tuya IoT Platform]({tuya_iot_url})",
         "data": {
           "local_key": "Local Key",
           "test_connection": "Verbindung testen",
@@ -163,7 +163,7 @@
       },
       "zeroconf_authenticate": {
         "title": "Geräte-Authentifizierung erforderlich",
-        "description": "Ein Gerät wurde erkannt, erfordert jedoch eine Authentifizierung.\n\n**Gerät:** {device_name}\n**Geräte-ID:** {device_id}\n**IP-Adresse:** {ip_address}\n\n**So erhalten Sie den Local Key:**\nDer Local Key ist ein 16-stelliger Verschlüsselungsschlüssel von der Tuya IoT Platform.\n\n[Einrichtungsanleitung](https://github.com/moag1000/HA-kkt-kolbe-integration#-tuya-api-setup---vollstaendige-anleitung) | [Tuya IoT Platform](https://iot.tuya.com)\n\n**Alternative:** Konfigurieren Sie API-Zugangsdaten, um den Local Key automatisch abzurufen.",
+        "description": "Ein Gerät wurde erkannt, erfordert jedoch eine Authentifizierung.\n\n**Gerät:** {device_name}\n**Geräte-ID:** {device_id}\n**IP-Adresse:** {ip_address}\n\n**So erhalten Sie den Local Key:**\nDer Local Key ist ein 16-stelliger Verschlüsselungsschlüssel von der Tuya IoT Platform.\n\n[Einrichtungsanleitung]({setup_guide_url}) | [Tuya IoT Platform]({tuya_iot_url})\n\n**Alternative:** Konfigurieren Sie API-Zugangsdaten, um den Local Key automatisch abzurufen.",
         "data": {
           "local_key": "Local Key",
           "configure_api": "Stattdessen API konfigurieren"
@@ -175,7 +175,7 @@
       },
       "zeroconf_api_credentials": {
         "title": "Tuya Cloud API Einrichtung",
-        "description": "Geben Sie Ihre Tuya Cloud API-Zugangsdaten ein, um Geräteinformationen automatisch abzurufen.\n\n**So erhalten Sie API-Zugangsdaten:**\n1. Gehen Sie zur [Tuya IoT Platform](https://iot.tuya.com)\n2. Erstellen Sie ein Cloud-Projekt (Smart Home Typ)\n3. Verknüpfen Sie Ihr Smart Life App-Konto\n4. Kopieren Sie Access ID und Access Secret\n\n[Ausführliche Einrichtungsanleitung](https://github.com/moag1000/HA-kkt-kolbe-integration#-tuya-api-setup---vollstaendige-anleitung)",
+        "description": "Geben Sie Ihre Tuya Cloud API-Zugangsdaten ein, um Geräteinformationen automatisch abzurufen.\n\n**So erhalten Sie API-Zugangsdaten:**\n1. Gehen Sie zur [Tuya IoT Platform]({tuya_iot_url})\n2. Erstellen Sie ein Cloud-Projekt (Smart Home Typ)\n3. Verknüpfen Sie Ihr Smart Life App-Konto\n4. Kopieren Sie Access ID und Access Secret\n\n[Ausführliche Einrichtungsanleitung]({setup_guide_url})",
         "data": {
           "api_client_id": "Access ID (Client ID)",
           "api_client_secret": "Access Secret (Client Secret)",
@@ -218,7 +218,7 @@
       },
       "api_only": {
         "title": "Tuya Cloud API Einrichtung",
-        "description": "Konfigurieren Sie Ihr Gerät über die Tuya Cloud API.\n\n**So erhalten Sie API-Zugangsdaten:**\n1. Gehen Sie zur [Tuya IoT Platform](https://iot.tuya.com)\n2. Erstellen Sie ein Cloud-Projekt (Smart Home Typ)\n3. Verknüpfen Sie Ihr Smart Life App-Konto\n4. Kopieren Sie Access ID und Access Secret\n\n[Ausführliche Einrichtungsanleitung](https://github.com/moag1000/HA-kkt-kolbe-integration#-tuya-api-setup---vollstaendige-anleitung)",
+        "description": "Konfigurieren Sie Ihr Gerät über die Tuya Cloud API.\n\n**So erhalten Sie API-Zugangsdaten:**\n1. Gehen Sie zur [Tuya IoT Platform]({tuya_iot_url})\n2. Erstellen Sie ein Cloud-Projekt (Smart Home Typ)\n3. Verknüpfen Sie Ihr Smart Life App-Konto\n4. Kopieren Sie Access ID und Access Secret\n\n[Ausführliche Einrichtungsanleitung]({setup_guide_url})",
         "data": {
           "api_client_id": "Access ID (Client ID)",
           "api_client_secret": "Access Secret (Client Secret)",
@@ -232,7 +232,7 @@
       },
       "api_config": {
         "title": "API-Konfiguration",
-        "description": "TinyTuya Cloud API-Zugangsdaten konfigurieren.\n\n[Einrichtungsanleitung](https://github.com/moag1000/HA-kkt-kolbe-integration#-tuya-api-setup---vollstaendige-anleitung) | [Tuya IoT Platform](https://iot.tuya.com)",
+        "description": "TinyTuya Cloud API-Zugangsdaten konfigurieren.\n\n[Einrichtungsanleitung]({setup_guide_url}) | [Tuya IoT Platform]({tuya_iot_url})",
         "data": {
           "api_client_id": "Client ID",
           "api_client_secret": "Client Secret",
@@ -277,7 +277,7 @@
       },
       "api_credentials": {
         "title": "Tuya Cloud API-Zugangsdaten",
-        "description": "Geben Sie Ihre Tuya Cloud API-Zugangsdaten ein.\n\n**So erhalten Sie API-Zugangsdaten:**\n1. Gehen Sie zur [Tuya IoT Platform](https://iot.tuya.com)\n2. Erstellen Sie ein Cloud-Projekt (Smart Home Typ)\n3. Verknüpfen Sie Ihr Smart Life App-Konto\n4. Kopieren Sie Access ID und Access Secret\n\n[Ausführliche Einrichtungsanleitung](https://github.com/moag1000/HA-kkt-kolbe-integration#-tuya-api-setup---vollstaendige-anleitung)",
+        "description": "Geben Sie Ihre Tuya Cloud API-Zugangsdaten ein.\n\n**So erhalten Sie API-Zugangsdaten:**\n1. Gehen Sie zur [Tuya IoT Platform]({tuya_iot_url})\n2. Erstellen Sie ein Cloud-Projekt (Smart Home Typ)\n3. Verknüpfen Sie Ihr Smart Life App-Konto\n4. Kopieren Sie Access ID und Access Secret\n\n[Ausführliche Einrichtungsanleitung]({setup_guide_url})",
         "data": {
           "api_client_id": "Access ID (Client ID)",
           "api_client_secret": "Access Secret (Client Secret)",
@@ -291,7 +291,7 @@
       },
       "hybrid_manual_details": {
         "title": "Lokale Verbindungsdetails",
-        "description": "Geben Sie lokale Verbindungsdetails für den Hybrid-Modus ein.\n\n**So erhalten Sie den Local Key:**\n[Einrichtungsanleitung](https://github.com/moag1000/HA-kkt-kolbe-integration#-tuya-api-setup---vollstaendige-anleitung) | [Tuya IoT Platform](https://iot.tuya.com)",
+        "description": "Geben Sie lokale Verbindungsdetails für den Hybrid-Modus ein.\n\n**So erhalten Sie den Local Key:**\n[Einrichtungsanleitung]({setup_guide_url}) | [Tuya IoT Platform]({tuya_iot_url})",
         "data": {
           "host": "IP-Adresse",
           "local_key": "Local Key"
@@ -303,7 +303,7 @@
       },
       "reauth_confirm": {
         "title": "Zugangsdaten aktualisieren",
-        "description": "Authentifizierungsdaten für {device_name} aktualisieren.\n\n**Local Key:** Wird von der Tuya IoT Platform nach Verknüpfung Ihres Smart Life Kontos abgerufen.\n**API-Zugangsdaten:** Access ID und Secret aus Ihrem Tuya Cloud-Projekt.\n\n[Einrichtungsanleitung](https://github.com/moag1000/HA-kkt-kolbe-integration#-tuya-api-setup---vollstaendige-anleitung) | [Tuya IoT Platform](https://iot.tuya.com)",
+        "description": "Authentifizierungsdaten für {device_name} aktualisieren.\n\n**Local Key:** Wird von der Tuya IoT Platform nach Verknüpfung Ihres Smart Life Kontos abgerufen.\n**API-Zugangsdaten:** Access ID und Secret aus Ihrem Tuya Cloud-Projekt.\n\n[Einrichtungsanleitung]({setup_guide_url}) | [Tuya IoT Platform]({tuya_iot_url})",
         "data": {
           "local_key": "Neuer Local Key",
           "api_client_id": "API Client ID",
@@ -390,7 +390,7 @@
       },
       "init": {
         "title": "KKT Kolbe Optionen",
-        "description": "Konfigurieren Sie Optionen für Ihr KKT Kolbe Gerät.\n\n[Dokumentation](https://github.com/moag1000/HA-kkt-kolbe-integration)",
+        "description": "Konfigurieren Sie Optionen für Ihr KKT Kolbe Gerät.\n\n[Dokumentation]({documentation_url})",
         "data": {
           "scan_interval": "Aktualisierungsintervall",
           "new_local_key": "Neuer Local Key",
@@ -466,7 +466,7 @@
     "step": {
       "init": {
         "title": "KKT Kolbe Optionen",
-        "description": "Konfigurieren Sie Optionen für {device_name}.\n\nAktuelles Aktualisierungsintervall: {current_interval} Sekunden\n\n[Dokumentation](https://github.com/moag1000/HA-kkt-kolbe-integration)",
+        "description": "Konfigurieren Sie Optionen für {device_name}.\n\nAktuelles Aktualisierungsintervall: {current_interval} Sekunden\n\n[Dokumentation]({documentation_url})",
         "data": {
           "scan_interval": "Aktualisierungsintervall",
           "new_local_key": "Neuer Local Key",
@@ -538,7 +538,7 @@
       },
       "device": {
         "title": "KKT Kolbe Geräte-Optionen",
-        "description": "Konfigurieren Sie Optionen für {device_name}.\n\nAktuelles Aktualisierungsintervall: {current_interval} Sekunden\n\n[Dokumentation](https://github.com/moag1000/HA-kkt-kolbe-integration)",
+        "description": "Konfigurieren Sie Optionen für {device_name}.\n\nAktuelles Aktualisierungsintervall: {current_interval} Sekunden\n\n[Dokumentation]({documentation_url})",
         "data": {
           "scan_interval": "Aktualisierungsintervall",
           "new_local_key": "Neuer Local Key",

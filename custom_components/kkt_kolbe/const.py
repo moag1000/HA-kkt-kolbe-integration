@@ -10,6 +10,11 @@ VERSION: Final = "4.3.0"
 DOMAIN: Final = "kkt_kolbe"
 MANUFACTURER: Final = "KKT Kolbe"
 
+# === DOCUMENTATION URLs ===
+DOCUMENTATION_URL: Final = "https://github.com/moag1000/HA-kkt-kolbe-integration"
+SETUP_GUIDE_URL: Final = "https://github.com/moag1000/HA-kkt-kolbe-integration#-tuya-api-setup---vollstaendige-anleitung"
+TUYA_IOT_URL: Final = "https://iot.tuya.com"
+
 # === CONNECTION STABILITY CONFIGURATION ===
 DEFAULT_SCAN_INTERVAL: Final = 30  # seconds
 DEFAULT_CONNECTION_TIMEOUT: Final = 15.0  # seconds

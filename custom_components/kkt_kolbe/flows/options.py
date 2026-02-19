@@ -13,9 +13,12 @@ from homeassistant.const import CONF_SCAN_INTERVAL
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
 
+from ..const import DOCUMENTATION_URL
 from ..const import DOMAIN
 from ..const import ENTRY_TYPE_ACCOUNT
 from ..const import SETUP_MODE_SMARTLIFE
+from ..const import SETUP_GUIDE_URL
+from ..const import TUYA_IOT_URL
 from ..helpers import get_options_schema
 from ..helpers import validate_api_credentials
 
@@ -283,6 +286,9 @@ class KKTKolbeOptionsFlow(OptionsFlow):
             description_placeholders={
                 "device_name": self.config_entry.title,
                 "current_interval": str(current_interval),
+                "documentation_url": DOCUMENTATION_URL,
+                "setup_guide_url": SETUP_GUIDE_URL,
+                "tuya_iot_url": TUYA_IOT_URL,
             }
         )
 
