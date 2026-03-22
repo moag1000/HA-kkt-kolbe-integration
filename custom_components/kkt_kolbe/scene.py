@@ -24,7 +24,7 @@ from .base_entity import KKTBaseEntity
 from .device_types import KNOWN_DEVICES
 
 if TYPE_CHECKING:
-    from . import KKTKolbeConfigEntry
+    from .data import KKTKolbeConfigEntry
 
 PARALLEL_UPDATES = 0
 POWER_ON_DELAY = 0.5  # seconds to wait after powering on before sending commands

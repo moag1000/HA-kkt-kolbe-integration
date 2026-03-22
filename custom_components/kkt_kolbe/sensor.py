@@ -23,7 +23,7 @@ from .bitfield_utils import get_zone_value_from_coordinator
 from .device_types import get_device_entities
 
 if TYPE_CHECKING:
-    from . import KKTKolbeConfigEntry
+    from .data import KKTKolbeConfigEntry
 
 # Limit parallel updates - 0 means unlimited (coordinator-based entities)
 PARALLEL_UPDATES = 0

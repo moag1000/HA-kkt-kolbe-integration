@@ -16,7 +16,7 @@ from .base_entity import KKTBaseEntity
 from .device_types import get_device_entities
 
 if TYPE_CHECKING:
-    from . import KKTKolbeConfigEntry
+    from .data import KKTKolbeConfigEntry
 
 # Limit parallel updates - 0 means unlimited (coordinator-based entities)
 PARALLEL_UPDATES = 0

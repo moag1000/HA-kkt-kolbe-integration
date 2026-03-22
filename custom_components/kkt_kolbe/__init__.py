@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from dataclasses import dataclass
-from typing import TYPE_CHECKING
 from typing import Any
 
 import homeassistant.helpers.config_validation as cv
@@ -24,12 +22,10 @@ from .const import CONF_SMARTLIFE_TOKEN_INFO
 from .const import DOMAIN
 from .const import ENTRY_TYPE_ACCOUNT
 from .const import ENTRY_TYPE_DEVICE
-
-if TYPE_CHECKING:
-    from .api import TuyaCloudClient
-    from .coordinator import KKTKolbeUpdateCoordinator
-    from .hybrid_coordinator import KKTKolbeHybridCoordinator
-    from .tuya_device import KKTKolbeTuyaDevice
+from .data import KKTKolbeAccountConfigEntry  # noqa: F401
+from .data import KKTKolbeAccountRuntimeData
+from .data import KKTKolbeConfigEntry
+from .data import KKTKolbeRuntimeData
 
 # This integration is config entry only - no YAML configuration
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
@@ -49,36 +45,8 @@ PLATFORMS = [
 ]
 
 
-@dataclass
-class KKTKolbeRuntimeData:
-    """Runtime data for KKT Kolbe device entries."""
-
-    coordinator: KKTKolbeUpdateCoordinator | KKTKolbeHybridCoordinator
-    device: KKTKolbeTuyaDevice | None
-    api_client: TuyaCloudClient | None
-    device_info: dict[str, Any]
-    product_name: str
-    device_type: str
-    integration_mode: str
-
-
-@dataclass
-class KKTKolbeAccountRuntimeData:
-    """Runtime data for SmartLife account entries (Parent Entry).
-
-    Account entries manage token information and don't have devices directly.
-    They serve as parent entries for device entries.
-    """
-
-    token_info: dict[str, Any]
-    user_code: str
-    app_schema: str  # "smartlife" or "tuyaSmart"
-    child_entry_ids: list[str]  # IDs of device entries linked to this account
-
-
-# Type alias for config entries with runtime data
-type KKTKolbeConfigEntry = ConfigEntry[KKTKolbeRuntimeData]
-type KKTKolbeAccountConfigEntry = ConfigEntry[KKTKolbeAccountRuntimeData]
+# Runtime data types are defined in data.py (imported above)
+# Re-exported here for backward compatibility: KKTKolbeConfigEntry, KKTKolbeRuntimeData
 
 
 async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:

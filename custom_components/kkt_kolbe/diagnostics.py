@@ -11,7 +11,7 @@ from homeassistant.core import HomeAssistant
 from .const import VERSION
 
 if TYPE_CHECKING:
-    from . import KKTKolbeConfigEntry
+    from .data import KKTKolbeConfigEntry
 
 
 def _sanitize_dps_value(value: Any) -> dict[str, Any]:
