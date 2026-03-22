@@ -550,7 +550,7 @@ async def test_smartlife_reauth_flow(
     hass: HomeAssistant,
     mock_smartlife_account_entry,
 ) -> None:
-    """Test SmartLife account reauth flow."""
+    """Test SmartLife account reauth flow redirects to QR code re-login."""
     # Add the existing SmartLife account entry
     mock_smartlife_account_entry.add_to_hass(hass)
 
@@ -564,9 +564,9 @@ async def test_smartlife_reauth_flow(
         data=mock_smartlife_account_entry.data,
     )
 
-    # Should show reauth form
+    # SmartLife entries should redirect to smartlife_reauth (QR code re-login)
     assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "reauth_confirm"
+    assert result["step_id"] == "smartlife_reauth"
 
 
 @pytest.mark.asyncio
