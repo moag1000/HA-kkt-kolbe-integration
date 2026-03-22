@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [4.5.3] - 2026-03-22
+
+### Fixed
+
+- **Zeroconf Discovery Spam**: Bereits konfigurierte Geraete werden jetzt vor dem Logging abgefangen. Reduziert die Log-Meldungen von 200+/Minute auf nahezu null fuer bekannte Geraete
+- **Device-ID-Wechsel Repair**: Repair-Issue wird jetzt unabhaengig vom Rate-Limiting erstellt (ir.async_create_issue ist idempotent). Zusaetzlich IP-basierte Erkennung als Fallback fuer aeltere Config-Entries ohne product_id
+
+
 ## [4.5.2] - 2026-03-22
 
 ### Fixed

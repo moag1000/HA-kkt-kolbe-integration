@@ -560,38 +560,40 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
         IMPORTANT: We only set unique_id AFTER confirming we have local_key,
         to avoid blocking user-initiated Smart Discovery flows.
         """
-        _LOGGER.info(f"Zeroconf discovery triggered: {discovery_info}")
-
-        # Extract device information from zeroconf data
+        # Extract device ID first (before any logging to prevent spam)
         host = discovery_info.get("host") or discovery_info.get("ip")
         device_id = discovery_info.get("device_id") or discovery_info.get("properties", {}).get("id")
 
         if not device_id:
-            # Try to extract from name (Tuya devices often use device_id as service name)
             name = discovery_info.get("name", "")
             if name.startswith("bf") and len(name) >= 20:
                 device_id = name.split(".")[0] if "." in name else name
 
         if not device_id:
-            _LOGGER.debug("Zeroconf discovery: No device ID found, ignoring")
             return self.async_abort(reason="no_device_id")
 
-        # Check if device is already configured (without setting unique_id yet)
+        # Check if already configured BEFORE logging (prevents 200+/min log spam)
         configured_ids = await async_get_configured_device_ids(self.hass)
         if device_id in configured_ids:
-            # Only update IP if it actually changed
+            # Silently update IP if changed (no info log for routine discovery)
             for entry in self.hass.config_entries.async_entries(DOMAIN):
                 if entry.data.get("device_id") == device_id:
                     current_ip = entry.data.get(CONF_IP_ADDRESS) or entry.data.get("ip_address")
-                    if current_ip != host:
+                    if current_ip != host and host:
                         _LOGGER.info(
-                            "Zeroconf: Device %s IP changed from %s to %s, updating", device_id[:8], current_ip, host
+                            "Zeroconf: Device %s IP changed from %s to %s, updating",
+                            device_id[:8],
+                            current_ip,
+                            host,
                         )
                         self.hass.config_entries.async_update_entry(
                             entry, data={**entry.data, CONF_IP_ADDRESS: host, "ip_address": host}
                         )
                     break
             return self.async_abort(reason="already_configured")
+
+        # Only log for NEW (unconfigured) devices
+        _LOGGER.info("Zeroconf: New device discovered: %s at %s", device_id[:8], host)
 
         # Check if we have API credentials to get local_key
         # If not, abort early WITHOUT setting unique_id (so Smart Discovery isn't blocked)

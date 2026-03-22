@@ -711,85 +711,82 @@ class KKTKolbeDiscovery(ServiceListener):
         """Check if a discovered device has a different ID than configured.
 
         This detects when a device was re-added to Tuya/SmartLife and got a new device_id.
-        Since product_id stays the same, we can match by product_id and detect the change.
+        Matches by product_id (primary) or IP address (fallback for older entries
+        without product_id).
         """
-        _LOGGER.debug(
-            "Checking device ID change: product_id=%s, new_device_id=%s, new_ip=%s",
-            product_id,
-            new_device_id[:12] + "..." if new_device_id else None,
-            new_ip,
-        )
-
-        if not product_id or not new_device_id:
-            _LOGGER.debug("Skipping device ID check - missing product_id or device_id")
+        if not new_device_id:
             return
 
-        # Find config entries with matching product_id but different device_id
         config_entries = self.hass.config_entries.async_entries(DOMAIN)
-        _LOGGER.debug("Found %d KKT config entries to check", len(config_entries))
 
         for entry in config_entries:
-            entry_product_id = entry.data.get("product_id")
             entry_device_id = entry.data.get("device_id")
             entry_type = entry.data.get("entry_type")
 
-            # Skip account entries
-            if entry_type == "account":
+            # Skip account entries and entries without device_id
+            if entry_type == "account" or not entry_device_id:
                 continue
 
-            _LOGGER.debug(
-                "Checking entry %s: product_id=%s, device_id=%s",
-                entry.title,
-                entry_product_id,
-                entry_device_id[:12] + "..." if entry_device_id else None,
-            )
+            # Skip if this IS the configured device (no change)
+            if entry_device_id == new_device_id:
+                continue
 
-            # Check if product_id matches but device_id is different
-            if entry_product_id and entry_product_id == product_id:
-                if entry_device_id and entry_device_id != new_device_id:
-                    # Device ID has changed! Create repair issue
-                    issue_id = f"device_id_changed_{entry.entry_id}"
+            # Match by product_id (primary) or IP address (fallback)
+            entry_product_id = entry.data.get("product_id")
+            entry_ip = entry.data.get("ip_address") or entry.data.get("host")
 
-                    # Only create issue once (check if already exists)
-                    if _should_log(f"device_id_changed_{entry.entry_id}"):
-                        _LOGGER.warning(
-                            "Device ID change detected for %s: %s -> %s (IP: %s -> %s)",
-                            entry.title,
-                            entry_device_id[:12] + "...",
-                            new_device_id[:12] + "...",
-                            entry.data.get("ip_address", "unknown"),
-                            new_ip or "unknown",
-                        )
+            matched = False
+            if entry_product_id and product_id and entry_product_id == product_id:
+                matched = True
+            elif entry_ip and new_ip and entry_ip == new_ip and not product_id:
+                # IP-based fallback for entries without product_id
+                matched = True
 
-                        try:
-                            _LOGGER.info("Creating repair issue for device_id_changed_%s", entry.entry_id[:8])
-                            ir.async_create_issue(
-                                self.hass,
-                                DOMAIN,
-                                issue_id,
-                                is_fixable=True,
-                                severity=ir.IssueSeverity.WARNING,
-                                translation_key="device_id_changed",
-                                translation_placeholders={
-                                    "entry_title": entry.title,
-                                    "old_device_id": entry_device_id[:12] + "...",
-                                    "new_device_id": new_device_id[:12] + "...",
-                                    "old_ip": entry.data.get("ip_address", "unknown"),
-                                    "new_ip": new_ip or "unknown",
-                                },
-                                data={
-                                    "entry_id": entry.entry_id,
-                                    "entry_title": entry.title,
-                                    "old_device_id": entry_device_id,
-                                    "new_device_id": new_device_id,
-                                    "old_ip": entry.data.get("ip_address"),
-                                    "new_ip": new_ip,
-                                },
-                            )
-                            _LOGGER.info("Repair issue created successfully")
-                        except Exception as e:
-                            _LOGGER.error("Failed to create repair issue: %s", e, exc_info=True)
-                    return  # Only one match per product_id expected
+            if not matched:
+                continue
+
+            # Device ID has changed - create repair issue
+            # ir.async_create_issue is idempotent, safe to call repeatedly
+            issue_id = f"device_id_changed_{entry.entry_id}"
+
+            if _should_log(f"device_id_changed_{entry.entry_id}"):
+                _LOGGER.warning(
+                    "Device ID change detected for %s: %s -> %s (IP: %s -> %s)",
+                    entry.title,
+                    entry_device_id[:12] + "...",
+                    new_device_id[:12] + "...",
+                    entry_ip or "unknown",
+                    new_ip or "unknown",
+                )
+
+            # Always create repair issue (not gated by rate-limiting)
+            try:
+                ir.async_create_issue(
+                    self.hass,
+                    DOMAIN,
+                    issue_id,
+                    is_fixable=True,
+                    severity=ir.IssueSeverity.WARNING,
+                    translation_key="device_id_changed",
+                    translation_placeholders={
+                        "entry_title": entry.title,
+                        "old_device_id": entry_device_id[:12] + "...",
+                        "new_device_id": new_device_id[:12] + "...",
+                        "old_ip": entry_ip or "unknown",
+                        "new_ip": new_ip or "unknown",
+                    },
+                    data={
+                        "entry_id": entry.entry_id,
+                        "entry_title": entry.title,
+                        "old_device_id": entry_device_id,
+                        "new_device_id": new_device_id,
+                        "old_ip": entry_ip,
+                        "new_ip": new_ip,
+                    },
+                )
+            except Exception as e:
+                _LOGGER.error("Failed to create repair issue: %s", e)
+            return
 
     def remove_service(self, zc, type_: str, name: str) -> None:
         """Called when a service is removed."""
