@@ -773,139 +773,128 @@ KNOWN_DEVICES = {
             ],
         },
     },
-    # KKT Kolbe EASY HCM Hood - EASY9005SM (90cm), EASY909SHCM (90cm), EASY609SHCM (60cm)
-    # Same DP structure as SOLO/ECCO HCM family (DPs 1,4,6,7,102-109)
-    # 9 fan speeds (0-9), RGBW LED, dual filter monitoring, timer
-    # Tuya model_id and product_id are unknown - will be updated when users report
-    "easy_hcm_hood": {
-        "model_id": "easy_hcm",
+    # KKT Kolbe EASY Hood - EASY9005SM (90cm), EASY909SHCM (90cm), EASY609SHCM (60cm)
+    # Verified via Things Data Model from GitHub Issue #5 (user: Eischer)
+    # Model ID: e1my0pj8
+    # HERMES-based DPs (not HCM!): DP 1,4,10,13,101,102
+    # 9+1 fan speeds via enum (off/one/two/.../nine), RGB 0-9 via DP 102
+    "easy_hood": {
+        "model_id": "e1my0pj8",
         "category": CATEGORY_HOOD,
-        "name": "KKT Kolbe EASY HCM Hood",
-        "product_names": ["KKT Kolbe EASY9005SM", "KKT Kolbe EASY909SHCM", "KKT Kolbe EASY609SHCM"],
+        "name": "KKT Kolbe EASY Hood",
+        "product_names": ["e1my0pj8", "KKT Kolbe EASY9005SM", "KKT Kolbe EASY909SHCM", "KKT Kolbe EASY609SHCM"],
         "device_ids": [],
         "device_id_patterns": [],
         "platforms": ["fan", "light", "switch", "sensor", "select", "number", "scene"],
         "data_points": {
-            1: "switch",  # Main power (ON/OFF)
-            4: "light",  # Main light on/off
-            6: "switch_lamp",  # RGB switch trigger
-            7: "switch_wash",  # Setting/Wash mode
-            102: "fan_speed",  # Fan speed (0-9)
-            103: "day",  # Carbon filter days remaining (0-250)
-            104: "switch_led_1",  # LED light (alternative to DP 4)
-            105: "countdown_1",  # Countdown timer (0-60 min)
-            106: "switch_led",  # Confirm/Side light
-            107: "colour_data",  # RGB color data (string, max 255)
-            108: "work_mode",  # RGB work mode (white/colour/scene/music)
-            109: "day_1",  # Metal filter days remaining (0-40)
+            1: "switch",  # Main power on/off
+            4: "light",  # Light on/off
+            10: "fan_speed_enum",  # Fan speed (enum: off/one/two/.../nine)
+            13: "countdown",  # Timer 0-100 min
+            101: "l",  # Filter cleaning reminder
+            102: "r",  # RGB light mode 0-9
         },
         "entities": {
             "fan": {
-                "dp": 102,
-                "speeds": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
-                "numeric": True,
-                "min": 0,
-                "max": 9,
+                "dp": 10,
+                "speeds": ["off", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"],
             },
             "light": [
                 {
                     "dp": 4,
                     "name": "Light",
                     "icon": "mdi:lightbulb",
-                    "effect_dp": 108,
-                    "effect_numeric": False,
-                    "effects": ["white", "colour", "scene", "music"],
-                    "work_mode_dp": 108,
-                    "work_mode_default": "white",
-                },
-                {
-                    "dp": 104,
-                    "name": "LED Light",
-                    "icon": "mdi:led-strip",
-                    "work_mode_dp": 108,
-                    "work_mode_default": "white",
-                },
+                    "effect_dp": 102,
+                    "effect_numeric": True,
+                    "effect_offset": 1,  # Device uses 0=off, 1=Weiss, 2=Rot, etc.
+                    "effects": [
+                        "Weiss",
+                        "Rot",
+                        "Gruen",
+                        "Blau",
+                        "Gelb",
+                        "Lila",
+                        "Orange",
+                        "Cyan",
+                        "Gruen hell",
+                    ],
+                }
             ],
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
                 {
-                    "dp": 6,
-                    "name": "RGB Light",
-                    "device_class": "switch",
-                    "icon": "mdi:palette",
+                    "dp": 101,
+                    "name": "Filter Cleaning Reminder",
+                    "icon": "mdi:air-filter",
                     "advanced": True,
-                    "entity_category": "config",
-                },
-                {
-                    "dp": 7,
-                    "name": "Wash Mode",
-                    "device_class": "switch",
-                    "icon": "mdi:spray-bottle",
-                    "advanced": True,
-                    "entity_category": "config",
-                },
-                {
-                    "dp": 106,
-                    "name": "Side Light",
-                    "device_class": "switch",
-                    "icon": "mdi:wall-sconce-flat",
-                    "advanced": True,
+                    "entity_category": "diagnostic",
                 },
             ],
             "select": [
                 {
-                    "dp": 108,
-                    "name": "RGB Mode",
-                    "options": ["white", "colour", "scene", "music"],
-                    "icon": "mdi:palette",
-                    "advanced": True,
-                    "entity_category": "config",
-                }
-            ],
-            "number": [
-                {
                     "dp": 102,
+                    "name": "RGB Mode",
+                    "options": [
+                        "Aus",
+                        "Weiss",
+                        "Rot",
+                        "Gruen",
+                        "Blau",
+                        "Gelb",
+                        "Lila",
+                        "Orange",
+                        "Cyan",
+                        "Gruen hell",
+                    ],
+                    "options_map": {
+                        "Aus": 0,
+                        "Weiss": 1,
+                        "Rot": 2,
+                        "Gruen": 3,
+                        "Blau": 4,
+                        "Gelb": 5,
+                        "Lila": 6,
+                        "Orange": 7,
+                        "Cyan": 8,
+                        "Gruen hell": 9,
+                    },
+                    "icon": "mdi:palette",
+                },
+                {
+                    "dp": 10,
                     "name": "Fan Speed",
-                    "min": 0,
-                    "max": 9,
-                    "step": 1,
+                    "options": ["off", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"],
                     "icon": "mdi:fan",
                     "advanced": True,
                     "entity_category": "config",
                 },
+            ],
+            "number": [
                 {
-                    "dp": 105,
+                    "dp": 102,
+                    "name": "RGB Mode",
+                    "min": 0,
+                    "max": 9,
+                    "step": 1,
+                    "icon": "mdi:palette",
+                    "advanced": True,
+                    "entity_category": "config",
+                },
+                {
+                    "dp": 13,
                     "name": "Timer",
                     "min": 0,
-                    "max": 60,
+                    "max": 100,
                     "unit": UnitOfTime.MINUTES,
                     "device_class": "duration",
                     "icon": "mdi:timer",
                 },
-                {
-                    "dp": 103,
-                    "name": "Carbon Filter Remaining",
-                    "min": 0,
-                    "max": 250,
-                    "unit": "days",
-                    "icon": "mdi:air-filter",
-                    "entity_category": "diagnostic",
-                },
-                {
-                    "dp": 109,
-                    "name": "Metal Filter Remaining",
-                    "min": 0,
-                    "max": 40,
-                    "unit": "days",
-                    "icon": "mdi:air-filter",
-                    "entity_category": "diagnostic",
-                },
             ],
             "sensor": [
                 {
-                    "dp": 107,
-                    "name": "RGB Color Data",
-                    "icon": "mdi:palette",
+                    "dp": 101,
+                    "name": "Filter Status",
+                    "icon": "mdi:air-filter",
                     "advanced": True,
                     "entity_category": "diagnostic",
                 }

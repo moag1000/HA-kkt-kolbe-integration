@@ -22,7 +22,6 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .base_entity import KKTBaseEntity
 from .device_types import KNOWN_DEVICES
-from .device_types import get_device_entity_config
 
 if TYPE_CHECKING:
     from . import KKTKolbeConfigEntry
@@ -33,12 +32,29 @@ POWER_ON_DELAY = 0.5  # seconds to wait after powering on before sending command
 _LOGGER = logging.getLogger(__name__)
 
 
-# ---------------------------------------------------------------------------
-# Scene definitions
-# ---------------------------------------------------------------------------
+# RGB color names for numeric modes (0=off, 1-9=colors)
+RGB_COLOR_NAMES = [
+    ("Aus", 0, "mdi:lightbulb-off"),
+    ("Weiss", 1, "mdi:lightbulb-on"),
+    ("Rot", 2, "mdi:lightbulb-on"),
+    ("Gruen", 3, "mdi:lightbulb-on"),
+    ("Blau", 4, "mdi:lightbulb-on"),
+    ("Gelb", 5, "mdi:lightbulb-on"),
+    ("Lila", 6, "mdi:lightbulb-on"),
+    ("Orange", 7, "mdi:lightbulb-on"),
+    ("Cyan", 8, "mdi:lightbulb-on"),
+    ("Gruen hell", 9, "mdi:lightbulb-on"),
+]
+
+# HCM work mode names
+HCM_MODE_NAMES = [
+    ("Weiss", "white", "mdi:lightbulb-on"),
+    ("Farbe", "colour", "mdi:palette"),
+    ("Szene", "scene", "mdi:movie-open"),
+    ("Musik", "music", "mdi:music"),
+]
 
 # Common scenes for all hoods (power/light control)
-# These use "actions" - a list of (dp, value) tuples executed in sequence
 COMMON_HOOD_SCENES = [
     {
         "name": "Licht An",
@@ -57,43 +73,43 @@ COMMON_HOOD_SCENES = [
     },
 ]
 
-# RGB scenes for HERMES-family hoods (DP 101, numeric 0-9)
-HERMES_RGB_SCENES = [
-    {"name": "RGB Aus", "icon": "mdi:lightbulb-off", "actions": [("dp", 101, 0)]},
-    {"name": "RGB Weiss", "icon": "mdi:lightbulb-on", "actions": [("power_on",), ("suppress_fan",), ("dp", 101, 1)]},
-    {"name": "RGB Rot", "icon": "mdi:lightbulb-on", "actions": [("power_on",), ("suppress_fan",), ("dp", 101, 2)]},
-    {"name": "RGB Gruen", "icon": "mdi:lightbulb-on", "actions": [("power_on",), ("suppress_fan",), ("dp", 101, 3)]},
-    {"name": "RGB Blau", "icon": "mdi:lightbulb-on", "actions": [("power_on",), ("suppress_fan",), ("dp", 101, 4)]},
-    {"name": "RGB Gelb", "icon": "mdi:lightbulb-on", "actions": [("power_on",), ("suppress_fan",), ("dp", 101, 5)]},
-    {"name": "RGB Lila", "icon": "mdi:lightbulb-on", "actions": [("power_on",), ("suppress_fan",), ("dp", 101, 6)]},
-    {"name": "RGB Orange", "icon": "mdi:lightbulb-on", "actions": [("power_on",), ("suppress_fan",), ("dp", 101, 7)]},
-    {"name": "RGB Cyan", "icon": "mdi:lightbulb-on", "actions": [("power_on",), ("suppress_fan",), ("dp", 101, 8)]},
-    {
-        "name": "RGB Gruen hell",
-        "icon": "mdi:lightbulb-on",
-        "actions": [("power_on",), ("suppress_fan",), ("dp", 101, 9)],
-    },
-]
 
-# RGB scenes for HCM-family hoods (DP 108, string modes)
-HCM_RGB_SCENES = [
-    {
-        "name": "RGB Weiss",
-        "icon": "mdi:lightbulb-on",
-        "actions": [("power_on",), ("suppress_fan",), ("dp", 108, "white")],
-    },
-    {"name": "RGB Farbe", "icon": "mdi:palette", "actions": [("power_on",), ("suppress_fan",), ("dp", 108, "colour")]},
-    {
-        "name": "RGB Szene",
-        "icon": "mdi:movie-open",
-        "actions": [("power_on",), ("suppress_fan",), ("dp", 108, "scene")],
-    },
-    {"name": "RGB Musik", "icon": "mdi:music", "actions": [("power_on",), ("suppress_fan",), ("dp", 108, "music")]},
-]
+def _build_rgb_scenes_numeric(effect_dp: int) -> list[dict[str, Any]]:
+    """Build RGB scenes for numeric effect DP (HERMES/EASY family)."""
+    scenes = []
+    for name, value, icon in RGB_COLOR_NAMES:
+        if value == 0:
+            # "Aus" does not need power-on
+            scenes.append({"name": f"RGB {name}", "icon": icon, "actions": [("dp", effect_dp, 0)]})
+        else:
+            scenes.append(
+                {
+                    "name": f"RGB {name}",
+                    "icon": icon,
+                    "actions": [("power_on",), ("suppress_fan",), ("dp", effect_dp, value)],
+                }
+            )
+    return scenes
+
+
+def _build_rgb_scenes_hcm(work_mode_dp: int) -> list[dict[str, Any]]:
+    """Build RGB scenes for HCM work_mode DP."""
+    return [
+        {
+            "name": f"RGB {name}",
+            "icon": icon,
+            "actions": [("power_on",), ("suppress_fan",), ("dp", work_mode_dp, value)],
+        }
+        for name, value, icon in HCM_MODE_NAMES
+    ]
 
 
 def _get_scene_definitions(device_key: str) -> list[dict[str, Any]]:
-    """Get scene definitions for a device type."""
+    """Get scene definitions for a device type.
+
+    Dynamically generates RGB scenes based on the device's actual effect_dp,
+    so it works for both HERMES (DP 101), EASY (DP 102), and HCM (DP 108).
+    """
     device_info = KNOWN_DEVICES.get(device_key)
     if not device_info:
         return []
@@ -101,7 +117,7 @@ def _get_scene_definitions(device_key: str) -> list[dict[str, Any]]:
     # Start with common scenes for all hoods
     scenes: list[dict[str, Any]] = list(COMMON_HOOD_SCENES)
 
-    # Add RGB-specific scenes based on device type
+    # Find the RGB effect DP from the light configuration
     entities = device_info.get("entities", {})
     light_configs = entities.get("light", [])
 
@@ -112,15 +128,13 @@ def _get_scene_definitions(device_key: str) -> list[dict[str, Any]]:
         if effect_dp is None:
             continue
 
-        # HERMES family: numeric effect_dp 101
-        if effect_dp == 101 and light_config.get("effect_numeric"):
-            scenes.extend(HERMES_RGB_SCENES)
-            break
-
-        # HCM family: string-based work_mode DP 108
-        if effect_dp == 108 and not light_config.get("effect_numeric", True):
-            scenes.extend(HCM_RGB_SCENES)
-            break
+        if light_config.get("effect_numeric"):
+            # Numeric RGB mode (HERMES DP 101, EASY DP 102)
+            scenes.extend(_build_rgb_scenes_numeric(effect_dp))
+        else:
+            # String-based work_mode (HCM DP 108)
+            scenes.extend(_build_rgb_scenes_hcm(effect_dp))
+        break
 
     return scenes
 
@@ -134,17 +148,6 @@ def _get_light_dp(device_key: str) -> int:
     if light_configs and isinstance(light_configs[0], dict):
         return light_configs[0].get("dp", 4)
     return 4
-
-
-def _get_fan_off_value(device_key: str) -> tuple[int, Any]:
-    """Get the fan DP and off value for a device."""
-    fan_config = get_device_entity_config(device_key, "fan")
-    if not fan_config:
-        return (10, "off")
-    dp = fan_config.get("dp", 10)
-    if fan_config.get("numeric", False):
-        return (dp, 0)
-    return (dp, "off")
 
 
 async def async_setup_entry(
@@ -166,11 +169,8 @@ async def async_setup_entry(
         return
 
     light_dp = _get_light_dp(lookup_key)
-    fan_dp, fan_off_value = _get_fan_off_value(lookup_key)
 
-    entities = [
-        KKTKolbeHoodScene(coordinator, entry, scene_def, light_dp, fan_dp, fan_off_value) for scene_def in scene_defs
-    ]
+    entities = [KKTKolbeHoodScene(coordinator, entry, scene_def, light_dp) for scene_def in scene_defs]
 
     if entities:
         _LOGGER.info(
@@ -197,24 +197,17 @@ class KKTKolbeHoodScene(KKTBaseEntity, Scene):
         entry: Any,
         scene_def: dict[str, Any],
         light_dp: int,
-        fan_dp: int,
-        fan_off_value: Any,
     ) -> None:
         """Initialize the scene."""
         config = {
-            "dp": scene_def.get("dp", light_dp),
+            "dp": light_dp,  # Used for unique_id generation
             "name": scene_def["name"],
             "icon": scene_def.get("icon", "mdi:palette"),
         }
-        # Use light_dp as fallback dp for unique_id generation on common scenes
-        if "dp" not in scene_def:
-            config["dp"] = light_dp
         super().__init__(coordinator, entry, config, "scene")
 
         self._actions = scene_def["actions"]
         self._light_dp = light_dp
-        self._fan_dp = fan_dp
-        self._fan_off_value = fan_off_value
         self._attr_icon = scene_def.get("icon", "mdi:palette")
 
     def _is_hood_on(self) -> bool:
@@ -243,8 +236,6 @@ class KKTKolbeHoodScene(KKTBaseEntity, Scene):
                 await self._async_set_data_point(1, False)
 
             elif cmd == "suppress_fan":
-                # Only suppress if hood was just turned on (firmware auto-starts fan)
-                # Respects the disable_fan_auto_start config option
                 if hood_was_off:
                     await self._async_suppress_fan_auto_start()
 
@@ -255,10 +246,8 @@ class KKTKolbeHoodScene(KKTBaseEntity, Scene):
                 await self._async_set_data_point(self._light_dp, False)
 
             elif cmd == "dp":
-                # Direct DP set: ("dp", dp_id, value)
                 dp_id = action[1]
                 value = action[2]
-                # If hood is off and we need to set a DP, power on first
                 if not self._is_hood_on():
                     hood_was_off = True
                     await self._async_set_data_point(1, True)

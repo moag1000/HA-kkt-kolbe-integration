@@ -5,6 +5,21 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.5.1] - 2026-03-22
+
+### Fixed
+
+- **EASY Hood: Korrekte DPs aus Issue #5** (User: Eischer/Bernhard)
+  - EASY9005SM ist HERMES-basiert, nicht HCM
+  - Model-ID: `e1my0pj8`
+  - Fan: DP 10, Enum (off/one/two/.../nine) statt DP 102 numeric
+  - RGB: DP 102 (0-9) statt DP 101
+  - Timer: DP 13 (0-100 min) statt DP 105
+  - Filter: DP 101 statt DP 6
+- **Scene RGB DP dynamisch**: Szenen lesen den RGB-DP aus der Device-Config statt hardcoded DP 101, funktioniert fuer HERMES (101), EASY (102) und HCM (108)
+
+---
+
 ## [4.5.0] - 2026-03-22
 
 ### Added

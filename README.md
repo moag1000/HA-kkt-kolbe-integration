@@ -55,10 +55,10 @@
 | **HERMES** | 5 Stufen | Helligkeit | 10 Modi | ✅ | ✅ Verfügbar |
 | **ECCO HCM** | 9 Stufen | Multi | 4 Modi | ✅ | ✅ Verfügbar |
 | **SOLO HCM** | 9 Stufen | Multi | 4 Modi | ✅ | ✅ Verfügbar |
-| **EASY HCM** | 9 Stufen | Multi | 4 Modi | ✅ | Ungetestet (HCM-basiert) |
+| **EASY** | 10 Stufen | ✅ | 10 Modi | ✅ | ✅ Verifiziert (Issue #5) |
 | **FLAT** | 5 Stufen | ✅ | - | ✅ | ✅ Verfügbar |
 
-EASY-Modelle: EASY9005SM (90cm), EASY909SHCM (90cm), EASY609SHCM (60cm)
+EASY-Modelle: EASY9005SM (90cm), EASY909SHCM (90cm), EASY609SHCM (60cm) - HERMES-basiert mit 10 Lüfterstufen
 
 ### Induktionskochfeld
 

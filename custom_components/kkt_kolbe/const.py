@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Final
 
 # === VERSION ===
-VERSION: Final = "4.5.0"
+VERSION: Final = "4.5.1"
 
 # === CORE IDENTIFIERS ===
 DOMAIN: Final = "kkt_kolbe"
@@ -90,12 +90,11 @@ MODELS: Final[dict[str, dict[str, str]]] = {
         "category": CATEGORY_HOOD,
         "product_id": "gwdgkteknzvsattn",
     },
-    # EASY HCM hoods (same family as SOLO/ECCO HCM)
-    # model_id placeholder - will be updated when users report the actual Tuya model code
-    "easy_hcm": {
-        "name": "EASY HCM",
+    # EASY hoods (HERMES-based, verified via Issue #5)
+    "e1my0pj8": {
+        "name": "EASY",
         "category": CATEGORY_HOOD,
-        "product_id": "",  # TBD - needs user report
+        "product_id": "",  # Tuya product_id TBD
     },
     # Cooktops (Induktionskochfelder)
     "e1kc5q64": {
