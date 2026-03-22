@@ -5,6 +5,21 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.5.0] - 2026-03-22
+
+### Added
+
+- **Scene Platform**: Vordefinierte Szenen fuer alle RGB-Hauben, automatisch in HomeKit/Siri verfuegbar
+  - **Licht An**: Haube einschalten, Luefter unterdruecken, Licht einschalten
+  - **Licht Aus**: Licht ausschalten
+  - **Haube Aus**: Alles ausschalten
+  - **HERMES RGB** (10 Szenen): Aus/Weiss/Rot/Gruen/Blau/Gelb/Lila/Orange/Cyan/Gruen hell
+  - **HCM RGB** (4 Szenen): Weiss/Farbe/Szene/Musik
+- **Fan Auto-Start Suppression in Szenen**: Szenen die die Haube einschalten unterdruecken automatisch den Firmware-Autostart des Luefters (wenn `disable_fan_auto_start` aktiv)
+- **HACS Laendererweiterung**: Integration sichtbar in DE, AT, CH, PL, FR, IT, ES, NL, BE, GB
+
+---
+
 ## [4.4.0] - 2026-03-22
 
 ### Added
