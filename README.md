@@ -18,15 +18,13 @@
 
 ---
 
-## Highlights v4.3.0
+## Highlights v4.5
 
-- **SmartLife Info Sensor** - Erweiterte Geräteinformationen und Entity Picture
-- **Fan Auto-Start unterdrücken** - Option um Lüfter beim Einschalten der Haube zu blockieren
-- **Device ID Change Repair** - Automatische Erkennung & Reparatur bei Gerätewechsel
+- **Siri/HomeKit Szenen** - RGB-Farben und Licht per Sprachbefehl, Fan-Autostart wird unterdrückt
+- **EASY Hood verifiziert** - EASY9005SM/909SHCM/609SHCM mit korrekten DPs (Community Issue #5)
+- **7 Dunstabzugshauben + 1 Kochfeld** unterstützt, Backofen in Vorbereitung
 - **Kein Developer Account nötig** - Setup via SmartLife/Tuya Smart App
-- **Auto-Power-On** - Hood schaltet automatisch ein bei Fan/Licht-Steuerung
 - **Lokale Steuerung** - Tuya Protocol ohne Cloud-Abhängigkeit
-- **6 Dunstabzugshauben + 1 Kochfeld** unterstützt, Backofen in Vorbereitung
 
 > **Hinweis:** Diese Integration wurde mit [Claude Code](https://claude.ai/code) entwickelt. Der Quellcode ist vollständig einsehbar. Verwendung auf eigene Verantwortung.
 
