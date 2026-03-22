@@ -1534,6 +1534,11 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             if auth_result and auth_result.success:
                 self._smartlife_auth_result = auth_result
                 _LOGGER.info("SmartLife QR code scan successful for user %s", auth_result.user_id)
+
+                # If this is a reauth flow, update existing entry instead of creating new one
+                if getattr(self, "_smartlife_reauth_mode", False) and self._reauth_entry:
+                    return await self._async_complete_smartlife_reauth()
+
                 return await self.async_step_smartlife_select_devices()
             else:
                 error_msg = getattr(auth_result, "error_message", "Authentication failed")
@@ -2076,6 +2081,13 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
 
         # Determine what needs reauthentication
         is_api_mode = self._reauth_entry.data.get("api_enabled", False)
+        is_smartlife = self._reauth_entry.data.get("setup_mode") == "smartlife" or self._reauth_entry.data.get(
+            "smartlife_token_info"
+        )
+
+        if is_smartlife:
+            # SmartLife token expired - redirect to QR code re-login
+            return await self.async_step_smartlife_reauth()
 
         if is_api_mode:
             # API credentials reauth
@@ -2109,6 +2121,74 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
 
         return self.async_show_form(
             step_id="reauth_confirm", data_schema=reauth_schema, errors=errors, description_placeholders=placeholders
+        )
+
+    async def _async_complete_smartlife_reauth(self) -> ConfigFlowResult:
+        """Complete SmartLife reauth by updating tokens in existing config entry."""
+        if not self._smartlife_client or not self._reauth_entry:
+            return self.async_abort(reason="reauth_failed")
+
+        # Get fresh token info from the client
+        token_info = self._smartlife_client.get_token_info_for_storage()
+
+        _LOGGER.info(
+            "SmartLife re-authentication successful, updating tokens for %s",
+            self._reauth_entry.title,
+        )
+
+        # Update the existing config entry with new tokens
+        self.hass.config_entries.async_update_entry(
+            self._reauth_entry,
+            data={
+                **self._reauth_entry.data,
+                "smartlife_token_info": token_info,
+            },
+        )
+
+        # Reload the integration to use the new tokens
+        await self.hass.config_entries.async_reload(self._reauth_entry.entry_id)
+        return self.async_abort(reason="reauth_successful")
+
+    async def async_step_smartlife_reauth(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Handle SmartLife token re-authentication via QR code.
+
+        When the SmartLife token expires ("sign invalid"), this step guides
+        the user through re-scanning the QR code to get a fresh token.
+        """
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            user_code = user_input.get("user_code", "").strip()
+
+            if not user_code or len(user_code) < 6:
+                errors["user_code"] = "invalid_user_code"
+            else:
+                # Store for QR scan step
+                self._smartlife_user_code = user_code
+                self._smartlife_app_schema = None
+                self._smartlife_reauth_mode = True
+                return await self.async_step_smartlife_scan()
+
+        # Pre-fill user code from existing config if available
+        existing_user_code = ""
+        if self._reauth_entry:
+            token_info = self._reauth_entry.data.get("smartlife_token_info", {})
+            existing_user_code = token_info.get("user_code", "")
+
+        schema = vol.Schema(
+            {
+                vol.Required("user_code", default=existing_user_code): selector.selector({"text": {"type": "text"}}),
+            }
+        )
+
+        return self.async_show_form(
+            step_id="smartlife_reauth",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders={
+                "device_name": self._reauth_entry.title if self._reauth_entry else "KKT Kolbe",
+                **_URL_PLACEHOLDERS,
+            },
         )
 
     async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:

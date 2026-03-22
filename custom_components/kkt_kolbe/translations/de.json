@@ -301,6 +301,16 @@
           "local_key": "16-stelliger lokaler Verschlüsselungsschlüssel von der Tuya IoT Platform"
         }
       },
+      "smartlife_reauth": {
+        "title": "SmartLife Token abgelaufen",
+        "description": "Die SmartLife-Authentifizierung fuer **{device_name}** ist abgelaufen.\n\nGib deinen SmartLife User Code ein um dich erneut anzumelden.\nDu findest ihn in der SmartLife App: Ich > Einstellungen > Konto und Sicherheit > User Code.",
+        "data": {
+          "user_code": "SmartLife User Code"
+        },
+        "data_description": {
+          "user_code": "6+ Zeichen Code aus der SmartLife App (z.B. Cx1i1Zh)"
+        }
+      },
       "reauth_confirm": {
         "title": "Zugangsdaten aktualisieren",
         "description": "Authentifizierungsdaten für {device_name} aktualisieren.\n\n**Local Key:** Wird von der Tuya IoT Platform nach Verknüpfung Ihres Smart Life Kontos abgerufen.\n**API-Zugangsdaten:** Access ID und Secret aus Ihrem Tuya Cloud-Projekt.\n\n[Einrichtungsanleitung]({setup_guide_url}) | [Tuya IoT Platform]({tuya_iot_url})",

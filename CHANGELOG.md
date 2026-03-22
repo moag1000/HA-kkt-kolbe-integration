@@ -5,6 +5,16 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [4.5.2] - 2026-03-22
+
+### Fixed
+
+- **SmartLife Token-Erneuerung**: "sign invalid" Fehler wird erkannt und loest den Reauth-Flow aus
+- **Reauth fuer SmartLife**: Neuer QR-Code-Reauth-Step wenn SmartLife-Token ablaeuft, mit User-Code-Eingabe und QR-Scan
+- **Hybrid Coordinator**: ConfigEntryAuthFailed wird nicht mehr verschluckt, sondern an HA weitergeleitet
+- **Repair-Benachrichtigung**: HA zeigt automatisch eine Reparatur-Option wenn der Token ablaeuft
+
 ## [4.5.1] - 2026-03-22
 
 ### Fixed
