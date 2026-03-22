@@ -1,4 +1,5 @@
 """Validation helpers for KKT Kolbe config flows."""
+
 from __future__ import annotations
 
 import logging

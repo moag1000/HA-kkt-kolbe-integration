@@ -1,10 +1,17 @@
 """Helper modules for KKT Kolbe integration."""
+
 from .device_detection import detect_device_type_from_api
 from .device_detection import detect_device_type_from_device_id
 from .device_detection import detect_device_type_from_product_key
 from .device_detection import enrich_device_info
 from .device_detection import get_device_type_options
 from .entity_factory import async_setup_platform_entities
+from .entity_factory import create_entities_from_config
+from .entity_factory import create_single_entity_from_config
+from .entity_factory import get_coordinator_from_entry
+from .entity_factory import get_device_info_from_entry
+from .entity_factory import get_entity_lookup_key
+from .entity_factory import is_advanced_entities_enabled
 from .icon_downloader import build_full_icon_url
 from .icon_downloader import download_all_icons
 from .icon_downloader import download_icon
@@ -12,12 +19,6 @@ from .icon_downloader import get_downloaded_icon_path
 from .icon_downloader import get_icon_storage_path
 from .icon_downloader import get_icon_url_for_device
 from .icon_downloader import list_downloaded_icons
-from .entity_factory import create_entities_from_config
-from .entity_factory import create_single_entity_from_config
-from .entity_factory import get_coordinator_from_entry
-from .entity_factory import get_device_info_from_entry
-from .entity_factory import get_entity_lookup_key
-from .entity_factory import is_advanced_entities_enabled
 from .schemas import API_ENDPOINT_OPTIONS
 from .schemas import API_ENDPOINTS  # Constants
 from .schemas import DEFAULT_API_ENDPOINT
@@ -45,54 +46,54 @@ from .validation import validate_local_key_input
 from .validation import validate_manual_input
 
 __all__ = [
-    # Validation
-    "is_valid_ip",
-    "is_valid_device_id",
-    "is_valid_local_key",
-    "is_private_ip",
-    "validate_manual_input",
-    "validate_api_credentials",
-    "validate_local_key_input",
-    # Device Detection
-    "detect_device_type_from_api",
-    "detect_device_type_from_device_id",
-    "detect_device_type_from_product_key",
-    "get_device_type_options",
-    "enrich_device_info",
-    # Entity Factory
-    "get_entity_lookup_key",
-    "is_advanced_entities_enabled",
-    "create_entities_from_config",
-    "create_single_entity_from_config",
-    "async_setup_platform_entities",
-    "get_coordinator_from_entry",
-    "get_device_info_from_entry",
-    # Icon Downloader
-    "download_icon",
-    "download_all_icons",
-    "get_icon_storage_path",
-    "get_icon_url_for_device",
-    "build_full_icon_url",
-    "get_downloaded_icon_path",
-    "list_downloaded_icons",
     # Schema Constants
     "API_ENDPOINTS",
     "API_ENDPOINT_OPTIONS",
     "DEFAULT_API_ENDPOINT",
+    "async_setup_platform_entities",
+    "build_full_icon_url",
+    "create_entities_from_config",
+    "create_single_entity_from_config",
+    # Device Detection
+    "detect_device_type_from_api",
+    "detect_device_type_from_device_id",
+    "detect_device_type_from_product_key",
+    "download_all_icons",
+    # Icon Downloader
+    "download_icon",
+    "enrich_device_info",
+    "get_api_credentials_schema",
+    "get_authentication_schema",
+    "get_confirmation_schema",
+    "get_coordinator_from_entry",
+    "get_device_info_from_entry",
+    "get_device_selection_schema",
+    "get_device_type_options",
+    "get_downloaded_icon_path",
+    # Entity Factory
+    "get_entity_lookup_key",
+    "get_icon_storage_path",
+    "get_icon_url_for_device",
     # Schema Generators
     "get_manual_schema",
-    "get_authentication_schema",
-    "get_settings_schema",
-    "get_api_credentials_schema",
-    "get_device_selection_schema",
-    "get_smart_discovery_schema",
-    "get_confirmation_schema",
-    "get_reconfigure_schemas",
-    "get_reconfigure_menu_schema",
+    "get_options_schema",
+    "get_reconfigure_all_schema",
+    "get_reconfigure_api_schema",
     "get_reconfigure_connection_schema",
     "get_reconfigure_device_type_schema",
-    "get_reconfigure_api_schema",
-    "get_reconfigure_all_schema",
-    "get_options_schema",
+    "get_reconfigure_menu_schema",
+    "get_reconfigure_schemas",
+    "get_settings_schema",
+    "get_smart_discovery_schema",
     "get_zeroconf_authenticate_schema",
+    "is_advanced_entities_enabled",
+    "is_private_ip",
+    "is_valid_device_id",
+    # Validation
+    "is_valid_ip",
+    "is_valid_local_key",
+    "list_downloaded_icons",
+    "validate_api_credentials",
+    "validate_local_key_input",
+    "validate_manual_input",
 ]

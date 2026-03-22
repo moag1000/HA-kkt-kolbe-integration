@@ -14,6 +14,7 @@ Reference implementations:
 - tuya-local (make-all): https://github.com/make-all/tuya-local
 - HA Core Tuya: https://github.com/home-assistant/core/tree/dev/homeassistant/components/tuya
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -205,7 +206,8 @@ class TuyaSharingClient:
         self._token_update_callback: Any | None = None  # Callback for token persistence
 
     def set_token_update_callback(
-        self, callback: Any  # Callable[[dict[str, Any]], Awaitable[None]]
+        self,
+        callback: Any,  # Callable[[dict[str, Any]], Awaitable[None]]
     ) -> None:
         """Set callback for when tokens are refreshed.
 
@@ -269,9 +271,7 @@ class TuyaSharingClient:
         if not response.get("success"):
             error_code = response.get("code", "unknown")
             error_msg = response.get("msg", "Unknown error")
-            _LOGGER.error(
-                "QR code generation failed: %s (code: %s)", error_msg, error_code
-            )
+            _LOGGER.error("QR code generation failed: %s (code: %s)", error_msg, error_code)
             raise KKTAuthenticationError(
                 message=f"QR code generation failed: {error_msg} (code: {error_code})",
             )
@@ -359,11 +359,11 @@ class TuyaSharingClient:
                 # Tuya API returns expire_time as seconds until expiry (e.g., 7200 for 2 hours)
                 # We need to store as absolute timestamp for proper comparison later
                 import time
+
                 if raw_expire_time < 1000000000:  # Less than year 2001 = probably relative
                     expire_time = int(time.time()) + raw_expire_time
                     _LOGGER.debug(
-                        "Converted relative expire_time %d to absolute timestamp %d",
-                        raw_expire_time, expire_time
+                        "Converted relative expire_time %d to absolute timestamp %d", raw_expire_time, expire_time
                     )
                 else:
                     expire_time = raw_expire_time
@@ -458,6 +458,7 @@ class TuyaSharingClient:
 
                 # Convert relative expire_time to absolute timestamp if needed
                 import time
+
                 raw_expire_time = token_info.get("expire_time", 0)
                 if raw_expire_time < 1000000000:  # Less than year 2001 = probably relative
                     absolute_expire_time = int(time.time()) + raw_expire_time
@@ -465,20 +466,15 @@ class TuyaSharingClient:
                     token_info["expire_time"] = absolute_expire_time
                     _LOGGER.debug(
                         "Converted relative expire_time %d to absolute timestamp %d",
-                        raw_expire_time, absolute_expire_time
+                        raw_expire_time,
+                        absolute_expire_time,
                     )
 
                 self._client._token_info.update(token_info)
                 if self._client._auth_result:
-                    self._client._auth_result.access_token = token_info.get(
-                        "access_token"
-                    )
-                    self._client._auth_result.refresh_token = token_info.get(
-                        "refresh_token"
-                    )
-                    self._client._auth_result.expire_time = token_info.get(
-                        "expire_time", 0
-                    )
+                    self._client._auth_result.access_token = token_info.get("access_token")
+                    self._client._auth_result.refresh_token = token_info.get("refresh_token")
+                    self._client._auth_result.expire_time = token_info.get("expire_time", 0)
 
                 # Call the persistence callback if registered
                 if self._client._token_update_callback:
@@ -544,8 +540,7 @@ class TuyaSharingClient:
                 # Log extended info if available
                 if device.uuid or device.create_time:
                     _LOGGER.debug(
-                        "  Extended info: uuid=%s, create_time=%s, "
-                        "active_time=%s, update_time=%s, tz=%s",
+                        "  Extended info: uuid=%s, create_time=%s, active_time=%s, update_time=%s, tz=%s",
                         device.uuid,
                         device.create_time,
                         device.active_time,
@@ -554,8 +549,7 @@ class TuyaSharingClient:
                     )
             else:
                 _LOGGER.warning(
-                    "Device '%s' (%s...): local_key NOT available - "
-                    "may be a hub device or restricted",
+                    "Device '%s' (%s...): local_key NOT available - may be a hub device or restricted",
                     device.name,
                     device.device_id[:8],
                 )
@@ -766,10 +760,7 @@ class TuyaSharingClient:
 
         try:
             status = await self.hass.async_add_executor_job(_get_status)
-            _LOGGER.debug(
-                "Retrieved %d status items for device %s via SmartLife",
-                len(status), device_id[:8]
-            )
+            _LOGGER.debug("Retrieved %d status items for device %s via SmartLife", len(status), device_id[:8])
             return status
         except Exception as err:
             _LOGGER.error("Failed to get device status: %s", err)
@@ -778,9 +769,7 @@ class TuyaSharingClient:
                 reason=str(err),
             ) from err
 
-    async def async_send_commands(
-        self, device_id: str, commands: list[dict[str, Any]]
-    ) -> bool:
+    async def async_send_commands(self, device_id: str, commands: list[dict[str, Any]]) -> bool:
         """Send commands to a device via SmartLife cloud.
 
         This method provides cloud-fallback functionality for the HybridCoordinator.
@@ -828,27 +817,19 @@ class TuyaSharingClient:
                 except Exception as err:
                     _LOGGER.warning("manager.send_commands failed: %s", err)
 
-            _LOGGER.warning(
-                "No command sending method available for device %s",
-                device_id[:8]
-            )
+            _LOGGER.warning("No command sending method available for device %s", device_id[:8])
             return False
 
         try:
             success = await self.hass.async_add_executor_job(_send_commands)
             if success:
-                _LOGGER.info(
-                    "Commands sent successfully to device %s via SmartLife",
-                    device_id[:8]
-                )
+                _LOGGER.info("Commands sent successfully to device %s via SmartLife", device_id[:8])
             return success
         except Exception as err:
             _LOGGER.error("Failed to send commands: %s", err)
             return False
 
-    async def async_send_dp_commands(
-        self, device_id: str, dps: dict[str, Any]
-    ) -> bool:
+    async def async_send_dp_commands(self, device_id: str, dps: dict[str, Any]) -> bool:
         """Send DP (Data Point) commands to a device via SmartLife cloud.
 
         Args:
@@ -864,9 +845,7 @@ class TuyaSharingClient:
         commands = [{"code": str(dp_id), "value": value} for dp_id, value in dps.items()]
         return await self.async_send_commands(device_id, commands)
 
-    async def async_get_firmware_info(
-        self, device_id: str
-    ) -> list[dict[str, Any]] | None:
+    async def async_get_firmware_info(self, device_id: str) -> list[dict[str, Any]] | None:
         """Get firmware information for a device via SmartLife API.
 
         This attempts to call the Tuya firmware upgrade-info endpoint
@@ -897,20 +876,11 @@ class TuyaSharingClient:
 
             try:
                 # Try the standard Tuya firmware endpoint
-                response = self._manager.customer_api.get(
-                    f"/v1.0/iot-03/devices/{device_id}/upgrade-infos",
-                    None
-                )
-                _LOGGER.debug(
-                    "Firmware API response for %s: %s",
-                    device_id[:8], response
-                )
+                response = self._manager.customer_api.get(f"/v1.0/iot-03/devices/{device_id}/upgrade-infos", None)
+                _LOGGER.debug("Firmware API response for %s: %s", device_id[:8], response)
                 return response
             except Exception as err:
-                _LOGGER.debug(
-                    "Firmware API call failed for %s: %s",
-                    device_id[:8], err
-                )
+                _LOGGER.debug("Firmware API call failed for %s: %s", device_id[:8], err)
                 return None
 
         try:
@@ -924,19 +894,13 @@ class TuyaSharingClient:
                 if response.get("success") is False:
                     error_code = response.get("code", "unknown")
                     error_msg = response.get("msg", "Unknown error")
-                    _LOGGER.info(
-                        "Firmware API not available for SmartLife token: %s (%s)",
-                        error_msg, error_code
-                    )
+                    _LOGGER.info("Firmware API not available for SmartLife token: %s (%s)", error_msg, error_code)
                     return None
 
                 # Extract result
                 result = response.get("result")
                 if isinstance(result, list):
-                    _LOGGER.info(
-                        "Got firmware info for %s: %d modules",
-                        device_id[:8], len(result)
-                    )
+                    _LOGGER.info("Got firmware info for %s: %d modules", device_id[:8], len(result))
                     return result
 
             # If response is directly a list
@@ -950,9 +914,7 @@ class TuyaSharingClient:
             _LOGGER.debug("Failed to get firmware info: %s", err)
             return None
 
-    async def async_get_device_specifications(
-        self, device_id: str
-    ) -> dict[str, Any] | None:
+    async def async_get_device_specifications(self, device_id: str) -> dict[str, Any] | None:
         """Get device specifications via SmartLife API.
 
         Calls the SmartLife specifications endpoint to get device
@@ -977,20 +939,11 @@ class TuyaSharingClient:
 
             try:
                 # SmartLife specifications endpoint
-                response = self._manager.customer_api.get(
-                    f"/v1.1/m/life/{device_id}/specifications",
-                    None
-                )
-                _LOGGER.info(
-                    "SmartLife specifications for %s: %s",
-                    device_id[:8], response
-                )
+                response = self._manager.customer_api.get(f"/v1.1/m/life/{device_id}/specifications", None)
+                _LOGGER.info("SmartLife specifications for %s: %s", device_id[:8], response)
                 return response
             except Exception as err:
-                _LOGGER.info(
-                    "SmartLife specifications API failed for %s: %s",
-                    device_id[:8], err
-                )
+                _LOGGER.info("SmartLife specifications API failed for %s: %s", device_id[:8], err)
                 return None
 
         try:
@@ -1004,8 +957,7 @@ class TuyaSharingClient:
                     error_msg = response.get("msg", "Unknown")
                     error_code = response.get("code", "?")
                     _LOGGER.info(
-                        "SmartLife specifications not available for %s: %s (%s)",
-                        device_id[:8], error_msg, error_code
+                        "SmartLife specifications not available for %s: %s (%s)", device_id[:8], error_msg, error_code
                     )
                     return None
                 return response.get("result") or response
@@ -1016,9 +968,7 @@ class TuyaSharingClient:
             _LOGGER.info("Failed to get specifications: %s", err)
             return None
 
-    async def async_get_device_status_details(
-        self, device_id: str
-    ) -> dict[str, Any] | None:
+    async def async_get_device_status_details(self, device_id: str) -> dict[str, Any] | None:
         """Get device status details via SmartLife API.
 
         Calls the SmartLife status endpoint to get device strategy
@@ -1043,20 +993,11 @@ class TuyaSharingClient:
 
             try:
                 # SmartLife status endpoint
-                response = self._manager.customer_api.get(
-                    f"/v1.0/m/life/devices/{device_id}/status",
-                    None
-                )
-                _LOGGER.info(
-                    "SmartLife status details for %s: %s",
-                    device_id[:8], response
-                )
+                response = self._manager.customer_api.get(f"/v1.0/m/life/devices/{device_id}/status", None)
+                _LOGGER.info("SmartLife status details for %s: %s", device_id[:8], response)
                 return response
             except Exception as err:
-                _LOGGER.info(
-                    "SmartLife status API failed for %s: %s",
-                    device_id[:8], err
-                )
+                _LOGGER.info("SmartLife status API failed for %s: %s", device_id[:8], err)
                 return None
 
         try:
@@ -1069,10 +1010,7 @@ class TuyaSharingClient:
                 if response.get("success") is False:
                     error_msg = response.get("msg", "Unknown")
                     error_code = response.get("code", "?")
-                    _LOGGER.info(
-                        "SmartLife status not available for %s: %s (%s)",
-                        device_id[:8], error_msg, error_code
-                    )
+                    _LOGGER.info("SmartLife status not available for %s: %s (%s)", device_id[:8], error_msg, error_code)
                     return None
                 return response.get("result") or response
 
@@ -1082,9 +1020,7 @@ class TuyaSharingClient:
             _LOGGER.info("Failed to get status details: %s", err)
             return None
 
-    async def async_get_device_info(
-        self, device_id: str
-    ) -> dict[str, Any] | None:
+    async def async_get_device_info(self, device_id: str) -> dict[str, Any] | None:
         """Get extended device information via SmartLife API.
 
         Attempts to call additional Tuya API endpoints to get more
@@ -1108,20 +1044,11 @@ class TuyaSharingClient:
                 return None
 
             try:
-                response = self._manager.customer_api.get(
-                    f"/v1.0/devices/{device_id}",
-                    None
-                )
-                _LOGGER.debug(
-                    "Device info API response for %s: %s",
-                    device_id[:8], response
-                )
+                response = self._manager.customer_api.get(f"/v1.0/devices/{device_id}", None)
+                _LOGGER.debug("Device info API response for %s: %s", device_id[:8], response)
                 return response
             except Exception as err:
-                _LOGGER.debug(
-                    "Device info API call failed for %s: %s",
-                    device_id[:8], err
-                )
+                _LOGGER.debug("Device info API call failed for %s: %s", device_id[:8], err)
                 return None
 
         try:
@@ -1172,9 +1099,7 @@ class TuyaSharingClient:
 
     def __repr__(self) -> str:
         """Return string representation."""
-        user_code_masked = (
-            f"{self._user_code[:4]}..." if len(self._user_code) > 4 else self._user_code
-        )
+        user_code_masked = f"{self._user_code[:4]}..." if len(self._user_code) > 4 else self._user_code
         return (
             f"TuyaSharingClient(user_code={user_code_masked}, "
             f"app_schema={self._app_schema}, "

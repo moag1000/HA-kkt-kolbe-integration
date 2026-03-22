@@ -1,4 +1,5 @@
 """KKT Kolbe Dunstabzugshaube Integration for Home Assistant."""
+
 from __future__ import annotations
 
 import asyncio
@@ -36,7 +37,15 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = [Platform.SENSOR, Platform.FAN, Platform.LIGHT, Platform.SWITCH, Platform.SELECT, Platform.NUMBER, Platform.BINARY_SENSOR]
+PLATFORMS = [
+    Platform.SENSOR,
+    Platform.FAN,
+    Platform.LIGHT,
+    Platform.SWITCH,
+    Platform.SELECT,
+    Platform.NUMBER,
+    Platform.BINARY_SENSOR,
+]
 
 
 @dataclass
@@ -130,13 +139,16 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
     # Lazy import to reduce blocking time
     from .discovery import async_start_discovery
+
     await async_start_discovery(hass)
 
     # Start stale device tracker (Gold Tier requirement)
     from .device_tracker import async_start_tracker
+
     await async_start_tracker(hass)
 
     return True
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up KKT Kolbe from a config entry.
@@ -157,9 +169,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return await _async_setup_device_entry(hass, entry)
 
 
-async def _async_setup_account_entry(
-    hass: HomeAssistant, entry: ConfigEntry
-) -> bool:
+async def _async_setup_account_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up a SmartLife account entry (Parent Entry).
 
     Account entries:
@@ -175,9 +185,7 @@ async def _async_setup_account_entry(
     app_schema = entry.data.get("smartlife_app_schema", "smartlife")
 
     if not token_info:
-        _LOGGER.warning(
-            "SmartLife account entry %s has no token info stored", entry.entry_id
-        )
+        _LOGGER.warning("SmartLife account entry %s has no token info stored", entry.entry_id)
 
     # Find child entries linked to this account
     child_entry_ids: list[str] = []
@@ -253,9 +261,9 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
 
             if parent_entry is None:
                 _LOGGER.error(
-                    "SmartLife parent entry %s not found for device %s. "
-                    "The account may have been deleted.",
-                    parent_entry_id[:8], entry.entry_id[:8]
+                    "SmartLife parent entry %s not found for device %s. The account may have been deleted.",
+                    parent_entry_id[:8],
+                    entry.entry_id[:8],
                 )
                 # Create repair issue
                 ir.async_create_issue(
@@ -270,25 +278,19 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
                         "parent_id": parent_entry_id[:8],
                     },
                 )
-                raise ConfigEntryNotReady(
-                    f"SmartLife parent entry {parent_entry_id[:8]} not found"
-                )
+                raise ConfigEntryNotReady(f"SmartLife parent entry {parent_entry_id[:8]} not found")
 
             # Get token info from parent
             smartlife_token_info = parent_entry.data.get(CONF_SMARTLIFE_TOKEN_INFO)
 
             if not smartlife_token_info:
-                _LOGGER.warning(
-                    "SmartLife parent entry %s has no token info",
-                    parent_entry_id[:8]
-                )
+                _LOGGER.warning("SmartLife parent entry %s has no token info", parent_entry_id[:8])
             else:
                 # Create TuyaSharingClient from stored tokens for cloud fallback
                 try:
                     from .clients.tuya_sharing_client import TuyaSharingClient
-                    smartlife_client = await TuyaSharingClient.async_from_stored_tokens(
-                        hass, smartlife_token_info
-                    )
+
+                    smartlife_client = await TuyaSharingClient.async_from_stored_tokens(hass, smartlife_token_info)
 
                     # Register token persistence callback to update parent entry
                     # when tokens are refreshed by the SDK
@@ -296,38 +298,24 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
                         """Persist refreshed tokens to parent config entry."""
                         if parent_entry:
                             _LOGGER.info(
-                                "Persisting refreshed SmartLife tokens to parent entry %s",
-                                parent_entry.entry_id[:8]
+                                "Persisting refreshed SmartLife tokens to parent entry %s", parent_entry.entry_id[:8]
                             )
                             new_data = dict(parent_entry.data)
                             new_data[CONF_SMARTLIFE_TOKEN_INFO] = new_token_info
-                            hass.config_entries.async_update_entry(
-                                parent_entry, data=new_data
-                            )
+                            hass.config_entries.async_update_entry(parent_entry, data=new_data)
 
                     smartlife_client.set_token_update_callback(update_parent_tokens)
 
-                    _LOGGER.info(
-                        "SmartLife client restored from stored tokens for device %s",
-                        entry.entry_id[:8]
-                    )
+                    _LOGGER.info("SmartLife client restored from stored tokens for device %s", entry.entry_id[:8])
                 except Exception as err:
                     _LOGGER.warning(
-                        "Could not restore SmartLife client from tokens: %s. "
-                        "Cloud fallback will not be available.",
-                        err
+                        "Could not restore SmartLife client from tokens: %s. Cloud fallback will not be available.", err
                     )
                     smartlife_client = None
 
-            _LOGGER.debug(
-                "SmartLife device %s using tokens from parent %s",
-                entry.entry_id[:8], parent_entry_id[:8]
-            )
+            _LOGGER.debug("SmartLife device %s using tokens from parent %s", entry.entry_id[:8], parent_entry_id[:8])
         else:
-            _LOGGER.warning(
-                "SmartLife device %s has no parent_entry_id - tokens may be outdated",
-                entry.entry_id[:8]
-            )
+            _LOGGER.warning("SmartLife device %s has no parent_entry_id - tokens may be outdated", entry.entry_id[:8])
 
     device = None
     api_client = None
@@ -381,7 +369,7 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
                         "Found device %s in SmartLife: local_key=%s, ip=%s",
                         device_id[:8],
                         "PRESENT" if fresh_local_key else "MISSING",
-                        fresh_ip
+                        fresh_ip,
                     )
 
                     # Check if local_key has changed
@@ -389,7 +377,9 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
                         _LOGGER.warning(
                             "SmartLife local_key differs from stored key for device %s. "
                             "Updating config entry with fresh key (stored length: %d, fresh length: %d)",
-                            device_id[:8], len(local_key) if local_key else 0, len(fresh_local_key)
+                            device_id[:8],
+                            len(local_key) if local_key else 0,
+                            len(fresh_local_key),
                         )
                         local_key = fresh_local_key
 
@@ -400,12 +390,18 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
                         hass.config_entries.async_update_entry(entry, data=new_data)
                     elif fresh_local_key:
                         # Log masked key comparison for debugging
-                        stored_masked = f"{local_key[:3]}...{local_key[-3:]}" if local_key and len(local_key) >= 6 else "???"
-                        fresh_masked = f"{fresh_local_key[:3]}...{fresh_local_key[-3:]}" if len(fresh_local_key) >= 6 else "???"
+                        stored_masked = (
+                            f"{local_key[:3]}...{local_key[-3:]}" if local_key and len(local_key) >= 6 else "???"
+                        )
+                        fresh_masked = (
+                            f"{fresh_local_key[:3]}...{fresh_local_key[-3:]}" if len(fresh_local_key) >= 6 else "???"
+                        )
                         _LOGGER.debug(
-                            "SmartLife local_key matches stored key for device %s "
-                            "(length: %d, stored: %s, fresh: %s)",
-                            device_id[:8], len(fresh_local_key), stored_masked, fresh_masked
+                            "SmartLife local_key matches stored key for device %s (length: %d, stored: %s, fresh: %s)",
+                            device_id[:8],
+                            len(fresh_local_key),
+                            stored_masked,
+                            fresh_masked,
                         )
 
                     # Also update IP if changed - but ONLY if it's a private/local IP!
@@ -413,12 +409,12 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
                     if fresh_ip and fresh_ip != ip_address:
                         # Check if fresh_ip is a private IP (safe for local communication)
                         import ipaddress
+
                         try:
                             ip_obj = ipaddress.ip_address(fresh_ip)
                             if ip_obj.is_private:
                                 _LOGGER.info(
-                                    "SmartLife local IP for device %s: %s -> %s",
-                                    device_id[:8], ip_address, fresh_ip
+                                    "SmartLife local IP for device %s: %s -> %s", device_id[:8], ip_address, fresh_ip
                                 )
                                 ip_address = fresh_ip
                                 new_data = dict(entry.data)
@@ -429,7 +425,9 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
                                 _LOGGER.debug(
                                     "SmartLife returned public IP %s for device %s - ignoring "
                                     "(using stored local IP %s instead)",
-                                    fresh_ip, device_id[:8], ip_address
+                                    fresh_ip,
+                                    device_id[:8],
+                                    ip_address,
                                 )
                         except ValueError:
                             _LOGGER.debug("Invalid IP from SmartLife: %s", fresh_ip)
@@ -445,20 +443,20 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
                     }
                     _LOGGER.debug(
                         "Retrieved extended SmartLife info for %s: uuid=%s, icon=%s",
-                        device_id[:8], sl_device.uuid, sl_device.icon
+                        device_id[:8],
+                        sl_device.uuid,
+                        sl_device.icon,
                     )
 
                     break
             else:
-                _LOGGER.warning(
-                    "Device %s not found in SmartLife device list. Using stored key.",
-                    device_id[:8]
-                )
+                _LOGGER.warning("Device %s not found in SmartLife device list. Using stored key.", device_id[:8])
         except Exception as err:
             _LOGGER.warning(
-                "Could not sync local_key from SmartLife for device %s: %s (%s). "
-                "Using stored key.",
-                device_id[:8] if device_id else "unknown", type(err).__name__, err
+                "Could not sync local_key from SmartLife for device %s: %s (%s). Using stored key.",
+                device_id[:8] if device_id else "unknown",
+                type(err).__name__,
+                err,
             )
 
     if ip_address and device_id and local_key:
@@ -496,8 +494,7 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
             device_type=entry.data.get("device_type"),
         )
         _LOGGER.info(
-            "Hybrid coordinator initialized for SmartLife mode "
-            "(local=%s, cloud_fallback=%s)",
+            "Hybrid coordinator initialized for SmartLife mode (local=%s, cloud_fallback=%s)",
             device is not None,
             smartlife_client is not None,
         )
@@ -543,8 +540,7 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
             except KKTAuthenticationError as e:
                 # Authentication errors should trigger reauth flow
                 _LOGGER.error(
-                    f"Authentication failed for device at {ip_address}. "
-                    f"Local key may be incorrect or expired."
+                    f"Authentication failed for device at {ip_address}. Local key may be incorrect or expired."
                 )
 
                 # Create repair issue for expired local key
@@ -566,9 +562,7 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
                     },
                 )
 
-                raise ConfigEntryAuthFailed(
-                    f"Authentication failed: {e}. Please check your local key."
-                ) from e
+                raise ConfigEntryAuthFailed(f"Authentication failed: {e}. Please check your local key.") from e
             except (KKTConnectionError, KKTTimeoutError) as e:
                 local_connection_failed = True
                 local_error_msg = str(e)
@@ -584,12 +578,9 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
                     # For temporary connection issues, use ConfigEntryNotReady
                     # This tells HA to retry setup automatically
                     _LOGGER.warning(
-                        f"Device at {ip_address} is not reachable. "
-                        f"Home Assistant will retry setup automatically."
+                        f"Device at {ip_address} is not reachable. Home Assistant will retry setup automatically."
                     )
-                    raise ConfigEntryNotReady(
-                        f"Device not reachable at {ip_address}: {e}"
-                    ) from e
+                    raise ConfigEntryNotReady(f"Device not reachable at {ip_address}: {e}") from e
             except Exception as e:
                 local_connection_failed = True
                 local_error_msg = str(e)
@@ -628,11 +619,9 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
                             },
                         )
 
-                        raise ConfigEntryAuthFailed(
-                            f"API authentication failed: {e}. Please check credentials."
-                        ) from e
+                        raise ConfigEntryAuthFailed(f"API authentication failed: {e}. Please check credentials.") from e
                     # Check if it's a wrong region/endpoint issue (error code 1004)
-                    elif "1004" in str(e) or "sign" in str(e).lower():
+                    if "1004" in str(e) or "sign" in str(e).lower():
                         # Create repair issue for wrong region
                         ir.async_create_issue(
                             hass,
@@ -655,9 +644,8 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
                         raise ConfigEntryAuthFailed(
                             f"API signature validation failed: {e}. Wrong region/endpoint?"
                         ) from e
-                    else:
-                        _LOGGER.warning("API connection failed, will retry automatically")
-                        raise ConfigEntryNotReady(f"API not reachable: {e}") from e
+                    _LOGGER.warning("API connection failed, will retry automatically")
+                    raise ConfigEntryNotReady(f"API not reachable: {e}") from e
 
         # Perform initial data fetch if at least one connection method works
         # Use timeout to prevent indefinite hang during setup
@@ -665,15 +653,11 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
         # Allow initial refresh for modes with cloud fallback even if local fails
         if connection_successful or integration_mode in ["hybrid", "api_discovery", "smartlife"]:
             try:
-                await asyncio.wait_for(
-                    coordinator.async_config_entry_first_refresh(),
-                    timeout=FIRST_REFRESH_TIMEOUT
-                )
+                await asyncio.wait_for(coordinator.async_config_entry_first_refresh(), timeout=FIRST_REFRESH_TIMEOUT)
                 _LOGGER.info("Initial data fetch successful")
             except TimeoutError:
                 _LOGGER.warning(
-                    f"Initial data fetch timed out after {FIRST_REFRESH_TIMEOUT}s, "
-                    "coordinator will retry automatically"
+                    f"Initial data fetch timed out after {FIRST_REFRESH_TIMEOUT}s, coordinator will retry automatically"
                 )
                 # Don't raise - let coordinator handle retries
             except Exception as e:
@@ -735,6 +719,7 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
     else:
         # Last resort - try device_id pattern matching
         from .config_flow import _detect_device_type_from_device_id
+
         detected_type, detected_product, detected_name = _detect_device_type_from_device_id(device_id)
         if detected_type != "auto":
             device_info = {
@@ -789,7 +774,7 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
 
     # Determine software version from Tuya protocol or integration version
     sw_version = f"v{INTEGRATION_VERSION}"  # Default fallback
-    if device and hasattr(device, 'version') and device.version and device.version != "auto":
+    if device and hasattr(device, "version") and device.version and device.version != "auto":
         sw_version = f"Tuya Protocol {device.version}"
     elif entry.data.get("version") and entry.data.get("version") != "auto":
         sw_version = f"Tuya Protocol {entry.data.get('version')}"
@@ -834,22 +819,17 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
 
     if update_kwargs:
         device_registry.async_update_device(device_entry.id, **update_kwargs)
-        _LOGGER.info(
-            "Updated device registry for %s: %s",
-            device_id[:8], update_kwargs
-        )
+        _LOGGER.info("Updated device registry for %s: %s", device_id[:8], update_kwargs)
 
     # Download device icon from SmartLife or stored URL
     icon_url = extended_info.get("icon") or entry.data.get("icon_url")
     if icon_url:
         from .helpers.icon_downloader import download_icon
+
         try:
             local_icon_path = await download_icon(hass, device_id, icon_url)
             if local_icon_path:
-                _LOGGER.info(
-                    "Device icon downloaded for %s: %s",
-                    device_id[:8], local_icon_path
-                )
+                _LOGGER.info("Device icon downloaded for %s: %s", device_id[:8], local_icon_path)
         except Exception as err:
             _LOGGER.warning("Failed to download device icon: %s", err)
 
@@ -862,10 +842,12 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
     # Set up services when the first device is added
     if len(hass.data[DOMAIN]) == 1:
         from .services import async_setup_services
+
         await async_setup_services(hass)
         _LOGGER.info("KKT Kolbe services initialized")
 
     return True
+
 
 async def async_options_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Handle options update - reload the integration when options change.
@@ -919,7 +901,7 @@ async def _async_unload_account_entry(hass: HomeAssistant, entry: ConfigEntry) -
 
     # Get child entry IDs before cleanup
     child_entry_ids: list[str] = []
-    if hasattr(entry, 'runtime_data') and entry.runtime_data:
+    if hasattr(entry, "runtime_data") and entry.runtime_data:
         child_entry_ids = entry.runtime_data.child_entry_ids
     else:
         # Fallback: scan for child entries
@@ -950,10 +932,11 @@ async def _async_unload_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigE
     from .device_types import get_device_platforms
 
     # Use runtime_data if available, fallback to entry.data
-    if hasattr(entry, 'runtime_data') and entry.runtime_data:
+    if hasattr(entry, "runtime_data") and entry.runtime_data:
         device_info = entry.runtime_data.device_info
     else:
         from .device_types import get_device_info_by_product_name
+
         product_name = entry.data.get("product_name", "unknown")
         device_info = get_device_info_by_product_name(product_name)
 
@@ -966,17 +949,18 @@ async def _async_unload_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigE
 
         # Count remaining device entries (exclude account entries)
         device_entries = [
-            e for e in hass.data[DOMAIN].values()
-            if isinstance(e, dict) and e.get("entry_type") != ENTRY_TYPE_ACCOUNT
+            e for e in hass.data[DOMAIN].values() if isinstance(e, dict) and e.get("entry_type") != ENTRY_TYPE_ACCOUNT
         ]
 
         # Unload services when the last device is removed
         if not device_entries:
             from .services import async_unload_services
+
             await async_unload_services(hass)
             _LOGGER.info("KKT Kolbe services unloaded")
 
             from .discovery import async_stop_discovery
+
             await async_stop_discovery()
 
     return unload_ok

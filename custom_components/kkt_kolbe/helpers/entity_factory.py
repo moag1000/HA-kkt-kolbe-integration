@@ -4,6 +4,7 @@ This module provides utilities to reduce code duplication in entity platform set
 Each platform (switch, sensor, number, etc.) uses similar patterns that can be
 centralized here.
 """
+
 from __future__ import annotations
 
 import logging

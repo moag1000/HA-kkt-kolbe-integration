@@ -1,4 +1,5 @@
 """Custom exceptions for KKT Kolbe integration with translation support."""
+
 from __future__ import annotations
 
 from typing import Any

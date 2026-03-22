@@ -1,4 +1,5 @@
 """Tuya category specifications for automatic device configuration."""
+
 from __future__ import annotations
 
 import json
@@ -33,7 +34,7 @@ class TuyaCategorySpecs:
                 category_file = specs_dir / filename
 
                 if category_file.exists():
-                    with open(category_file, encoding='utf-8') as f:
+                    with open(category_file, encoding="utf-8") as f:
                         category_data = json.load(f)
                         if category_data.get("success") and "result" in category_data:
                             self._specs[category] = category_data["result"]
@@ -58,87 +59,42 @@ class TuyaCategorySpecs:
                     "code": "fan_speed_enum",
                     "name": "风速",
                     "type": "Enum",
-                    "values": "{\"range\":[\"off\",\"low\",\"middle\",\"high\",\"strong\"]}"
+                    "values": '{"range":["off","low","middle","high","strong"]}',
                 },
-                {
-                    "code": "switch_lamp",
-                    "name": "灯带开关",
-                    "type": "Boolean",
-                    "values": "{}"
-                },
-                {
-                    "code": "light",
-                    "name": "灯光",
-                    "type": "Boolean",
-                    "values": "{}"
-                },
+                {"code": "switch_lamp", "name": "灯带开关", "type": "Boolean", "values": "{}"},
+                {"code": "light", "name": "灯光", "type": "Boolean", "values": "{}"},
                 {
                     "code": "countdown",
                     "name": "倒计时",
                     "type": "Integer",
-                    "values": "{\"unit\":\"min\",\"min\":0,\"max\":100,\"scale\":0,\"step\":1}"
+                    "values": '{"unit":"min","min":0,"max":100,"scale":0,"step":1}',
                 },
                 {
                     "code": "countdown_left",
                     "name": "倒计时剩余时间",
                     "type": "Integer",
-                    "values": "{\"unit\":\"min\",\"min\":0,\"max\":100,\"scale\":0,\"step\":1}"
+                    "values": '{"unit":"min","min":0,"max":100,"scale":0,"step":1}',
                 },
-                {
-                    "code": "disinfection",
-                    "name": "消毒",
-                    "type": "Boolean",
-                    "values": "{}"
-                },
-                {
-                    "code": "anion",
-                    "name": "负离子",
-                    "type": "Boolean",
-                    "values": "{}"
-                },
-                {
-                    "code": "switch_wash",
-                    "name": "清洗开关",
-                    "type": "Boolean",
-                    "values": "{}"
-                },
-                {
-                    "code": "switch",
-                    "name": "开关",
-                    "type": "Boolean",
-                    "values": "{}"
-                },
-                {
-                    "code": "warm",
-                    "name": "保温",
-                    "type": "Boolean",
-                    "values": "{}"
-                },
-                {
-                    "code": "drying",
-                    "name": "烘干",
-                    "type": "Boolean",
-                    "values": "{}"
-                },
-                {
-                    "code": "fault",
-                    "name": "故障告警",
-                    "type": "Bitmap",
-                    "values": "{\"label\":[\"e1\",\"e2\",\"e3\"]}"
-                },
+                {"code": "disinfection", "name": "消毒", "type": "Boolean", "values": "{}"},
+                {"code": "anion", "name": "负离子", "type": "Boolean", "values": "{}"},
+                {"code": "switch_wash", "name": "清洗开关", "type": "Boolean", "values": "{}"},
+                {"code": "switch", "name": "开关", "type": "Boolean", "values": "{}"},
+                {"code": "warm", "name": "保温", "type": "Boolean", "values": "{}"},
+                {"code": "drying", "name": "烘干", "type": "Boolean", "values": "{}"},
+                {"code": "fault", "name": "故障告警", "type": "Bitmap", "values": '{"label":["e1","e2","e3"]}'},
                 {
                     "code": "status",
                     "name": "设备状态",
                     "type": "Enum",
-                    "values": "{\"range\":[\"standby\",\"working\",\"sleeping\"]}"
+                    "values": '{"range":["standby","working","sleeping"]}',
                 },
                 {
                     "code": "total_runtime",
                     "name": "累计工作时间",
                     "type": "Integer",
-                    "values": "{\"unit\":\"hour\",\"min\":0,\"max\":1000000,\"scale\":0,\"step\":1}"
-                }
-            ]
+                    "values": '{"unit":"hour","min":0,"max":1000000,"scale":0,"step":1}',
+                },
+            ],
         }
         _LOGGER.info("Loaded embedded YYJ category specification")
 
@@ -151,69 +107,54 @@ class TuyaCategorySpecs:
                     "code": "work_mode",
                     "name": "工作模式",
                     "type": "Enum",
-                    "values": "{\"range\":[\"chips\",\"drumsticks\",\"shrimp\",\"fish\",\"ribs\",\"meat\"]}"
+                    "values": '{"range":["chips","drumsticks","shrimp","fish","ribs","meat"]}',
                 },
                 {
                     "code": "appointment_time",
                     "name": "预约时间",
                     "type": "Integer",
-                    "values": "{\"unit\":\"min\",\"min\":1,\"max\":360,\"scale\":0,\"step\":1}"
+                    "values": '{"unit":"min","min":1,"max":360,"scale":0,"step":1}',
                 },
                 {
                     "code": "cook_temperature",
                     "name": "烹饪温度",
                     "type": "Integer",
-                    "values": "{\"unit\":\"℃\",\"min\":0,\"max\":500,\"scale\":0,\"step\":1}"
+                    "values": '{"unit":"℃","min":0,"max":500,"scale":0,"step":1}',
                 },
                 {
                     "code": "current_temperature",
                     "name": "当前温度",
                     "type": "Integer",
-                    "values": "{\"unit\":\"℃\",\"min\":0,\"max\":500,\"scale\":0,\"step\":1}"
+                    "values": '{"unit":"℃","min":0,"max":500,"scale":0,"step":1}',
                 },
                 {
                     "code": "cook_power",
                     "name": "烹饪功率",
                     "type": "Integer",
-                    "values": "{\"unit\":\"w\",\"min\":0,\"max\":5000,\"scale\":0,\"step\":1}"
+                    "values": '{"unit":"w","min":0,"max":5000,"scale":0,"step":1}',
                 },
-                {
-                    "code": "switch",
-                    "name": "开关",
-                    "type": "Boolean",
-                    "values": "{}"
-                },
-                {
-                    "code": "pause",
-                    "name": "暂停/继续",
-                    "type": "Boolean",
-                    "values": "{}"
-                },
+                {"code": "switch", "name": "开关", "type": "Boolean", "values": "{}"},
+                {"code": "pause", "name": "暂停/继续", "type": "Boolean", "values": "{}"},
                 {
                     "code": "work_status",
                     "name": "工作状态",
                     "type": "Enum",
-                    "values": "{\"range\":[\"standby\",\"appointment\",\"cooking\",\"done\"]}"
+                    "values": '{"range":["standby","appointment","cooking","done"]}',
                 },
-                {
-                    "code": "start",
-                    "name": "启动",
-                    "type": "Boolean",
-                    "values": "{}"
-                },
+                {"code": "start", "name": "启动", "type": "Boolean", "values": "{}"},
                 {
                     "code": "cook_time",
                     "name": "烹饪时间",
                     "type": "Integer",
-                    "values": "{\"unit\":\"min\",\"min\":1,\"max\":360,\"scale\":0,\"step\":1}"
+                    "values": '{"unit":"min","min":1,"max":360,"scale":0,"step":1}',
                 },
                 {
                     "code": "remaining_time",
                     "name": "剩余时间",
                     "type": "Integer",
-                    "values": "{\"unit\":\"min\",\"min\":0,\"max\":360,\"scale\":0,\"step\":1}"
-                }
-            ]
+                    "values": '{"unit":"min","min":0,"max":360,"scale":0,"step":1}',
+                },
+            ],
         }
         _LOGGER.info("Loaded embedded DCL category specification")
 
@@ -223,101 +164,71 @@ class TuyaCategorySpecs:
             "category": "xfj",
             "status_list": [
                 # Core controls
-                {
-                    "code": "switch",
-                    "name": "开关",
-                    "type": "Boolean",
-                    "values": "{}"
-                },
-                {
-                    "code": "mode",
-                    "name": "工作模式",
-                    "type": "Enum",
-                    "values": "{\"range\":[\"auto\",\"sleep\",\"manual\"]}"
-                },
+                {"code": "switch", "name": "开关", "type": "Boolean", "values": "{}"},
+                {"code": "mode", "name": "工作模式", "type": "Enum", "values": '{"range":["auto","sleep","manual"]}'},
                 {
                     "code": "fan_speed_enum",
                     "name": "风速",
                     "type": "Enum",
-                    "values": "{\"range\":[\"low\",\"mid\",\"high\",\"sleep\"]}"
+                    "values": '{"range":["low","mid","high","sleep"]}',
                 },
                 # Air flow controls
                 {
                     "code": "supply_fan_speed",
                     "name": "送风风速",
                     "type": "Enum",
-                    "values": "{\"range\":[\"off\",\"low\",\"mid\",\"high\"]}"
+                    "values": '{"range":["off","low","mid","high"]}',
                 },
                 {
                     "code": "exhaust_fan_speed",
                     "name": "排风风速",
                     "type": "Enum",
-                    "values": "{\"range\":[\"off\",\"low\",\"mid\",\"high\"]}"
+                    "values": '{"range":["off","low","mid","high"]}',
                 },
                 {
                     "code": "loop_mode",
                     "name": "循环模式",
                     "type": "Enum",
-                    "values": "{\"range\":[\"auto\",\"indoor_loop\",\"outdoor_loop\"]}"
+                    "values": '{"range":["auto","indoor_loop","outdoor_loop"]}',
                 },
                 # Environmental sensors
                 {
                     "code": "temp_indoor",
                     "name": "室内温度",
                     "type": "Integer",
-                    "values": "{\"unit\":\"℃\",\"min\":0,\"max\":50,\"scale\":0,\"step\":1}"
+                    "values": '{"unit":"℃","min":0,"max":50,"scale":0,"step":1}',
                 },
                 {
                     "code": "humidity_indoor",
                     "name": "室内湿度",
                     "type": "Integer",
-                    "values": "{\"unit\":\"%\",\"min\":0,\"max\":100,\"scale\":0,\"step\":1}"
+                    "values": '{"unit":"%","min":0,"max":100,"scale":0,"step":1}',
                 },
                 {
                     "code": "pm25",
                     "name": "PM2.5",
                     "type": "Integer",
-                    "values": "{\"min\":0,\"max\":999,\"scale\":0,\"step\":1}"
+                    "values": '{"min":0,"max":999,"scale":0,"step":1}',
                 },
                 {
                     "code": "air_quality",
                     "name": "空气质量",
                     "type": "Enum",
-                    "values": "{\"range\":[\"great\",\"good\",\"mild\",\"medium\",\"bad\"]}"
+                    "values": '{"range":["great","good","mild","medium","bad"]}',
                 },
                 # Filter management
                 {
                     "code": "primary_filter_life",
                     "name": "初效滤网剩余/寿命",
                     "type": "Integer",
-                    "values": "{\"unit\":\"%\",\"min\":0,\"max\":100,\"scale\":0,\"step\":1}"
+                    "values": '{"unit":"%","min":0,"max":100,"scale":0,"step":1}',
                 },
-                {
-                    "code": "filter_reset",
-                    "name": "滤芯复位",
-                    "type": "Boolean",
-                    "values": "{}"
-                },
+                {"code": "filter_reset", "name": "滤芯复位", "type": "Boolean", "values": "{}"},
                 # Air purification
-                {
-                    "code": "purification",
-                    "name": "净化/除尘",
-                    "type": "Boolean",
-                    "values": "{}"
-                },
-                {
-                    "code": "anion",
-                    "name": "负离子",
-                    "type": "Boolean",
-                    "values": "{}"
-                },
-                {
-                    "code": "sterilize",
-                    "name": "杀菌",
-                    "type": "Boolean",
-                    "values": "{}"
-                }
-            ]
+                {"code": "purification", "name": "净化/除尘", "type": "Boolean", "values": "{}"},
+                {"code": "anion", "name": "负离子", "type": "Boolean", "values": "{}"},
+                {"code": "sterilize", "name": "杀菌", "type": "Boolean", "values": "{}"},
+            ],
         }
         _LOGGER.info("Loaded embedded XFJ category specification")
 
@@ -381,7 +292,6 @@ class TuyaCategorySpecs:
                 "fault": "Fault Status",
                 "status": "Device Status",
                 "total_runtime": "Total Runtime",
-
                 # DCL - Cooktop
                 "work_mode": "Cooking Mode",
                 "appointment_time": "Appointment Time",
@@ -393,7 +303,6 @@ class TuyaCategorySpecs:
                 "start": "Start",
                 "cook_time": "Cooking Time",
                 "remaining_time": "Remaining Time",
-
                 # XFJ - Ventilation
                 "mode": "Work Mode",
                 "air_volume": "Air Volume",
@@ -463,7 +372,6 @@ class TuyaCategorySpecs:
                 "fault": "mdi:alert-circle",
                 "status": "mdi:information",
                 "total_runtime": "mdi:clock-time-eight",
-
                 # DCL - Cooktop
                 "work_mode": "mdi:chef-hat",
                 "appointment_time": "mdi:clock-outline",
@@ -475,7 +383,6 @@ class TuyaCategorySpecs:
                 "start": "mdi:play",
                 "cook_time": "mdi:timer",
                 "remaining_time": "mdi:timer-sand",
-
                 # XFJ - Ventilation
                 "mode": "mdi:cog",
                 "air_volume": "mdi:weather-windy",
@@ -545,15 +452,35 @@ class TuyaCategorySpecs:
             # Special handling for read-only properties
             readonly_codes = [
                 # YYJ - Range Hood
-                "countdown_left", "fault", "status", "total_runtime",
+                "countdown_left",
+                "fault",
+                "status",
+                "total_runtime",
                 # DCL - Cooktop
-                "current_temperature", "work_status", "remaining_time",
+                "current_temperature",
+                "work_status",
+                "remaining_time",
                 # XFJ - Ventilation (sensors/monitoring)
-                "temp_indoor", "humidity_indoor", "temp_outdoor", "humidity_outdoor",
-                "pm25", "pm10", "tvoc", "eco2", "air_quality", "hcho_sensor_value",
-                "supply_temp", "exhaust_temp", "supply_air_vol", "exhaust_air_vol",
-                "primary_filter_life", "medium_filter_life", "high_filter_life",
-                "filter_life", "uv_life", "countdown_left"
+                "temp_indoor",
+                "humidity_indoor",
+                "temp_outdoor",
+                "humidity_outdoor",
+                "pm25",
+                "pm10",
+                "tvoc",
+                "eco2",
+                "air_quality",
+                "hcho_sensor_value",
+                "supply_temp",
+                "exhaust_temp",
+                "supply_air_vol",
+                "exhaust_air_vol",
+                "primary_filter_life",
+                "medium_filter_life",
+                "high_filter_life",
+                "filter_life",
+                "uv_life",
+                "countdown_left",
             ]
             if code in readonly_codes and mapping["entity_type"] != "sensor":
                 config["entity_type"] = "sensor"
@@ -565,11 +492,7 @@ class TuyaCategorySpecs:
             return None
 
     def generate_device_config_from_category(
-        self,
-        device_id: str,
-        category: str,
-        device_name: str | None = None,
-        model_id: str | None = None
+        self, device_id: str, category: str, device_name: str | None = None, model_id: str | None = None
     ) -> list[dict] | None:
         """Generate complete device configuration from category specification."""
         spec = self.get_category_spec(category)
@@ -593,7 +516,6 @@ class TuyaCategorySpecs:
             _LOGGER.warning("No entities generated from category: %s", category)
             return None
 
-        _LOGGER.info("Generated %d entities from category %s for device %s",
-                    len(entities), category, device_id[:8])
+        _LOGGER.info("Generated %d entities from category %s for device %s", len(entities), category, device_id[:8])
 
         return entities

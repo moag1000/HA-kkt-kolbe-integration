@@ -1,4 +1,5 @@
 """Options flow for KKT Kolbe integration."""
+
 from __future__ import annotations
 
 import logging
@@ -16,8 +17,8 @@ from homeassistant.helpers import selector
 from ..const import DOCUMENTATION_URL
 from ..const import DOMAIN
 from ..const import ENTRY_TYPE_ACCOUNT
-from ..const import SETUP_MODE_SMARTLIFE
 from ..const import SETUP_GUIDE_URL
+from ..const import SETUP_MODE_SMARTLIFE
 from ..const import TUYA_IOT_URL
 from ..helpers import get_options_schema
 from ..helpers import validate_api_credentials
@@ -32,11 +33,8 @@ class KKTKolbeOptionsFlow(OptionsFlow):
         """Initialize options flow."""
         # No longer store config_entry manually - use self.config_entry property
         # This property is automatically provided by the OptionsFlow parent class
-        pass
 
-    async def async_step_init(
-        self, user_input: dict[str, Any | None] | None = None
-    ) -> FlowResult:
+    async def async_step_init(self, user_input: dict[str, Any | None] | None = None) -> FlowResult:
         """Manage the options - routes to appropriate step based on entry type."""
         # Determine entry type
         entry_type = self.config_entry.data.get("entry_type")
@@ -53,9 +51,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
         # Manual/IoT Platform Device Entry - full options
         return await self.async_step_device(user_input)
 
-    async def async_step_smartlife_account(
-        self, user_input: dict[str, Any | None] | None = None
-    ) -> FlowResult:
+    async def async_step_smartlife_account(self, user_input: dict[str, Any | None] | None = None) -> FlowResult:
         """Options for SmartLife Account entries - menu based."""
         if user_input is not None:
             # Handle menu selection
@@ -70,24 +66,23 @@ class KKTKolbeOptionsFlow(OptionsFlow):
             menu_options=["renew_token", "account_settings"],
             description_placeholders={
                 "account_name": self.config_entry.title,
-            }
+            },
         )
 
-    async def async_step_account_settings(
-        self, user_input: dict[str, Any | None] | None = None
-    ) -> FlowResult:
+    async def async_step_account_settings(self, user_input: dict[str, Any | None] | None = None) -> FlowResult:
         """Settings for SmartLife Account entries."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
-        schema = vol.Schema({
-            vol.Optional(
-                "enable_debug_logging",
-                default=self.config_entry.options.get("enable_debug_logging", False)
-            ): bool,
-        })
+        schema = vol.Schema(
+            {
+                vol.Optional(
+                    "enable_debug_logging", default=self.config_entry.options.get("enable_debug_logging", False)
+                ): bool,
+            }
+        )
 
         return self.async_show_form(
             step_id="account_settings",
@@ -95,12 +90,10 @@ class KKTKolbeOptionsFlow(OptionsFlow):
             errors=errors,
             description_placeholders={
                 "account_name": self.config_entry.title,
-            }
+            },
         )
 
-    async def async_step_renew_token(
-        self, user_input: dict[str, Any | None] | None = None
-    ) -> FlowResult:
+    async def async_step_renew_token(self, user_input: dict[str, Any | None] | None = None) -> FlowResult:
         """Renew SmartLife token via QR code scan."""
         errors: dict[str, str] = {}
 
@@ -122,6 +115,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
                     )
                     # Generate QR code - returns string like "tuyaSmart--qrLogin?token=xxx"
                     from urllib.parse import quote
+
                     qr_code_string = await self._smartlife_client.async_generate_qr_code()
                     # Convert to QR code image URL using qrserver.com API
                     encoded_qr = quote(qr_code_string, safe="")
@@ -146,9 +140,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
                     new_data = dict(self.config_entry.data)
                     new_data["smartlife_token_info"] = new_token_info
 
-                    self.hass.config_entries.async_update_entry(
-                        self.config_entry, data=new_data
-                    )
+                    self.hass.config_entries.async_update_entry(self.config_entry, data=new_data)
 
                     _LOGGER.info("SmartLife tokens successfully renewed")
 
@@ -182,12 +174,10 @@ class KKTKolbeOptionsFlow(OptionsFlow):
             description_placeholders={
                 "qr_code_url": qr_url if qr_url else "https://via.placeholder.com/200?text=QR+Error",
                 "account_name": self.config_entry.title,
-            }
+            },
         )
 
-    async def async_step_smartlife_device(
-        self, user_input: dict[str, Any | None] | None = None
-    ) -> FlowResult:
+    async def async_step_smartlife_device(self, user_input: dict[str, Any | None] | None = None) -> FlowResult:
         """Options for SmartLife Device entries (no IoT Platform API options)."""
         errors: dict[str, str] = {}
 
@@ -204,34 +194,30 @@ class KKTKolbeOptionsFlow(OptionsFlow):
         current_fan_suppress = self.config_entry.options.get("disable_fan_auto_start", False)
 
         # SmartLife Device schema - NO IoT Platform API fields
-        schema = vol.Schema({
-            vol.Optional(CONF_SCAN_INTERVAL, default=current_interval): selector.selector({
-                "number": {
-                    "min": 10,
-                    "max": 300,
-                    "step": 5,
-                    "unit_of_measurement": "seconds",
-                    "mode": "slider"
-                }
-            }),
-            vol.Optional("new_local_key", default=""): selector.selector({
-                "text": {"type": "password"}
-            }),
-            vol.Optional("enable_debug_logging", default=current_debug): bool,
-            vol.Optional("enable_advanced_entities", default=current_advanced): bool,
-            vol.Optional("zone_naming_scheme", default=current_naming): selector.selector({
-                "select": {
-                    "options": [
-                        {"value": "zone", "label": "Zone 1, Zone 2, ..."},
-                        {"value": "numeric", "label": "1, 2, 3, ..."},
-                        {"value": "custom", "label": "Custom Names"}
-                    ],
-                    "mode": "dropdown"
-                }
-            }),
-            vol.Optional("disable_fan_auto_start", default=current_fan_suppress): bool,
-            vol.Optional("test_connection", default=True): bool,
-        })
+        schema = vol.Schema(
+            {
+                vol.Optional(CONF_SCAN_INTERVAL, default=current_interval): selector.selector(
+                    {"number": {"min": 10, "max": 300, "step": 5, "unit_of_measurement": "seconds", "mode": "slider"}}
+                ),
+                vol.Optional("new_local_key", default=""): selector.selector({"text": {"type": "password"}}),
+                vol.Optional("enable_debug_logging", default=current_debug): bool,
+                vol.Optional("enable_advanced_entities", default=current_advanced): bool,
+                vol.Optional("zone_naming_scheme", default=current_naming): selector.selector(
+                    {
+                        "select": {
+                            "options": [
+                                {"value": "zone", "label": "Zone 1, Zone 2, ..."},
+                                {"value": "numeric", "label": "1, 2, 3, ..."},
+                                {"value": "custom", "label": "Custom Names"},
+                            ],
+                            "mode": "dropdown",
+                        }
+                    }
+                ),
+                vol.Optional("disable_fan_auto_start", default=current_fan_suppress): bool,
+                vol.Optional("test_connection", default=True): bool,
+            }
+        )
 
         return self.async_show_form(
             step_id="smartlife_device",
@@ -240,12 +226,10 @@ class KKTKolbeOptionsFlow(OptionsFlow):
             description_placeholders={
                 "device_name": self.config_entry.title,
                 "current_interval": str(current_interval),
-            }
+            },
         )
 
-    async def async_step_device(
-        self, user_input: dict[str, Any | None] | None = None
-    ) -> FlowResult:
+    async def async_step_device(self, user_input: dict[str, Any | None] | None = None) -> FlowResult:
         """Options for Manual/IoT Platform Device entries (full options)."""
         errors: dict[str, str] = {}
 
@@ -289,7 +273,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
                 "documentation_url": DOCUMENTATION_URL,
                 "setup_guide_url": SETUP_GUIDE_URL,
                 "tuya_iot_url": TUYA_IOT_URL,
-            }
+            },
         )
 
     async def _validate_options(self, options: dict[str, Any]) -> dict[str, str]:
@@ -340,14 +324,11 @@ class KKTKolbeOptionsFlow(OptionsFlow):
 
         # Test the new local key
         try:
-            device_id = (
-                self.config_entry.data.get(CONF_DEVICE_ID) or
-                self.config_entry.data.get("device_id")
-            )
+            device_id = self.config_entry.data.get(CONF_DEVICE_ID) or self.config_entry.data.get("device_id")
             ip_address = (
-                self.config_entry.data.get(CONF_IP_ADDRESS) or
-                self.config_entry.data.get("ip_address") or
-                self.config_entry.data.get("host")
+                self.config_entry.data.get(CONF_IP_ADDRESS)
+                or self.config_entry.data.get("ip_address")
+                or self.config_entry.data.get("host")
             )
 
             if not device_id or not ip_address:
@@ -370,9 +351,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
                 new_data[CONF_ACCESS_TOKEN] = new_local_key
                 new_data["local_key"] = new_local_key
 
-                self.hass.config_entries.async_update_entry(
-                    self.config_entry, data=new_data
-                )
+                self.hass.config_entries.async_update_entry(self.config_entry, data=new_data)
 
                 # Trigger service to update coordinator
                 await self.hass.services.async_call(
@@ -382,7 +361,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
                         "device_id": device_id,
                         "local_key": new_local_key,
                         "force_reconnect": True,
-                    }
+                    },
                 )
 
                 _LOGGER.info(f"Local key successfully updated for device {device_id}")
@@ -395,9 +374,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
 
         return errors
 
-    async def _validate_and_update_api_settings(
-        self, options: dict[str, Any]
-    ) -> dict[str, str]:
+    async def _validate_and_update_api_settings(self, options: dict[str, Any]) -> dict[str, str]:
         """Validate and update API settings.
 
         Args:
@@ -412,10 +389,12 @@ class KKTKolbeOptionsFlow(OptionsFlow):
         client_secret = options.get("api_client_secret", "").strip()
 
         # Validate credentials format using helper
-        validation_errors = validate_api_credentials({
-            "api_client_id": client_id,
-            "api_client_secret": client_secret,
-        })
+        validation_errors = validate_api_credentials(
+            {
+                "api_client_id": client_id,
+                "api_client_secret": client_secret,
+            }
+        )
 
         if validation_errors:
             return validation_errors
@@ -433,21 +412,14 @@ class KKTKolbeOptionsFlow(OptionsFlow):
             async with api_client:
                 if await api_client.test_connection():
                     # Update config entry with API settings
-                    device_id = (
-                        self.config_entry.data.get(CONF_DEVICE_ID) or
-                        self.config_entry.data.get("device_id")
-                    )
+                    device_id = self.config_entry.data.get(CONF_DEVICE_ID) or self.config_entry.data.get("device_id")
                     new_data = dict(self.config_entry.data)
                     new_data["api_enabled"] = True
                     new_data["api_client_id"] = client_id
                     new_data["api_client_secret"] = client_secret
-                    new_data["api_endpoint"] = options.get(
-                        "api_endpoint", "https://openapi.tuyaeu.com"
-                    )
+                    new_data["api_endpoint"] = options.get("api_endpoint", "https://openapi.tuyaeu.com")
 
-                    self.hass.config_entries.async_update_entry(
-                        self.config_entry, data=new_data
-                    )
+                    self.hass.config_entries.async_update_entry(self.config_entry, data=new_data)
                     _LOGGER.info(f"API credentials updated for device {device_id}")
                 else:
                     errors["api_client_secret"] = "api_test_failed"

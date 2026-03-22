@@ -1,4 +1,5 @@
 """Global API management for KKT Kolbe integration."""
+
 from __future__ import annotations
 
 import logging
@@ -45,20 +46,18 @@ class GlobalAPIManager:
             return {
                 "client_id": global_api_data.get("client_id"),
                 "client_secret": global_api_data.get("client_secret"),
-                "endpoint": global_api_data.get("endpoint", DEFAULT_API_ENDPOINT)
+                "endpoint": global_api_data.get("endpoint", DEFAULT_API_ENDPOINT),
             }
         return None
 
-    async def async_store_api_credentials(self, client_id: str, client_secret: str, endpoint: str | None = None) -> None:
+    async def async_store_api_credentials(
+        self, client_id: str, client_secret: str, endpoint: str | None = None
+    ) -> None:
         """Store global API credentials persistently."""
         if endpoint is None:
             endpoint = DEFAULT_API_ENDPOINT
 
-        data = {
-            "client_id": client_id,
-            "client_secret": client_secret,
-            "endpoint": endpoint
-        }
+        data = {"client_id": client_id, "client_secret": client_secret, "endpoint": endpoint}
 
         # Store in runtime cache
         self.hass.data[GLOBAL_API_STORAGE_KEY] = data
@@ -81,7 +80,7 @@ class GlobalAPIManager:
         self.hass.data[GLOBAL_API_STORAGE_KEY] = {
             "client_id": client_id,
             "client_secret": client_secret,
-            "endpoint": endpoint
+            "endpoint": endpoint,
         }
 
         _LOGGER.info("Global API credentials stored in runtime cache")
@@ -89,11 +88,7 @@ class GlobalAPIManager:
     def has_stored_credentials(self) -> bool:
         """Check if we have stored API credentials (runtime cache only)."""
         creds = self.get_stored_api_credentials()
-        return bool(
-            creds is not None
-            and creds.get("client_id")
-            and creds.get("client_secret")
-        )
+        return bool(creds is not None and creds.get("client_id") and creds.get("client_secret"))
 
     async def async_has_stored_credentials(self) -> bool:
         """Check if we have stored API credentials (including persistent storage)."""
@@ -103,11 +98,7 @@ class GlobalAPIManager:
 
         # Try loading from persistent storage
         creds = await self.async_load_stored_credentials()
-        return bool(
-            creds is not None
-            and creds.get("client_id")
-            and creds.get("client_secret")
-        )
+        return bool(creds is not None and creds.get("client_id") and creds.get("client_secret"))
 
     def clear_stored_credentials(self) -> None:
         """Clear stored global API credentials (runtime only)."""
@@ -135,9 +126,7 @@ class GlobalAPIManager:
             from .api import TuyaCloudClient
 
             api_client = TuyaCloudClient(
-                client_id=creds["client_id"],
-                client_secret=creds["client_secret"],
-                endpoint=creds["endpoint"]
+                client_id=creds["client_id"], client_secret=creds["client_secret"], endpoint=creds["endpoint"]
             )
 
             async with api_client:
@@ -157,9 +146,7 @@ class GlobalAPIManager:
             from .api import TuyaCloudClient
 
             api_client = TuyaCloudClient(
-                client_id=creds["client_id"],
-                client_secret=creds["client_secret"],
-                endpoint=creds["endpoint"]
+                client_id=creds["client_id"], client_secret=creds["client_secret"], endpoint=creds["endpoint"]
             )
 
             async with api_client:
@@ -176,15 +163,19 @@ class GlobalAPIManager:
                         category = device.get("category", "").lower()
 
                         # Match by keywords or Tuya category
-                        is_kkt = any(keyword in f"{product_name} {device_name}"
-                                     for keyword in ["kkt", "kolbe", "range", "hood", "induction"])
+                        is_kkt = any(
+                            keyword in f"{product_name} {device_name}"
+                            for keyword in ["kkt", "kolbe", "range", "hood", "induction"]
+                        )
                         is_hood_category = category in ["yyj", "dcl"]  # Hood or Cooktop
 
                         if is_kkt or is_hood_category:
-                            has_local_key = bool(device.get('local_key'))
-                            _LOGGER.info(f"Found KKT device: {device.get('name')} "
-                                        f"(product_id={device.get('product_id', 'N/A')}, "
-                                        f"local_key={'present' if has_local_key else 'MISSING'})")
+                            has_local_key = bool(device.get("local_key"))
+                            _LOGGER.info(
+                                f"Found KKT device: {device.get('name')} "
+                                f"(product_id={device.get('product_id', 'N/A')}, "
+                                f"local_key={'present' if has_local_key else 'MISSING'})"
+                            )
                             kkt_devices.append(device)
 
                     return kkt_devices
@@ -210,7 +201,7 @@ class GlobalAPIManager:
             "https://openapi.tuyaeu.com": "EU",
             "https://openapi.tuyaus.com": "US",
             "https://openapi.tuyacn.com": "CN",
-            "https://openapi.tuyain.com": "IN"
+            "https://openapi.tuyain.com": "IN",
         }
         region = region_map.get(endpoint, "Custom")
 

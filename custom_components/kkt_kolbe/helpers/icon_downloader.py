@@ -3,11 +3,10 @@
 Downloads device icons from Tuya Cloud and saves them locally
 for use as device pictures in Home Assistant.
 """
+
 from __future__ import annotations
 
-import asyncio
 import logging
-import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -60,7 +59,7 @@ def build_full_icon_url(icon_path: str, base_url: str | None = None) -> str:
         return ""
 
     # If already a full URL, return as-is
-    if icon_path.startswith("http://") or icon_path.startswith("https://"):
+    if icon_path.startswith(("http://", "https://")):
         return icon_path
 
     # Remove leading slash if present
@@ -109,7 +108,8 @@ async def download_icon(
 
     _LOGGER.info(
         "Attempting to download icon for device %s with path: %s",
-        device_id[:8], icon_path[:50] if icon_path else "None"
+        device_id[:8],
+        icon_path[:50] if icon_path else "None",
     )
 
     # Try different base URLs
@@ -130,47 +130,34 @@ async def download_icon(
 
                         # Check magic bytes for PNG/JPEG if content-type is generic
                         is_valid_image = content_type.startswith("image/")
-                        if not is_valid_image and content_type in ("application/octet-stream", "binary/octet-stream", ""):
+                        if not is_valid_image and content_type in (
+                            "application/octet-stream",
+                            "binary/octet-stream",
+                            "",
+                        ):
                             # Check PNG magic bytes: 89 50 4E 47
                             # Check JPEG magic bytes: FF D8 FF
-                            if content[:4] == b'\x89PNG' or content[:3] == b'\xff\xd8\xff':
+                            if content[:4] == b"\x89PNG" or content[:3] == b"\xff\xd8\xff":
                                 is_valid_image = True
-                                _LOGGER.debug(
-                                    "Detected image from magic bytes despite content-type: %s",
-                                    content_type
-                                )
+                                _LOGGER.debug("Detected image from magic bytes despite content-type: %s", content_type)
 
                         if not is_valid_image:
-                            _LOGGER.debug(
-                                "URL %s returned non-image content type: %s",
-                                full_url, content_type
-                            )
+                            _LOGGER.debug("URL %s returned non-image content type: %s", full_url, content_type)
                             continue
 
                         # Save to file
-                        await hass.async_add_executor_job(
-                            _write_file, target_file, content
-                        )
+                        await hass.async_add_executor_job(_write_file, target_file, content)
 
-                        _LOGGER.info(
-                            "Downloaded icon for device %s from %s",
-                            device_id[:8], base_url
-                        )
+                        _LOGGER.info("Downloaded icon for device %s from %s", device_id[:8], base_url)
                         return get_icon_url_for_device(device_id)
                     else:
-                        _LOGGER.info(
-                            "Icon download failed from %s: HTTP %s",
-                            base_url, response.status
-                        )
-        except asyncio.TimeoutError:
+                        _LOGGER.info("Icon download failed from %s: HTTP %s", base_url, response.status)
+        except TimeoutError:
             _LOGGER.debug("Timeout downloading from %s", full_url)
         except aiohttp.ClientError as err:
             _LOGGER.debug("Error downloading from %s: %s", full_url, err)
 
-    _LOGGER.warning(
-        "Could not download icon for device %s from any Tuya server",
-        device_id[:8]
-    )
+    _LOGGER.warning("Could not download icon for device %s from any Tuya server", device_id[:8])
     return None
 
 
@@ -240,10 +227,12 @@ def list_downloaded_icons(hass: HomeAssistant) -> list[dict]:
     icons = []
     for icon_file in storage_path.glob("*.png"):
         device_id = icon_file.stem  # Filename without extension
-        icons.append({
-            "device_id": device_id,
-            "file_path": str(icon_file),
-            "local_url": get_icon_url_for_device(device_id),
-        })
+        icons.append(
+            {
+                "device_id": device_id,
+                "file_path": str(icon_file),
+                "local_url": get_icon_url_for_device(device_id),
+            }
+        )
 
     return icons

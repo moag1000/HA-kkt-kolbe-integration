@@ -1,7 +1,9 @@
 """Sensor platform for KKT Kolbe devices."""
+
 from __future__ import annotations
 
 import logging
+from datetime import UTC
 from typing import TYPE_CHECKING
 from typing import Any
 
@@ -77,17 +79,17 @@ async def async_setup_entry(
 
     # Add connection mode sensor for HybridCoordinator
     from .hybrid_coordinator import KKTKolbeHybridCoordinator
+
     if isinstance(coordinator, KKTKolbeHybridCoordinator):
         entities.append(KKTKolbeConnectionSensor(coordinator, entry))
 
     # Add SmartLife info sensor if extended info is available
     from .const import DOMAIN
+
     entry_data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
     smartlife_extended_info = entry_data.get("smartlife_extended_info", {})
     if smartlife_extended_info and smartlife_extended_info.get("uuid"):
-        entities.append(
-            KKTKolbeSmartLifeInfoSensor(coordinator, entry, smartlife_extended_info)
-        )
+        entities.append(KKTKolbeSmartLifeInfoSensor(coordinator, entry, smartlife_extended_info))
         _LOGGER.info(
             "Added SmartLife info sensor for device %s (UUID: %s)",
             entry.data.get("device_id", "unknown")[:8],
@@ -284,9 +286,7 @@ class KKTKolbeCalculatedPowerSensor(KKTBaseEntity, SensorEntity):
 
         for zone in range(1, self._num_zones + 1):
             # Get zone level using bitfield utilities
-            level = get_zone_value_from_coordinator(
-                self.coordinator, self._zones_dp, zone
-            )
+            level = get_zone_value_from_coordinator(self.coordinator, self._zones_dp, zone)
             if level is not None and isinstance(level, (int, float)):
                 # Estimate watts: level * watts_per_level
                 total_power += int(level) * self._watts_per_level
@@ -326,9 +326,7 @@ class KKTKolbeTotalLevelSensor(KKTBaseEntity, SensorEntity):
         total_level = 0
 
         for zone in range(1, self._num_zones + 1):
-            level = get_zone_value_from_coordinator(
-                self.coordinator, self._zones_dp, zone
-            )
+            level = get_zone_value_from_coordinator(self.coordinator, self._zones_dp, zone)
             if level is not None and isinstance(level, (int, float)):
                 total_level += int(level)
 
@@ -367,9 +365,7 @@ class KKTKolbeActiveZonesSensor(KKTBaseEntity, SensorEntity):
         active_count = 0
 
         for zone in range(1, self._num_zones + 1):
-            level = get_zone_value_from_coordinator(
-                self.coordinator, self._zones_dp, zone
-            )
+            level = get_zone_value_from_coordinator(self.coordinator, self._zones_dp, zone)
             if level is not None and isinstance(level, (int, float)) and int(level) > 0:
                 active_count += 1
 
@@ -385,12 +381,14 @@ class KKTKolbeConnectionSensor(SensorEntity):
     """Sensor that shows the current connection mode (local/api/smartlife)."""
 
     # Attributes that change frequently - don't record in database
-    _unrecorded_attributes = frozenset({
-        "last_update_timestamp",
-        "token_expires_in_seconds",
-        "local_errors",
-        "api_errors",
-    })
+    _unrecorded_attributes = frozenset(
+        {
+            "last_update_timestamp",
+            "token_expires_in_seconds",
+            "local_errors",
+            "api_errors",
+        }
+    )
 
     def __init__(
         self,
@@ -413,6 +411,7 @@ class KKTKolbeConnectionSensor(SensorEntity):
 
         # Device info
         from .const import DOMAIN
+
         self._attr_device_info = {
             "identifiers": {(DOMAIN, device_id)},
         }
@@ -475,6 +474,7 @@ class KKTKolbeConnectionSensor(SensorEntity):
                 token_info = client._token_info
                 if "expire_time" in token_info:
                     import time
+
                     expire_time = token_info["expire_time"]
                     now = int(time.time())
                     attrs["token_expires_in_seconds"] = max(0, expire_time - now)
@@ -530,13 +530,15 @@ class KKTKolbeSmartLifeInfoSensor(SensorEntity):
     """
 
     # These attributes change very rarely - avoid recording every update
-    _unrecorded_attributes = frozenset({
-        "create_time",
-        "active_time",
-        "update_time",
-        "time_zone",
-        "icon_url",
-    })
+    _unrecorded_attributes = frozenset(
+        {
+            "create_time",
+            "active_time",
+            "update_time",
+            "time_zone",
+            "icon_url",
+        }
+    )
 
     def __init__(
         self,
@@ -562,6 +564,7 @@ class KKTKolbeSmartLifeInfoSensor(SensorEntity):
 
         # Device info
         from .const import DOMAIN
+
         self._attr_device_info = {
             "identifiers": {(DOMAIN, device_id)},
         }
@@ -594,8 +597,8 @@ class KKTKolbeSmartLifeInfoSensor(SensorEntity):
             # Convert Unix timestamp to ISO datetime
             try:
                 from datetime import datetime
-                from datetime import timezone
-                dt = datetime.fromtimestamp(create_time, tz=timezone.utc)
+
+                dt = datetime.fromtimestamp(create_time, tz=UTC)
                 attrs["create_time"] = dt.isoformat()
             except (ValueError, TypeError):
                 attrs["create_time"] = create_time
@@ -605,8 +608,8 @@ class KKTKolbeSmartLifeInfoSensor(SensorEntity):
         if active_time:
             try:
                 from datetime import datetime
-                from datetime import timezone
-                dt = datetime.fromtimestamp(active_time, tz=timezone.utc)
+
+                dt = datetime.fromtimestamp(active_time, tz=UTC)
                 attrs["active_time"] = dt.isoformat()
             except (ValueError, TypeError):
                 attrs["active_time"] = active_time
@@ -616,8 +619,8 @@ class KKTKolbeSmartLifeInfoSensor(SensorEntity):
         if update_time:
             try:
                 from datetime import datetime
-                from datetime import timezone
-                dt = datetime.fromtimestamp(update_time, tz=timezone.utc)
+
+                dt = datetime.fromtimestamp(update_time, tz=UTC)
                 attrs["update_time"] = dt.isoformat()
             except (ValueError, TypeError):
                 attrs["update_time"] = update_time

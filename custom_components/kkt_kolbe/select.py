@@ -1,4 +1,5 @@
 """Select platform for KKT Kolbe devices."""
+
 from __future__ import annotations
 
 import logging

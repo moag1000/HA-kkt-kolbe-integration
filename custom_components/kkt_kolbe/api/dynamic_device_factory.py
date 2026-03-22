@@ -1,4 +1,5 @@
 """Dynamic device factory for creating configurations from API data."""
+
 from __future__ import annotations
 
 import logging
@@ -12,6 +13,7 @@ _LOGGER = logging.getLogger(__name__)
 @dataclass
 class EntityConfig:
     """Configuration for a single entity."""
+
     dp_id: int
     property_code: str
     entity_type: str  # switch, sensor, number, select, etc.
@@ -26,6 +28,7 @@ class EntityConfig:
 @dataclass
 class DeviceConfig:
     """Complete device configuration."""
+
     device_id: str
     model_id: str
     device_type: str  # hood, cooktop, unknown
@@ -52,21 +55,17 @@ class DynamicDeviceFactory:
         "switch_wash": "switch",
         "switch_led": "switch",
         "switch_led_1": "light",
-
         # Fan speed (special handling)
         "fan_speed": "fan",
         "fan_speed_enum": "fan",
-
         # Numbers (value inputs)
         "countdown": "number",
         "countdown_1": "number",
         "day": "number",
         "day_1": "number",
-
         # Selects (enum choices)
         "work_mode": "select",
         "RGB": "select",
-
         # Special handling for color data
         "colour_data": "light",  # RGB color control
     }
@@ -123,6 +122,7 @@ class DynamicDeviceFactory:
         """Parse the nested JSON model data from API response."""
         try:
             import json
+
             model_data: dict[str, Any] = json.loads(model_json)
             return model_data
         except (json.JSONDecodeError, TypeError) as err:
@@ -203,9 +203,7 @@ class DynamicDeviceFactory:
                 "scale": type_spec.get("scale", 0),
             }
         elif data_type == "enum":
-            range_data = {
-                "options": type_spec.get("range", [])
-            }
+            range_data = {"options": type_spec.get("range", [])}
 
         # Get unit and icon
         unit = type_spec.get("unit")

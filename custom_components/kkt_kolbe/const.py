@@ -1,10 +1,11 @@
 """Constants for KKT Kolbe integration."""
+
 from __future__ import annotations
 
 from typing import Final
 
 # === VERSION ===
-VERSION: Final = "4.3.0"
+VERSION: Final = "4.4.0"
 
 # === CORE IDENTIFIERS ===
 DOMAIN: Final = "kkt_kolbe"
@@ -12,7 +13,9 @@ MANUFACTURER: Final = "KKT Kolbe"
 
 # === DOCUMENTATION URLs ===
 DOCUMENTATION_URL: Final = "https://github.com/moag1000/HA-kkt-kolbe-integration"
-SETUP_GUIDE_URL: Final = "https://github.com/moag1000/HA-kkt-kolbe-integration#-tuya-api-setup---vollstaendige-anleitung"
+SETUP_GUIDE_URL: Final = (
+    "https://github.com/moag1000/HA-kkt-kolbe-integration#-tuya-api-setup---vollstaendige-anleitung"
+)
 TUYA_IOT_URL: Final = "https://iot.tuya.com"
 
 # === CONNECTION STABILITY CONFIGURATION ===
@@ -66,6 +69,7 @@ MODE_HYBRID: Final = "hybrid"
 # === DEVICE CATEGORIES (Tuya) ===
 CATEGORY_HOOD: Final = "yyj"  # Dunstabzugshaube
 CATEGORY_COOKTOP: Final = "dcl"  # Induktionskochfeld
+CATEGORY_OVEN: Final = "kfj"  # Backofen (Tuya standard category, unverified for KKT)
 
 # === DEVICE MODELS ===
 # Model codes are stable identifiers - device IDs change when re-adding to Tuya/SmartLife!
@@ -86,6 +90,13 @@ MODELS: Final[dict[str, dict[str, str]]] = {
         "category": CATEGORY_HOOD,
         "product_id": "gwdgkteknzvsattn",
     },
+    # EASY HCM hoods (same family as SOLO/ECCO HCM)
+    # model_id placeholder - will be updated when users report the actual Tuya model code
+    "easy_hcm": {
+        "name": "EASY HCM",
+        "category": CATEGORY_HOOD,
+        "product_id": "",  # TBD - needs user report
+    },
     # Cooktops (Induktionskochfelder)
     "e1kc5q64": {
         "name": "IND7705HC",
@@ -95,9 +106,7 @@ MODELS: Final[dict[str, dict[str, str]]] = {
 }
 
 # Reverse lookup: Product ID -> Model code
-PRODUCT_ID_TO_MODEL: Final[dict[str, str]] = {
-    v["product_id"]: k for k, v in MODELS.items()
-}
+PRODUCT_ID_TO_MODEL: Final[dict[str, str]] = {v["product_id"]: k for k, v in MODELS.items()}
 
 # === FAN SPEED MAPPINGS ===
 FAN_SPEEDS: Final[dict[str, int]] = {

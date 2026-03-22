@@ -1,4 +1,5 @@
 """Base utilities for KKT Kolbe config flows."""
+
 from __future__ import annotations
 
 import asyncio

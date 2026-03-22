@@ -1,4 +1,5 @@
 """Enhanced coordinator with automatic reconnection and availability tracking."""
+
 from __future__ import annotations
 
 import asyncio
@@ -33,6 +34,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class DeviceState(Enum):
     """Device connection states."""
+
     ONLINE = "online"
     OFFLINE = "offline"
     RECONNECTING = "reconnecting"
@@ -96,9 +98,7 @@ class ReconnectCoordinator(DataUpdateCoordinator):
 
         # Start health check
         self._health_check_unsub = async_track_time_interval(
-            self.hass,
-            self._async_health_check,
-            self._health_check_interval
+            self.hass, self._async_health_check, self._health_check_interval
         )
 
     async def async_will_remove_from_hass(self) -> None:
@@ -201,8 +201,7 @@ class ReconnectCoordinator(DataUpdateCoordinator):
                 self._current_backoff_time = self._base_backoff_time
 
                 _LOGGER.debug(
-                    f"Device {self.device.device_id[:8]} successfully updated. "
-                    f"State: {self._device_state.value}"
+                    f"Device {self.device.device_id[:8]} successfully updated. State: {self._device_state.value}"
                 )
                 return status
             else:
@@ -212,8 +211,7 @@ class ReconnectCoordinator(DataUpdateCoordinator):
         except (KKTTimeoutError, KKTConnectionError) as err:
             self._consecutive_failures += 1
             _LOGGER.warning(
-                f"Device {self.device.device_id[:8]} communication failed "
-                f"(attempt {self._consecutive_failures}): {err}"
+                f"Device {self.device.device_id[:8]} communication failed (attempt {self._consecutive_failures}): {err}"
             )
 
             # Mark offline after consecutive failures threshold
@@ -226,9 +224,7 @@ class ReconnectCoordinator(DataUpdateCoordinator):
 
         except Exception as err:
             self._consecutive_failures += 1
-            _LOGGER.error(
-                f"Unexpected error with device {self.device.device_id[:8]}: {err}"
-            )
+            _LOGGER.error(f"Unexpected error with device {self.device.device_id[:8]}: {err}")
 
             # For unexpected errors, still try to reconnect
             if self._consecutive_failures >= DEFAULT_CONSECUTIVE_FAILURES_THRESHOLD:
@@ -257,15 +253,11 @@ class ReconnectCoordinator(DataUpdateCoordinator):
             # Restore normal update interval
             self._set_adaptive_interval(DeviceState.ONLINE)
 
-            _LOGGER.info(
-                f"Device {self.device.device_id[:8]} is now ONLINE "
-                f"(was {previous_state.value})"
-            )
+            _LOGGER.info(f"Device {self.device.device_id[:8]} is now ONLINE (was {previous_state.value})")
 
             # Fire event for device online
             self.hass.bus.async_fire(
-                f"{DOMAIN}_device_online",
-                {"device_id": self.device.device_id, "ip": self.device.ip_address}
+                f"{DOMAIN}_device_online", {"device_id": self.device.device_id, "ip": self.device.ip_address}
             )
 
     async def _async_mark_offline(self) -> None:
@@ -280,8 +272,7 @@ class ReconnectCoordinator(DataUpdateCoordinator):
 
             # Fire event for device offline
             self.hass.bus.async_fire(
-                f"{DOMAIN}_device_offline",
-                {"device_id": self.device.device_id, "ip": self.device.ip_address}
+                f"{DOMAIN}_device_offline", {"device_id": self.device.device_id, "ip": self.device.ip_address}
             )
 
     async def _async_start_reconnection(self) -> None:
@@ -315,9 +306,7 @@ class ReconnectCoordinator(DataUpdateCoordinator):
             self._device_state = DeviceState.RECONNECTING
             self._set_adaptive_interval(DeviceState.RECONNECTING)
 
-            self._reconnect_task = self.hass.async_create_task(
-                self._async_reconnect_with_backoff()
-            )
+            self._reconnect_task = self.hass.async_create_task(self._async_reconnect_with_backoff())
 
     async def _async_reconnect_with_backoff(self) -> None:
         """Reconnect with exponential backoff."""
@@ -356,24 +345,21 @@ class ReconnectCoordinator(DataUpdateCoordinator):
                     return
 
             except Exception as err:
-                _LOGGER.debug(
-                    f"Reconnection attempt {self._reconnect_attempts} failed: {err}"
-                )
+                _LOGGER.debug(f"Reconnection attempt {self._reconnect_attempts} failed: {err}")
 
             # Increase backoff time (bounded exponential backoff with jitter)
             self._current_backoff_time = min(
                 self._max_backoff_time,
                 max(
                     self._base_backoff_time,
-                    self._current_backoff_time * 2 + random.uniform(0, 0.5 * self._current_backoff_time)
-                )
+                    self._current_backoff_time * 2 + random.uniform(0, 0.5 * self._current_backoff_time),
+                ),
             )
 
         # Max attempts reached
         self._device_state = DeviceState.UNREACHABLE
         _LOGGER.error(
-            f"Failed to reconnect to device {self.device.device_id[:8]} "
-            f"after {self._max_reconnect_attempts} attempts"
+            f"Failed to reconnect to device {self.device.device_id[:8]} after {self._max_reconnect_attempts} attempts"
         )
 
     async def _async_health_check(self, _now) -> None:
@@ -412,9 +398,7 @@ class ReconnectCoordinator(DataUpdateCoordinator):
 
         elif self._device_state == DeviceState.OFFLINE:
             # Try to reconnect offline devices
-            _LOGGER.debug(
-                f"Health check: Checking offline device {self.device.device_id[:8]}"
-            )
+            _LOGGER.debug(f"Health check: Checking offline device {self.device.device_id[:8]}")
             await self._async_start_reconnection()
 
     async def async_request_reconnect(self) -> bool:
@@ -446,9 +430,7 @@ class ReconnectCoordinator(DataUpdateCoordinator):
     async def async_set_data_point(self, dp: int, value: Any) -> None:
         """Set a data point on the device with reconnection on failure."""
         if not self.is_device_available:
-            _LOGGER.warning(
-                f"Cannot set DP {dp} - device {self.device.device_id[:8]} is {self._device_state.value}"
-            )
+            _LOGGER.warning(f"Cannot set DP {dp} - device {self.device.device_id[:8]} is {self._device_state.value}")
             raise UpdateFailed(f"Device is {self._device_state.value}")
 
         try:

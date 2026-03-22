@@ -14,10 +14,21 @@ Dieses Verzeichnis enthält Referenzdaten für unterstützte KKT Kolbe Geräte.
 
 ## Geräte
 
-- **HERMES & STYLE** - Dunstabzugshaube mit RGB
-- **ECCO HCM** - Dunstabzugshaube mit 9-Stufen Lüfter
-- **IND7705HC** - Induktionskochfeld mit 5 Zonen
-- **SOLO HCM** - Dunstabzugshaube
+### Verifiziert
+- **HERMES & STYLE** - Dunstabzugshaube, 5 Stufen, RGB, Helligkeit
+- **HERMES** - Dunstabzugshaube, 5 Stufen, RGB, Helligkeit
+- **FLAT** - Dunstabzugshaube, 5 Stufen, ohne RGB
+- **ECCO HCM** - Dunstabzugshaube, 9 Stufen, RGBW, Dualfilter
+- **SOLO HCM** - Dunstabzugshaube, 9 Stufen, RGBW, Dualfilter
+- **IND7705HC** - Induktionskochfeld, 5 Zonen, Bitfield-DPs
+
+### Basierend auf HCM-Familie (ungetestet)
+- **EASY HCM** - EASY9005SM, EASY909SHCM, EASY609SHCM (gleiche DPs wie SOLO/ECCO HCM)
+
+### In Vorbereitung (DPs unbekannt)
+- **EB8313HC** - Backofen, WiFi/Tuya - Tester gesucht
+- **EB8317HC** - Backofen, WiFi/Tuya - Tester gesucht
+- **EB8313ED** - Backofen, WiFi/Tuya, Kerntemperaturfühler - Tester gesucht
 
 ## Für Entwickler
 

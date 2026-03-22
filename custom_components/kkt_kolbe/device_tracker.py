@@ -1,4 +1,5 @@
 """Device tracker for monitoring stale devices - Gold Tier requirement."""
+
 from __future__ import annotations
 
 import logging
@@ -35,17 +36,11 @@ class StaleDeviceTracker:
     async def async_start(self) -> None:
         """Start the stale device tracker."""
         # Schedule periodic cleanup
-        self._cleanup_task = async_track_time_interval(
-            self.hass,
-            self._async_cleanup_stale_devices,
-            CLEANUP_INTERVAL
-        )
+        self._cleanup_task = async_track_time_interval(self.hass, self._async_cleanup_stale_devices, CLEANUP_INTERVAL)
         _LOGGER.info("Stale device tracker started")
 
         # Run initial cleanup after 1 hour
-        self._initial_cleanup_handle = self.hass.loop.call_later(
-            3600, self._schedule_initial_cleanup
-        )
+        self._initial_cleanup_handle = self.hass.loop.call_later(3600, self._schedule_initial_cleanup)
 
     def _schedule_initial_cleanup(self) -> None:
         """Schedule the initial cleanup."""
@@ -100,9 +95,7 @@ class StaleDeviceTracker:
         except Exception as e:
             _LOGGER.error(f"Error during stale device cleanup: {e}", exc_info=True)
 
-    async def _is_device_stale(
-        self, device: dr.DeviceEntry, entity_reg: er.EntityRegistry
-    ) -> bool:
+    async def _is_device_stale(self, device: dr.DeviceEntry, entity_reg: er.EntityRegistry) -> bool:
         """Check if a device is stale (not seen recently)."""
         try:
             # Get all entities for this device
@@ -144,8 +137,7 @@ class StaleDeviceTracker:
 
             # All checks failed - device appears stale
             _LOGGER.debug(
-                f"Device {device.name} appears stale: "
-                f"All entities unavailable for >{STALE_DEVICE_THRESHOLD.days} days"
+                f"Device {device.name} appears stale: All entities unavailable for >{STALE_DEVICE_THRESHOLD.days} days"
             )
             return True
 

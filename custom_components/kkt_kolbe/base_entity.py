@@ -1,40 +1,49 @@
-"""Base entity for KKT Kolbe devices."""
+"""Base entity for KKT Kolbe devices.
+
+Based on patterns from https://github.com/ludeeus/integration_blueprint
+"""
+
 from __future__ import annotations
 
 import logging
 from datetime import datetime
+from typing import TYPE_CHECKING
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import DOMAIN
+
+if TYPE_CHECKING:
+    from .coordinator import KKTKolbeUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
+class KKTBaseEntity(CoordinatorEntity["KKTKolbeUpdateCoordinator"]):
     """Base entity for all KKT Kolbe entities."""
 
     _attr_has_entity_name = True
 
     # Exclude non-historical attributes from database recording (HA 2024.6+)
     # This reduces database size by not recording frequently changing diagnostic data
-    _unrecorded_attributes = frozenset({
-        "raw_dp_data",
-        "last_update",
-        "data_point",
-        "device_id",
-        "zone",
-        "connection_status",
-    })
+    _unrecorded_attributes = frozenset(
+        {
+            "raw_dp_data",
+            "last_update",
+            "data_point",
+            "device_id",
+            "zone",
+            "connection_status",
+        }
+    )
 
     def __init__(
         self,
-        coordinator: DataUpdateCoordinator[dict[str, Any]],
+        coordinator: KKTKolbeUpdateCoordinator,
         entry: ConfigEntry,
         config: dict[str, Any],
         platform: str,
@@ -72,7 +81,7 @@ class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
             return self._build_device_info()
 
         # Cache device info once hass is available
-        if not hasattr(self, '_device_info_cached') or self._device_info_cached is None:
+        if not hasattr(self, "_device_info_cached") or self._device_info_cached is None:
             self._device_info_cached = self._build_device_info()
         return self._device_info_cached
 
@@ -88,8 +97,7 @@ class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
             )
         else:
             self._attr_unique_id = (
-                f"{self._entry.entry_id}_{self._platform}_dp{self._dp}_"
-                f"{self._name.lower().replace(' ', '_')}"
+                f"{self._entry.entry_id}_{self._platform}_dp{self._dp}_{self._name.lower().replace(' ', '_')}"
             )
 
         # Set translation key if provided (Gold Quality requirement)
@@ -108,6 +116,7 @@ class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
         entity_category = self._config.get("entity_category")
         if entity_category:
             from homeassistant.helpers.entity import EntityCategory
+
             if hasattr(EntityCategory, entity_category.upper()):
                 self._attr_entity_category = getattr(EntityCategory, entity_category.upper())
 
@@ -163,14 +172,14 @@ class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
     def _get_software_version(self) -> str:
         """Get software version from device data."""
         # Try to get protocol version from device via coordinator
-        if hasattr(self.coordinator, 'device') and self.coordinator.device:
+        if hasattr(self.coordinator, "device") and self.coordinator.device:
             device = self.coordinator.device
             # Check for detected protocol version
-            version = getattr(device, 'version', None)
+            version = getattr(device, "version", None)
             if version and version != "auto":
                 return f"Tuya Protocol {version}"
             # Check connection stats for detected version
-            if hasattr(device, '_connection_stats'):
+            if hasattr(device, "_connection_stats"):
                 detected = device._connection_stats.get("protocol_version_detected")
                 if detected:
                     return f"Tuya Protocol {detected}"
@@ -182,6 +191,7 @@ class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
 
         # Use integration version as fallback
         from .const import VERSION
+
         return f"v{VERSION}"
 
     def _get_hardware_version(self) -> str:
@@ -239,13 +249,10 @@ class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
         else:
             product_name = ""
 
-        if "IND7705HC" in product_name:
-            return "Kitchen"
-        elif "HERMES" in product_name:
+        if "IND7705HC" in product_name or "HERMES" in product_name:
             return "Kitchen"
 
         return "Kitchen"
-
 
     @property
     def available(self) -> bool:
@@ -259,7 +266,7 @@ class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
         Entities only become unavailable after persistent connection issues.
         """
         # Check coordinator device state if available (KKTKolbeUpdateCoordinator)
-        if hasattr(self.coordinator, 'is_device_available'):
+        if hasattr(self.coordinator, "is_device_available"):
             # Use coordinator's device state which tracks consecutive failures
             device_available = self.coordinator.is_device_available
 
@@ -312,7 +319,6 @@ class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
     def _update_cached_state(self) -> None:
         """Update the cached state from coordinator data."""
         # This method should be overridden by specific entity types
-        pass
 
     def _get_data_point_value(self, dp: int | None = None) -> Any:
         """Get value for a specific data point, with zone support and state caching."""
@@ -380,6 +386,7 @@ class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
         if isinstance(raw_value, str):
             # This is likely a Base64-encoded RAW string
             from .bitfield_utils import extract_zone_value_from_bitfield
+
             try:
                 value = extract_zone_value_from_bitfield(raw_value, zone_number)
                 _LOGGER.debug(f"Zone {zone_number} DP {dp}: Extracted value {value} from Base64 data - cached")
@@ -436,6 +443,7 @@ class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
         if isinstance(raw_value, str):
             # This is likely a Base64-encoded RAW string
             from .bitfield_utils import extract_zone_value_from_bitfield
+
             try:
                 value = extract_zone_value_from_bitfield(raw_value, zone_number)
                 _LOGGER.debug(f"Zone {zone_number} DP {dp}: Extracted value {value} from Base64 data")
@@ -462,15 +470,9 @@ class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
         """Set a data point value through the coordinator."""
         try:
             await self.coordinator.async_set_data_point(dp, value)
-            _LOGGER.debug(
-                "Set data point %d to %s for %s",
-                dp, value, self._attr_unique_id
-            )
+            _LOGGER.debug("Set data point %d to %s for %s", dp, value, self._attr_unique_id)
         except Exception as exc:
-            _LOGGER.error(
-                "Failed to set data point %d to %s for %s: %s",
-                dp, value, self._attr_unique_id, exc
-            )
+            _LOGGER.error("Failed to set data point %d to %s for %s: %s", dp, value, self._attr_unique_id, exc)
             raise
 
     async def _async_suppress_fan_auto_start(self) -> None:
@@ -486,9 +488,9 @@ class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
             return
 
         # Lazy imports (existing pattern from _build_device_info)
+        from .const import CATEGORY_HOOD
         from .device_types import KNOWN_DEVICES
         from .device_types import get_device_entity_config
-        from .const import CATEGORY_HOOD
 
         # Determine lookup key from entry data
         device_type = self._entry.data.get("device_type", "")
@@ -515,10 +517,7 @@ class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
         else:
             off_value = "off"
 
-        _LOGGER.info(
-            "Suppressing fan auto-start: sending DP %d = %s for %s",
-            fan_dp, off_value, self._attr_unique_id
-        )
+        _LOGGER.info("Suppressing fan auto-start: sending DP %d = %s for %s", fan_dp, off_value, self._attr_unique_id)
         await self._async_set_data_point(fan_dp, off_value)
 
     def _log_entity_state(self, action: str, additional_info: str = "") -> None:
@@ -531,7 +530,7 @@ class KKTBaseEntity(CoordinatorEntity[dict[str, Any]]):
                 self._name,
                 self._dp,
                 self._zone if self._zone else "N/A",
-                additional_info
+                additional_info,
             )
 
 
@@ -554,7 +553,8 @@ class KKTZoneBaseEntity(KKTBaseEntity):
 
         # Zone entities are typically diagnostic
         from homeassistant.helpers.entity import EntityCategory
-        if not hasattr(self, '_attr_entity_category'):
+
+        if not hasattr(self, "_attr_entity_category"):
             self._attr_entity_category = EntityCategory.DIAGNOSTIC
 
     @property

@@ -1,4 +1,5 @@
 """Smart Discovery for KKT Kolbe - combines local discovery with API data."""
+
 from __future__ import annotations
 
 import asyncio
@@ -123,6 +124,7 @@ class SmartDiscovery:
             if device_id:
                 from .device_types import KNOWN_DEVICES
                 from .device_types import find_device_by_device_id
+
                 detected_info = find_device_by_device_id(device_id)
                 if detected_info:
                     friendly_type = detected_info.get("name")
@@ -236,6 +238,7 @@ class SmartDiscovery:
                     if device_type != "auto":
                         # Only overwrite if current device_type is "auto" or not in KNOWN_DEVICES
                         from .device_types import KNOWN_DEVICES
+
                         current_type = result.device_type
                         if current_type == "auto" or current_type not in KNOWN_DEVICES:
                             result.device_type = device_type
@@ -243,7 +246,9 @@ class SmartDiscovery:
                             result.friendly_type = friendly_type
                             _LOGGER.debug(f"Updated device_type from API: {device_type}")
                         else:
-                            _LOGGER.debug(f"Keeping existing device_type: {current_type} (API suggested: {device_type})")
+                            _LOGGER.debug(
+                                f"Keeping existing device_type: {current_type} (API suggested: {device_type})"
+                            )
 
                     # Prefer API name if more descriptive
                     api_name = api_device.get("name", "")
@@ -251,8 +256,10 @@ class SmartDiscovery:
                         result.name = api_name
 
                     has_key = bool(result.local_key)
-                    _LOGGER.info(f"Enriched device {device_id[:8]}: {friendly_type}, "
-                                f"local_key={'present' if has_key else 'MISSING'}")
+                    _LOGGER.info(
+                        f"Enriched device {device_id[:8]}: {friendly_type}, "
+                        f"local_key={'present' if has_key else 'MISSING'}"
+                    )
                 else:
                     # Add API-only device (not found locally)
                     device_type, product_name, friendly_type = self._detect_device_type(api_device)
@@ -295,8 +302,10 @@ class SmartDiscovery:
         product_id = api_device.get("product_id", "")
         device_id = api_device.get("id", "")
 
-        _LOGGER.debug(f"Smart Discovery detecting: product_id={product_id}, device_id={device_id[:12] if device_id else 'N/A'}, "
-                      f"category={tuya_category}")
+        _LOGGER.debug(
+            f"Smart Discovery detecting: product_id={product_id}, device_id={device_id[:12] if device_id else 'N/A'}, "
+            f"category={tuya_category}"
+        )
 
         # Method 1: Try to match by Tuya product_id (most accurate)
         if product_id:
@@ -319,7 +328,9 @@ class SmartDiscovery:
                     if isinstance(device_ids, list) and device_id in device_ids:
                         friendly_type = str(info.get("name", device_key))
                         product_names = info.get("product_names", [])
-                        prod_name = str(product_names[0]) if isinstance(product_names, list) and product_names else device_key
+                        prod_name = (
+                            str(product_names[0]) if isinstance(product_names, list) and product_names else device_key
+                        )
                         _LOGGER.info(f"Smart Discovery: Detected {friendly_type} by device_id")
                         return (device_key, prod_name, friendly_type)
                     # Check pattern match
@@ -329,7 +340,11 @@ class SmartDiscovery:
                             if isinstance(pattern, str) and device_id.startswith(pattern):
                                 friendly_type = str(info.get("name", device_key))
                                 product_names = info.get("product_names", [])
-                                prod_name = str(product_names[0]) if isinstance(product_names, list) and product_names else device_key
+                                prod_name = (
+                                    str(product_names[0])
+                                    if isinstance(product_names, list) and product_names
+                                    else device_key
+                                )
                                 _LOGGER.info(f"Smart Discovery: Detected {friendly_type} by device_id pattern")
                                 return (device_key, prod_name, friendly_type)
 
@@ -382,27 +397,15 @@ class SmartDiscovery:
             # 1. Device ID (always have this)
             # 2. IP address (from local discovery or API)
             # 3. Local key (from API)
-            result.ready_to_add = bool(
-                result.device_id and
-                result.ip_address and
-                result.local_key
-            )
+            result.ready_to_add = bool(result.device_id and result.ip_address and result.local_key)
 
     def get_ready_devices(self) -> dict[str, SmartDiscoveryResult]:
         """Get only devices that are ready to add (have all required info)."""
-        return {
-            device_id: result
-            for device_id, result in self._discovered_devices.items()
-            if result.ready_to_add
-        }
+        return {device_id: result for device_id, result in self._discovered_devices.items() if result.ready_to_add}
 
     def get_pending_devices(self) -> dict[str, SmartDiscoveryResult]:
         """Get devices that need manual local key entry."""
-        return {
-            device_id: result
-            for device_id, result in self._discovered_devices.items()
-            if not result.ready_to_add
-        }
+        return {device_id: result for device_id, result in self._discovered_devices.items() if not result.ready_to_add}
 
 
 async def async_smart_discover(

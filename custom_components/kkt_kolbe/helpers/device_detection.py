@@ -1,4 +1,5 @@
 """Device detection helpers for KKT Kolbe integration."""
+
 from __future__ import annotations
 
 import logging
@@ -59,7 +60,9 @@ def detect_device_type_from_api(device: dict[str, Any]) -> tuple[str, str]:
                 product_names = info.get("product_names", [])
                 # Check exact match
                 if isinstance(device_ids, list) and device_id in device_ids:
-                    product_name = str(product_names[0]) if isinstance(product_names, list) and product_names else device_key
+                    product_name = (
+                        str(product_names[0]) if isinstance(product_names, list) and product_names else device_key
+                    )
                     _LOGGER.info(f"Detected device by device_id: {device_key} ({device_id[:12]}...)")
                     return (device_key, product_name)
                 # Check pattern match
@@ -67,7 +70,11 @@ def detect_device_type_from_api(device: dict[str, Any]) -> tuple[str, str]:
                 if isinstance(patterns, list):
                     for pattern in patterns:
                         if isinstance(pattern, str) and device_id.startswith(pattern):
-                            product_name = str(product_names[0]) if isinstance(product_names, list) and product_names else device_key
+                            product_name = (
+                                str(product_names[0])
+                                if isinstance(product_names, list) and product_names
+                                else device_key
+                            )
                             _LOGGER.info(f"Detected device by device_id pattern: {device_key} ({pattern}*)")
                             return (device_key, product_name)
 
@@ -141,7 +148,9 @@ def detect_device_type_from_device_id(device_id: str) -> tuple[str, str, str]:
         if isinstance(patterns, list):
             for pattern in patterns:
                 if isinstance(pattern, str) and device_id.startswith(pattern):
-                    product_name = str(product_names[0]) if isinstance(product_names, list) and product_names else device_key
+                    product_name = (
+                        str(product_names[0]) if isinstance(product_names, list) and product_names else device_key
+                    )
                     _LOGGER.info(f"Detected device by pattern {pattern}*: {device_key} -> {friendly_name}")
                     return (device_key, product_name, friendly_name)
 
@@ -174,10 +183,9 @@ def get_device_type_options() -> list[dict[str, str]]:
         name = str(device_info.get("name", device_key))
 
         if device_key == "default_hood":
-            default_options.append({
-                "value": device_key,
-                "label": "Default Hood - Generic Range Hood (if model unknown)"
-            })
+            default_options.append(
+                {"value": device_key, "label": "Default Hood - Generic Range Hood (if model unknown)"}
+            )
         elif category == CATEGORY_HOOD:
             hoods.append({"value": device_key, "label": name})
         elif category == CATEGORY_COOKTOP:

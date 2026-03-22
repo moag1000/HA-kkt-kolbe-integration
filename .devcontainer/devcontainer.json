@@ -1,0 +1,21 @@
+{
+  "name": "KKT Kolbe Integration Development",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+  "postCreateCommand": "scripts/setup",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "charliermarsh.ruff",
+        "ms-python.python",
+        "ms-python.vscode-pylance"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "./venv/bin/python",
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff",
+          "editor.formatOnSave": true
+        }
+      }
+    }
+  }
+}

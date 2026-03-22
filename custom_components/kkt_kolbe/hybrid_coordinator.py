@@ -1,4 +1,5 @@
 """Hybrid coordinator supporting both local and API communication."""
+
 from __future__ import annotations
 
 import asyncio
@@ -112,9 +113,7 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
                 return data
             except (KKTConnectionError, KKTTimeoutError) as err:
                 self.local_consecutive_errors += 1
-                _LOGGER.warning(
-                    f"Local communication failed (attempt {self.local_consecutive_errors}): {err}"
-                )
+                _LOGGER.warning(f"Local communication failed (attempt {self.local_consecutive_errors}): {err}")
 
                 # Switch to cloud if too many local errors
                 if self.local_consecutive_errors >= self.max_consecutive_errors:
@@ -138,10 +137,11 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
                 return data
             except (KKTRateLimitError, TuyaRateLimitError) as err:
                 # HA 2025.12+: Propagate rate limit with retry_after
-                retry_after = getattr(err, 'retry_after', None)
+                retry_after = getattr(err, "retry_after", None)
                 _LOGGER.warning(
-                    f"API rate limited for device {self.device_id[:8]}: "
-                    f"retry after {retry_after}s" if retry_after else "no retry_after specified"
+                    f"API rate limited for device {self.device_id[:8]}: retry after {retry_after}s"
+                    if retry_after
+                    else "no retry_after specified"
                 )
                 if retry_after:
                     raise UpdateFailed(
@@ -151,9 +151,7 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
                 raise UpdateFailed("Rate limited by Tuya API") from err
             except TuyaAPIError as err:
                 self.api_consecutive_errors += 1
-                _LOGGER.warning(
-                    f"API communication failed (attempt {self.api_consecutive_errors}): {err}"
-                )
+                _LOGGER.warning(f"API communication failed (attempt {self.api_consecutive_errors}): {err}")
 
         # Try SmartLife mode (cloud fallback for SmartLife users)
         if self.smartlife_available:
@@ -213,7 +211,9 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
                     f"(total cached: {len(self._dps_cache)} DPs)"
                 )
 
-            _LOGGER.debug(f"Device {self.device_id[:8]} returning merged data with {len(self._dps_cache)} DPs: {list(self._dps_cache.keys())}")
+            _LOGGER.debug(
+                f"Device {self.device_id[:8]} returning merged data with {len(self._dps_cache)} DPs: {list(self._dps_cache.keys())}"
+            )
 
             return {
                 "source": "local",
@@ -301,8 +301,10 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
                 if isinstance(item, dict):
                     _LOGGER.info(
                         "SmartLife %s: code=%s, value=%s (type=%s)",
-                        self.device_id[:8], item.get("code"), item.get("value"),
-                        type(item.get("value")).__name__
+                        self.device_id[:8],
+                        item.get("code"),
+                        item.get("value"),
+                        type(item.get("value")).__name__,
                     )
 
             for status_item in status_list:
@@ -323,10 +325,7 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
             if smartlife_dps:
                 self._dps_cache.update(smartlife_dps)
 
-            _LOGGER.debug(
-                f"SmartLife returned {len(status_list)} status items, "
-                f"mapped to {len(smartlife_dps)} DPs"
-            )
+            _LOGGER.debug(f"SmartLife returned {len(status_list)} status items, mapped to {len(smartlife_dps)} DPs")
 
             return {
                 "source": "smartlife",
@@ -419,6 +418,7 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
         # Try to get device-specific mapping from device_types
         if self.device_type:
             from .device_types import KNOWN_DEVICES
+
             device_config = KNOWN_DEVICES.get(self.device_type, {})
             data_points = device_config.get("data_points", {})
             if data_points:
@@ -492,17 +492,11 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
                     # Send command via Tuya Cloud API using property code
                     _LOGGER.debug(f"Attempting API command for DP {dp_id} (code: {property_code}): {value}")
                     commands = [{"code": property_code, "value": value}]
-                    result = await self.api_client.send_commands(
-                        self.device_id,
-                        commands
-                    )
+                    result = await self.api_client.send_commands(self.device_id, commands)
                 else:
                     # Fallback: try sending DP ID directly (iot-03 API)
                     _LOGGER.debug(f"No property code for DP {dp_id}, trying DP ID directly")
-                    result = await self.api_client.send_dp_commands(
-                        self.device_id,
-                        {str(dp_id): value}
-                    )
+                    result = await self.api_client.send_dp_commands(self.device_id, {str(dp_id): value})
 
                 if result:
                     _LOGGER.info(f"Command sent successfully via API for DP {dp_id}")
@@ -524,17 +518,11 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
                 if property_code:
                     _LOGGER.debug(f"Attempting SmartLife command for DP {dp_id} (code: {property_code}): {value}")
                     commands = [{"code": property_code, "value": value}]
-                    result = await self.smartlife_client.async_send_commands(
-                        self.device_id,
-                        commands
-                    )
+                    result = await self.smartlife_client.async_send_commands(self.device_id, commands)
                 else:
                     # Try sending DP ID directly
                     _LOGGER.debug(f"No property code for DP {dp_id}, trying DP ID directly via SmartLife")
-                    result = await self.smartlife_client.async_send_dp_commands(
-                        self.device_id,
-                        {str(dp_id): value}
-                    )
+                    result = await self.smartlife_client.async_send_dp_commands(self.device_id, {str(dp_id): value})
 
                 if result:
                     _LOGGER.info(f"Command sent successfully via SmartLife for DP {dp_id}")

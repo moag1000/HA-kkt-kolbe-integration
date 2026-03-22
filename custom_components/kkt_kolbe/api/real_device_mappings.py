@@ -1,4 +1,5 @@
 """Real device data point mappings based on actual API responses."""
+
 from __future__ import annotations
 
 import logging
@@ -27,32 +28,22 @@ class RealDeviceMappings:
                 "display_name": "Default Hood - Generic Range Hood",
                 "description": "Standard range hood controls (use if your specific model is not listed)",
                 "codes": [
-                    "switch",           # Main power (DP 1)
-                    "fan_speed_enum",   # Fan speed (DP 3)
-                    "light",            # Main light (DP 101)
-                    "countdown",        # Timer (DP 6)
-                    "countdown_left",   # Timer remaining (DP 7)
+                    "switch",  # Main power (DP 1)
+                    "fan_speed_enum",  # Fan speed (DP 3)
+                    "light",  # Main light (DP 101)
+                    "countdown",  # Timer (DP 6)
+                    "countdown_left",  # Timer remaining (DP 7)
                 ],
                 "entities": {
-                    "switch": {
-                        "type": "switch",
-                        "name": "Power",
-                        "icon": "mdi:power",
-                        "read_write": True
-                    },
+                    "switch": {"type": "switch", "name": "Power", "icon": "mdi:power", "read_write": True},
                     "fan_speed_enum": {
                         "type": "select",
                         "name": "Fan Speed",
                         "icon": "mdi:fan",
                         "options": ["off", "low", "middle", "high"],
-                        "read_write": True
+                        "read_write": True,
                     },
-                    "light": {
-                        "type": "switch",
-                        "name": "Light",
-                        "icon": "mdi:lightbulb",
-                        "read_write": True
-                    },
+                    "light": {"type": "switch", "name": "Light", "icon": "mdi:lightbulb", "read_write": True},
                     "countdown": {
                         "type": "number",
                         "name": "Timer",
@@ -60,18 +51,17 @@ class RealDeviceMappings:
                         "unit": "min",
                         "min": 0,
                         "max": 100,
-                        "read_write": True
+                        "read_write": True,
                     },
                     "countdown_left": {
                         "type": "sensor",
                         "name": "Timer Remaining",
                         "icon": "mdi:timer-sand",
                         "unit": "min",
-                        "read_write": False
-                    }
-                }
+                        "read_write": False,
+                    },
+                },
             },
-
             # HERMES & STYLE Hood - Real API data points
             "hermes_style": {
                 "device_type": "hood",
@@ -79,38 +69,28 @@ class RealDeviceMappings:
                 "display_name": "HERMES & STYLE (Range Hood)",
                 "description": "KKT Kolbe HERMES & STYLE with RGB lighting",
                 "codes": [
-                    "switch",           # Main power
-                    "light",            # Main light
-                    "switch_lamp",      # Light strip
-                    "fan_speed_enum",   # Fan speed (off/low/middle/high/strong)
-                    "countdown",        # Timer
-                    "RGB"               # RGB lighting control
+                    "switch",  # Main power
+                    "light",  # Main light
+                    "switch_lamp",  # Light strip
+                    "fan_speed_enum",  # Fan speed (off/low/middle/high/strong)
+                    "countdown",  # Timer
+                    "RGB",  # RGB lighting control
                 ],
                 "entities": {
-                    "switch": {
-                        "type": "switch",
-                        "name": "Power",
-                        "icon": "mdi:power",
-                        "read_write": True
-                    },
-                    "light": {
-                        "type": "switch",
-                        "name": "Main Light",
-                        "icon": "mdi:lightbulb",
-                        "read_write": True
-                    },
+                    "switch": {"type": "switch", "name": "Power", "icon": "mdi:power", "read_write": True},
+                    "light": {"type": "switch", "name": "Main Light", "icon": "mdi:lightbulb", "read_write": True},
                     "switch_lamp": {
                         "type": "switch",
                         "name": "Light Strip",
                         "icon": "mdi:led-strip",
-                        "read_write": True
+                        "read_write": True,
                     },
                     "fan_speed_enum": {
                         "type": "select",
                         "name": "Fan Speed",
                         "icon": "mdi:fan",
                         "options": ["off", "low", "middle", "high", "strong"],
-                        "read_write": True
+                        "read_write": True,
                     },
                     "countdown": {
                         "type": "number",
@@ -119,18 +99,17 @@ class RealDeviceMappings:
                         "unit": "min",
                         "min": 0,
                         "max": 100,
-                        "read_write": True
+                        "read_write": True,
                     },
                     "RGB": {
                         "type": "light",  # Special RGB light entity
                         "name": "RGB Lighting",
                         "icon": "mdi:palette",
                         "supports_color": True,
-                        "read_write": True
-                    }
-                }
+                        "read_write": True,
+                    },
+                },
             },
-
             # IND7705HC Cooktop - Real API data points
             "ind7705hc": {
                 "device_type": "cooktop",
@@ -139,43 +118,38 @@ class RealDeviceMappings:
                 "description": "KKT Kolbe 5-zone induction cooktop",
                 "codes": [
                     # Core controls
-                    "user_device_power_switch",     # Main power
-                    "user_device_pause_switch",     # Pause/Resume
-                    "user_device_lock_switch",      # Child lock
-
+                    "user_device_power_switch",  # Main power
+                    "user_device_pause_switch",  # Pause/Resume
+                    "user_device_lock_switch",  # Child lock
                     # Zone controls (5 zones)
-                    "oem_hob_1_quick_level",        # Zone 1 quick level
-                    "oem_hob_2_quick_level",        # Zone 2 quick level
-                    "oem_hob_3_quick_level",        # Zone 3 quick level
-                    "oem_hob_4_quick_level",        # Zone 4 quick level
-                    "oem_hob_5_quick_level",        # Zone 5 quick level
-
+                    "oem_hob_1_quick_level",  # Zone 1 quick level
+                    "oem_hob_2_quick_level",  # Zone 2 quick level
+                    "oem_hob_3_quick_level",  # Zone 3 quick level
+                    "oem_hob_4_quick_level",  # Zone 4 quick level
+                    "oem_hob_5_quick_level",  # Zone 5 quick level
                     # Advanced features
-                    "oem_device_chef_level",        # Chef function level
-                    "oem_hob_bbq_timer",           # BBQ timer
-                    "oem_hob_bbq_switch",          # BBQ mode
-                    "oem_hob_flex_switch",         # Flex zone
-                    "oem_hob_boost_switch",        # Boost function
-                    "oem_hob_warm_switch",         # Keep warm
-
+                    "oem_device_chef_level",  # Chef function level
+                    "oem_hob_bbq_timer",  # BBQ timer
+                    "oem_hob_bbq_switch",  # BBQ mode
+                    "oem_hob_flex_switch",  # Flex zone
+                    "oem_hob_boost_switch",  # Boost function
+                    "oem_hob_warm_switch",  # Keep warm
                     # Status and monitoring
-                    "user_device_cur_max_level",   # Current max level
-                    "oem_hob_error_num",           # Error number
-                    "oem_device_timer_num",        # Timer number
-                    "oem_hob_timer_num",           # Hob timer
-                    "oem_hob_level_num",           # Current level
-                    "oem_hob_selected_switch",     # Selected zone
-
+                    "user_device_cur_max_level",  # Current max level
+                    "oem_hob_error_num",  # Error number
+                    "oem_device_timer_num",  # Timer number
+                    "oem_hob_timer_num",  # Hob timer
+                    "oem_hob_level_num",  # Current level
+                    "oem_hob_selected_switch",  # Selected zone
                     # Settings
-                    "oem_device_old_people",       # Senior mode
-                    "oem_device_save_level",       # Saved level
-                    "oem_device_set_level",        # Set level
-                    "oem_device_power_limit",      # Power limit
-                    "oem_device_confirm",          # Confirmation
-
+                    "oem_device_old_people",  # Senior mode
+                    "oem_device_save_level",  # Saved level
+                    "oem_device_set_level",  # Set level
+                    "oem_device_power_limit",  # Power limit
+                    "oem_device_confirm",  # Confirmation
                     # Core sensor features
-                    "oem_hob_set_core_sensor",     # Core sensor setting
-                    "oem_hob_disp_coresensor",     # Core sensor display
+                    "oem_hob_set_core_sensor",  # Core sensor setting
+                    "oem_hob_disp_coresensor",  # Core sensor display
                 ],
                 "entities": {
                     # Main controls
@@ -183,21 +157,20 @@ class RealDeviceMappings:
                         "type": "switch",
                         "name": "Power",
                         "icon": "mdi:power",
-                        "read_write": True
+                        "read_write": True,
                     },
                     "user_device_pause_switch": {
                         "type": "switch",
                         "name": "Pause",
                         "icon": "mdi:pause",
-                        "read_write": True
+                        "read_write": True,
                     },
                     "user_device_lock_switch": {
                         "type": "switch",
                         "name": "Child Lock",
                         "icon": "mdi:lock",
-                        "read_write": True
+                        "read_write": True,
                     },
-
                     # Zone controls
                     "oem_hob_1_quick_level": {
                         "type": "number",
@@ -205,7 +178,7 @@ class RealDeviceMappings:
                         "icon": "mdi:numeric-1-circle",
                         "min": 0,
                         "max": 9,
-                        "read_write": True
+                        "read_write": True,
                     },
                     "oem_hob_2_quick_level": {
                         "type": "number",
@@ -213,7 +186,7 @@ class RealDeviceMappings:
                         "icon": "mdi:numeric-2-circle",
                         "min": 0,
                         "max": 9,
-                        "read_write": True
+                        "read_write": True,
                     },
                     "oem_hob_3_quick_level": {
                         "type": "number",
@@ -221,7 +194,7 @@ class RealDeviceMappings:
                         "icon": "mdi:numeric-3-circle",
                         "min": 0,
                         "max": 9,
-                        "read_write": True
+                        "read_write": True,
                     },
                     "oem_hob_4_quick_level": {
                         "type": "number",
@@ -229,7 +202,7 @@ class RealDeviceMappings:
                         "icon": "mdi:numeric-4-circle",
                         "min": 0,
                         "max": 9,
-                        "read_write": True
+                        "read_write": True,
                     },
                     "oem_hob_5_quick_level": {
                         "type": "number",
@@ -237,9 +210,8 @@ class RealDeviceMappings:
                         "icon": "mdi:numeric-5-circle",
                         "min": 0,
                         "max": 9,
-                        "read_write": True
+                        "read_write": True,
                     },
-
                     # Advanced features
                     "oem_device_chef_level": {
                         "type": "number",
@@ -247,7 +219,7 @@ class RealDeviceMappings:
                         "icon": "mdi:chef-hat",
                         "min": 0,
                         "max": 9,
-                        "read_write": True
+                        "read_write": True,
                     },
                     "oem_hob_bbq_timer": {
                         "type": "number",
@@ -256,60 +228,59 @@ class RealDeviceMappings:
                         "unit": "min",
                         "min": 0,
                         "max": 255,
-                        "read_write": True
+                        "read_write": True,
                     },
                     "oem_hob_bbq_switch": {
                         "type": "switch",
                         "name": "BBQ Mode",
                         "icon": "mdi:grill",
-                        "read_write": True
+                        "read_write": True,
                     },
                     "oem_hob_flex_switch": {
                         "type": "switch",
                         "name": "Flex Zone",
                         "icon": "mdi:vector-combine",
-                        "read_write": True
+                        "read_write": True,
                     },
                     "oem_hob_boost_switch": {
                         "type": "switch",
                         "name": "Boost",
                         "icon": "mdi:rocket-launch",
-                        "read_write": True
+                        "read_write": True,
                     },
                     "oem_hob_warm_switch": {
                         "type": "switch",
                         "name": "Keep Warm",
                         "icon": "mdi:thermometer",
-                        "read_write": True
+                        "read_write": True,
                     },
-
                     # Status sensors (read-only)
                     "user_device_cur_max_level": {
                         "type": "sensor",
                         "name": "Current Max Level",
                         "icon": "mdi:speedometer",
-                        "read_write": False
+                        "read_write": False,
                     },
                     "oem_hob_error_num": {
                         "type": "sensor",
                         "name": "Error Code",
                         "icon": "mdi:alert-circle",
-                        "read_write": False
+                        "read_write": False,
                     },
                     "oem_hob_selected_switch": {
                         "type": "sensor",
                         "name": "Selected Zone",
                         "icon": "mdi:target",
-                        "read_write": False
+                        "read_write": False,
                     },
                     "oem_hob_level_num": {
                         "type": "sensor",
                         "name": "Current Level",
                         "icon": "mdi:speedometer",
-                        "read_write": False
-                    }
-                }
-            }
+                        "read_write": False,
+                    },
+                },
+            },
         }
 
     def get_device_codes(self, device_type: str) -> list[str] | None:

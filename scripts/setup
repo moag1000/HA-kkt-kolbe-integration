@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Based on https://github.com/ludeeus/integration_blueprint
+set -e
+
+cd "$(dirname "$0")/.."
+
+python3 -m venv venv
+source venv/bin/activate
+
+pip install --upgrade pip
+pip install -r requirements_dev.txt
+
+echo "Development environment ready."
+echo "Activate with: source venv/bin/activate"

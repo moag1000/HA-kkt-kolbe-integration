@@ -18,14 +18,15 @@
 
 ---
 
-## Highlights v4.1.0
+## Highlights v4.3.0
 
+- **SmartLife Info Sensor** - Erweiterte Geräteinformationen und Entity Picture
+- **Fan Auto-Start unterdrücken** - Option um Lüfter beim Einschalten der Haube zu blockieren
 - **Device ID Change Repair** - Automatische Erkennung & Reparatur bei Gerätewechsel
 - **Kein Developer Account nötig** - Setup via SmartLife/Tuya Smart App
 - **Auto-Power-On** - Hood schaltet automatisch ein bei Fan/Licht-Steuerung
-- **Account Wiederverwendung** - Neue Geräte ohne Re-Authentifizierung
 - **Lokale Steuerung** - Tuya Protocol ohne Cloud-Abhängigkeit
-- **4 Dunstabzugshauben + 1 Kochfeld** unterstützt
+- **6 Dunstabzugshauben + 1 Kochfeld** unterstützt, Backofen in Vorbereitung
 
 > **Hinweis:** Diese Integration wurde mit [Claude Code](https://claude.ai/code) entwickelt. Der Quellcode ist vollständig einsehbar. Verwendung auf eigene Verantwortung.
 
@@ -50,10 +51,14 @@
 
 | Modell | Lüfter | Licht | RGB | Timer | Status |
 |--------|--------|-------|-----|-------|--------|
-| **HERMES & STYLE** | 5 Stufen | ✅ | 10 Modi | ✅ | ✅ Getestet |
-| **HERMES** | 5 Stufen | ✅ | 10 Modi | ✅ | ✅ Verfügbar |
+| **HERMES & STYLE** | 5 Stufen | Helligkeit | 10 Modi | ✅ | ✅ Getestet |
+| **HERMES** | 5 Stufen | Helligkeit | 10 Modi | ✅ | ✅ Verfügbar |
 | **ECCO HCM** | 9 Stufen | Multi | 4 Modi | ✅ | ✅ Verfügbar |
-| **SOLO HCM** | 5 Stufen | ✅ | - | ✅ | ✅ Verfügbar |
+| **SOLO HCM** | 9 Stufen | Multi | 4 Modi | ✅ | ✅ Verfügbar |
+| **EASY HCM** | 9 Stufen | Multi | 4 Modi | ✅ | Ungetestet (HCM-basiert) |
+| **FLAT** | 5 Stufen | ✅ | - | ✅ | ✅ Verfügbar |
+
+EASY-Modelle: EASY9005SM (90cm), EASY909SHCM (90cm), EASY609SHCM (60cm)
 
 ### Induktionskochfeld
 
@@ -61,9 +66,22 @@
 |--------|-------|----------|--------|
 | **IND7705HC** | 5 | Power 0-25, Timer, Temp, Boost, Flex | ✅ Getestet |
 
-### Gesucht: VIVA & SANDRA Hood 🔎
+### Backofen (in Vorbereitung)
 
-Hast du ein VIVA oder SANDRA Modell? → [Issue öffnen](https://github.com/moag1000/HA-kkt-kolbe-integration/issues/new)
+| Modell | WiFi | Status |
+|--------|------|--------|
+| **EB8313HC** | Tuya/SmartLife | DPs unbekannt - Tester gesucht |
+| **EB8317HC** | Tuya/SmartLife | DPs unbekannt - Tester gesucht |
+| **EB8313ED** | Tuya/SmartLife, Kerntemperaturfühler | DPs unbekannt - Tester gesucht |
+
+Die Backofen-Unterstützung ist vorbereitet, aber die Tuya Data Points (DPs) sind noch nicht
+mit einem echten Gerät verifiziert. Falls du einen dieser Backöfen besitzt, hilf uns die
+korrekten DPs zu ermitteln: [Issue erstellen](https://github.com/moag1000/HA-kkt-kolbe-integration/issues/new?template=new_device.md)
+
+### Weitere Geräte gesucht
+
+Hast du ein KKT Kolbe Gerät mit WiFi das hier nicht aufgeführt ist?
+[Issue erstellen](https://github.com/moag1000/HA-kkt-kolbe-integration/issues/new?template=new_device.md)
 
 ---
 

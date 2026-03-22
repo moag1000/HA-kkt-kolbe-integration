@@ -1,4 +1,5 @@
 """Device type specific configurations for KKT Kolbe devices."""
+
 from __future__ import annotations
 
 from homeassistant.const import UnitOfTemperature
@@ -6,60 +7,82 @@ from homeassistant.const import UnitOfTime
 
 from .const import CATEGORY_COOKTOP
 from .const import CATEGORY_HOOD
+from .const import CATEGORY_OVEN
 
 # Hood (Dunstabzugshaube) Data Points
 HOOD_DPS = {
-    1: "switch",           # Main power
-    2: "delay_switch",     # Delay shutdown
-    3: "auto_mode",        # Auto mode on/off
-    4: "light",           # Light on/off
-    5: "light_brightness", # Light brightness (0-255) - Common for hoods
-    6: "switch_lamp",     # Filter cleaning reminder
-    7: "temperature",     # Temperature sensor
-    8: "humidity",        # Humidity sensor
-    9: "air_quality",     # Air quality sensor
-    10: "fan_speed_enum", # Fan speed
+    1: "switch",  # Main power
+    2: "delay_switch",  # Delay shutdown
+    3: "auto_mode",  # Auto mode on/off
+    4: "light",  # Light on/off
+    5: "light_brightness",  # Light brightness (0-255) - Common for hoods
+    6: "switch_lamp",  # Filter cleaning reminder
+    7: "temperature",  # Temperature sensor
+    8: "humidity",  # Humidity sensor
+    9: "air_quality",  # Air quality sensor
+    10: "fan_speed_enum",  # Fan speed
     11: "fan_speed_set",  # Fan speed setting (0-4) - For direct control
-    12: "auto_clean",     # Auto cleaning mode
-    13: "countdown",      # Timer (0-60 min)
-    14: "filter_hours",   # Filter usage hours - Common monitoring
-    15: "filter_reset",   # Filter reset switch
-    16: "noise_level",    # Noise level setting
-    17: "eco_mode",       # Eco mode on/off
-    101: "RGB",           # RGB light mode (0-9)
-    102: "rgb_brightness", # RGB brightness (0-255)
-    103: "color_temp",    # Color temperature (warm/cold)
+    12: "auto_clean",  # Auto cleaning mode
+    13: "countdown",  # Timer (0-60 min)
+    14: "filter_hours",  # Filter usage hours - Common monitoring
+    15: "filter_reset",  # Filter reset switch
+    16: "noise_level",  # Noise level setting
+    17: "eco_mode",  # Eco mode on/off
+    101: "RGB",  # RGB light mode (0-9)
+    102: "rgb_brightness",  # RGB brightness (0-255)
+    103: "color_temp",  # Color temperature (warm/cold)
 }
 
 # KKT IND7705HC Induction Cooktop Data Points (Model ID: e1kc5q64)
 COOKTOP_DPS = {
-    101: "user_device_power_switch",    # Main power on/off
-    102: "user_device_pause_switch",    # Start/Pause
-    103: "user_device_lock_switch",     # Child lock
-    104: "user_device_cur_max_level",   # Max power level (0-25)
-    105: "oem_hob_error_num",           # Error codes (raw bitfield)
-    106: "oem_device_chef_level",       # Chef function levels (raw bitfield)
-    107: "oem_hob_bbq_timer",           # BBQ timer (raw bitfield)
-    108: "oem_device_confirm",          # Confirm action
-    134: "oem_device_timer_num",        # General timer (0-99 min)
-    145: "oem_device_old_people",       # Senior mode
-    148: "oem_hob_1_quick_level",       # Zone 1 quick level (enum)
-    149: "oem_hob_2_quick_level",       # Zone 2 quick level (enum)
-    150: "oem_hob_3_quick_level",       # Zone 3 quick level (enum)
-    151: "oem_hob_4_quick_level",       # Zone 4 quick level (enum)
-    152: "oem_hob_5_quick_level",       # Zone 5 quick level (enum)
-    153: "oem_device_save_level",       # Save zone level
-    154: "oem_device_set_level",        # Set zone level
-    155: "oem_device_power_limit",      # Power limit mode
-    161: "oem_hob_selected_switch",     # Zone selection (raw bitfield)
-    162: "oem_hob_level_num",           # Zone power levels (raw bitfield)
-    163: "oem_hob_boost_switch",        # Boost per zone (raw bitfield)
-    164: "oem_hob_warm_switch",         # Keep warm per zone (raw bitfield)
-    165: "oem_hob_flex_switch",         # Flex zone (raw bitfield)
-    166: "oem_hob_bbq_switch",          # BBQ mode (raw bitfield)
-    167: "oem_hob_timer_num",           # Timer per zone (raw bitfield)
-    168: "oem_hob_set_core_sensor",     # Core temp sensor (raw bitfield)
-    169: "oem_hob_disp_coresensor",     # Display core temp (raw bitfield)
+    101: "user_device_power_switch",  # Main power on/off
+    102: "user_device_pause_switch",  # Start/Pause
+    103: "user_device_lock_switch",  # Child lock
+    104: "user_device_cur_max_level",  # Max power level (0-25)
+    105: "oem_hob_error_num",  # Error codes (raw bitfield)
+    106: "oem_device_chef_level",  # Chef function levels (raw bitfield)
+    107: "oem_hob_bbq_timer",  # BBQ timer (raw bitfield)
+    108: "oem_device_confirm",  # Confirm action
+    134: "oem_device_timer_num",  # General timer (0-99 min)
+    145: "oem_device_old_people",  # Senior mode
+    148: "oem_hob_1_quick_level",  # Zone 1 quick level (enum)
+    149: "oem_hob_2_quick_level",  # Zone 2 quick level (enum)
+    150: "oem_hob_3_quick_level",  # Zone 3 quick level (enum)
+    151: "oem_hob_4_quick_level",  # Zone 4 quick level (enum)
+    152: "oem_hob_5_quick_level",  # Zone 5 quick level (enum)
+    153: "oem_device_save_level",  # Save zone level
+    154: "oem_device_set_level",  # Set zone level
+    155: "oem_device_power_limit",  # Power limit mode
+    161: "oem_hob_selected_switch",  # Zone selection (raw bitfield)
+    162: "oem_hob_level_num",  # Zone power levels (raw bitfield)
+    163: "oem_hob_boost_switch",  # Boost per zone (raw bitfield)
+    164: "oem_hob_warm_switch",  # Keep warm per zone (raw bitfield)
+    165: "oem_hob_flex_switch",  # Flex zone (raw bitfield)
+    166: "oem_hob_bbq_switch",  # BBQ mode (raw bitfield)
+    167: "oem_hob_timer_num",  # Timer per zone (raw bitfield)
+    168: "oem_hob_set_core_sensor",  # Core probe target temp (optional meat thermometer)
+    169: "oem_hob_disp_coresensor",  # Core probe current temp (optional meat thermometer)
+}
+
+# KKT Kolbe Oven Data Points - UNVERIFIED
+# Based on standard Tuya oven DP conventions. Actual DPs for KKT Kolbe ovens
+# (EB8313HC, EB8317HC, EB8313ED) have not been confirmed with a real device.
+# All DP IDs and names are estimates. Do not rely on these without verification.
+OVEN_DPS = {
+    1: "switch",  # Main power on/off (estimated)
+    2: "temp_set",  # Target temperature in C (estimated)
+    3: "temp_current",  # Current oven temperature (estimated)
+    4: "mode",  # Cooking mode/program (estimated)
+    5: "countdown",  # Timer/countdown in minutes (estimated)
+    6: "time_remaining",  # Remaining time (estimated)
+    7: "status",  # Device status (estimated)
+    11: "child_lock",  # Child lock (estimated)
+    12: "light",  # Oven light (estimated)
+    101: "preheat",  # Preheat function (estimated)
+    102: "upper_temp",  # Upper heater temperature (estimated)
+    103: "lower_temp",  # Lower heater temperature (estimated)
+    104: "core_temp_set",  # Core probe target temp - EB8313ED (estimated)
+    105: "core_temp_current",  # Core probe current temp - EB8313ED (estimated)
 }
 
 # Quick level presets
@@ -85,75 +108,162 @@ KNOWN_DEVICES = {
         "platforms": ["fan", "light", "switch", "sensor", "select", "number"],
         "data_points": {
             # Active DPs (verified working)
-            1: "switch",              # Main power
-            4: "light",               # Light on/off
-            6: "switch_lamp",         # Filter cleaning reminder
-            10: "fan_speed_enum",     # Fan speed
-            13: "countdown",          # Timer
-            101: "RGB",               # RGB lighting modes
+            1: "switch",  # Main power
+            4: "light",  # Light on/off
+            6: "switch_lamp",  # Filter cleaning reminder
+            10: "fan_speed_enum",  # Fan speed
+            13: "countdown",  # Timer
+            101: "RGB",  # RGB lighting modes
             # Experimental DPs (from API v2.0 Things Data Model, disabled by default)
-            2: "delay_switch",        # Delayed shutdown (afterrun)
-            5: "light_brightness",    # Light brightness (0-255)
-            14: "filter_hours",       # Filter usage hours
-            15: "filter_reset",       # Reset filter counter
-            17: "eco_mode",           # Eco mode
-            102: "rgb_brightness",    # RGB brightness (0-255)
-            103: "color_temp"         # Color temperature
+            2: "delay_switch",  # Delayed shutdown (afterrun)
+            5: "light_brightness",  # Light brightness (0-255)
+            14: "filter_hours",  # Filter usage hours
+            15: "filter_reset",  # Reset filter counter
+            17: "eco_mode",  # Eco mode
+            102: "rgb_brightness",  # RGB brightness (0-255)
+            103: "color_temp",  # Color temperature
         },
         "entities": {
             "fan": {
                 "dp": 10,  # fan_speed_enum - used for HomeKit/Siri integration
-                "speeds": ["off", "low", "middle", "high", "strong"]
+                "speeds": ["off", "low", "middle", "high", "strong"],
             },
             "light": [
-                # Main light with RGB color effects for HomeKit/Siri
+                # Main light with RGB color effects and brightness for HomeKit/Siri
                 {
                     "dp": 4,
                     "name": "Light",
                     "icon": "mdi:lightbulb",
+                    "brightness_dp": 5,
+                    "max_brightness": 255,
                     "effect_dp": 101,
                     "effect_numeric": True,
                     "effect_offset": 1,  # Device uses 0=off, 1=Weiß, 2=Rot, etc.
-                    "effects": ["Weiß", "Rot", "Grün", "Blau", "Gelb", "Lila", "Orange", "Cyan", "Grasgrün"]
+                    "effects": ["Weiß", "Rot", "Grün", "Blau", "Gelb", "Lila", "Orange", "Cyan", "Grasgrün"],
                 }
             ],
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
-                {"dp": 6, "name": "Filter Cleaning Reminder", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"},
-                # Experimental switches
-                {"dp": 2, "name": "Delayed Shutdown", "icon": "mdi:timer-off", "advanced": True, "entity_category": "config"},
-                {"dp": 17, "name": "Eco Mode", "icon": "mdi:leaf", "advanced": True, "entity_category": "config"}
+                {
+                    "dp": 6,
+                    "name": "Filter Cleaning Reminder",
+                    "icon": "mdi:air-filter",
+                    "advanced": True,
+                    "entity_category": "diagnostic",
+                },
+                {
+                    "dp": 15,
+                    "name": "Filter Reset",
+                    "icon": "mdi:air-filter-off",
+                    "advanced": True,
+                    "entity_category": "config",
+                },
+                {
+                    "dp": 2,
+                    "name": "Delayed Shutdown",
+                    "icon": "mdi:timer-off",
+                    "advanced": True,
+                    "entity_category": "config",
+                },
+                {"dp": 17, "name": "Eco Mode", "icon": "mdi:leaf", "advanced": True, "entity_category": "config"},
             ],
             "number": [
                 # RGB Mode as number (backup, advanced) - use Light effects instead
-                {"dp": 101, "name": "RGB Mode", "min": 0, "max": 8, "step": 1, "icon": "mdi:palette", "advanced": True, "entity_category": "config"},
-                {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"},
-                # Experimental numbers
-                {"dp": 5, "name": "Light Brightness", "min": 0, "max": 255, "step": 1, "icon": "mdi:brightness-6", "advanced": True},
-                {"dp": 102, "name": "RGB Brightness", "min": 0, "max": 255, "step": 1, "icon": "mdi:brightness-5", "advanced": True}
+                {
+                    "dp": 101,
+                    "name": "RGB Mode",
+                    "min": 0,
+                    "max": 9,
+                    "step": 1,
+                    "icon": "mdi:palette",
+                    "advanced": True,
+                    "entity_category": "config",
+                },
+                {
+                    "dp": 13,
+                    "name": "Timer",
+                    "min": 0,
+                    "max": 60,
+                    "unit": UnitOfTime.MINUTES,
+                    "device_class": "duration",
+                    "icon": "mdi:timer",
+                },
+                {
+                    "dp": 5,
+                    "name": "Light Brightness",
+                    "min": 0,
+                    "max": 255,
+                    "step": 1,
+                    "icon": "mdi:brightness-6",
+                    "advanced": True,
+                },
+                {
+                    "dp": 102,
+                    "name": "RGB Brightness",
+                    "min": 0,
+                    "max": 255,
+                    "step": 1,
+                    "icon": "mdi:brightness-5",
+                    "advanced": True,
+                },
             ],
             "sensor": [
-                {"dp": 6, "name": "Filter Status", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"},
-                # Experimental sensors
-                {"dp": 14, "name": "Filter Hours", "unit": "h", "device_class": "duration", "icon": "mdi:clock-outline", "advanced": True, "entity_category": "diagnostic"}
+                {
+                    "dp": 6,
+                    "name": "Filter Status",
+                    "icon": "mdi:air-filter",
+                    "advanced": True,
+                    "entity_category": "diagnostic",
+                },
+                {
+                    "dp": 14,
+                    "name": "Filter Hours",
+                    "unit": "h",
+                    "device_class": "duration",
+                    "icon": "mdi:clock-outline",
+                    "advanced": True,
+                    "entity_category": "diagnostic",
+                },
             ],
             "select": [
-                # RGB Mode select - maps numeric values 0-8 to color names
+                # RGB Mode select - maps numeric values 0-9 to color names
                 {
                     "dp": 101,
                     "name": "RGB Mode",
                     "options": ["Aus", "Weiß", "Rot", "Grün", "Blau", "Gelb", "Lila", "Orange", "Cyan", "Grasgrün"],
-                    "options_map": {"Aus": 0, "Weiß": 1, "Rot": 2, "Grün": 3, "Blau": 4, "Gelb": 5, "Lila": 6, "Orange": 7, "Cyan": 8, "Grasgrün": 9},
-                    "icon": "mdi:palette"
+                    "options_map": {
+                        "Aus": 0,
+                        "Weiß": 1,
+                        "Rot": 2,
+                        "Grün": 3,
+                        "Blau": 4,
+                        "Gelb": 5,
+                        "Lila": 6,
+                        "Orange": 7,
+                        "Cyan": 8,
+                        "Grasgrün": 9,
+                    },
+                    "icon": "mdi:palette",
                 },
                 # Fan Speed select marked as advanced to avoid HomeKit showing both fan and select
-                {"dp": 10, "name": "Fan Speed", "options": ["off", "low", "middle", "high", "strong"], "icon": "mdi:fan", "advanced": True, "entity_category": "config"},
-                # Experimental select
-                {"dp": 103, "name": "Color Temperature", "options": ["warm", "neutral", "cold"], "icon": "mdi:thermometer", "advanced": True}
-            ]
-        }
+                {
+                    "dp": 10,
+                    "name": "Fan Speed",
+                    "options": ["off", "low", "middle", "high", "strong"],
+                    "icon": "mdi:fan",
+                    "advanced": True,
+                    "entity_category": "config",
+                },
+                {
+                    "dp": 103,
+                    "name": "Color Temperature",
+                    "options": ["warm", "neutral", "cold"],
+                    "icon": "mdi:thermometer",
+                    "advanced": True,
+                },
+            ],
+        },
     },
-
     # KKT Kolbe FLAT Hood - Simplified version without RGB lighting
     "flat_hood": {
         "model_id": "luoxakxm2vm9azwu",
@@ -164,16 +274,16 @@ KNOWN_DEVICES = {
         "device_id_patterns": ["bff904d332b57484da"],
         "platforms": ["fan", "light", "switch", "sensor", "select", "number"],
         "data_points": {
-            1: "switch",              # Main power
-            4: "light",               # Light on/off (no RGB)
-            6: "switch_lamp",         # Filter cleaning reminder
-            10: "fan_speed_enum",     # Fan speed
-            13: "countdown"           # Timer
+            1: "switch",  # Main power
+            4: "light",  # Light on/off (no RGB)
+            6: "switch_lamp",  # Filter cleaning reminder
+            10: "fan_speed_enum",  # Fan speed
+            13: "countdown",  # Timer
         },
         "entities": {
             "fan": {
                 "dp": 10,  # fan_speed_enum includes "off" state
-                "speeds": ["off", "low", "middle", "high", "strong"]
+                "speeds": ["off", "low", "middle", "high", "strong"],
             },
             "light": [
                 # Main light as light entity for HomeKit/Siri
@@ -181,21 +291,46 @@ KNOWN_DEVICES = {
             ],
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
-                {"dp": 6, "name": "Filter Cleaning Reminder", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"}
+                {
+                    "dp": 6,
+                    "name": "Filter Cleaning Reminder",
+                    "icon": "mdi:air-filter",
+                    "advanced": True,
+                    "entity_category": "diagnostic",
+                },
             ],
             "number": [
-                {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"}
+                {
+                    "dp": 13,
+                    "name": "Timer",
+                    "min": 0,
+                    "max": 60,
+                    "unit": UnitOfTime.MINUTES,
+                    "device_class": "duration",
+                    "icon": "mdi:timer",
+                }
             ],
             "select": [
                 # Fan Speed select marked as advanced to avoid HomeKit showing both fan and select
-                {"dp": 10, "name": "Fan Speed", "options": ["off", "low", "middle", "high", "strong"], "advanced": True, "entity_category": "config"}
+                {
+                    "dp": 10,
+                    "name": "Fan Speed",
+                    "options": ["off", "low", "middle", "high", "strong"],
+                    "advanced": True,
+                    "entity_category": "config",
+                }
             ],
             "sensor": [
-                {"dp": 6, "name": "Filter Status", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"}
-            ]
-        }
+                {
+                    "dp": 6,
+                    "name": "Filter Status",
+                    "icon": "mdi:air-filter",
+                    "advanced": True,
+                    "entity_category": "diagnostic",
+                }
+            ],
+        },
     },
-
     # KKT HERMES Hood (Schwestermodell ohne "& Style")
     "hermes_hood": {
         "model_id": "0fcj8kha86svfmve",
@@ -209,39 +344,144 @@ KNOWN_DEVICES = {
         "entities": {
             "fan": {
                 "dp": 10,  # fan_speed_enum
-                "speeds": ["off", "low", "middle", "high", "strong"]
+                "speeds": ["off", "low", "middle", "high", "strong"],
             },
             "light": [
-                # Main light with RGB color effects for HomeKit/Siri
+                # Main light with RGB color effects and brightness for HomeKit/Siri
                 {
                     "dp": 4,
                     "name": "Light",
                     "icon": "mdi:lightbulb",
+                    "brightness_dp": 5,
+                    "max_brightness": 255,
                     "effect_dp": 101,
                     "effect_numeric": True,
                     "effect_offset": 1,  # Device uses 0=off, 1=Weiß, 2=Rot, etc.
-                    "effects": ["Weiß", "Rot", "Grün", "Blau", "Gelb", "Lila", "Orange", "Cyan", "Grasgrün"]
+                    "effects": ["Weiß", "Rot", "Grün", "Blau", "Gelb", "Lila", "Orange", "Cyan", "Grasgrün"],
                 }
             ],
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
-                {"dp": 6, "name": "Filter Cleaning Reminder", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"}
+                {
+                    "dp": 6,
+                    "name": "Filter Cleaning Reminder",
+                    "icon": "mdi:air-filter",
+                    "advanced": True,
+                    "entity_category": "diagnostic",
+                },
+                {
+                    "dp": 15,
+                    "name": "Filter Reset",
+                    "icon": "mdi:air-filter-off",
+                    "advanced": True,
+                    "entity_category": "config",
+                },
+                {
+                    "dp": 2,
+                    "name": "Delayed Shutdown",
+                    "icon": "mdi:timer-off",
+                    "advanced": True,
+                    "entity_category": "config",
+                },
+                {"dp": 17, "name": "Eco Mode", "icon": "mdi:leaf", "advanced": True, "entity_category": "config"},
             ],
             "select": [
+                # RGB Mode select - maps numeric values 0-9 to color names
+                {
+                    "dp": 101,
+                    "name": "RGB Mode",
+                    "options": ["Aus", "Weiß", "Rot", "Grün", "Blau", "Gelb", "Lila", "Orange", "Cyan", "Grasgrün"],
+                    "options_map": {
+                        "Aus": 0,
+                        "Weiß": 1,
+                        "Rot": 2,
+                        "Grün": 3,
+                        "Blau": 4,
+                        "Gelb": 5,
+                        "Lila": 6,
+                        "Orange": 7,
+                        "Cyan": 8,
+                        "Grasgrün": 9,
+                    },
+                    "icon": "mdi:palette",
+                },
                 # Fan Speed select marked as advanced to avoid HomeKit showing both fan and select
-                {"dp": 10, "name": "Fan Speed", "options": ["off", "low", "middle", "high", "strong"], "advanced": True, "entity_category": "config"}
+                {
+                    "dp": 10,
+                    "name": "Fan Speed",
+                    "options": ["off", "low", "middle", "high", "strong"],
+                    "icon": "mdi:fan",
+                    "advanced": True,
+                    "entity_category": "config",
+                },
+                {
+                    "dp": 103,
+                    "name": "Color Temperature",
+                    "options": ["warm", "neutral", "cold"],
+                    "icon": "mdi:thermometer",
+                    "advanced": True,
+                },
             ],
             "number": [
                 # RGB Mode as number (backup, advanced) - use Light effects instead
-                {"dp": 101, "name": "RGB Mode", "min": 0, "max": 8, "step": 1, "icon": "mdi:palette", "advanced": True, "entity_category": "config"},
-                {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"}
+                {
+                    "dp": 101,
+                    "name": "RGB Mode",
+                    "min": 0,
+                    "max": 9,
+                    "step": 1,
+                    "icon": "mdi:palette",
+                    "advanced": True,
+                    "entity_category": "config",
+                },
+                {
+                    "dp": 13,
+                    "name": "Timer",
+                    "min": 0,
+                    "max": 60,
+                    "unit": UnitOfTime.MINUTES,
+                    "device_class": "duration",
+                    "icon": "mdi:timer",
+                },
+                {
+                    "dp": 5,
+                    "name": "Light Brightness",
+                    "min": 0,
+                    "max": 255,
+                    "step": 1,
+                    "icon": "mdi:brightness-6",
+                    "advanced": True,
+                },
+                {
+                    "dp": 102,
+                    "name": "RGB Brightness",
+                    "min": 0,
+                    "max": 255,
+                    "step": 1,
+                    "icon": "mdi:brightness-5",
+                    "advanced": True,
+                },
             ],
             "sensor": [
-                {"dp": 6, "name": "Filter Status", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"}
-            ]
-        }
+                {
+                    "dp": 6,
+                    "name": "Filter Status",
+                    "icon": "mdi:air-filter",
+                    "advanced": True,
+                    "entity_category": "diagnostic",
+                },
+                {
+                    "dp": 14,
+                    "name": "Filter Hours",
+                    "unit": "h",
+                    "device_class": "duration",
+                    "icon": "mdi:clock-outline",
+                    "advanced": True,
+                    "entity_category": "diagnostic",
+                },
+            ],
+        },
     },
-
     # KKT Kolbe SOLO HCM Hood - Based on ECCO HCM structure (verified via Things Data Model)
     # Model ID: edjszs (similar to ECCO HCM edjsx0)
     # Features: 9 fan speeds (0-9), RGB lighting, dual filter monitoring, timer
@@ -253,20 +493,20 @@ KNOWN_DEVICES = {
         "product_names": ["bgvbvjwomgbisd8x", "KKT Kolbe SOLO HCM"],
         "device_ids": ["bf34515c4ab6ec7f9axqy8"],
         "device_id_patterns": ["bf34515c4ab6ec7f9a"],
-        "platforms": ["fan", "light", "switch", "select", "number"],
+        "platforms": ["fan", "light", "switch", "sensor", "select", "number"],
         "data_points": {
-            1: "switch",              # Main power (ON/OFF)
-            4: "light",               # Main light on/off
-            6: "switch_lamp",         # RGB switch trigger
-            7: "switch_wash",         # Setting/Wash mode
-            102: "fan_speed",         # Fan speed (0-9)
-            103: "day",               # Carbon filter days remaining (0-250)
-            104: "switch_led_1",      # LED light (alternative to DP 4)
-            105: "countdown_1",       # Countdown timer (0-60 min)
-            106: "switch_led",        # Confirm
-            107: "colour_data",       # RGB color data (string, max 255)
-            108: "work_mode",         # RGB work mode (white/colour/scene/music)
-            109: "day_1",             # Metal filter days remaining (0-40)
+            1: "switch",  # Main power (ON/OFF)
+            4: "light",  # Main light on/off
+            6: "switch_lamp",  # RGB switch trigger
+            7: "switch_wash",  # Setting/Wash mode
+            102: "fan_speed",  # Fan speed (0-9)
+            103: "day",  # Carbon filter days remaining (0-250)
+            104: "switch_led_1",  # LED light (alternative to DP 4)
+            105: "countdown_1",  # Countdown timer (0-60 min)
+            106: "switch_led",  # Confirm
+            107: "colour_data",  # RGB color data (string, max 255)
+            108: "work_mode",  # RGB work mode (white/colour/scene/music)
+            109: "day_1",  # Metal filter days remaining (0-40)
         },
         "entities": {
             "fan": {
@@ -274,7 +514,7 @@ KNOWN_DEVICES = {
                 "speeds": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
                 "numeric": True,  # Use numeric mode instead of enum
                 "min": 0,
-                "max": 9
+                "max": 9,
             },
             "light": [
                 # Main light with RGB mode effects for HomeKit/Siri
@@ -287,7 +527,7 @@ KNOWN_DEVICES = {
                     "effect_numeric": False,
                     "effects": ["white", "colour", "scene", "music"],
                     "work_mode_dp": 108,
-                    "work_mode_default": "white"
+                    "work_mode_default": "white",
                 },
                 # LED Light as alternative (some SOLO HCM units respond to DP 104 instead of DP 4)
                 # Auto-Work-Mode: Sets work_mode to "white" before turning on light
@@ -296,31 +536,96 @@ KNOWN_DEVICES = {
                     "name": "LED Light",
                     "icon": "mdi:led-strip",
                     "work_mode_dp": 108,
-                    "work_mode_default": "white"
-                }
+                    "work_mode_default": "white",
+                },
             ],
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
-                # RGB light as switch
-                {"dp": 6, "name": "RGB Light", "device_class": "switch", "icon": "mdi:palette", "advanced": True, "entity_category": "config"},
-                {"dp": 7, "name": "Wash Mode", "device_class": "switch", "icon": "mdi:spray-bottle", "advanced": True, "entity_category": "config"},
-                # Note: Tuya calls this "Confirm" but it's actually a side light (red) on some units
-                {"dp": 106, "name": "Side Light", "device_class": "switch", "icon": "mdi:wall-sconce-flat", "advanced": True}
+                {
+                    "dp": 6,
+                    "name": "RGB Light",
+                    "device_class": "switch",
+                    "icon": "mdi:palette",
+                    "advanced": True,
+                    "entity_category": "config",
+                },
+                {
+                    "dp": 7,
+                    "name": "Wash Mode",
+                    "device_class": "switch",
+                    "icon": "mdi:spray-bottle",
+                    "advanced": True,
+                    "entity_category": "config",
+                },
+                {
+                    "dp": 106,
+                    "name": "Side Light",
+                    "device_class": "switch",
+                    "icon": "mdi:wall-sconce-flat",
+                    "advanced": True,
+                },
             ],
             "select": [
-                # RGB Mode as select (backup, advanced) - use Light effects instead
-                {"dp": 108, "name": "RGB Mode", "options": ["white", "colour", "scene", "music"], "icon": "mdi:palette", "advanced": True, "entity_category": "config"}
+                {
+                    "dp": 108,
+                    "name": "RGB Mode",
+                    "options": ["white", "colour", "scene", "music"],
+                    "icon": "mdi:palette",
+                    "advanced": True,
+                    "entity_category": "config",
+                }
             ],
             "number": [
-                # Fan Speed number marked as advanced to avoid HomeKit showing both fan and number
-                {"dp": 102, "name": "Fan Speed", "min": 0, "max": 9, "step": 1, "icon": "mdi:fan", "advanced": True, "entity_category": "config"},
-                {"dp": 105, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"},
-                {"dp": 103, "name": "Carbon Filter Remaining", "min": 0, "max": 250, "unit": "days", "icon": "mdi:air-filter", "entity_category": "diagnostic"},
-                {"dp": 109, "name": "Metal Filter Remaining", "min": 0, "max": 40, "unit": "days", "icon": "mdi:air-filter", "entity_category": "diagnostic"}
-            ]
-        }
+                {
+                    "dp": 102,
+                    "name": "Fan Speed",
+                    "min": 0,
+                    "max": 9,
+                    "step": 1,
+                    "icon": "mdi:fan",
+                    "advanced": True,
+                    "entity_category": "config",
+                },
+                {
+                    "dp": 105,
+                    "name": "Timer",
+                    "min": 0,
+                    "max": 60,
+                    "unit": UnitOfTime.MINUTES,
+                    "device_class": "duration",
+                    "icon": "mdi:timer",
+                },
+                {
+                    "dp": 103,
+                    "name": "Carbon Filter Remaining",
+                    "min": 0,
+                    "max": 250,
+                    "unit": "days",
+                    "icon": "mdi:air-filter",
+                    "entity_category": "diagnostic",
+                },
+                {
+                    "dp": 109,
+                    "name": "Metal Filter Remaining",
+                    "min": 0,
+                    "max": 40,
+                    "unit": "days",
+                    "icon": "mdi:air-filter",
+                    "entity_category": "diagnostic",
+                },
+            ],
+            "sensor": [
+                # colour_data (DP 107) - RGB color data string, shows current color when work_mode="colour"
+                {
+                    "dp": 107,
+                    "name": "RGB Color Data",
+                    "icon": "mdi:palette",
+                    "advanced": True,
+                    "entity_category": "diagnostic",
+                }
+            ],
+        },
     },
-
     # KKT Kolbe ECCO HCM Hood
     "ecco_hcm_hood": {
         "model_id": "edjsx0",
@@ -331,18 +636,18 @@ KNOWN_DEVICES = {
         "device_id_patterns": ["bfd0c94cb36bf4f28e"],
         "platforms": ["fan", "light", "switch", "sensor", "select", "number"],
         "data_points": {
-            1: "switch",              # Main power
-            4: "light",              # Main light on/off
-            6: "switch_lamp",        # RGB switch trigger
-            7: "switch_wash",        # Setting/Wash mode
-            102: "fan_speed",        # Fan speed (0-9)
-            103: "day",              # Carbon filter days (0-250)
-            104: "switch_led_1",     # LED light
-            105: "countdown_1",      # Countdown timer (0-60 min)
-            106: "switch_led",       # Confirm
-            107: "colour_data",      # RGB color data (string)
-            108: "work_mode",        # RGB work mode (white/colour/scene/music)
-            109: "day_1",            # Metal filter days (0-40)
+            1: "switch",  # Main power
+            4: "light",  # Main light on/off
+            6: "switch_lamp",  # RGB switch trigger
+            7: "switch_wash",  # Setting/Wash mode
+            102: "fan_speed",  # Fan speed (0-9)
+            103: "day",  # Carbon filter days (0-250)
+            104: "switch_led_1",  # LED light
+            105: "countdown_1",  # Countdown timer (0-60 min)
+            106: "switch_led",  # Confirm
+            107: "colour_data",  # RGB color data (string)
+            108: "work_mode",  # RGB work mode (white/colour/scene/music)
+            109: "day_1",  # Metal filter days (0-40)
         },
         "entities": {
             "fan": {
@@ -350,7 +655,7 @@ KNOWN_DEVICES = {
                 "speeds": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
                 "numeric": True,  # Use numeric mode instead of enum
                 "min": 0,
-                "max": 9
+                "max": 9,
             },
             "light": [
                 # Main light with RGB mode effects for HomeKit/Siri
@@ -363,7 +668,7 @@ KNOWN_DEVICES = {
                     "effect_numeric": False,
                     "effects": ["white", "colour", "scene", "music"],
                     "work_mode_dp": 108,
-                    "work_mode_default": "white"
+                    "work_mode_default": "white",
                 },
                 # LED Light as alternative (some units respond to DP 104 instead of DP 4)
                 # Auto-Work-Mode: Sets work_mode to "white" before turning on light
@@ -372,33 +677,241 @@ KNOWN_DEVICES = {
                     "name": "LED Light",
                     "icon": "mdi:led-strip",
                     "work_mode_dp": 108,
-                    "work_mode_default": "white"
-                }
+                    "work_mode_default": "white",
+                },
             ],
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
                 # RGB light as switch (use main Light entity for Siri)
-                {"dp": 6, "name": "RGB Light", "device_class": "switch", "icon": "mdi:palette", "advanced": True, "entity_category": "config"},
-                {"dp": 7, "name": "Wash Mode", "device_class": "switch", "icon": "mdi:spray-bottle", "advanced": True, "entity_category": "config"},
+                {
+                    "dp": 6,
+                    "name": "RGB Light",
+                    "device_class": "switch",
+                    "icon": "mdi:palette",
+                    "advanced": True,
+                    "entity_category": "config",
+                },
+                {
+                    "dp": 7,
+                    "name": "Wash Mode",
+                    "device_class": "switch",
+                    "icon": "mdi:spray-bottle",
+                    "advanced": True,
+                    "entity_category": "config",
+                },
                 # Note: Tuya calls this "Confirm" but it's actually a side light (red) on some units
-                {"dp": 106, "name": "Side Light", "device_class": "switch", "icon": "mdi:wall-sconce-flat", "advanced": True}
+                {
+                    "dp": 106,
+                    "name": "Side Light",
+                    "device_class": "switch",
+                    "icon": "mdi:wall-sconce-flat",
+                    "advanced": True,
+                },
             ],
             "select": [
                 # RGB Mode as select (backup, advanced) - use Light effects instead
-                {"dp": 108, "name": "RGB Mode", "options": ["white", "colour", "scene", "music"], "icon": "mdi:palette", "advanced": True, "entity_category": "config"}
+                {
+                    "dp": 108,
+                    "name": "RGB Mode",
+                    "options": ["white", "colour", "scene", "music"],
+                    "icon": "mdi:palette",
+                    "advanced": True,
+                    "entity_category": "config",
+                }
             ],
             "number": [
                 # Fan Speed number marked as advanced to avoid HomeKit showing both fan and number
-                {"dp": 102, "name": "Fan Speed", "min": 0, "max": 9, "step": 1, "icon": "mdi:fan", "advanced": True, "entity_category": "config"},
-                {"dp": 105, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"},
-                {"dp": 103, "name": "Carbon Filter Remaining", "min": 0, "max": 250, "unit": "days", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"},
-                {"dp": 109, "name": "Metal Filter Remaining", "min": 0, "max": 40, "unit": "days", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"}
+                {
+                    "dp": 102,
+                    "name": "Fan Speed",
+                    "min": 0,
+                    "max": 9,
+                    "step": 1,
+                    "icon": "mdi:fan",
+                    "advanced": True,
+                    "entity_category": "config",
+                },
+                {
+                    "dp": 105,
+                    "name": "Timer",
+                    "min": 0,
+                    "max": 60,
+                    "unit": UnitOfTime.MINUTES,
+                    "device_class": "duration",
+                    "icon": "mdi:timer",
+                },
+                {
+                    "dp": 103,
+                    "name": "Carbon Filter Remaining",
+                    "min": 0,
+                    "max": 250,
+                    "unit": "days",
+                    "icon": "mdi:air-filter",
+                    "advanced": True,
+                    "entity_category": "diagnostic",
+                },
+                {
+                    "dp": 109,
+                    "name": "Metal Filter Remaining",
+                    "min": 0,
+                    "max": 40,
+                    "unit": "days",
+                    "icon": "mdi:air-filter",
+                    "advanced": True,
+                    "entity_category": "diagnostic",
+                },
             ],
             "sensor": [
-            ]
-        }
+                # colour_data (DP 107) - RGB color data string, shows current color when work_mode="colour"
+                {
+                    "dp": 107,
+                    "name": "RGB Color Data",
+                    "icon": "mdi:palette",
+                    "advanced": True,
+                    "entity_category": "diagnostic",
+                }
+            ],
+        },
     },
-
+    # KKT Kolbe EASY HCM Hood - EASY9005SM (90cm), EASY909SHCM (90cm), EASY609SHCM (60cm)
+    # Same DP structure as SOLO/ECCO HCM family (DPs 1,4,6,7,102-109)
+    # 9 fan speeds (0-9), RGBW LED, dual filter monitoring, timer
+    # Tuya model_id and product_id are unknown - will be updated when users report
+    "easy_hcm_hood": {
+        "model_id": "easy_hcm",
+        "category": CATEGORY_HOOD,
+        "name": "KKT Kolbe EASY HCM Hood",
+        "product_names": ["KKT Kolbe EASY9005SM", "KKT Kolbe EASY909SHCM", "KKT Kolbe EASY609SHCM"],
+        "device_ids": [],
+        "device_id_patterns": [],
+        "platforms": ["fan", "light", "switch", "sensor", "select", "number"],
+        "data_points": {
+            1: "switch",  # Main power (ON/OFF)
+            4: "light",  # Main light on/off
+            6: "switch_lamp",  # RGB switch trigger
+            7: "switch_wash",  # Setting/Wash mode
+            102: "fan_speed",  # Fan speed (0-9)
+            103: "day",  # Carbon filter days remaining (0-250)
+            104: "switch_led_1",  # LED light (alternative to DP 4)
+            105: "countdown_1",  # Countdown timer (0-60 min)
+            106: "switch_led",  # Confirm/Side light
+            107: "colour_data",  # RGB color data (string, max 255)
+            108: "work_mode",  # RGB work mode (white/colour/scene/music)
+            109: "day_1",  # Metal filter days remaining (0-40)
+        },
+        "entities": {
+            "fan": {
+                "dp": 102,
+                "speeds": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
+                "numeric": True,
+                "min": 0,
+                "max": 9,
+            },
+            "light": [
+                {
+                    "dp": 4,
+                    "name": "Light",
+                    "icon": "mdi:lightbulb",
+                    "effect_dp": 108,
+                    "effect_numeric": False,
+                    "effects": ["white", "colour", "scene", "music"],
+                    "work_mode_dp": 108,
+                    "work_mode_default": "white",
+                },
+                {
+                    "dp": 104,
+                    "name": "LED Light",
+                    "icon": "mdi:led-strip",
+                    "work_mode_dp": 108,
+                    "work_mode_default": "white",
+                },
+            ],
+            "switch": [
+                {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
+                {
+                    "dp": 6,
+                    "name": "RGB Light",
+                    "device_class": "switch",
+                    "icon": "mdi:palette",
+                    "advanced": True,
+                    "entity_category": "config",
+                },
+                {
+                    "dp": 7,
+                    "name": "Wash Mode",
+                    "device_class": "switch",
+                    "icon": "mdi:spray-bottle",
+                    "advanced": True,
+                    "entity_category": "config",
+                },
+                {
+                    "dp": 106,
+                    "name": "Side Light",
+                    "device_class": "switch",
+                    "icon": "mdi:wall-sconce-flat",
+                    "advanced": True,
+                },
+            ],
+            "select": [
+                {
+                    "dp": 108,
+                    "name": "RGB Mode",
+                    "options": ["white", "colour", "scene", "music"],
+                    "icon": "mdi:palette",
+                    "advanced": True,
+                    "entity_category": "config",
+                }
+            ],
+            "number": [
+                {
+                    "dp": 102,
+                    "name": "Fan Speed",
+                    "min": 0,
+                    "max": 9,
+                    "step": 1,
+                    "icon": "mdi:fan",
+                    "advanced": True,
+                    "entity_category": "config",
+                },
+                {
+                    "dp": 105,
+                    "name": "Timer",
+                    "min": 0,
+                    "max": 60,
+                    "unit": UnitOfTime.MINUTES,
+                    "device_class": "duration",
+                    "icon": "mdi:timer",
+                },
+                {
+                    "dp": 103,
+                    "name": "Carbon Filter Remaining",
+                    "min": 0,
+                    "max": 250,
+                    "unit": "days",
+                    "icon": "mdi:air-filter",
+                    "entity_category": "diagnostic",
+                },
+                {
+                    "dp": 109,
+                    "name": "Metal Filter Remaining",
+                    "min": 0,
+                    "max": 40,
+                    "unit": "days",
+                    "icon": "mdi:air-filter",
+                    "entity_category": "diagnostic",
+                },
+            ],
+            "sensor": [
+                {
+                    "dp": 107,
+                    "name": "RGB Color Data",
+                    "icon": "mdi:palette",
+                    "advanced": True,
+                    "entity_category": "diagnostic",
+                }
+            ],
+        },
+    },
     # DEFAULT HOOD HERMES - Based on HERMES family for manual selection
     # Uses HERMES DPs with enum fan speed (off/low/middle/high/strong)
     "default_hood_hermes": {
@@ -410,54 +923,157 @@ KNOWN_DEVICES = {
         "device_id_patterns": [],
         "platforms": ["fan", "light", "switch", "sensor", "select", "number"],
         "data_points": {
-            1: "switch",              # Main power
-            4: "light",               # Light on/off
-            6: "switch_lamp",         # Filter cleaning reminder
-            10: "fan_speed_enum",     # Fan speed (enum)
-            13: "countdown",          # Timer
-            101: "RGB",               # RGB lighting modes (0-8)
-            2: "delay_switch",        # Delayed shutdown
-            5: "light_brightness",    # Light brightness (0-255)
-            14: "filter_hours",       # Filter usage hours
-            17: "eco_mode",           # Eco mode
+            1: "switch",  # Main power
+            4: "light",  # Light on/off
+            5: "light_brightness",  # Light brightness (0-255)
+            6: "switch_lamp",  # Filter cleaning reminder
+            10: "fan_speed_enum",  # Fan speed (enum)
+            13: "countdown",  # Timer
+            14: "filter_hours",  # Filter usage hours
+            15: "filter_reset",  # Reset filter counter
+            17: "eco_mode",  # Eco mode
+            2: "delay_switch",  # Delayed shutdown
+            101: "RGB",  # RGB lighting modes (0-9)
+            102: "rgb_brightness",  # RGB brightness (0-255)
+            103: "color_temp",  # Color temperature
         },
         "entities": {
             "fan": {
                 "dp": 10,  # fan_speed_enum
-                "speeds": ["off", "low", "middle", "high", "strong"]
+                "speeds": ["off", "low", "middle", "high", "strong"],
             },
             "light": [
                 {
                     "dp": 4,
                     "name": "Light",
                     "icon": "mdi:lightbulb",
+                    "brightness_dp": 5,
+                    "max_brightness": 255,
                     "effect_dp": 101,
                     "effect_numeric": True,
                     "effect_offset": 1,  # Device uses 0=off, 1=Weiß, 2=Rot, etc.
-                    "effects": ["Weiß", "Rot", "Grün", "Blau", "Gelb", "Lila", "Orange", "Cyan", "Grasgrün"]
+                    "effects": ["Weiß", "Rot", "Grün", "Blau", "Gelb", "Lila", "Orange", "Cyan", "Grasgrün"],
                 }
             ],
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
-                {"dp": 6, "name": "Filter Cleaning Reminder", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"},
-                {"dp": 2, "name": "Delayed Shutdown", "icon": "mdi:timer-off", "advanced": True, "entity_category": "config"},
-                {"dp": 17, "name": "Eco Mode", "icon": "mdi:leaf", "advanced": True, "entity_category": "config"}
+                {
+                    "dp": 6,
+                    "name": "Filter Cleaning Reminder",
+                    "icon": "mdi:air-filter",
+                    "advanced": True,
+                    "entity_category": "diagnostic",
+                },
+                {
+                    "dp": 15,
+                    "name": "Filter Reset",
+                    "icon": "mdi:air-filter-off",
+                    "advanced": True,
+                    "entity_category": "config",
+                },
+                {
+                    "dp": 2,
+                    "name": "Delayed Shutdown",
+                    "icon": "mdi:timer-off",
+                    "advanced": True,
+                    "entity_category": "config",
+                },
+                {"dp": 17, "name": "Eco Mode", "icon": "mdi:leaf", "advanced": True, "entity_category": "config"},
             ],
             "number": [
-                {"dp": 101, "name": "RGB Mode", "min": 0, "max": 8, "step": 1, "icon": "mdi:palette", "advanced": True, "entity_category": "config"},
-                {"dp": 13, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"},
-                {"dp": 5, "name": "Light Brightness", "min": 0, "max": 255, "step": 1, "icon": "mdi:brightness-6", "advanced": True}
+                {
+                    "dp": 101,
+                    "name": "RGB Mode",
+                    "min": 0,
+                    "max": 9,
+                    "step": 1,
+                    "icon": "mdi:palette",
+                    "advanced": True,
+                    "entity_category": "config",
+                },
+                {
+                    "dp": 13,
+                    "name": "Timer",
+                    "min": 0,
+                    "max": 60,
+                    "unit": UnitOfTime.MINUTES,
+                    "device_class": "duration",
+                    "icon": "mdi:timer",
+                },
+                {
+                    "dp": 5,
+                    "name": "Light Brightness",
+                    "min": 0,
+                    "max": 255,
+                    "step": 1,
+                    "icon": "mdi:brightness-6",
+                    "advanced": True,
+                },
+                {
+                    "dp": 102,
+                    "name": "RGB Brightness",
+                    "min": 0,
+                    "max": 255,
+                    "step": 1,
+                    "icon": "mdi:brightness-5",
+                    "advanced": True,
+                },
             ],
             "sensor": [
-                {"dp": 6, "name": "Filter Status", "icon": "mdi:air-filter", "advanced": True, "entity_category": "diagnostic"},
-                {"dp": 14, "name": "Filter Hours", "unit": "h", "device_class": "duration", "icon": "mdi:clock-outline", "advanced": True, "entity_category": "diagnostic"}
+                {
+                    "dp": 6,
+                    "name": "Filter Status",
+                    "icon": "mdi:air-filter",
+                    "advanced": True,
+                    "entity_category": "diagnostic",
+                },
+                {
+                    "dp": 14,
+                    "name": "Filter Hours",
+                    "unit": "h",
+                    "device_class": "duration",
+                    "icon": "mdi:clock-outline",
+                    "advanced": True,
+                    "entity_category": "diagnostic",
+                },
             ],
             "select": [
-                {"dp": 10, "name": "Fan Speed", "options": ["off", "low", "middle", "high", "strong"], "icon": "mdi:fan", "advanced": True, "entity_category": "config"}
-            ]
-        }
+                {
+                    "dp": 101,
+                    "name": "RGB Mode",
+                    "options": ["Aus", "Weiß", "Rot", "Grün", "Blau", "Gelb", "Lila", "Orange", "Cyan", "Grasgrün"],
+                    "options_map": {
+                        "Aus": 0,
+                        "Weiß": 1,
+                        "Rot": 2,
+                        "Grün": 3,
+                        "Blau": 4,
+                        "Gelb": 5,
+                        "Lila": 6,
+                        "Orange": 7,
+                        "Cyan": 8,
+                        "Grasgrün": 9,
+                    },
+                    "icon": "mdi:palette",
+                },
+                {
+                    "dp": 10,
+                    "name": "Fan Speed",
+                    "options": ["off", "low", "middle", "high", "strong"],
+                    "icon": "mdi:fan",
+                    "advanced": True,
+                    "entity_category": "config",
+                },
+                {
+                    "dp": 103,
+                    "name": "Color Temperature",
+                    "options": ["warm", "neutral", "cold"],
+                    "icon": "mdi:thermometer",
+                    "advanced": True,
+                },
+            ],
+        },
     },
-
     # DEFAULT HOOD HCM - Based on HCM family (SOLO/ECCO) as fallback
     # Uses HCM DPs which are the most complete configuration
     "default_hood": {
@@ -467,20 +1083,20 @@ KNOWN_DEVICES = {
         "product_names": ["default_hood"],
         "device_ids": [],  # Matches any device when selected manually
         "device_id_patterns": [],
-        "platforms": ["fan", "light", "switch", "select", "number"],
+        "platforms": ["fan", "light", "switch", "sensor", "select", "number"],
         "data_points": {
-            1: "switch",              # Main power (ON/OFF)
-            4: "light",               # Main light on/off
-            6: "switch_lamp",         # RGB switch trigger
-            7: "switch_wash",         # Setting/Wash mode
-            102: "fan_speed",         # Fan speed (0-9)
-            103: "day",               # Carbon filter days remaining (0-250)
-            104: "switch_led_1",      # LED light
-            105: "countdown_1",       # Countdown timer (0-60 min)
-            106: "switch_led",        # Confirm
-            107: "colour_data",       # RGB color data (string, max 255)
-            108: "work_mode",         # RGB work mode (white/colour/scene/music)
-            109: "day_1",             # Metal filter days remaining (0-40)
+            1: "switch",  # Main power (ON/OFF)
+            4: "light",  # Main light on/off
+            6: "switch_lamp",  # RGB switch trigger
+            7: "switch_wash",  # Setting/Wash mode
+            102: "fan_speed",  # Fan speed (0-9)
+            103: "day",  # Carbon filter days remaining (0-250)
+            104: "switch_led_1",  # LED light
+            105: "countdown_1",  # Countdown timer (0-60 min)
+            106: "switch_led",  # Confirm
+            107: "colour_data",  # RGB color data (string, max 255)
+            108: "work_mode",  # RGB work mode (white/colour/scene/music)
+            109: "day_1",  # Metal filter days remaining (0-40)
         },
         "entities": {
             "fan": {
@@ -488,7 +1104,7 @@ KNOWN_DEVICES = {
                 "speeds": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
                 "numeric": True,  # Use numeric mode instead of enum
                 "min": 0,
-                "max": 9
+                "max": 9,
             },
             "light": [
                 # Main light with RGB mode effects for HomeKit/Siri
@@ -498,28 +1114,106 @@ KNOWN_DEVICES = {
                     "icon": "mdi:lightbulb",
                     "effect_dp": 108,
                     "effect_numeric": False,
-                    "effects": ["white", "colour", "scene", "music"]
+                    "effects": ["white", "colour", "scene", "music"],
+                    "work_mode_dp": 108,
+                    "work_mode_default": "white",
                 }
             ],
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
-                {"dp": 6, "name": "RGB Light", "device_class": "switch", "icon": "mdi:palette", "advanced": True, "entity_category": "config"},
-                {"dp": 7, "name": "Wash Mode", "device_class": "switch", "icon": "mdi:spray-bottle", "advanced": True, "entity_category": "config"},
-                {"dp": 104, "name": "LED Light", "device_class": "switch", "icon": "mdi:led-strip", "advanced": True, "entity_category": "config"},
-                {"dp": 106, "name": "Confirm", "device_class": "switch", "icon": "mdi:check", "entity_category": "config", "advanced": True}
+                {
+                    "dp": 6,
+                    "name": "RGB Light",
+                    "device_class": "switch",
+                    "icon": "mdi:palette",
+                    "advanced": True,
+                    "entity_category": "config",
+                },
+                {
+                    "dp": 7,
+                    "name": "Wash Mode",
+                    "device_class": "switch",
+                    "icon": "mdi:spray-bottle",
+                    "advanced": True,
+                    "entity_category": "config",
+                },
+                {
+                    "dp": 104,
+                    "name": "LED Light",
+                    "device_class": "switch",
+                    "icon": "mdi:led-strip",
+                    "advanced": True,
+                    "entity_category": "config",
+                },
+                {
+                    "dp": 106,
+                    "name": "Confirm",
+                    "device_class": "switch",
+                    "icon": "mdi:check",
+                    "entity_category": "config",
+                    "advanced": True,
+                },
             ],
             "select": [
-                {"dp": 108, "name": "RGB Mode", "options": ["white", "colour", "scene", "music"], "icon": "mdi:palette", "advanced": True, "entity_category": "config"}
+                {
+                    "dp": 108,
+                    "name": "RGB Mode",
+                    "options": ["white", "colour", "scene", "music"],
+                    "icon": "mdi:palette",
+                    "advanced": True,
+                    "entity_category": "config",
+                }
             ],
             "number": [
-                {"dp": 102, "name": "Fan Speed", "min": 0, "max": 9, "step": 1, "icon": "mdi:fan", "advanced": True, "entity_category": "config"},
-                {"dp": 105, "name": "Timer", "min": 0, "max": 60, "unit": UnitOfTime.MINUTES, "device_class": "duration", "icon": "mdi:timer"},
-                {"dp": 103, "name": "Carbon Filter Remaining", "min": 0, "max": 250, "unit": "days", "icon": "mdi:air-filter", "entity_category": "diagnostic"},
-                {"dp": 109, "name": "Metal Filter Remaining", "min": 0, "max": 40, "unit": "days", "icon": "mdi:air-filter", "entity_category": "diagnostic"}
-            ]
-        }
+                {
+                    "dp": 102,
+                    "name": "Fan Speed",
+                    "min": 0,
+                    "max": 9,
+                    "step": 1,
+                    "icon": "mdi:fan",
+                    "advanced": True,
+                    "entity_category": "config",
+                },
+                {
+                    "dp": 105,
+                    "name": "Timer",
+                    "min": 0,
+                    "max": 60,
+                    "unit": UnitOfTime.MINUTES,
+                    "device_class": "duration",
+                    "icon": "mdi:timer",
+                },
+                {
+                    "dp": 103,
+                    "name": "Carbon Filter Remaining",
+                    "min": 0,
+                    "max": 250,
+                    "unit": "days",
+                    "icon": "mdi:air-filter",
+                    "entity_category": "diagnostic",
+                },
+                {
+                    "dp": 109,
+                    "name": "Metal Filter Remaining",
+                    "min": 0,
+                    "max": 40,
+                    "unit": "days",
+                    "icon": "mdi:air-filter",
+                    "entity_category": "diagnostic",
+                },
+            ],
+            "sensor": [
+                {
+                    "dp": 107,
+                    "name": "RGB Color Data",
+                    "icon": "mdi:palette",
+                    "advanced": True,
+                    "entity_category": "diagnostic",
+                }
+            ],
+        },
     },
-
     # IND7705HC Induction Cooktop - Complete configuration with bitfield decoding
     "ind7705hc_cooktop": {
         "model_id": "e1kc5q64",
@@ -534,43 +1228,218 @@ KNOWN_DEVICES = {
             "switch": [
                 {"dp": 101, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
                 {"dp": 102, "name": "Pause", "device_class": "switch", "icon": "mdi:pause"},
-                {"dp": 103, "name": "Child Lock", "device_class": "switch", "icon": "mdi:lock", "entity_category": "diagnostic"},
-                {"dp": 145, "name": "Senior Mode", "device_class": "switch", "icon": "mdi:account-supervisor", "entity_category": "diagnostic"},
-                {"dp": 108, "name": "Confirm Action", "device_class": "switch", "entity_category": "config", "icon": "mdi:check"}
+                {
+                    "dp": 103,
+                    "name": "Child Lock",
+                    "device_class": "switch",
+                    "icon": "mdi:lock",
+                    "entity_category": "diagnostic",
+                },
+                {
+                    "dp": 145,
+                    "name": "Senior Mode",
+                    "device_class": "switch",
+                    "icon": "mdi:account-supervisor",
+                    "entity_category": "diagnostic",
+                },
+                {
+                    "dp": 108,
+                    "name": "Confirm Action",
+                    "device_class": "switch",
+                    "entity_category": "config",
+                    "icon": "mdi:check",
+                },
             ],
             "number": [
                 # Global controls
                 {"dp": 104, "name": "Max Power Level", "min": 0, "max": 25, "mode": "slider", "icon": "mdi:flash"},
-                {"dp": 134, "name": "General Timer", "min": 0, "max": 99, "unit_of_measurement": UnitOfTime.MINUTES, "device_class": "duration", "mode": "slider", "icon": "mdi:timer"},
-
+                {
+                    "dp": 134,
+                    "name": "General Timer",
+                    "min": 0,
+                    "max": 99,
+                    "unit_of_measurement": UnitOfTime.MINUTES,
+                    "device_class": "duration",
+                    "mode": "slider",
+                    "icon": "mdi:timer",
+                },
                 # Zone-specific controls (bitfield-decoded)
-                {"dp": 162, "name": "Zone 1: Power Level", "min": 0, "max": 25, "zone": 1, "mode": "slider", "icon": "mdi:numeric-1-circle"},
-                {"dp": 162, "name": "Zone 2: Power Level", "min": 0, "max": 25, "zone": 2, "mode": "slider", "icon": "mdi:numeric-2-circle"},
-                {"dp": 162, "name": "Zone 3: Power Level", "min": 0, "max": 25, "zone": 3, "mode": "slider", "icon": "mdi:numeric-3-circle"},
-                {"dp": 162, "name": "Zone 4: Power Level", "min": 0, "max": 25, "zone": 4, "mode": "slider", "icon": "mdi:numeric-4-circle"},
-                {"dp": 162, "name": "Zone 5: Power Level", "min": 0, "max": 25, "zone": 5, "mode": "slider", "icon": "mdi:numeric-5-circle"},
-
-                {"dp": 167, "name": "Zone 1: Timer", "min": 0, "max": 255, "unit_of_measurement": UnitOfTime.MINUTES, "device_class": "duration", "zone": 1, "mode": "slider", "icon": "mdi:timer-outline", "advanced": True},
-                {"dp": 167, "name": "Zone 2: Timer", "min": 0, "max": 255, "unit_of_measurement": UnitOfTime.MINUTES, "device_class": "duration", "zone": 2, "mode": "slider", "icon": "mdi:timer-outline", "advanced": True},
-                {"dp": 167, "name": "Zone 3: Timer", "min": 0, "max": 255, "unit_of_measurement": UnitOfTime.MINUTES, "device_class": "duration", "zone": 3, "mode": "slider", "icon": "mdi:timer-outline", "advanced": True},
-                {"dp": 167, "name": "Zone 4: Timer", "min": 0, "max": 255, "unit_of_measurement": UnitOfTime.MINUTES, "device_class": "duration", "zone": 4, "mode": "slider", "icon": "mdi:timer-outline", "advanced": True},
-                {"dp": 167, "name": "Zone 5: Timer", "min": 0, "max": 255, "unit_of_measurement": UnitOfTime.MINUTES, "device_class": "duration", "zone": 5, "mode": "slider", "icon": "mdi:timer-outline", "advanced": True},
-
-                {"dp": 168, "name": "Zone 1: Target Temp", "min": 0, "max": 300, "unit_of_measurement": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 1, "mode": "slider", "icon": "mdi:thermometer", "advanced": True},
-                {"dp": 168, "name": "Zone 2: Target Temp", "min": 0, "max": 300, "unit_of_measurement": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 2, "mode": "slider", "icon": "mdi:thermometer", "advanced": True},
-                {"dp": 168, "name": "Zone 3: Target Temp", "min": 0, "max": 300, "unit_of_measurement": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 3, "mode": "slider", "icon": "mdi:thermometer", "advanced": True},
-                {"dp": 168, "name": "Zone 4: Target Temp", "min": 0, "max": 300, "unit_of_measurement": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 4, "mode": "slider", "icon": "mdi:thermometer", "advanced": True},
-                {"dp": 168, "name": "Zone 5: Target Temp", "min": 0, "max": 300, "unit_of_measurement": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 5, "mode": "slider", "icon": "mdi:thermometer", "advanced": True}
+                {
+                    "dp": 162,
+                    "name": "Zone 1: Power Level",
+                    "min": 0,
+                    "max": 25,
+                    "zone": 1,
+                    "mode": "slider",
+                    "icon": "mdi:numeric-1-circle",
+                },
+                {
+                    "dp": 162,
+                    "name": "Zone 2: Power Level",
+                    "min": 0,
+                    "max": 25,
+                    "zone": 2,
+                    "mode": "slider",
+                    "icon": "mdi:numeric-2-circle",
+                },
+                {
+                    "dp": 162,
+                    "name": "Zone 3: Power Level",
+                    "min": 0,
+                    "max": 25,
+                    "zone": 3,
+                    "mode": "slider",
+                    "icon": "mdi:numeric-3-circle",
+                },
+                {
+                    "dp": 162,
+                    "name": "Zone 4: Power Level",
+                    "min": 0,
+                    "max": 25,
+                    "zone": 4,
+                    "mode": "slider",
+                    "icon": "mdi:numeric-4-circle",
+                },
+                {
+                    "dp": 162,
+                    "name": "Zone 5: Power Level",
+                    "min": 0,
+                    "max": 25,
+                    "zone": 5,
+                    "mode": "slider",
+                    "icon": "mdi:numeric-5-circle",
+                },
+                {
+                    "dp": 167,
+                    "name": "Zone 1: Timer",
+                    "min": 0,
+                    "max": 255,
+                    "unit_of_measurement": UnitOfTime.MINUTES,
+                    "device_class": "duration",
+                    "zone": 1,
+                    "mode": "slider",
+                    "icon": "mdi:timer-outline",
+                    "advanced": True,
+                },
+                {
+                    "dp": 167,
+                    "name": "Zone 2: Timer",
+                    "min": 0,
+                    "max": 255,
+                    "unit_of_measurement": UnitOfTime.MINUTES,
+                    "device_class": "duration",
+                    "zone": 2,
+                    "mode": "slider",
+                    "icon": "mdi:timer-outline",
+                    "advanced": True,
+                },
+                {
+                    "dp": 167,
+                    "name": "Zone 3: Timer",
+                    "min": 0,
+                    "max": 255,
+                    "unit_of_measurement": UnitOfTime.MINUTES,
+                    "device_class": "duration",
+                    "zone": 3,
+                    "mode": "slider",
+                    "icon": "mdi:timer-outline",
+                    "advanced": True,
+                },
+                {
+                    "dp": 167,
+                    "name": "Zone 4: Timer",
+                    "min": 0,
+                    "max": 255,
+                    "unit_of_measurement": UnitOfTime.MINUTES,
+                    "device_class": "duration",
+                    "zone": 4,
+                    "mode": "slider",
+                    "icon": "mdi:timer-outline",
+                    "advanced": True,
+                },
+                {
+                    "dp": 167,
+                    "name": "Zone 5: Timer",
+                    "min": 0,
+                    "max": 255,
+                    "unit_of_measurement": UnitOfTime.MINUTES,
+                    "device_class": "duration",
+                    "zone": 5,
+                    "mode": "slider",
+                    "icon": "mdi:timer-outline",
+                    "advanced": True,
+                },
+                # Core Temperature Probe (optional accessory - only works when probe is connected)
+                # Note: DP 168/169 are NOT zone temperatures but for the meat probe accessory
+                {
+                    "dp": 168,
+                    "name": "Core Probe: Target Temp",
+                    "min": 0,
+                    "max": 300,
+                    "unit_of_measurement": UnitOfTemperature.CELSIUS,
+                    "device_class": "temperature",
+                    "mode": "slider",
+                    "icon": "mdi:thermometer-probe",
+                    "advanced": True,
+                    "entity_category": "config",
+                },
             ],
             "select": [
-                {"dp": 148, "name": "Zone 1: Quick Level", "options": QUICK_LEVELS, "icon": "mdi:numeric-1-circle-outline", "advanced": True},
-                {"dp": 149, "name": "Zone 2: Quick Level", "options": QUICK_LEVELS, "icon": "mdi:numeric-2-circle-outline", "advanced": True},
-                {"dp": 150, "name": "Zone 3: Quick Level", "options": QUICK_LEVELS, "icon": "mdi:numeric-3-circle-outline", "advanced": True},
-                {"dp": 151, "name": "Zone 4: Quick Level", "options": QUICK_LEVELS, "icon": "mdi:numeric-4-circle-outline", "advanced": True},
-                {"dp": 152, "name": "Zone 5: Quick Level", "options": QUICK_LEVELS, "icon": "mdi:numeric-5-circle-outline", "advanced": True},
-                {"dp": 153, "name": "Save Zone Level", "options": ["save_hob1", "save_hob2", "save_hob3", "save_hob4", "save_hob5"], "entity_category": "config", "icon": "mdi:content-save"},
-                {"dp": 154, "name": "Set Zone Level", "options": ["set_hob1", "set_hob2", "set_hob3", "set_hob4", "set_hob5"], "entity_category": "config", "icon": "mdi:cog"},
-                {"dp": 155, "name": "Power Limit", "options": ["power_limit_1", "power_limit_2", "power_limit_3", "power_limit_4", "power_limit_5"], "icon": "mdi:flash-triangle"}
+                {
+                    "dp": 148,
+                    "name": "Zone 1: Quick Level",
+                    "options": QUICK_LEVELS,
+                    "icon": "mdi:numeric-1-circle-outline",
+                    "advanced": True,
+                },
+                {
+                    "dp": 149,
+                    "name": "Zone 2: Quick Level",
+                    "options": QUICK_LEVELS,
+                    "icon": "mdi:numeric-2-circle-outline",
+                    "advanced": True,
+                },
+                {
+                    "dp": 150,
+                    "name": "Zone 3: Quick Level",
+                    "options": QUICK_LEVELS,
+                    "icon": "mdi:numeric-3-circle-outline",
+                    "advanced": True,
+                },
+                {
+                    "dp": 151,
+                    "name": "Zone 4: Quick Level",
+                    "options": QUICK_LEVELS,
+                    "icon": "mdi:numeric-4-circle-outline",
+                    "advanced": True,
+                },
+                {
+                    "dp": 152,
+                    "name": "Zone 5: Quick Level",
+                    "options": QUICK_LEVELS,
+                    "icon": "mdi:numeric-5-circle-outline",
+                    "advanced": True,
+                },
+                {
+                    "dp": 153,
+                    "name": "Save Zone Level",
+                    "options": ["save_hob1", "save_hob2", "save_hob3", "save_hob4", "save_hob5"],
+                    "entity_category": "config",
+                    "icon": "mdi:content-save",
+                },
+                {
+                    "dp": 154,
+                    "name": "Set Zone Level",
+                    "options": ["set_hob1", "set_hob2", "set_hob3", "set_hob4", "set_hob5"],
+                    "entity_category": "config",
+                    "icon": "mdi:cog",
+                },
+                {
+                    "dp": 155,
+                    "name": "Power Limit",
+                    "options": ["power_limit_1", "power_limit_2", "power_limit_3", "power_limit_4", "power_limit_5"],
+                    "icon": "mdi:flash-triangle",
+                },
             ],
             "sensor": [
                 # === CALCULATED SENSORS (für Automationen) ===
@@ -582,7 +1451,7 @@ KNOWN_DEVICES = {
                     "zones_dp": 162,
                     "num_zones": 5,
                     "watts_per_level": 100,
-                    "icon": "mdi:lightning-bolt"
+                    "icon": "mdi:lightning-bolt",
                 },
                 # Summe aller Zonen-Levels (0-125)
                 {
@@ -591,7 +1460,7 @@ KNOWN_DEVICES = {
                     "sensor_type": "total_level",
                     "zones_dp": 162,
                     "num_zones": 5,
-                    "icon": "mdi:gauge"
+                    "icon": "mdi:gauge",
                 },
                 # Anzahl aktiver Zonen (0-5)
                 {
@@ -600,56 +1469,321 @@ KNOWN_DEVICES = {
                     "sensor_type": "active_zones",
                     "zones_dp": 162,
                     "num_zones": 5,
-                    "icon": "mdi:stove"
+                    "icon": "mdi:stove",
                 },
-
-                # === ZONE TEMPERATURE SENSORS (bitfield-decoded) ===
-                {"dp": 169, "name": "Zone 1: Current Temp", "unit_of_measurement": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 1, "icon": "mdi:thermometer"},
-                {"dp": 169, "name": "Zone 2: Current Temp", "unit_of_measurement": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 2, "icon": "mdi:thermometer"},
-                {"dp": 169, "name": "Zone 3: Current Temp", "unit_of_measurement": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 3, "icon": "mdi:thermometer"},
-                {"dp": 169, "name": "Zone 4: Current Temp", "unit_of_measurement": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 4, "icon": "mdi:thermometer"},
-                {"dp": 169, "name": "Zone 5: Current Temp", "unit_of_measurement": UnitOfTemperature.CELSIUS, "device_class": "temperature", "zone": 5, "icon": "mdi:thermometer"}
+                # === CORE TEMPERATURE PROBE (optional accessory) ===
+                # Note: DP 169 is NOT zone temperature but the meat probe reading
+                # This sensor only shows data when a core temperature probe is connected
+                {
+                    "dp": 169,
+                    "name": "Core Probe: Temperature",
+                    "unit_of_measurement": UnitOfTemperature.CELSIUS,
+                    "device_class": "temperature",
+                    "icon": "mdi:thermometer-probe",
+                    "advanced": True,
+                },
+                # === CHEF FUNCTION LEVELS (DP 106 bitfield, 8 bits per zone) ===
+                {
+                    "dp": 106,
+                    "name": "Zone 1: Chef Level",
+                    "zone": 1,
+                    "icon": "mdi:chef-hat",
+                    "advanced": True,
+                    "entity_category": "diagnostic",
+                },
+                {
+                    "dp": 106,
+                    "name": "Zone 2: Chef Level",
+                    "zone": 2,
+                    "icon": "mdi:chef-hat",
+                    "advanced": True,
+                    "entity_category": "diagnostic",
+                },
+                {
+                    "dp": 106,
+                    "name": "Zone 3: Chef Level",
+                    "zone": 3,
+                    "icon": "mdi:chef-hat",
+                    "advanced": True,
+                    "entity_category": "diagnostic",
+                },
+                {
+                    "dp": 106,
+                    "name": "Zone 4: Chef Level",
+                    "zone": 4,
+                    "icon": "mdi:chef-hat",
+                    "advanced": True,
+                    "entity_category": "diagnostic",
+                },
+                {
+                    "dp": 106,
+                    "name": "Zone 5: Chef Level",
+                    "zone": 5,
+                    "icon": "mdi:chef-hat",
+                    "advanced": True,
+                    "entity_category": "diagnostic",
+                },
+                # === BBQ TIMER (DP 107 bitfield, 8 bits per zone - Left/Right) ===
+                {
+                    "dp": 107,
+                    "name": "BBQ Timer Left",
+                    "zone": 1,
+                    "unit_of_measurement": UnitOfTime.MINUTES,
+                    "device_class": "duration",
+                    "icon": "mdi:grill",
+                    "advanced": True,
+                    "entity_category": "diagnostic",
+                },
+                {
+                    "dp": 107,
+                    "name": "BBQ Timer Right",
+                    "zone": 2,
+                    "unit_of_measurement": UnitOfTime.MINUTES,
+                    "device_class": "duration",
+                    "icon": "mdi:grill",
+                    "advanced": True,
+                    "entity_category": "diagnostic",
+                },
             ],
             "binary_sensor": [
                 # Zone error status (bitfield-decoded) - Diagnostic
-                {"dp": 105, "name": "Zone 1: Error", "device_class": "problem", "zone": 1, "icon": "mdi:alert-circle", "entity_category": "diagnostic"},
-                {"dp": 105, "name": "Zone 2: Error", "device_class": "problem", "zone": 2, "icon": "mdi:alert-circle", "entity_category": "diagnostic"},
-                {"dp": 105, "name": "Zone 3: Error", "device_class": "problem", "zone": 3, "icon": "mdi:alert-circle", "entity_category": "diagnostic"},
-                {"dp": 105, "name": "Zone 4: Error", "device_class": "problem", "zone": 4, "icon": "mdi:alert-circle", "entity_category": "diagnostic"},
-                {"dp": 105, "name": "Zone 5: Error", "device_class": "problem", "zone": 5, "icon": "mdi:alert-circle", "entity_category": "diagnostic"},
-
+                {
+                    "dp": 105,
+                    "name": "Zone 1: Error",
+                    "device_class": "problem",
+                    "zone": 1,
+                    "icon": "mdi:alert-circle",
+                    "entity_category": "diagnostic",
+                },
+                {
+                    "dp": 105,
+                    "name": "Zone 2: Error",
+                    "device_class": "problem",
+                    "zone": 2,
+                    "icon": "mdi:alert-circle",
+                    "entity_category": "diagnostic",
+                },
+                {
+                    "dp": 105,
+                    "name": "Zone 3: Error",
+                    "device_class": "problem",
+                    "zone": 3,
+                    "icon": "mdi:alert-circle",
+                    "entity_category": "diagnostic",
+                },
+                {
+                    "dp": 105,
+                    "name": "Zone 4: Error",
+                    "device_class": "problem",
+                    "zone": 4,
+                    "icon": "mdi:alert-circle",
+                    "entity_category": "diagnostic",
+                },
+                {
+                    "dp": 105,
+                    "name": "Zone 5: Error",
+                    "device_class": "problem",
+                    "zone": 5,
+                    "icon": "mdi:alert-circle",
+                    "entity_category": "diagnostic",
+                },
                 # Zone selection status (bitfield-decoded) - Diagnostic
-                {"dp": 161, "name": "Zone 1: Selected", "device_class": "running", "zone": 1, "icon": "mdi:radiobox-marked", "entity_category": "diagnostic"},
-                {"dp": 161, "name": "Zone 2: Selected", "device_class": "running", "zone": 2, "icon": "mdi:radiobox-marked", "entity_category": "diagnostic"},
-                {"dp": 161, "name": "Zone 3: Selected", "device_class": "running", "zone": 3, "icon": "mdi:radiobox-marked", "entity_category": "diagnostic"},
-                {"dp": 161, "name": "Zone 4: Selected", "device_class": "running", "zone": 4, "icon": "mdi:radiobox-marked", "entity_category": "diagnostic"},
-                {"dp": 161, "name": "Zone 5: Selected", "device_class": "running", "zone": 5, "icon": "mdi:radiobox-marked", "entity_category": "diagnostic"},
-
+                {
+                    "dp": 161,
+                    "name": "Zone 1: Selected",
+                    "device_class": "running",
+                    "zone": 1,
+                    "icon": "mdi:radiobox-marked",
+                    "entity_category": "diagnostic",
+                },
+                {
+                    "dp": 161,
+                    "name": "Zone 2: Selected",
+                    "device_class": "running",
+                    "zone": 2,
+                    "icon": "mdi:radiobox-marked",
+                    "entity_category": "diagnostic",
+                },
+                {
+                    "dp": 161,
+                    "name": "Zone 3: Selected",
+                    "device_class": "running",
+                    "zone": 3,
+                    "icon": "mdi:radiobox-marked",
+                    "entity_category": "diagnostic",
+                },
+                {
+                    "dp": 161,
+                    "name": "Zone 4: Selected",
+                    "device_class": "running",
+                    "zone": 4,
+                    "icon": "mdi:radiobox-marked",
+                    "entity_category": "diagnostic",
+                },
+                {
+                    "dp": 161,
+                    "name": "Zone 5: Selected",
+                    "device_class": "running",
+                    "zone": 5,
+                    "icon": "mdi:radiobox-marked",
+                    "entity_category": "diagnostic",
+                },
                 # Zone boost status (bitfield-decoded)
                 {"dp": 163, "name": "Zone 1: Boost Active", "device_class": "running", "zone": 1, "icon": "mdi:flash"},
                 {"dp": 163, "name": "Zone 2: Boost Active", "device_class": "running", "zone": 2, "icon": "mdi:flash"},
                 {"dp": 163, "name": "Zone 3: Boost Active", "device_class": "running", "zone": 3, "icon": "mdi:flash"},
                 {"dp": 163, "name": "Zone 4: Boost Active", "device_class": "running", "zone": 4, "icon": "mdi:flash"},
                 {"dp": 163, "name": "Zone 5: Boost Active", "device_class": "running", "zone": 5, "icon": "mdi:flash"},
-
                 # Zone keep warm status (bitfield-decoded)
-                {"dp": 164, "name": "Zone 1: Keep Warm", "device_class": "running", "zone": 1, "icon": "mdi:thermometer-low"},
-                {"dp": 164, "name": "Zone 2: Keep Warm", "device_class": "running", "zone": 2, "icon": "mdi:thermometer-low"},
-                {"dp": 164, "name": "Zone 3: Keep Warm", "device_class": "running", "zone": 3, "icon": "mdi:thermometer-low"},
-                {"dp": 164, "name": "Zone 4: Keep Warm", "device_class": "running", "zone": 4, "icon": "mdi:thermometer-low"},
-                {"dp": 164, "name": "Zone 5: Keep Warm", "device_class": "running", "zone": 5, "icon": "mdi:thermometer-low"},
-
+                {
+                    "dp": 164,
+                    "name": "Zone 1: Keep Warm",
+                    "device_class": "running",
+                    "zone": 1,
+                    "icon": "mdi:thermometer-low",
+                },
+                {
+                    "dp": 164,
+                    "name": "Zone 2: Keep Warm",
+                    "device_class": "running",
+                    "zone": 2,
+                    "icon": "mdi:thermometer-low",
+                },
+                {
+                    "dp": 164,
+                    "name": "Zone 3: Keep Warm",
+                    "device_class": "running",
+                    "zone": 3,
+                    "icon": "mdi:thermometer-low",
+                },
+                {
+                    "dp": 164,
+                    "name": "Zone 4: Keep Warm",
+                    "device_class": "running",
+                    "zone": 4,
+                    "icon": "mdi:thermometer-low",
+                },
+                {
+                    "dp": 164,
+                    "name": "Zone 5: Keep Warm",
+                    "device_class": "running",
+                    "zone": 5,
+                    "icon": "mdi:thermometer-low",
+                },
                 # Flex zone controls (special zones) - Advanced
-                {"dp": 165, "name": "Flex Zone Left", "device_class": "running", "zone": 1, "icon": "mdi:arrow-expand-horizontal", "advanced": True},
-                {"dp": 165, "name": "Flex Zone Right", "device_class": "running", "zone": 2, "icon": "mdi:arrow-expand-horizontal", "advanced": True},
-
+                {
+                    "dp": 165,
+                    "name": "Flex Zone Left",
+                    "device_class": "running",
+                    "zone": 1,
+                    "icon": "mdi:arrow-expand-horizontal",
+                    "advanced": True,
+                },
+                {
+                    "dp": 165,
+                    "name": "Flex Zone Right",
+                    "device_class": "running",
+                    "zone": 2,
+                    "icon": "mdi:arrow-expand-horizontal",
+                    "advanced": True,
+                },
                 # BBQ mode controls (special zones) - Advanced
-                {"dp": 166, "name": "BBQ Mode Left", "device_class": "running", "zone": 1, "icon": "mdi:grill", "advanced": True},
-                {"dp": 166, "name": "BBQ Mode Right", "device_class": "running", "zone": 2, "icon": "mdi:grill", "advanced": True}
-            ]
-        }
-    }
+                {
+                    "dp": 166,
+                    "name": "BBQ Mode Left",
+                    "device_class": "running",
+                    "zone": 1,
+                    "icon": "mdi:grill",
+                    "advanced": True,
+                },
+                {
+                    "dp": 166,
+                    "name": "BBQ Mode Right",
+                    "device_class": "running",
+                    "zone": 2,
+                    "icon": "mdi:grill",
+                    "advanced": True,
+                },
+            ],
+        },
+    },
+    # === OVEN (Backofen) - UNVERIFIED STUB ===
+    # KKT Kolbe Ovens: EB8313HC, EB8317HC, EB8313ED
+    # These ovens use Tuya/SmartLife WiFi but actual DPs have not been confirmed.
+    # All DP IDs and entity mappings are ESTIMATES based on Tuya conventions.
+    # This entry exists so oven owners can test and report correct DPs.
+    # See: https://github.com/moag1000/HA-kkt-kolbe-integration/issues (new_device template)
+    "oven_generic": {
+        "model_id": "oven_generic",
+        "category": CATEGORY_OVEN,
+        "name": "KKT Kolbe Oven (unverified)",
+        "product_names": ["KKT Kolbe EB8313HC", "KKT Kolbe EB8317HC", "KKT Kolbe EB8313ED"],
+        "device_ids": [],
+        "device_id_patterns": [],
+        "platforms": ["switch", "number", "sensor", "select"],
+        "data_points": OVEN_DPS,
+        "entities": {
+            "switch": [
+                {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
+                {
+                    "dp": 11,
+                    "name": "Child Lock",
+                    "device_class": "switch",
+                    "icon": "mdi:lock",
+                    "advanced": True,
+                    "entity_category": "config",
+                },
+                {"dp": 12, "name": "Oven Light", "device_class": "switch", "icon": "mdi:lightbulb", "advanced": True},
+            ],
+            "number": [
+                {
+                    "dp": 2,
+                    "name": "Target Temperature",
+                    "min": 30,
+                    "max": 300,
+                    "unit": UnitOfTemperature.CELSIUS,
+                    "device_class": "temperature",
+                    "icon": "mdi:thermometer",
+                },
+                {
+                    "dp": 5,
+                    "name": "Timer",
+                    "min": 0,
+                    "max": 720,
+                    "unit": UnitOfTime.MINUTES,
+                    "device_class": "duration",
+                    "icon": "mdi:timer",
+                },
+            ],
+            "sensor": [
+                {
+                    "dp": 3,
+                    "name": "Current Temperature",
+                    "unit_of_measurement": UnitOfTemperature.CELSIUS,
+                    "device_class": "temperature",
+                    "icon": "mdi:thermometer",
+                },
+                {
+                    "dp": 6,
+                    "name": "Time Remaining",
+                    "unit_of_measurement": UnitOfTime.MINUTES,
+                    "device_class": "duration",
+                    "icon": "mdi:timer-sand",
+                },
+                {"dp": 7, "name": "Status", "icon": "mdi:stove"},
+            ],
+            "select": [
+                {
+                    "dp": 4,
+                    "name": "Cooking Mode",
+                    "options": ["conventional", "top_bottom_heat", "fan_assisted", "grill", "pizza", "defrost"],
+                    "icon": "mdi:chef-hat",
+                },
+            ],
+        },
+    },
 }
+
 
 def find_device_by_product_name(product_name: str) -> dict | None:
     """Find device in central database by product name."""
@@ -657,6 +1791,7 @@ def find_device_by_product_name(product_name: str) -> dict | None:
         if product_name in device_info["product_names"]:
             return device_info
     return None
+
 
 def find_device_by_device_id(device_id: str) -> dict | None:
     """Find device in central database by device ID."""
@@ -670,14 +1805,18 @@ def find_device_by_device_id(device_id: str) -> dict | None:
                 return device_info
     return None
 
+
 def get_device_dps(category: str) -> dict:
     """Get data points for device category."""
     if category == CATEGORY_HOOD:
         return HOOD_DPS
     elif category == CATEGORY_COOKTOP:
         return COOKTOP_DPS
+    elif category == CATEGORY_OVEN:
+        return OVEN_DPS
     else:
         return {}
+
 
 def get_device_info_by_device_id(device_id: str) -> dict | None:
     """Get device information based on device ID (for manual setup)."""
@@ -688,9 +1827,10 @@ def get_device_info_by_device_id(device_id: str) -> dict | None:
             "model_id": device_info["model_id"],
             "category": device_info["category"],
             "name": device_info["name"],
-            "product_name": product_names[0] if isinstance(product_names, list) and product_names else ""
+            "product_name": product_names[0] if isinstance(product_names, list) and product_names else "",
         }
     return None
+
 
 def get_product_name_by_device_id(device_id: str) -> str | None:
     """Get product name by device ID - for automatic device type detection."""
@@ -700,6 +1840,7 @@ def get_product_name_by_device_id(device_id: str) -> str | None:
         if isinstance(product_names, list) and product_names:
             return str(product_names[0])  # Return the primary product name
     return None
+
 
 def auto_detect_device_config(device_id: str | None = None, provided_product_name: str | None = None) -> dict | None:
     """Auto-detect device configuration from available information."""
@@ -724,10 +1865,11 @@ def auto_detect_device_config(device_id: str | None = None, provided_product_nam
                 "category": device_info["category"],
                 "name": device_info["name"],
                 "platforms": device_info["platforms"],
-                "detected_method": "product_name" if provided_product_name else "device_id"
+                "detected_method": "product_name" if provided_product_name else "device_id",
             }
 
     return None
+
 
 def get_device_info_by_product_name(product_name: str) -> dict:
     """Get device information based on product name from discovery.
@@ -740,11 +1882,7 @@ def get_device_info_by_product_name(product_name: str) -> dict:
     # Method 1: Check if product_name is a device key in KNOWN_DEVICES
     if product_name in KNOWN_DEVICES:
         device_info = KNOWN_DEVICES[product_name]
-        return {
-            "model_id": device_info["model_id"],
-            "category": device_info["category"],
-            "name": device_info["name"]
-        }
+        return {"model_id": device_info["model_id"], "category": device_info["category"], "name": device_info["name"]}
 
     # Method 2: Check central database by Tuya product ID
     found_device_info = find_device_by_product_name(product_name)
@@ -752,50 +1890,27 @@ def get_device_info_by_product_name(product_name: str) -> dict:
         return {
             "model_id": found_device_info["model_id"],
             "category": found_device_info["category"],
-            "name": found_device_info["name"]
+            "name": found_device_info["name"],
         }
 
     # Handle manual setup device types
     if product_name == "manual_hood":
-        return {
-            "model_id": "manual_hood",
-            "category": CATEGORY_HOOD,
-            "name": "KKT Hood (Manual Setup)"
-        }
+        return {"model_id": "manual_hood", "category": CATEGORY_HOOD, "name": "KKT Hood (Manual Setup)"}
     elif product_name == "manual_cooktop":
-        return {
-            "model_id": "manual_cooktop",
-            "category": CATEGORY_COOKTOP,
-            "name": "KKT Cooktop (Manual Setup)"
-        }
+        return {"model_id": "manual_cooktop", "category": CATEGORY_COOKTOP, "name": "KKT Cooktop (Manual Setup)"}
     elif product_name == "default_hood":
         # Default Hood - Generic range hood with standard DPs
-        return {
-            "model_id": "default_hood",
-            "category": CATEGORY_HOOD,
-            "name": "Default Hood (Generic)"
-        }
+        return {"model_id": "default_hood", "category": CATEGORY_HOOD, "name": "Default Hood (Generic)"}
 
     # Fallback: Try to detect by known patterns
     if "hermes" in product_name.lower() or "style" in product_name.lower():
-        return {
-            "model_id": "unknown_hood",
-            "category": CATEGORY_HOOD,
-            "name": f"KKT Hood ({product_name})"
-        }
+        return {"model_id": "unknown_hood", "category": CATEGORY_HOOD, "name": f"KKT Hood ({product_name})"}
     elif "ind" in product_name.lower():
-        return {
-            "model_id": "unknown_cooktop",
-            "category": CATEGORY_COOKTOP,
-            "name": f"KKT Cooktop ({product_name})"
-        }
+        return {"model_id": "unknown_cooktop", "category": CATEGORY_COOKTOP, "name": f"KKT Cooktop ({product_name})"}
 
     # Generic fallback
-    return {
-        "model_id": "unknown",
-        "category": "unknown",
-        "name": f"KKT Device ({product_name})"
-    }
+    return {"model_id": "unknown", "category": "unknown", "name": f"KKT Device ({product_name})"}
+
 
 def get_device_platforms(category: str) -> list[str]:
     """Get required platforms for device category."""
@@ -815,6 +1930,7 @@ def get_device_platforms(category: str) -> list[str]:
         # Generic fallback: Load all platforms for unknown devices
         # This ensures manual setup always works
         return ["fan", "light", "switch", "sensor", "select", "number", "binary_sensor"]
+
 
 def get_device_platforms_by_product_name(product_name: str) -> list[str]:
     """Get platforms directly by product name (most efficient).
@@ -840,6 +1956,7 @@ def get_device_platforms_by_product_name(product_name: str) -> list[str]:
     device_type_info = get_device_info_by_product_name(product_name)
     category = device_type_info.get("category", "unknown") if isinstance(device_type_info, dict) else "unknown"
     return get_device_platforms(str(category))
+
 
 def get_device_entities(product_name: str, platform: str) -> list:
     """Get entity configurations for a specific product and platform.
@@ -868,10 +1985,12 @@ def get_device_entities(product_name: str, platform: str) -> list:
                 return entity_config
     return []
 
+
 def get_device_entity_config(product_name: str, platform: str) -> dict:
     """Get the first entity config for a platform (for single-entity platforms like fan, light)."""
     entities = get_device_entities(product_name, platform)
     return entities[0] if entities else {}
+
 
 def get_known_device_choices() -> dict:
     """Get user-friendly device choices for manual setup."""
@@ -883,13 +2002,12 @@ def get_known_device_choices() -> dict:
         choices[device_key] = device_name
 
     # Add fallback options
-    choices.update({
-        "generic_hood": "Hood (Generic)",
-        "generic_cooktop": "Cooktop (Generic)",
-        "unknown": "Device type not listed"
-    })
+    choices.update(
+        {"generic_hood": "Hood (Generic)", "generic_cooktop": "Cooktop (Generic)", "unknown": "Device type not listed"}
+    )
 
     return choices
+
 
 def get_product_name_from_device_choice(device_choice: str) -> str:
     """Convert user device choice to internal product name."""

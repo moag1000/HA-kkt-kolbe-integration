@@ -1,7 +1,9 @@
 """Services for KKT Kolbe integration."""
+
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 from typing import Any
 
@@ -54,11 +56,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         for coord_entry_id, coordinator in coordinators:
             try:
                 # Use ReconnectCoordinator if available
-                if hasattr(coordinator, 'async_request_reconnect'):
+                if hasattr(coordinator, "async_request_reconnect"):
                     success = await coordinator.async_request_reconnect()
                     results[coord_entry_id] = {
                         "success": success,
-                        "state": coordinator.device_state.value if hasattr(coordinator, 'device_state') else "unknown"
+                        "state": coordinator.device_state.value if hasattr(coordinator, "device_state") else "unknown",
                     }
                 else:
                     # Fallback for standard coordinator
@@ -66,7 +68,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                         results[coord_entry_id] = {
                             "success": False,
                             "error": "No local device available (API-only mode)",
-                            "state": "api_only"
+                            "state": "api_only",
                         }
                         continue
 
@@ -75,7 +77,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     await coordinator.async_request_refresh()
                     results[coord_entry_id] = {
                         "success": coordinator.device.is_connected,
-                        "state": "online" if coordinator.device.is_connected else "offline"
+                        "state": "online" if coordinator.device.is_connected else "offline",
                     }
 
                 device_id_str = coordinator.device.device_id[:8] if coordinator.device else coord_entry_id[:8]
@@ -86,10 +88,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 results[coord_entry_id] = {"error": str(err)}
 
         # Fire event with results
-        hass.bus.async_fire(
-            f"{DOMAIN}_reconnect_complete",
-            {"results": results}
-        )
+        hass.bus.async_fire(f"{DOMAIN}_reconnect_complete", {"results": results})
 
     async def handle_update_local_key(service: ServiceCall) -> None:
         """Handle update local key service with enhanced reconnection."""
@@ -119,7 +118,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     results[coord_entry_id] = {
                         "success": False,
                         "device_id": device_id,
-                        "error": "No local device available (API-only mode). Cannot update local key."
+                        "error": "No local device available (API-only mode). Cannot update local key.",
                     }
                     continue
 
@@ -137,6 +136,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
                 # Test new local key with fresh device instance
                 from .tuya_device import KKTKolbeTuyaDevice
+
                 test_device = KKTKolbeTuyaDevice(device_id, ip_address, local_key, hass=hass)
 
                 _LOGGER.debug(f"Testing new local key for device {device_id[:8]}")
@@ -146,10 +146,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     _LOGGER.info(f"New local key validated for device {device_id[:8]}")
 
                     # Update config entry with new local key
-                    hass.config_entries.async_update_entry(
-                        entry,
-                        data={**entry.data, "local_key": local_key}
-                    )
+                    hass.config_entries.async_update_entry(entry, data={**entry.data, "local_key": local_key})
 
                     # Update the coordinator's device with new key
                     coordinator.device.local_key = local_key
@@ -159,7 +156,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                         _LOGGER.info(f"Forcing reconnection for device {device_id[:8]}")
 
                         # If coordinator has reconnect capability, use it
-                        if hasattr(coordinator, 'async_request_reconnect'):
+                        if hasattr(coordinator, "async_request_reconnect"):
                             await coordinator.async_request_reconnect()
                         else:
                             # Manual reconnection
@@ -178,7 +175,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                         "success": True,
                         "device_id": device_id,
                         "message": "Local key updated and device reconnected successfully",
-                        "reconnected": coordinator.device.is_connected
+                        "reconnected": coordinator.device.is_connected,
                     }
 
                     _LOGGER.info(
@@ -193,29 +190,21 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     if old_key and old_key != local_key:
                         _LOGGER.info("Attempting to restore connection with old key")
                         coordinator.device.local_key = old_key
-                        try:
+                        with contextlib.suppress(Exception):
                             await coordinator.device.async_connect()
-                        except Exception:
-                            pass
 
                     results[coord_entry_id] = {
                         "success": False,
                         "device_id": device_id,
-                        "error": "Invalid local key - connection test failed. Device may need to be reset in Tuya app."
+                        "error": "Invalid local key - connection test failed. Device may need to be reset in Tuya app.",
                     }
 
             except Exception as err:
                 _LOGGER.error(f"Failed to update local key: {err}")
-                results[coord_entry_id] = {
-                    "success": False,
-                    "error": str(err)
-                }
+                results[coord_entry_id] = {"success": False, "error": str(err)}
 
         # Fire event with results
-        hass.bus.async_fire(
-            f"{DOMAIN}_local_key_updated",
-            {"results": results}
-        )
+        hass.bus.async_fire(f"{DOMAIN}_local_key_updated", {"results": results})
 
     async def handle_get_connection_status(service: ServiceCall) -> dict:
         """Handle get connection status service."""
@@ -229,7 +218,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         for coord_entry_id, coordinator in coordinators:
             try:
                 # Get connection info based on coordinator type
-                if hasattr(coordinator, 'connection_info'):
+                if hasattr(coordinator, "connection_info"):
                     # ReconnectCoordinator
                     statuses[coord_entry_id] = coordinator.connection_info
                 else:
@@ -237,7 +226,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     if coordinator.device is None:
                         statuses[coord_entry_id] = {
                             "state": "api_only",
-                            "last_update": coordinator.last_update_success_time if hasattr(coordinator, 'last_update_success_time') else None,
+                            "last_update": coordinator.last_update_success_time
+                            if hasattr(coordinator, "last_update_success_time")
+                            else None,
                             "is_connected": False,
                             "device_id": "api_mode",
                             "ip_address": None,
@@ -246,7 +237,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     else:
                         statuses[coord_entry_id] = {
                             "state": "online" if coordinator.device.is_connected else "offline",
-                            "last_update": coordinator.last_update_success_time if hasattr(coordinator, 'last_update_success_time') else None,
+                            "last_update": coordinator.last_update_success_time
+                            if hasattr(coordinator, "last_update_success_time")
+                            else None,
                             "is_connected": coordinator.device.is_connected,
                             "device_id": coordinator.device.device_id,
                             "ip_address": coordinator.device.ip_address,
@@ -257,10 +250,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 statuses[coord_entry_id] = {"error": str(err)}
 
         # Fire event with statuses
-        hass.bus.async_fire(
-            f"{DOMAIN}_connection_status",
-            {"statuses": statuses}
-        )
+        hass.bus.async_fire(f"{DOMAIN}_connection_status", {"statuses": statuses})
 
         return statuses
 
@@ -286,7 +276,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             if device_id:
                 # Handle case where coordinator.device may be None (API-only mode)
                 coord_device_id = None
-                if hasattr(coordinator, 'device_id'):
+                if hasattr(coordinator, "device_id"):
                     # HybridCoordinator has device_id attribute directly
                     coord_device_id = coordinator.device_id
                 elif coordinator.device is not None:
@@ -312,9 +302,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             raise ServiceValidationError(f"Entity {entity_id} is not a KKT Kolbe entity")
 
         if required_domain and not entity_id.startswith(f"{required_domain}."):
-            raise ServiceValidationError(
-                f"Entity {entity_id} must be in {required_domain} domain"
-            )
+            raise ServiceValidationError(f"Entity {entity_id} must be in {required_domain} domain")
 
         # Check if entity is available
         state = hass.states.get(entity_id)
@@ -337,18 +325,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 blocking=True,
             )
 
-            _LOGGER.info(
-                "Set cooking timer for %s to %d minutes",
-                entity_id,
-                timer_minutes
-            )
+            _LOGGER.info("Set cooking timer for %s to %d minutes", entity_id, timer_minutes)
 
         except Exception as exc:
             _LOGGER.error("Failed to set cooking timer: %s", exc)
-            raise KKTServiceError(
-                service_name=SERVICE_SET_COOKING_TIMER,
-                reason=str(exc)
-            ) from exc
+            raise KKTServiceError(service_name=SERVICE_SET_COOKING_TIMER, reason=str(exc)) from exc
 
     async def async_set_zone_power(call: ServiceCall) -> None:
         """Set power level for a specific zone."""
@@ -366,18 +347,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 blocking=True,
             )
 
-            _LOGGER.info(
-                "Set zone power for %s to level %d",
-                entity_id,
-                power_level
-            )
+            _LOGGER.info("Set zone power for %s to level %d", entity_id, power_level)
 
         except Exception as exc:
             _LOGGER.error("Failed to set zone power: %s", exc)
-            raise KKTServiceError(
-                service_name=SERVICE_SET_ZONE_POWER,
-                reason=str(exc)
-            ) from exc
+            raise KKTServiceError(service_name=SERVICE_SET_ZONE_POWER, reason=str(exc)) from exc
 
     async def async_bulk_power_off(call: ServiceCall) -> None:
         """Turn off all or specific types of KKT Kolbe devices."""
@@ -407,9 +381,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
                     device_model = (device_entry.model or "").lower()
 
-                    should_include = (
-                        ("cooktop" in device_types and "ind" in device_model) or
-                        ("hood" in device_types and ("hermes" in device_model or "style" in device_model))
+                    should_include = ("cooktop" in device_types and "ind" in device_model) or (
+                        "hood" in device_types and ("hermes" in device_model or "style" in device_model)
                     )
 
                     if not should_include:
@@ -417,9 +390,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
                 # Check if this is a power-related entity
                 entity_id = entity_entry.entity_id
-                if (entity_id.startswith("switch.") and "power" in entity_id.lower()) or \
-                   (entity_id.startswith("number.") and any(term in entity_id.lower() for term in ["zone", "power"])):
-
+                if (entity_id.startswith("switch.") and "power" in entity_id.lower()) or (
+                    entity_id.startswith("number.") and any(term in entity_id.lower() for term in ["zone", "power"])
+                ):
                     state = hass.states.get(entity_id)
                     if state and state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):
                         affected_entities.append(entity_id)
@@ -428,34 +401,23 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             tasks = []
             for entity_id in affected_entities:
                 if entity_id.startswith("switch."):
-                    tasks.append(
-                        hass.services.async_call(
-                            "switch", "turn_off", {ATTR_ENTITY_ID: entity_id}
-                        )
-                    )
+                    tasks.append(hass.services.async_call("switch", "turn_off", {ATTR_ENTITY_ID: entity_id}))
                 elif entity_id.startswith("number."):
                     tasks.append(
-                        hass.services.async_call(
-                            "number", "set_value", {ATTR_ENTITY_ID: entity_id, "value": 0}
-                        )
+                        hass.services.async_call("number", "set_value", {ATTR_ENTITY_ID: entity_id, "value": 0})
                     )
 
             if tasks:
                 await asyncio.gather(*tasks, return_exceptions=True)
                 _LOGGER.info(
-                    "Bulk power off completed for %d entities with filter %s",
-                    len(affected_entities),
-                    device_types
+                    "Bulk power off completed for %d entities with filter %s", len(affected_entities), device_types
                 )
             else:
                 _LOGGER.warning("No entities found for bulk power off with filter %s", device_types)
 
         except Exception as exc:
             _LOGGER.error("Failed to execute bulk power off: %s", exc)
-            raise KKTServiceError(
-                service_name=SERVICE_BULK_POWER_OFF,
-                reason=str(exc)
-            ) from exc
+            raise KKTServiceError(service_name=SERVICE_BULK_POWER_OFF, reason=str(exc)) from exc
 
     async def async_sync_all_devices(call: ServiceCall) -> None:
         """Force refresh data for all KKT Kolbe devices."""
@@ -471,33 +433,22 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 coordinator = entry_data["coordinator"]
 
                 # Apply device filter
-                if device_filter == "online_only" and not coordinator.last_update_success:
-                    continue
-                elif device_filter == "offline_only" and coordinator.last_update_success:
+                if (device_filter == "online_only" and not coordinator.last_update_success) or (
+                    device_filter == "offline_only" and coordinator.last_update_success
+                ):
                     continue
 
                 try:
                     await coordinator.async_request_refresh()
                     coordinators_refreshed += 1
                 except Exception as exc:
-                    _LOGGER.warning(
-                        "Failed to refresh coordinator for entry %s: %s",
-                        entry_id,
-                        exc
-                    )
+                    _LOGGER.warning("Failed to refresh coordinator for entry %s: %s", entry_id, exc)
 
-            _LOGGER.info(
-                "Synchronized %d KKT Kolbe devices with filter '%s'",
-                coordinators_refreshed,
-                device_filter
-            )
+            _LOGGER.info("Synchronized %d KKT Kolbe devices with filter '%s'", coordinators_refreshed, device_filter)
 
         except Exception as exc:
             _LOGGER.error("Failed to sync devices: %s", exc)
-            raise KKTServiceError(
-                service_name=SERVICE_SYNC_ALL_DEVICES,
-                reason=str(exc)
-            ) from exc
+            raise KKTServiceError(service_name=SERVICE_SYNC_ALL_DEVICES, reason=str(exc)) from exc
 
     async def async_set_hood_fan_speed(call: ServiceCall) -> None:
         """Set fan speed for range hood."""
@@ -514,18 +465,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 blocking=True,
             )
 
-            _LOGGER.info(
-                "Set hood fan speed for %s to level %d",
-                entity_id,
-                fan_speed
-            )
+            _LOGGER.info("Set hood fan speed for %s to level %d", entity_id, fan_speed)
 
         except Exception as exc:
             _LOGGER.error("Failed to set hood fan speed: %s", exc)
-            raise KKTServiceError(
-                service_name=SERVICE_SET_HOOD_FAN_SPEED,
-                reason=str(exc)
-            ) from exc
+            raise KKTServiceError(service_name=SERVICE_SET_HOOD_FAN_SPEED, reason=str(exc)) from exc
 
     async def async_set_hood_lighting(call: ServiceCall) -> None:
         """Control range hood lighting."""
@@ -537,28 +481,17 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
             if brightness is not None:
                 # If brightness is specified, turn on and set brightness
-                await hass.services.async_call(
-                    "switch", "turn_on", {ATTR_ENTITY_ID: entity_id}, blocking=True
-                )
+                await hass.services.async_call("switch", "turn_on", {ATTR_ENTITY_ID: entity_id}, blocking=True)
                 # Note: Brightness control would need to be implemented in the switch entity
-                _LOGGER.info(
-                    "Set hood lighting for %s to brightness %d",
-                    entity_id,
-                    brightness
-                )
+                _LOGGER.info("Set hood lighting for %s to brightness %d", entity_id, brightness)
             else:
                 # Toggle the lighting
-                await hass.services.async_call(
-                    "switch", "toggle", {ATTR_ENTITY_ID: entity_id}, blocking=True
-                )
+                await hass.services.async_call("switch", "toggle", {ATTR_ENTITY_ID: entity_id}, blocking=True)
                 _LOGGER.info("Toggled hood lighting for %s", entity_id)
 
         except Exception as exc:
             _LOGGER.error("Failed to set hood lighting: %s", exc)
-            raise KKTServiceError(
-                service_name=SERVICE_SET_HOOD_LIGHTING,
-                reason=str(exc)
-            ) from exc
+            raise KKTServiceError(service_name=SERVICE_SET_HOOD_LIGHTING, reason=str(exc)) from exc
 
     async def async_emergency_stop(call: ServiceCall) -> None:
         """Emergency stop all cooking operations."""
@@ -580,25 +513,21 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 entity_id = entity_entry.entity_id
 
                 # Emergency stop targets: power switches, zone powers, timers
-                if (entity_id.startswith("switch.") and "power" in entity_id.lower()) or \
-                   (entity_id.startswith("number.") and any(term in entity_id.lower() for term in ["zone", "power", "timer"])):
-
+                if (entity_id.startswith("switch.") and "power" in entity_id.lower()) or (
+                    entity_id.startswith("number.")
+                    and any(term in entity_id.lower() for term in ["zone", "power", "timer"])
+                ):
                     state = hass.states.get(entity_id)
                     if state and state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):
                         if entity_id.startswith("switch."):
-                            await hass.services.async_call(
-                                "switch", "turn_off", {ATTR_ENTITY_ID: entity_id}
-                            )
+                            await hass.services.async_call("switch", "turn_off", {ATTR_ENTITY_ID: entity_id})
                         elif entity_id.startswith("number."):
                             await hass.services.async_call(
                                 "number", "set_value", {ATTR_ENTITY_ID: entity_id, "value": 0}
                             )
                         stopped_entities.append(entity_id)
 
-            _LOGGER.warning(
-                "EMERGENCY STOP executed - stopped %d cooking operations",
-                len(stopped_entities)
-            )
+            _LOGGER.warning("EMERGENCY STOP executed - stopped %d cooking operations", len(stopped_entities))
 
             if send_notification:
                 await hass.services.async_call(
@@ -608,15 +537,12 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                         "title": "KKT Kolbe Emergency Stop",
                         "message": f"Emergency stop executed - {len(stopped_entities)} cooking operations stopped",
                         "notification_id": "kkt_kolbe_emergency_stop",
-                    }
+                    },
                 )
 
         except Exception as exc:
             _LOGGER.error("Failed to execute emergency stop: %s", exc)
-            raise KKTServiceError(
-                service_name=SERVICE_EMERGENCY_STOP,
-                reason=str(exc)
-            ) from exc
+            raise KKTServiceError(service_name=SERVICE_EMERGENCY_STOP, reason=str(exc)) from exc
 
     async def async_reset_filter_timer(call: ServiceCall) -> None:
         """Reset filter timer for range hood."""
@@ -650,45 +576,20 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
         except Exception as exc:
             _LOGGER.error("Failed to reset filter timer: %s", exc)
-            raise KKTServiceError(
-                service_name=SERVICE_RESET_FILTER_TIMER,
-                reason=str(exc)
-            ) from exc
+            raise KKTServiceError(service_name=SERVICE_RESET_FILTER_TIMER, reason=str(exc)) from exc
 
     # Register all services
-    hass.services.async_register(
-        DOMAIN, SERVICE_SET_COOKING_TIMER, async_set_cooking_timer
-    )
-    hass.services.async_register(
-        DOMAIN, SERVICE_SET_ZONE_POWER, async_set_zone_power
-    )
-    hass.services.async_register(
-        DOMAIN, SERVICE_BULK_POWER_OFF, async_bulk_power_off
-    )
-    hass.services.async_register(
-        DOMAIN, SERVICE_SYNC_ALL_DEVICES, async_sync_all_devices
-    )
-    hass.services.async_register(
-        DOMAIN, SERVICE_SET_HOOD_FAN_SPEED, async_set_hood_fan_speed
-    )
-    hass.services.async_register(
-        DOMAIN, SERVICE_SET_HOOD_LIGHTING, async_set_hood_lighting
-    )
-    hass.services.async_register(
-        DOMAIN, SERVICE_EMERGENCY_STOP, async_emergency_stop
-    )
-    hass.services.async_register(
-        DOMAIN, SERVICE_RESET_FILTER_TIMER, async_reset_filter_timer
-    )
-    hass.services.async_register(
-        DOMAIN, SERVICE_RECONNECT_DEVICE, handle_reconnect_device
-    )
-    hass.services.async_register(
-        DOMAIN, SERVICE_UPDATE_LOCAL_KEY, handle_update_local_key
-    )
-    hass.services.async_register(
-        DOMAIN, SERVICE_GET_CONNECTION_STATUS, handle_get_connection_status
-    )
+    hass.services.async_register(DOMAIN, SERVICE_SET_COOKING_TIMER, async_set_cooking_timer)
+    hass.services.async_register(DOMAIN, SERVICE_SET_ZONE_POWER, async_set_zone_power)
+    hass.services.async_register(DOMAIN, SERVICE_BULK_POWER_OFF, async_bulk_power_off)
+    hass.services.async_register(DOMAIN, SERVICE_SYNC_ALL_DEVICES, async_sync_all_devices)
+    hass.services.async_register(DOMAIN, SERVICE_SET_HOOD_FAN_SPEED, async_set_hood_fan_speed)
+    hass.services.async_register(DOMAIN, SERVICE_SET_HOOD_LIGHTING, async_set_hood_lighting)
+    hass.services.async_register(DOMAIN, SERVICE_EMERGENCY_STOP, async_emergency_stop)
+    hass.services.async_register(DOMAIN, SERVICE_RESET_FILTER_TIMER, async_reset_filter_timer)
+    hass.services.async_register(DOMAIN, SERVICE_RECONNECT_DEVICE, handle_reconnect_device)
+    hass.services.async_register(DOMAIN, SERVICE_UPDATE_LOCAL_KEY, handle_update_local_key)
+    hass.services.async_register(DOMAIN, SERVICE_GET_CONNECTION_STATUS, handle_get_connection_status)
 
     async def handle_rescan_devices(service: ServiceCall) -> None:
         """Handle rescan devices service - triggers dynamic device discovery."""
@@ -720,21 +621,16 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                         }
                         for dev in all_devices.values()
                     ],
-                }
+                },
             )
 
             _LOGGER.info(f"Device rescan complete - found {len(all_devices)} device(s)")
 
         except Exception as err:
             _LOGGER.error(f"Device rescan failed: {err}")
-            hass.bus.async_fire(
-                f"{DOMAIN}_devices_discovered",
-                {"error": str(err), "count": 0, "devices": []}
-            )
+            hass.bus.async_fire(f"{DOMAIN}_devices_discovered", {"error": str(err), "count": 0, "devices": []})
 
-    hass.services.async_register(
-        DOMAIN, SERVICE_RESCAN_DEVICES, handle_rescan_devices
-    )
+    hass.services.async_register(DOMAIN, SERVICE_RESCAN_DEVICES, handle_rescan_devices)
 
     async def handle_download_device_icons(service: ServiceCall) -> None:
         """Download device icons from Tuya Cloud for all configured devices.
@@ -749,7 +645,6 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
         try:
             from .helpers.icon_downloader import download_icon
-            from .helpers.icon_downloader import get_icon_url_for_device
             from .helpers.icon_downloader import list_downloaded_icons
 
             downloaded = []
@@ -774,11 +669,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 if icon_url:
                     result = await download_icon(hass, device_id, icon_url, force=force_redownload)
                     if result:
-                        downloaded.append({
-                            "device_id": device_id,
-                            "local_url": result,
-                            "device_name": config_entry.data.get("device_name", device_id[:8]),
-                        })
+                        downloaded.append(
+                            {
+                                "device_id": device_id,
+                                "local_url": result,
+                                "device_name": config_entry.data.get("device_name", device_id[:8]),
+                            }
+                        )
                     else:
                         failed.append(device_id)
                 else:
@@ -792,13 +689,15 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     "skipped": len(skipped),
                     "failed": len(failed),
                     "icons": downloaded,
-                }
+                },
             )
 
             # Log summary
             _LOGGER.info(
                 "Device icon download complete: %d downloaded, %d skipped (no URL), %d failed",
-                len(downloaded), len(skipped), len(failed)
+                len(downloaded),
+                len(skipped),
+                len(failed),
             )
 
             # Also list all downloaded icons
@@ -806,19 +705,16 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             if all_icons:
                 _LOGGER.info(
                     "Available device icons in /config/www/kkt_kolbe/icons/: %s",
-                    ", ".join(icon["device_id"][:8] for icon in all_icons)
+                    ", ".join(icon["device_id"][:8] for icon in all_icons),
                 )
 
         except Exception as err:
             _LOGGER.error(f"Failed to download device icons: {err}")
             hass.bus.async_fire(
-                f"{DOMAIN}_icons_downloaded",
-                {"error": str(err), "downloaded": 0, "skipped": 0, "failed": 0}
+                f"{DOMAIN}_icons_downloaded", {"error": str(err), "downloaded": 0, "skipped": 0, "failed": 0}
             )
 
-    hass.services.async_register(
-        DOMAIN, SERVICE_DOWNLOAD_DEVICE_ICONS, handle_download_device_icons
-    )
+    hass.services.async_register(DOMAIN, SERVICE_DOWNLOAD_DEVICE_ICONS, handle_download_device_icons)
 
     _LOGGER.info("KKT Kolbe services registered successfully")
 

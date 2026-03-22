@@ -39,7 +39,7 @@ This guide explains how to add support for new KKT Kolbe devices to the Home Ass
 3. **Development Environment**
    - Home Assistant development setup
    - Git for version control
-   - Python 3.11+ with required dependencies
+   - Python 3.12+ with required dependencies
 
 ### 🔗 Link Your Device to IoT Platform
 

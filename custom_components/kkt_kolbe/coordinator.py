@@ -1,4 +1,8 @@
-"""DataUpdateCoordinator for KKT Kolbe integration."""
+"""DataUpdateCoordinator for KKT Kolbe integration.
+
+Coordinator pattern based on https://github.com/ludeeus/integration_blueprint
+"""
+
 from __future__ import annotations
 
 import logging
@@ -9,6 +13,7 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.helpers.update_coordinator import UpdateFailed
@@ -34,10 +39,12 @@ POLL_INTERVAL_UNREACHABLE = 300  # Very slow polling when circuit breaker trippe
 
 class DeviceState(Enum):
     """Device connection states."""
+
     ONLINE = "online"
     OFFLINE = "offline"
     RECONNECTING = "reconnecting"
     UNREACHABLE = "unreachable"  # Circuit breaker tripped - no more retries until reset
+
 
 class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching KKT Kolbe data from the device."""
@@ -107,10 +114,7 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
 
         # During initial startup phase, also treat RECONNECTING as available
         # This prevents "unavailable" flash during first connection attempt
-        if self._is_first_update and self._device_state == DeviceState.RECONNECTING:
-            return True
-
-        return False
+        return bool(self._is_first_update and self._device_state == DeviceState.RECONNECTING)
 
     @property
     def last_successful_update(self) -> datetime | None:
@@ -169,10 +173,11 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
     def _apply_exponential_backoff(self) -> None:
         """Apply exponential backoff with jitter for reconnection attempts."""
         import random
+
         # Exponential backoff: base * 2^attempts, with jitter
         self._current_backoff = min(
             self._max_backoff,
-            self._base_backoff * (2 ** min(self._reconnect_attempts, 8))  # Cap exponent at 8
+            self._base_backoff * (2 ** min(self._reconnect_attempts, 8)),  # Cap exponent at 8
         )
         # Add jitter (±25%)
         jitter = self._current_backoff * 0.25 * (random.random() * 2 - 1)
@@ -219,7 +224,9 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
         """Reset all failure counters on successful update."""
         was_offline = self._device_state != DeviceState.ONLINE
         if was_offline:
-            _LOGGER.info(f"Device {self.device.device_id[:8]} is now ONLINE (recovered from {self._device_state.value})")
+            _LOGGER.info(
+                f"Device {self.device.device_id[:8]} is now ONLINE (recovered from {self._device_state.value})"
+            )
 
         self._device_state = DeviceState.ONLINE
         self._consecutive_failures = 0
@@ -252,6 +259,7 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
         This method merges each partial update into a persistent cache, so all
         previously seen DPs remain available even if not included in the latest update.
         """
+        from .exceptions import KKTAuthenticationError
         from .exceptions import KKTConnectionError
         from .exceptions import KKTTimeoutError
 
@@ -295,7 +303,9 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
                 "timestamp": datetime.now().isoformat(),
                 "available": True,
             }
-            _LOGGER.debug(f"Device {self.device.device_id[:8]} returning merged data with {len(self._dps_cache)} DPs: {list(self._dps_cache.keys())}")
+            _LOGGER.debug(
+                f"Device {self.device.device_id[:8]} returning merged data with {len(self._dps_cache)} DPs: {list(self._dps_cache.keys())}"
+            )
             return merged_data
 
         except KKTTimeoutError as err:
@@ -317,7 +327,9 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
             # Mark as reconnecting after first failure, offline after threshold
             if self._consecutive_failures >= DEFAULT_CONSECUTIVE_FAILURES_THRESHOLD:
                 if self._device_state not in (DeviceState.OFFLINE, DeviceState.UNREACHABLE):
-                    _LOGGER.warning(f"Device {self.device.device_id[:8]} is now OFFLINE after {self._consecutive_failures} failures")
+                    _LOGGER.warning(
+                        f"Device {self.device.device_id[:8]} is now OFFLINE after {self._consecutive_failures} failures"
+                    )
                     self._device_state = DeviceState.OFFLINE
             elif self._device_state == DeviceState.ONLINE:
                 _LOGGER.info(f"Device {self.device.device_id[:8]} is RECONNECTING...")
@@ -348,7 +360,9 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
             # Mark as reconnecting after first failure, offline after threshold
             if self._consecutive_failures >= DEFAULT_CONSECUTIVE_FAILURES_THRESHOLD:
                 if self._device_state not in (DeviceState.OFFLINE, DeviceState.UNREACHABLE):
-                    _LOGGER.warning(f"Device {self.device.device_id[:8]} is now OFFLINE after {self._consecutive_failures} failures")
+                    _LOGGER.warning(
+                        f"Device {self.device.device_id[:8]} is now OFFLINE after {self._consecutive_failures} failures"
+                    )
                     self._device_state = DeviceState.OFFLINE
             elif self._device_state == DeviceState.ONLINE:
                 _LOGGER.info(f"Device {self.device.device_id[:8]} is RECONNECTING...")
@@ -359,6 +373,18 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
 
             # Don't raise UpdateFailed for connection errors - keep cached data
             return self._get_cached_data()
+
+        except KKTAuthenticationError as err:
+            # Authentication failure (invalid local key) - trigger HA's reauth flow
+            # Pattern from https://github.com/ludeeus/integration_blueprint
+            self._record_error("authentication", str(err), recoverable=False)
+            _LOGGER.error(
+                "Authentication failed for device %s: %s. "
+                "The local key may have changed. Triggering re-authentication.",
+                self.device.device_id[:8],
+                err,
+            )
+            raise ConfigEntryAuthFailed(f"Authentication failed for {self.device.device_id[:8]}: {err}") from err
 
         except Exception as err:
             self._consecutive_failures += 1
@@ -379,7 +405,9 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
             # Mark as reconnecting after first failure, offline after threshold
             if self._consecutive_failures >= DEFAULT_CONSECUTIVE_FAILURES_THRESHOLD:
                 if self._device_state not in (DeviceState.OFFLINE, DeviceState.UNREACHABLE):
-                    _LOGGER.warning(f"Device {self.device.device_id[:8]} is now OFFLINE after {self._consecutive_failures} failures")
+                    _LOGGER.warning(
+                        f"Device {self.device.device_id[:8]} is now OFFLINE after {self._consecutive_failures} failures"
+                    )
                     self._device_state = DeviceState.OFFLINE
             elif self._device_state == DeviceState.ONLINE:
                 _LOGGER.info(f"Device {self.device.device_id[:8]} is RECONNECTING...")
@@ -414,7 +442,7 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
             manufacturer="KKT Kolbe",
             model=device_type_info["name"],
             model_id=device_type_info["model_id"],
-            sw_version=getattr(self.device, 'version', None),
+            sw_version=getattr(self.device, "version", None),
             hw_version=self.device.device_id[:8],  # Use first 8 chars of device ID
             configuration_url=f"http://{self.device.ip_address}",
         )

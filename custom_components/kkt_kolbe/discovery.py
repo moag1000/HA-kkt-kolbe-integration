@@ -1,7 +1,9 @@
 """Discovery for KKT Kolbe devices using mDNS and UDP broadcasts."""
+
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 import time
@@ -14,12 +16,11 @@ from homeassistant.const import CONF_DEVICE_ID
 from homeassistant.const import CONF_HOST
 from homeassistant.const import CONF_IP_ADDRESS
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import issue_registry as ir
 from zeroconf import ServiceBrowser
 from zeroconf import ServiceListener
 from zeroconf.asyncio import AsyncServiceInfo
 from zeroconf.asyncio import AsyncZeroconf
-
-from homeassistant.helpers import issue_registry as ir
 
 from .const import DOMAIN
 from .const import MODELS
@@ -57,19 +58,19 @@ TUYA_SERVICE_TYPES = [
     "_smartlife._tcp.local.",
     "_iot._tcp.local.",
     "_device._tcp.local.",
-    "_http._tcp.local.",          # Many IoT devices
-    "_homekit._tcp.local.",       # Some Tuya devices expose HomeKit
-    "_miio._tcp.local.",          # Xiaomi protocol (some Tuya clones)
+    "_http._tcp.local.",  # Many IoT devices
+    "_homekit._tcp.local.",  # Some Tuya devices expose HomeKit
+    "_miio._tcp.local.",  # Xiaomi protocol (some Tuya clones)
 ]
 
 # KKT Kolbe specific patterns in device names/info
 # Using "kkt " with space to avoid false positives (e.g. "Markkt")
 KKT_PATTERNS = [
-    "kkt ",      # "KKT Kolbe..." - with space to avoid false matches
-    "kolbe",     # Manufacturer name
-    "hermes",    # HERMES & STYLE
-    "ind7705",   # IND7705HC cooktop
-    "ind8000",   # IND8000 cooktop
+    "kkt ",  # "KKT Kolbe..." - with space to avoid false matches
+    "kolbe",  # Manufacturer name
+    "hermes",  # HERMES & STYLE
+    "ind7705",  # IND7705HC cooktop
+    "ind8000",  # IND8000 cooktop
     "solo hcm",  # SOLO HCM hood
     "ecco hcm",  # ECCO HCM hood
 ]
@@ -111,7 +112,7 @@ class TuyaUDPDiscovery(asyncio.DatagramProtocol):
 
                     # Check if this could be a KKT device
                     if self._is_potential_kkt_device(device_info):
-                        device_id = device_info.get('gwId', 'unknown')
+                        device_id = device_info.get("gwId", "unknown")
                         # Rate-limit discovery logs (same device broadcasts frequently)
                         if _should_log(f"udp_discover_{device_id}"):
                             _LOGGER.info(f"KKT Device discovered via UDP: {device_id[:8]}... at {device_info['ip']}")
@@ -123,14 +124,15 @@ class TuyaUDPDiscovery(asyncio.DatagramProtocol):
 
                             # Extract product name from UDP data if available
                             product_key = (
-                                device_info.get("productKey") or
-                                device_info.get("productName") or
-                                device_info.get("product_name") or
-                                ""
+                                device_info.get("productKey")
+                                or device_info.get("productName")
+                                or device_info.get("product_name")
+                                or ""
                             )
 
                             # Detect device type from product key
                             from .helpers.device_detection import detect_device_type_from_product_key
+
                             device_type, friendly_name = detect_device_type_from_product_key(product_key, device_id)
 
                             # LocalTuya approach: Just collect all devices, let config flow filter duplicates
@@ -203,44 +205,34 @@ class TuyaUDPDiscovery(asyncio.DatagramProtocol):
         # Device IDs change when re-adding to Tuya/SmartLife - these don't!
         known_product_ids = [
             # Product IDs
-            'ypaixllljc2dcpae',  # HERMES & STYLE
-            'bgvbvjwomgbisd8x',  # SOLO HCM
-            'gwdgkteknzvsattn',  # ECCO HCM
-            'p8volecsgzdyun29',  # IND7705HC
+            "ypaixllljc2dcpae",  # HERMES & STYLE
+            "bgvbvjwomgbisd8x",  # SOLO HCM
+            "gwdgkteknzvsattn",  # ECCO HCM
+            "p8volecsgzdyun29",  # IND7705HC
             # Model codes
-            'e1k6i0zo',         # HERMES & STYLE
-            'edjszs',           # SOLO HCM
-            'edjsx0',           # ECCO HCM
-            'e1kc5q64',         # IND7705HC
+            "e1k6i0zo",  # HERMES & STYLE
+            "edjszs",  # SOLO HCM
+            "edjsx0",  # ECCO HCM
+            "e1kc5q64",  # IND7705HC
         ]
 
         # Check product key/ID first (most reliable)
         product_key = (
-            device_info.get("productKey") or
-            device_info.get("productId") or
-            device_info.get("product_key") or
-            device_info.get("product_id") or
-            ""
+            device_info.get("productKey")
+            or device_info.get("productId")
+            or device_info.get("product_key")
+            or device_info.get("product_id")
+            or ""
         )
 
         if product_key and product_key.lower() in [p.lower() for p in known_product_ids]:
             return True
 
         # Check for KKT patterns in product name
-        product_name = (
-            device_info.get("productName") or
-            device_info.get("product_name") or
-            ""
-        ).lower()
+        product_name = (device_info.get("productName") or device_info.get("product_name") or "").lower()
 
-        for pattern in KKT_PATTERNS:
-            if pattern in product_name:
-                return True
+        return any(pattern in product_name for pattern in KKT_PATTERNS)
 
-        # Do NOT use device ID prefix matching - device IDs are not stable!
-        # Devices change ID when re-added to Tuya/SmartLife
-
-        return False
 
 class KKTKolbeDiscovery(ServiceListener):
     """Discover KKT Kolbe devices via mDNS and UDP broadcasts."""
@@ -290,10 +282,7 @@ class KKTKolbeDiscovery(ServiceListener):
         # Also enforce max cache size (remove oldest if over limit)
         if len(self.discovered_devices) > DEVICE_CACHE_MAX_SIZE:
             # Sort by last seen and remove oldest
-            sorted_devices = sorted(
-                self._device_last_seen.items(),
-                key=lambda x: x[1]
-            )
+            sorted_devices = sorted(self._device_last_seen.items(), key=lambda x: x[1])
             devices_to_remove = len(self.discovered_devices) - DEVICE_CACHE_MAX_SIZE
             for device_id, _ in sorted_devices[:devices_to_remove]:
                 if device_id in self.discovered_devices:
@@ -333,15 +322,12 @@ class KKTKolbeDiscovery(ServiceListener):
 
             # Start mDNS discovery using Home Assistant's shared instance
             from homeassistant.components import zeroconf as ha_zeroconf
+
             self._zeroconf = await ha_zeroconf.async_get_async_instance(self.hass)
 
             for service_type in TUYA_SERVICE_TYPES:
                 _LOGGER.debug(f"Starting browser for service type: {service_type}")
-                browser = ServiceBrowser(
-                    self._zeroconf.zeroconf,
-                    service_type,
-                    self
-                )
+                browser = ServiceBrowser(self._zeroconf.zeroconf, service_type, self)
                 self._browsers.append(browser)
 
             # Start UDP discovery (like Local Tuya)
@@ -364,14 +350,13 @@ class KKTKolbeDiscovery(ServiceListener):
     async def _start_udp_discovery(self) -> None:
         """Start UDP discovery on Tuya broadcast ports."""
         try:
-
             for port in UDP_PORTS:
                 try:
                     loop = asyncio.get_running_loop()
                     transport, protocol = await loop.create_datagram_endpoint(
                         lambda: TuyaUDPDiscovery(self._on_udp_device_found),
-                        local_addr=('0.0.0.0', port),
-                        allow_broadcast=True
+                        local_addr=("0.0.0.0", port),
+                        allow_broadcast=True,
                     )
                     self._udp_listeners.append((transport, protocol))
                     _LOGGER.debug(f"UDP listener started on port {port}")
@@ -401,10 +386,10 @@ class KKTKolbeDiscovery(ServiceListener):
             if device_id:
                 # Extract product key from UDP data (stable identifier for device matching)
                 product_key = (
-                    device_info.get("productKey") or
-                    device_info.get("productName") or
-                    device_info.get("product_name") or
-                    ""
+                    device_info.get("productKey")
+                    or device_info.get("productName")
+                    or device_info.get("product_name")
+                    or ""
                 )
 
                 formatted_device = {
@@ -415,7 +400,7 @@ class KKTKolbeDiscovery(ServiceListener):
                     "discovered_via": "UDP",
                     "productKey": product_key,  # Keep original productKey for device ID change detection
                     "product_name": product_key or "KKT Kolbe Device",
-                    "device_type": "auto"
+                    "device_type": "auto",
                 }
 
                 self.discovered_devices[device_id] = formatted_device
@@ -423,7 +408,7 @@ class KKTKolbeDiscovery(ServiceListener):
 
                 # Trigger Home Assistant discovery flow
                 # Use callback to schedule in the main event loop
-                if hasattr(self, '_discovery_callback'):
+                if hasattr(self, "_discovery_callback"):
                     self._discovery_callback(formatted_device)
 
                 # Rate-limited log for device additions
@@ -438,9 +423,7 @@ class KKTKolbeDiscovery(ServiceListener):
         try:
             # Use call_soon_threadsafe since UDP callbacks run in different thread
             loop = self.hass.loop
-            loop.call_soon_threadsafe(
-                lambda: self.hass.async_create_task(self._async_trigger_discovery(device_info))
-            )
+            loop.call_soon_threadsafe(lambda: self.hass.async_create_task(self._async_trigger_discovery(device_info)))
         except Exception as e:
             _LOGGER.error(f"Failed to schedule discovery trigger: {e}")
 
@@ -449,10 +432,8 @@ class KKTKolbeDiscovery(ServiceListener):
         # Cancel periodic cleanup task
         if self._cleanup_task and not self._cleanup_task.done():
             self._cleanup_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._cleanup_task
-            except asyncio.CancelledError:
-                pass
             self._cleanup_task = None
 
         # Stop mDNS browsers
@@ -480,9 +461,7 @@ class KKTKolbeDiscovery(ServiceListener):
         try:
             # Use call_soon_threadsafe since this is called from zeroconf thread
             loop = self.hass.loop
-            loop.call_soon_threadsafe(
-                lambda: self.hass.async_create_task(self._async_add_service(zc, type_, name))
-            )
+            loop.call_soon_threadsafe(lambda: self.hass.async_create_task(self._async_add_service(zc, type_, name)))
         except Exception as e:
             _LOGGER.error(f"Failed to schedule async service addition: {e}")
 
@@ -527,26 +506,26 @@ class KKTKolbeDiscovery(ServiceListener):
 
         # Extract device ID from TXT records first
         device_id = None
-        if hasattr(info, 'properties') and info.properties:
+        if hasattr(info, "properties") and info.properties:
             for key, value in info.properties.items():
                 try:
                     if key is None or value is None:
                         continue
-                    key_str = key.decode('utf-8').lower()
-                    value_str = value.decode('utf-8')
-                    if key_str in ['id', 'devid', 'device_id']:
+                    key_str = key.decode("utf-8").lower()
+                    value_str = value.decode("utf-8")
+                    if key_str in ["id", "devid", "device_id"]:
                         device_id = value_str
                         break
                 except (UnicodeDecodeError, AttributeError):
                     continue
 
         # Check if device ID matches Tuya pattern
-        if device_id and device_id.startswith('bf') and len(device_id) >= 20:
+        if device_id and device_id.startswith("bf") and len(device_id) >= 20:
             return self._check_tuya_device_info(info)
 
         # Fallback: Check service name for Tuya pattern (less reliable)
         name_lower = info.name.lower()
-        if name_lower.startswith('bf') and len(name_lower) >= 20:
+        if name_lower.startswith("bf") and len(name_lower) >= 20:
             return self._check_tuya_device_info(info)
 
         # Check device name for KKT patterns (fallback)
@@ -555,14 +534,14 @@ class KKTKolbeDiscovery(ServiceListener):
                 return True
 
         # Check TXT records for device information
-        if hasattr(info, 'properties') and info.properties:
+        if hasattr(info, "properties") and info.properties:
             txt_data = {}
             for key, value in info.properties.items():
                 try:
                     if key is None or value is None:
                         continue
-                    key_str = key.decode('utf-8').lower()
-                    value_str = value.decode('utf-8').lower()
+                    key_str = key.decode("utf-8").lower()
+                    value_str = value.decode("utf-8").lower()
                     txt_data[key_str] = value_str
                 except (UnicodeDecodeError, AttributeError):
                     continue
@@ -575,12 +554,12 @@ class KKTKolbeDiscovery(ServiceListener):
                     return True
 
             # Check for known model IDs
-            model = txt_data.get('model', '') or txt_data.get('md', '')
+            model = txt_data.get("model", "") or txt_data.get("md", "")
             if model in MODELS:
                 return True
 
             # Also check device ID patterns if available
-            device_id = txt_data.get('id', '') or txt_data.get('devid', '') or txt_data.get('device_id', '')
+            device_id = txt_data.get("id", "") or txt_data.get("devid", "") or txt_data.get("device_id", "")
 
         return False
 
@@ -590,7 +569,7 @@ class KKTKolbeDiscovery(ServiceListener):
         IMPORTANT: Device IDs change when re-adding devices to Tuya/SmartLife,
         so we identify KKT devices by model/product_id, NOT by device ID.
         """
-        if not hasattr(info, 'properties') or not info.properties:
+        if not hasattr(info, "properties") or not info.properties:
             return False
 
         txt_data = {}
@@ -598,29 +577,29 @@ class KKTKolbeDiscovery(ServiceListener):
             try:
                 if key is None or value is None:
                     continue
-                key_str = key.decode('utf-8').lower()
-                value_str = value.decode('utf-8')
+                key_str = key.decode("utf-8").lower()
+                value_str = value.decode("utf-8")
                 txt_data[key_str] = value_str
             except (UnicodeDecodeError, AttributeError):
                 continue
 
         # Check for known model IDs in TXT records
-        model = txt_data.get('model', '') or txt_data.get('md', '') or txt_data.get('productid', '')
-        product_key = txt_data.get('productkey', '') or txt_data.get('product_key', '')
+        model = txt_data.get("model", "") or txt_data.get("md", "") or txt_data.get("productid", "")
+        product_key = txt_data.get("productkey", "") or txt_data.get("product_key", "")
 
         # Known KKT Kolbe product IDs and model codes (stable identifiers)
         # Device IDs change when re-adding to Tuya/SmartLife - these don't!
         known_product_ids = [
             # Product IDs
-            'ypaixllljc2dcpae',  # HERMES & STYLE
-            'bgvbvjwomgbisd8x',  # SOLO HCM
-            'gwdgkteknzvsattn',  # ECCO HCM
-            'p8volecsgzdyun29',  # IND7705HC
+            "ypaixllljc2dcpae",  # HERMES & STYLE
+            "bgvbvjwomgbisd8x",  # SOLO HCM
+            "gwdgkteknzvsattn",  # ECCO HCM
+            "p8volecsgzdyun29",  # IND7705HC
             # Model codes
-            'e1k6i0zo',         # HERMES & STYLE
-            'edjszs',           # SOLO HCM
-            'edjsx0',           # ECCO HCM
-            'e1kc5q64',         # IND7705HC
+            "e1k6i0zo",  # HERMES & STYLE
+            "edjszs",  # SOLO HCM
+            "edjsx0",  # ECCO HCM
+            "e1kc5q64",  # IND7705HC
         ]
 
         # Check if this matches known KKT models
@@ -652,24 +631,24 @@ class KKTKolbeDiscovery(ServiceListener):
         }
 
         # Extract TXT record information
-        if hasattr(info, 'properties') and info.properties:
+        if hasattr(info, "properties") and info.properties:
             for key, value in info.properties.items():
                 try:
                     # Handle None values gracefully
                     if key is None or value is None:
                         continue
 
-                    key_str = key.decode('utf-8')
-                    value_str = value.decode('utf-8')
+                    key_str = key.decode("utf-8")
+                    value_str = value.decode("utf-8")
 
                     # Common Tuya device properties
-                    if key_str.lower() in ['id', 'devid', 'device_id']:
+                    if key_str.lower() in ["id", "devid", "device_id"]:
                         device_info["device_id"] = value_str
-                    elif key_str.lower() in ['model', 'md']:
+                    elif key_str.lower() in ["model", "md"]:
                         device_info["model"] = value_str
-                    elif key_str.lower() in ['version', 'ver']:
+                    elif key_str.lower() in ["version", "ver"]:
                         device_info["version"] = value_str
-                    elif key_str.lower() in ['manufacturer', 'mfg']:
+                    elif key_str.lower() in ["manufacturer", "mfg"]:
                         device_info["manufacturer"] = value_str
 
                 except (UnicodeDecodeError, AttributeError):
@@ -701,7 +680,6 @@ class KKTKolbeDiscovery(ServiceListener):
                 "name": device_info.get("product_name", device_info["name"]),
                 "discovered_via": device_info.get("discovered_via", "mDNS"),
             }
-
 
             # Create a unique identifier for this discovery
             device_info.get("device_id", device_info["ip"])
@@ -737,7 +715,9 @@ class KKTKolbeDiscovery(ServiceListener):
         """
         _LOGGER.debug(
             "Checking device ID change: product_id=%s, new_device_id=%s, new_ip=%s",
-            product_id, new_device_id[:12] + "..." if new_device_id else None, new_ip
+            product_id,
+            new_device_id[:12] + "..." if new_device_id else None,
+            new_ip,
         )
 
         if not product_id or not new_device_id:
@@ -759,7 +739,9 @@ class KKTKolbeDiscovery(ServiceListener):
 
             _LOGGER.debug(
                 "Checking entry %s: product_id=%s, device_id=%s",
-                entry.title, entry_product_id, entry_device_id[:12] + "..." if entry_device_id else None
+                entry.title,
+                entry_product_id,
+                entry_device_id[:12] + "..." if entry_device_id else None,
             )
 
             # Check if product_id matches but device_id is different
@@ -782,27 +764,27 @@ class KKTKolbeDiscovery(ServiceListener):
                         try:
                             _LOGGER.info("Creating repair issue for device_id_changed_%s", entry.entry_id[:8])
                             ir.async_create_issue(
-                            self.hass,
-                            DOMAIN,
-                            issue_id,
-                            is_fixable=True,
-                            severity=ir.IssueSeverity.WARNING,
-                            translation_key="device_id_changed",
-                            translation_placeholders={
-                                "entry_title": entry.title,
-                                "old_device_id": entry_device_id[:12] + "...",
-                                "new_device_id": new_device_id[:12] + "...",
-                                "old_ip": entry.data.get("ip_address", "unknown"),
-                                "new_ip": new_ip or "unknown",
-                            },
-                            data={
-                                "entry_id": entry.entry_id,
-                                "entry_title": entry.title,
-                                "old_device_id": entry_device_id,
-                                "new_device_id": new_device_id,
-                                "old_ip": entry.data.get("ip_address"),
-                                "new_ip": new_ip,
-                            },
+                                self.hass,
+                                DOMAIN,
+                                issue_id,
+                                is_fixable=True,
+                                severity=ir.IssueSeverity.WARNING,
+                                translation_key="device_id_changed",
+                                translation_placeholders={
+                                    "entry_title": entry.title,
+                                    "old_device_id": entry_device_id[:12] + "...",
+                                    "new_device_id": new_device_id[:12] + "...",
+                                    "old_ip": entry.data.get("ip_address", "unknown"),
+                                    "new_ip": new_ip or "unknown",
+                                },
+                                data={
+                                    "entry_id": entry.entry_id,
+                                    "entry_title": entry.title,
+                                    "old_device_id": entry_device_id,
+                                    "new_device_id": new_device_id,
+                                    "old_ip": entry.data.get("ip_address"),
+                                    "new_ip": new_ip,
+                                },
                             )
                             _LOGGER.info("Repair issue created successfully")
                         except Exception as e:
@@ -812,16 +794,13 @@ class KKTKolbeDiscovery(ServiceListener):
     def remove_service(self, zc, type_: str, name: str) -> None:
         """Called when a service is removed."""
         # Could implement device removal logic here
-        pass
 
     def update_service(self, zc, type_: str, name: str) -> None:
         """Called when a service is updated - Gold Tier: Update IP address if changed."""
         try:
             # Use call_soon_threadsafe since this is called from zeroconf thread
             loop = self.hass.loop
-            loop.call_soon_threadsafe(
-                lambda: self.hass.async_create_task(self._async_update_service(zc, type_, name))
-            )
+            loop.call_soon_threadsafe(lambda: self.hass.async_create_task(self._async_update_service(zc, type_, name)))
         except Exception as e:
             _LOGGER.error(f"Failed to schedule async service update: {e}")
 
@@ -838,14 +817,14 @@ class KKTKolbeDiscovery(ServiceListener):
 
             # Extract device info
             device_id = None
-            if hasattr(info, 'properties') and info.properties:
+            if hasattr(info, "properties") and info.properties:
                 for key, value in info.properties.items():
                     try:
                         if key is None or value is None:
                             continue
-                        key_str = key.decode('utf-8').lower()
-                        value_str = value.decode('utf-8')
-                        if key_str in ['id', 'devid', 'device_id']:
+                        key_str = key.decode("utf-8").lower()
+                        value_str = value.decode("utf-8")
+                        if key_str in ["id", "devid", "device_id"]:
                             device_id = value_str
                             break
                     except (UnicodeDecodeError, AttributeError):
@@ -943,11 +922,10 @@ async def simple_tuya_discover(timeout: int = 6) -> dict[str, dict[str, Any]]:
         for port in [6666, 6667]:
             try:
                 transport, protocol = await loop.create_datagram_endpoint(
-                    lambda: TuyaUDPDiscovery(device_found),
-                    local_addr=('0.0.0.0', port)
+                    lambda: TuyaUDPDiscovery(device_found), local_addr=("0.0.0.0", port)
                 )
                 listeners.append((transport, protocol))
-                pass  # UDP listener started successfully
+                # UDP listener started successfully
             except Exception as e:
                 _LOGGER.warning(f"Failed to start UDP listener on port {port}: {e}")
 
@@ -983,7 +961,7 @@ def add_test_device(host: str | None = None, device_id: str | None = None) -> No
             "model": "e1k6i0zo",
             "device_type": "hood",
             "product_name": "Test HERMES & STYLE",
-            "discovered_via": "test_simulation"
+            "discovered_via": "test_simulation",
         }
         _discovery_instance.discovered_devices["test_device"] = test_device
         _LOGGER.warning(f"Added test device for debugging: {test_device['ip']} / {test_device['device_id'][:10]}...")
@@ -994,11 +972,7 @@ async def debug_scan_network() -> dict[str, Any]:
     global _discovery_instance
 
     try:
-        results: dict[str, Any] = {
-            "mDNS_services": {},
-            "UDP_discovery": {},
-            "discovery_status": {}
-        }
+        results: dict[str, Any] = {"mDNS_services": {}, "UDP_discovery": {}, "discovery_status": {}}
 
         # mDNS Scan
         try:
@@ -1050,8 +1024,8 @@ async def debug_scan_network() -> dict[str, Any]:
                     try:
                         transport, protocol = await loop.create_datagram_endpoint(
                             lambda: TuyaUDPDiscovery(device_callback),
-                            local_addr=('0.0.0.0', port),
-                            allow_broadcast=True
+                            local_addr=("0.0.0.0", port),
+                            allow_broadcast=True,
                         )
                         listeners.append((transport, protocol))
                     except Exception as e:

@@ -1,6 +1,6 @@
 [project]
 name = "kkt-kolbe-integration"
-version = "3.0.8"
+version = "4.4.0"
 description = "Home Assistant integration for KKT Kolbe kitchen appliances"
 requires-python = ">=3.12"
 
@@ -17,11 +17,28 @@ select = [
     "B",      # flake8-bugbear
     "C4",     # flake8-comprehensions
     "UP",     # pyupgrade
+    "RUF",    # ruff-specific rules
+    "SIM",    # flake8-simplify
+    "PIE",    # flake8-pie (misc. lints)
+    "T20",    # flake8-print (no print statements)
+    "RET",    # flake8-return
 ]
 ignore = [
     "E501",   # line too long (handled by formatter)
     "B008",   # do not perform function calls in argument defaults
     "B905",   # zip without strict parameter
+    "UP047",  # type parameter syntax (PEP 695) - keep TypeVar for compatibility
+    "RET504", # unnecessary assignment before return
+    "RET505", # unnecessary else after return
+    "SIM102", # nested if - often more readable than combined condition
+    "SIM108", # use ternary operator - reduces readability in complex cases
+    "RUF001", # ambiguous unicode - intentional symbols in strings
+    "RUF003", # ambiguous unicode in comments - intentional
+    "RUF012", # mutable class default - standard HA entity pattern
+    "SIM103", # return condition directly - less readable with complex conditions
+    "SIM105", # contextlib.suppress - less explicit than try/except/pass for cleanup
+    "SIM116", # dict instead of if/elif - less readable with return values
+    "SIM117", # combine with statements - less clear with nested async contexts
 ]
 
 [tool.ruff.lint.isort]

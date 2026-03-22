@@ -1,4 +1,5 @@
 """Config flow for KKT Kolbe integration."""
+
 from __future__ import annotations
 
 import asyncio
@@ -97,8 +98,10 @@ def _detect_device_type_from_api(device: dict[str, Any]) -> tuple[str, str]:
     device_id = device.get("id", "")  # Device ID for pattern matching
     device_name = device.get("name", "").lower()
 
-    _LOGGER.debug(f"Device detection: product_id={product_id}, device_id={device_id[:12] if device_id else 'N/A'}, "
-                  f"category={tuya_category}, product_name={api_product_name}")
+    _LOGGER.debug(
+        f"Device detection: product_id={product_id}, device_id={device_id[:12] if device_id else 'N/A'}, "
+        f"category={tuya_category}, product_name={api_product_name}"
+    )
 
     # Method 1: Try to match by Tuya product_id (most accurate)
     # This uses the KNOWN_DEVICES database to find exact matches
@@ -121,7 +124,9 @@ def _detect_device_type_from_api(device: dict[str, Any]) -> tuple[str, str]:
                 device_ids = info.get("device_ids", [])
                 if isinstance(device_ids, list) and device_id in device_ids:
                     product_names = info.get("product_names", [])
-                    product_name = str(product_names[0]) if isinstance(product_names, list) and product_names else device_key
+                    product_name = (
+                        str(product_names[0]) if isinstance(product_names, list) and product_names else device_key
+                    )
                     _LOGGER.info(f"Detected device by device_id: {device_key} ({device_id[:12]}...)")
                     return (device_key, product_name)
                 # Check pattern match
@@ -130,7 +135,11 @@ def _detect_device_type_from_api(device: dict[str, Any]) -> tuple[str, str]:
                     for pattern in patterns:
                         if isinstance(pattern, str) and device_id.startswith(pattern):
                             product_names = info.get("product_names", [])
-                            product_name = str(product_names[0]) if isinstance(product_names, list) and product_names else device_key
+                            product_name = (
+                                str(product_names[0])
+                                if isinstance(product_names, list) and product_names
+                                else device_key
+                            )
                             _LOGGER.info(f"Detected device by device_id pattern: {device_key} ({pattern}*)")
                             return (device_key, product_name)
 
@@ -204,7 +213,9 @@ def _detect_device_type_from_device_id(device_id: str) -> tuple[str, str, str]:
                 if isinstance(pattern, str) and device_id.startswith(pattern):
                     friendly_name = str(info.get("name", device_key))
                     product_names = info.get("product_names", [])
-                    product_name = str(product_names[0]) if isinstance(product_names, list) and product_names else device_key
+                    product_name = (
+                        str(product_names[0]) if isinstance(product_names, list) and product_names else device_key
+                    )
                     _LOGGER.info(f"Detected device by device_id pattern {pattern}*: {device_key} -> {friendly_name}")
                     return (device_key, product_name, friendly_name)
 
@@ -234,73 +245,61 @@ def _is_kkt_device(device: Any) -> tuple[bool, str | None]:
     from .device_types import find_device_by_device_id
 
     # Method 1: Match by product_id (most accurate - exact match in KNOWN_DEVICES)
-    if hasattr(device, 'product_id') and device.product_id:
+    if hasattr(device, "product_id") and device.product_id:
         for device_key, info in KNOWN_DEVICES.items():
             # product_names in KNOWN_DEVICES contains Tuya product_id values
             if device.product_id in info.get("product_names", []):
-                _LOGGER.debug(
-                    "KKT device detected by product_id: %s -> %s",
-                    device.product_id, device_key
-                )
+                _LOGGER.debug("KKT device detected by product_id: %s -> %s", device.product_id, device_key)
                 return (True, device_key)
 
     # Method 2: Match by device_id pattern
-    if hasattr(device, 'device_id') and device.device_id:
+    if hasattr(device, "device_id") and device.device_id:
         device_info = find_device_by_device_id(device.device_id)
         if device_info:
             for device_key, info in KNOWN_DEVICES.items():
                 # Check exact match
                 device_ids = info.get("device_ids", [])
                 if isinstance(device_ids, list) and device.device_id in device_ids:
-                    _LOGGER.debug(
-                        "KKT device detected by exact device_id: %s",
-                        device_key
-                    )
+                    _LOGGER.debug("KKT device detected by exact device_id: %s", device_key)
                     return (True, device_key)
                 # Check pattern match
                 patterns = info.get("device_id_patterns", [])
                 if isinstance(patterns, list):
                     for pattern in patterns:
                         if isinstance(pattern, str) and device.device_id.startswith(pattern):
-                            _LOGGER.debug(
-                                "KKT device detected by device_id pattern %s*: %s",
-                                pattern, device_key
-                            )
+                            _LOGGER.debug("KKT device detected by device_id pattern %s*: %s", pattern, device_key)
                             return (True, device_key)
 
     # Method 3: Check product_name prefix - all KKT Kolbe products start with "KKT"
-    if hasattr(device, 'product_name') and device.product_name:
+    if hasattr(device, "product_name") and device.product_name:
         if device.product_name.upper().startswith("KKT"):
             _LOGGER.info(
                 "KKT device detected by product_name prefix: %s (product_id=%s not in KNOWN_DEVICES)",
                 device.product_name,
-                getattr(device, 'product_id', 'N/A')
+                getattr(device, "product_id", "N/A"),
             )
             return (True, None)  # KKT device, but unknown model
 
     # Method 4: Category-based detection (less reliable, but catches unlisted devices)
     # yyj = range hood, dcl = cooktop
-    if hasattr(device, 'category') and device.category in ("yyj", "dcl"):
+    if hasattr(device, "category") and device.category in ("yyj", "dcl"):
         # Only use category match if product_name contains KKT-related keywords
-        product_name = getattr(device, 'product_name', '') or ''
-        name = getattr(device, 'name', '') or ''
+        product_name = getattr(device, "product_name", "") or ""
+        name = getattr(device, "name", "") or ""
         search_text = f"{product_name} {name}".lower()
 
         if any(kw in search_text for kw in ["kkt", "kolbe", "hermes", "ecco", "solo", "flat"]):
             _LOGGER.info(
                 "KKT device detected by category + keywords: category=%s, name=%s",
-                device.category, name or product_name
+                device.category,
+                name or product_name,
             )
             return (True, None)
 
     return (False, None)
 
 
-async def _try_discover_local_ip(
-    hass: HomeAssistant,
-    device_id: str,
-    timeout: float = 6.0
-) -> str | None:
+async def _try_discover_local_ip(hass: HomeAssistant, device_id: str, timeout: float = 6.0) -> str | None:
     """Try to discover the local IP address of a device via mDNS/UDP.
 
     Args:
@@ -328,9 +327,7 @@ async def _try_discover_local_ip(
             if disc_id == device_id:
                 local_ip = disc_info.get("ip") or disc_info.get("ip_address")
                 if local_ip and _is_private_ip(local_ip):
-                    _LOGGER.info(
-                        f"Found local IP {local_ip} for device {device_id[:8]} via discovery"
-                    )
+                    _LOGGER.info(f"Found local IP {local_ip} for device {device_id[:8]} via discovery")
                     return str(local_ip)
 
         _LOGGER.debug(f"No local IP found for device {device_id[:8]} via discovery")
@@ -340,21 +337,27 @@ async def _try_discover_local_ip(
         _LOGGER.debug(f"Local IP discovery failed: {err}")
         return None
 
+
 # Configuration step schemas
-STEP_USER_DATA_SCHEMA = vol.Schema({
-    vol.Required("setup_method", default="smart_discovery"): selector.selector({
-        "select": {
-            "options": [
-                {"value": "smart_discovery", "label": "✨ Smart Discovery (Recommended - Auto + API)"},
-                {"value": "discovery", "label": "🔍 Local Discovery (Network Scan Only)"},
-                {"value": "manual", "label": "🔧 Manual Setup (IP + Local Key)"},
-                {"value": "api_only", "label": "☁️ API-Only Setup (TinyTuya Cloud)"}
-            ],
-            "mode": "dropdown",
-            "translation_key": "setup_method"
-        }
-    })
-})
+STEP_USER_DATA_SCHEMA = vol.Schema(
+    {
+        vol.Required("setup_method", default="smart_discovery"): selector.selector(
+            {
+                "select": {
+                    "options": [
+                        {"value": "smart_discovery", "label": "✨ Smart Discovery (Recommended - Auto + API)"},
+                        {"value": "discovery", "label": "🔍 Local Discovery (Network Scan Only)"},
+                        {"value": "manual", "label": "🔧 Manual Setup (IP + Local Key)"},
+                        {"value": "api_only", "label": "☁️ API-Only Setup (TinyTuya Cloud)"},
+                    ],
+                    "mode": "dropdown",
+                    "translation_key": "setup_method",
+                }
+            }
+        )
+    }
+)
+
 
 def _get_device_type_options() -> list[dict[str, str]]:
     """Generate device type options from KNOWN_DEVICES.
@@ -376,10 +379,9 @@ def _get_device_type_options() -> list[dict[str, str]]:
 
         # Separate default/generic devices
         if device_key == "default_hood":
-            default_options.append({
-                "value": device_key,
-                "label": "Default Hood - Generic Range Hood (if model unknown)"
-            })
+            default_options.append(
+                {"value": device_key, "label": "Default Hood - Generic Range Hood (if model unknown)"}
+            )
         elif category == CATEGORY_HOOD:
             hoods.append({"value": device_key, "label": f"{name}"})
         elif category == CATEGORY_COOKTOP:
@@ -397,45 +399,46 @@ def _get_device_type_options() -> list[dict[str, str]]:
     return options
 
 
-STEP_MANUAL_DATA_SCHEMA = vol.Schema({
-    vol.Required(CONF_IP_ADDRESS): str,
-    vol.Required("device_id"): str,
-    vol.Required("device_type"): selector.selector({
-        "select": {
-            "options": _get_device_type_options(),
-            "mode": "dropdown",
-            "translation_key": "device_type"
-        }
-    })
-})
+STEP_MANUAL_DATA_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_IP_ADDRESS): str,
+        vol.Required("device_id"): str,
+        vol.Required("device_type"): selector.selector(
+            {"select": {"options": _get_device_type_options(), "mode": "dropdown", "translation_key": "device_type"}}
+        ),
+    }
+)
 
-STEP_API_ONLY_DATA_SCHEMA = vol.Schema({
-    vol.Required("api_client_id"): selector.selector({
-        "text": {}
-    }),
-    vol.Required("api_client_secret"): selector.selector({
-        "text": {"type": "password"}
-    }),
-    vol.Required("api_endpoint", default="https://openapi.tuyaeu.com"): selector.selector({
-        "select": {
-            "options": [
-                {"value": "https://openapi.tuyaeu.com", "label": "Europe (EU)"},
-                {"value": "https://openapi.tuyaus.com", "label": "United States (US)"},
-                {"value": "https://openapi.tuyacn.com", "label": "China (CN)"},
-                {"value": "https://openapi.tuyain.com", "label": "India (IN)"}
-            ],
-            "mode": "dropdown"
-        }
-    })
-})
+STEP_API_ONLY_DATA_SCHEMA = vol.Schema(
+    {
+        vol.Required("api_client_id"): selector.selector({"text": {}}),
+        vol.Required("api_client_secret"): selector.selector({"text": {"type": "password"}}),
+        vol.Required("api_endpoint", default="https://openapi.tuyaeu.com"): selector.selector(
+            {
+                "select": {
+                    "options": [
+                        {"value": "https://openapi.tuyaeu.com", "label": "Europe (EU)"},
+                        {"value": "https://openapi.tuyaus.com", "label": "United States (US)"},
+                        {"value": "https://openapi.tuyacn.com", "label": "China (CN)"},
+                        {"value": "https://openapi.tuyain.com", "label": "India (IN)"},
+                    ],
+                    "mode": "dropdown",
+                }
+            }
+        ),
+    }
+)
+
 
 def _get_device_selection_schema(discovered_devices: dict[str, dict[str, Any]]) -> vol.Schema:
     """Generate device selection schema based on discovered devices."""
     if not discovered_devices:
-        return vol.Schema({
-            vol.Optional("retry_discovery", default=False): bool,
-            vol.Optional("use_manual_config", default=False): bool
-        })
+        return vol.Schema(
+            {
+                vol.Optional("retry_discovery", default=False): bool,
+                vol.Optional("use_manual_config", default=False): bool,
+            }
+        )
 
     device_options = []
     for device_id, device in discovered_devices.items():
@@ -462,54 +465,56 @@ def _get_device_selection_schema(discovered_devices: dict[str, dict[str, Any]]) 
         label = f"{display_name} ({ip_address})"
         device_options.append({"value": device_id, "label": label})
 
-    return vol.Schema({
-        vol.Required("selected_device"): selector.selector({
-            "select": {
-                "options": device_options,
-                "mode": "dropdown"
-            }
-        }),
-        vol.Optional("retry_discovery", default=False): bool,
-        vol.Optional("use_manual_config", default=False): bool
-    })
+    return vol.Schema(
+        {
+            vol.Required("selected_device"): selector.selector(
+                {"select": {"options": device_options, "mode": "dropdown"}}
+            ),
+            vol.Optional("retry_discovery", default=False): bool,
+            vol.Optional("use_manual_config", default=False): bool,
+        }
+    )
 
-STEP_AUTHENTICATION_DATA_SCHEMA = vol.Schema({
-    vol.Required("local_key"): selector.selector({"text": {"type": "password"}}),
-    vol.Optional("test_connection", default=True): bool,
-    vol.Optional("back_to_previous", default=False): bool,
-})
+
+STEP_AUTHENTICATION_DATA_SCHEMA = vol.Schema(
+    {
+        vol.Required("local_key"): selector.selector({"text": {"type": "password"}}),
+        vol.Optional("test_connection", default=True): bool,
+        vol.Optional("back_to_previous", default=False): bool,
+    }
+)
+
 
 def get_settings_schema(device_type: str | None = None) -> vol.Schema:
     """Get settings schema based on device type."""
     schema_dict = {
-        vol.Optional("update_interval", default=30): selector.selector({
-            "number": {
-                "min": 10, "max": 300, "step": 5,
-                "unit_of_measurement": "seconds",
-                "mode": "slider"
-            }
-        }),
+        vol.Optional("update_interval", default=30): selector.selector(
+            {"number": {"min": 10, "max": 300, "step": 5, "unit_of_measurement": "seconds", "mode": "slider"}}
+        ),
         vol.Optional("enable_debug_logging", default=False): bool,
         vol.Optional("enable_advanced_entities", default=True): bool,  # Show all entities by default
     }
 
     # Additional options for induction cooktops
     if device_type in ["ind7705hc", "induction_cooktop"]:
-        schema_dict[vol.Optional("zone_naming_scheme", default="zone")] = selector.selector({
-            "select": {
-                "options": [
-                    {"value": "zone", "label": "Zone 1, Zone 2, ..."},
-                    {"value": "numeric", "label": "1, 2, 3, ..."},
-                    {"value": "custom", "label": "Custom Names"}
-                ],
-                "mode": "dropdown",
-                "translation_key": "zone_naming"
+        schema_dict[vol.Optional("zone_naming_scheme", default="zone")] = selector.selector(
+            {
+                "select": {
+                    "options": [
+                        {"value": "zone", "label": "Zone 1, Zone 2, ..."},
+                        {"value": "numeric", "label": "1, 2, 3, ..."},
+                        {"value": "custom", "label": "Custom Names"},
+                    ],
+                    "mode": "dropdown",
+                    "translation_key": "zone_naming",
+                }
             }
-        })
+        )
 
     schema_dict[vol.Optional("back_to_authentication", default=False)] = bool
 
     return vol.Schema(schema_dict)
+
 
 # Keep backwards compatibility
 STEP_SETTINGS_DATA_SCHEMA = get_settings_schema()
@@ -547,9 +552,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
         self._smartlife_auth_result: Any | None = None
         self._smartlife_scan_task: asyncio.Task[Any] | None = None
 
-    async def async_step_zeroconf(
-        self, discovery_info: dict[str, Any]
-    ) -> ConfigFlowResult:
+    async def async_step_zeroconf(self, discovery_info: dict[str, Any]) -> ConfigFlowResult:
         """Handle zeroconf discovery of KKT Kolbe devices.
 
         Called automatically by Home Assistant when a matching mDNS service is found.
@@ -582,8 +585,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                     current_ip = entry.data.get(CONF_IP_ADDRESS) or entry.data.get("ip_address")
                     if current_ip != host:
                         _LOGGER.info(
-                            "Zeroconf: Device %s IP changed from %s to %s, updating",
-                            device_id[:8], current_ip, host
+                            "Zeroconf: Device %s IP changed from %s to %s, updating", device_id[:8], current_ip, host
                         )
                         self.hass.config_entries.async_update_entry(
                             entry, data={**entry.data, CONF_IP_ADDRESS: host, "ip_address": host}
@@ -595,8 +597,10 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
         # If not, abort early WITHOUT setting unique_id (so Smart Discovery isn't blocked)
         api_manager = GlobalAPIManager(self.hass)
         if not api_manager.has_stored_credentials():
-            _LOGGER.debug(f"Zeroconf: No API credentials, aborting early for {device_id[:8]} "
-                         f"(Smart Discovery will handle this device)")
+            _LOGGER.debug(
+                f"Zeroconf: No API credentials, aborting early for {device_id[:8]} "
+                f"(Smart Discovery will handle this device)"
+            )
             return self.async_abort(reason="no_local_key")
 
         # Store discovery info for later steps
@@ -647,6 +651,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                     # Detect device type for proper entity setup
                     # BUT only update if not already correctly detected from device_id pattern
                     from .device_types import KNOWN_DEVICES
+
                     api_device_type, internal_product_name = _detect_device_type_from_api(api_device)
                     current_type = self._device_info.get("device_type", "auto")
 
@@ -655,7 +660,9 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                         self._device_info["product_name"] = internal_product_name
                         _LOGGER.debug(f"Zeroconf: Updated device_type from API: {api_device_type}")
                     else:
-                        _LOGGER.debug(f"Zeroconf: Keeping pre-detected device_type: {current_type} (API suggested: {api_device_type})")
+                        _LOGGER.debug(
+                            f"Zeroconf: Keeping pre-detected device_type: {current_type} (API suggested: {api_device_type})"
+                        )
 
                     # Create friendly display name based on detected type
                     effective_device_type = self._device_info.get("device_type", "auto")
@@ -669,15 +676,19 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                     self.context["title_placeholders"] = {"name": self._device_info["friendly_type"]}
 
                     has_local_key = bool(self._device_info.get("local_key"))
-                    _LOGGER.info(f"Zeroconf: Enriched device {device_id[:8]}: "
-                                f"friendly_type={self._device_info['friendly_type']}, "
-                                f"local_key={'PRESENT' if has_local_key else 'MISSING'}, "
-                                f"product_id={api_device.get('product_id', 'N/A')}")
+                    _LOGGER.info(
+                        f"Zeroconf: Enriched device {device_id[:8]}: "
+                        f"friendly_type={self._device_info['friendly_type']}, "
+                        f"local_key={'PRESENT' if has_local_key else 'MISSING'}, "
+                        f"product_id={api_device.get('product_id', 'N/A')}"
+                    )
                     break
 
             if not device_found:
-                _LOGGER.warning(f"Zeroconf: Device {device_id[:8]} NOT FOUND in API response! "
-                               f"API returned IDs: {[d.get('id', '')[:8] for d in api_devices]}")
+                _LOGGER.warning(
+                    f"Zeroconf: Device {device_id[:8]} NOT FOUND in API response! "
+                    f"API returned IDs: {[d.get('id', '')[:8] for d in api_devices]}"
+                )
 
         except Exception as err:
             _LOGGER.warning(f"Zeroconf: Failed to enrich with API data: {err}")
@@ -691,22 +702,20 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                 # Update IP and abort
                 for entry in self.hass.config_entries.async_entries(DOMAIN):
                     if entry.data.get("device_id") == device_id:
-                        self.hass.config_entries.async_update_entry(
-                            entry, data={**entry.data, CONF_IP_ADDRESS: host}
-                        )
+                        self.hass.config_entries.async_update_entry(entry, data={**entry.data, CONF_IP_ADDRESS: host})
                         break
                 return self.async_abort(reason="already_configured")
             return await self.async_step_zeroconf_confirm()
 
         # No local_key available - abort WITHOUT setting unique_id
         # This allows Smart Discovery to handle this device instead
-        _LOGGER.info(f"Zeroconf: Device {device_id[:8]} found but no local_key from API. "
-                    f"Use Smart Discovery or manual setup. Aborting zeroconf flow.")
+        _LOGGER.info(
+            f"Zeroconf: Device {device_id[:8]} found but no local_key from API. "
+            f"Use Smart Discovery or manual setup. Aborting zeroconf flow."
+        )
         return self.async_abort(reason="no_local_key")
 
-    async def async_step_zeroconf_confirm(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_zeroconf_confirm(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Confirm zeroconf discovered device with all data available (one-click setup)."""
         if user_input is not None:
             # User confirmed, create entry
@@ -772,9 +781,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             },
         )
 
-    async def async_step_zeroconf_authenticate(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_zeroconf_authenticate(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle zeroconf discovered device that needs local key or API config."""
         errors: dict[str, str] = {}
 
@@ -795,9 +802,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             else:
                 # Test connection
                 connection_valid = await self._test_device_connection(
-                    self._device_info["ip"],
-                    self._device_info["device_id"],
-                    local_key
+                    self._device_info["ip"], self._device_info["device_id"], local_key
                 )
 
                 if connection_valid:
@@ -852,23 +857,29 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
         # Get friendly display info
         friendly_type = self._device_info.get("friendly_type", "")
         device_name = self._device_info.get("name", "Unknown")
-        display_name = device_name if device_name != "Unknown" else f"Device {self._device_info.get('device_id', '')[:8]}"
+        display_name = (
+            device_name if device_name != "Unknown" else f"Device {self._device_info.get('device_id', '')[:8]}"
+        )
         if friendly_type:
             display_name = f"{display_name} ({friendly_type})"
 
         # Build schema - add API option if no credentials stored
         if has_api:
             # API is already configured, just show local key field
-            schema = vol.Schema({
-                vol.Required("local_key"): selector.selector({"text": {"type": "password"}}),
-            })
+            schema = vol.Schema(
+                {
+                    vol.Required("local_key"): selector.selector({"text": {"type": "password"}}),
+                }
+            )
             api_hint = "API credentials are configured but local_key was not found for this device."
         else:
             # No API configured - offer both options
-            schema = vol.Schema({
-                vol.Optional("local_key"): selector.selector({"text": {"type": "password"}}),
-                vol.Optional("configure_api", default=False): bool,
-            })
+            schema = vol.Schema(
+                {
+                    vol.Optional("local_key"): selector.selector({"text": {"type": "password"}}),
+                    vol.Optional("configure_api", default=False): bool,
+                }
+            )
             api_hint = "You can enter the local key manually, or configure API credentials to fetch it automatically."
 
         return self.async_show_form(
@@ -884,9 +895,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             },
         )
 
-    async def async_step_zeroconf_api_credentials(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_zeroconf_api_credentials(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Configure API credentials from zeroconf discovery flow."""
         errors: dict[str, str] = {}
 
@@ -937,7 +946,10 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                                     current_type = self._device_info.get("device_type", "auto")
 
                                     from .device_types import KNOWN_DEVICES
-                                    if api_device_type != "auto" and (current_type == "auto" or current_type not in KNOWN_DEVICES):
+
+                                    if api_device_type != "auto" and (
+                                        current_type == "auto" or current_type not in KNOWN_DEVICES
+                                    ):
                                         self._device_info["device_type"] = api_device_type
                                         self._device_info["product_name"] = internal_product_name
                                         _LOGGER.debug(f"Zeroconf API: Updated device_type from API: {api_device_type}")
@@ -946,12 +958,18 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
 
                                     effective_device_type = self._device_info.get("device_type", "auto")
                                     if effective_device_type in KNOWN_DEVICES:
-                                        self._device_info["friendly_type"] = KNOWN_DEVICES[effective_device_type].get("name", effective_device_type)
+                                        self._device_info["friendly_type"] = KNOWN_DEVICES[effective_device_type].get(
+                                            "name", effective_device_type
+                                        )
                                     else:
-                                        self._device_info["friendly_type"] = api_device.get("product_name", "KKT Device")
+                                        self._device_info["friendly_type"] = api_device.get(
+                                            "product_name", "KKT Device"
+                                        )
 
-                                    _LOGGER.info(f"Zeroconf API: Found device {device_id[:8]}, "
-                                                f"local_key={'PRESENT' if self._device_info.get('local_key') else 'MISSING'}")
+                                    _LOGGER.info(
+                                        f"Zeroconf API: Found device {device_id[:8]}, "
+                                        f"local_key={'PRESENT' if self._device_info.get('local_key') else 'MISSING'}"
+                                    )
                                     break
 
                             # If we now have local_key, go to confirm step
@@ -960,10 +978,15 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                             else:
                                 # API works but device not found or no local_key
                                 device_id_str = str(device_id) if device_id else ""
-                                _LOGGER.warning(f"API configured but device {device_id_str[:8]} not found or has no local_key")
+                                _LOGGER.warning(
+                                    f"API configured but device {device_id_str[:8]} not found or has no local_key"
+                                )
 
                                 # Still try to detect device type from device_id if not already detected
-                                if not self._device_info.get("device_type") or self._device_info.get("device_type") == "auto":
+                                if (
+                                    not self._device_info.get("device_type")
+                                    or self._device_info.get("device_type") == "auto"
+                                ):
                                     dev_type, prod_name, friendly = _detect_device_type_from_device_id(device_id_str)
                                     if dev_type != "auto":
                                         self._device_info["device_type"] = dev_type
@@ -981,16 +1004,20 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
         # Show API configuration form
         return self.async_show_form(
             step_id="zeroconf_api_credentials",
-            data_schema=vol.Schema({
-                vol.Required("api_client_id"): str,
-                vol.Required("api_client_secret"): str,
-                vol.Required("api_endpoint", default="https://openapi.tuyaeu.com"): vol.In({
-                    "https://openapi.tuyaeu.com": "Europe (EU)",
-                    "https://openapi.tuyaus.com": "Americas (US)",
-                    "https://openapi.tuyacn.com": "China (CN)",
-                    "https://openapi.tuyain.com": "India (IN)",
-                }),
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Required("api_client_id"): str,
+                    vol.Required("api_client_secret"): str,
+                    vol.Required("api_endpoint", default="https://openapi.tuyaeu.com"): vol.In(
+                        {
+                            "https://openapi.tuyaeu.com": "Europe (EU)",
+                            "https://openapi.tuyaus.com": "Americas (US)",
+                            "https://openapi.tuyacn.com": "China (CN)",
+                            "https://openapi.tuyain.com": "India (IN)",
+                        }
+                    ),
+                }
+            ),
             errors=errors,
             description_placeholders={
                 "device_name": self._device_info.get("name", "Unknown"),
@@ -999,9 +1026,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             },
         )
 
-    async def async_step_smart_discovery(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_smart_discovery(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle smart discovery - combines local scan with API data."""
         errors: dict[str, str] = {}
 
@@ -1090,10 +1115,12 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             # No devices found or all already configured
             return self.async_show_form(
                 step_id="smart_discovery",
-                data_schema=vol.Schema({
-                    vol.Optional("retry_discovery", default=False): bool,
-                    vol.Optional("back_to_user", default=False): bool,
-                }),
+                data_schema=vol.Schema(
+                    {
+                        vol.Optional("retry_discovery", default=False): bool,
+                        vol.Optional("back_to_user", default=False): bool,
+                    }
+                ),
                 errors={"base": "no_devices_found"} if not self._smart_discovery_results else {},
                 description_placeholders={
                     "found_count": "0",
@@ -1108,24 +1135,30 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
         for device_id, result in available_devices.items():
             if result.ready_to_add:
                 ready_count += 1
-            device_options.append({
-                "value": device_id,
-                "label": result.display_label,
-            })
+            device_options.append(
+                {
+                    "value": device_id,
+                    "label": result.display_label,
+                }
+            )
 
         # Sort: ready devices first
         device_options.sort(key=lambda x: (0 if "✅" in x["label"] else 1, x["label"]))
 
-        schema = vol.Schema({
-            vol.Required("selected_device"): selector.selector({
-                "select": {
-                    "options": device_options,
-                    "mode": "dropdown",
-                }
-            }),
-            vol.Optional("retry_discovery", default=False): bool,
-            vol.Optional("back_to_user", default=False): bool,
-        })
+        schema = vol.Schema(
+            {
+                vol.Required("selected_device"): selector.selector(
+                    {
+                        "select": {
+                            "options": device_options,
+                            "mode": "dropdown",
+                        }
+                    }
+                ),
+                vol.Optional("retry_discovery", default=False): bool,
+                vol.Optional("back_to_user", default=False): bool,
+            }
+        )
 
         return self.async_show_form(
             step_id="smart_discovery",
@@ -1138,9 +1171,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             },
         )
 
-    async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle the initial step - setup method selection.
 
         SmartLife QR-Code is now the DEFAULT and recommended method.
@@ -1171,21 +1202,28 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
         has_api = api_manager.has_stored_credentials()
 
         # Build schema with SmartLife as the NEW default (no developer account needed!)
-        user_schema = vol.Schema({
-            vol.Required("setup_method", default="smartlife"): selector.selector({
-                "select": {
-                    "options": [
-                        {"value": "smartlife", "label": "SmartLife / Tuya Smart App (Recommended - No Developer Account)"},
-                        {"value": "smart_discovery", "label": "Smart Discovery (Network Scan + API)"},
-                        {"value": "discovery", "label": "Local Discovery (Network Scan Only)"},
-                        {"value": "manual", "label": "Manual Setup (IP + Local Key)"},
-                        {"value": "api_only", "label": "Tuya IoT Platform (Developer Account)"}
-                    ],
-                    "mode": "dropdown",
-                    "translation_key": "setup_method"
-                }
-            })
-        })
+        user_schema = vol.Schema(
+            {
+                vol.Required("setup_method", default="smartlife"): selector.selector(
+                    {
+                        "select": {
+                            "options": [
+                                {
+                                    "value": "smartlife",
+                                    "label": "SmartLife / Tuya Smart App (Recommended - No Developer Account)",
+                                },
+                                {"value": "smart_discovery", "label": "Smart Discovery (Network Scan + API)"},
+                                {"value": "discovery", "label": "Local Discovery (Network Scan Only)"},
+                                {"value": "manual", "label": "Manual Setup (IP + Local Key)"},
+                                {"value": "api_only", "label": "Tuya IoT Platform (Developer Account)"},
+                            ],
+                            "mode": "dropdown",
+                            "translation_key": "setup_method",
+                        }
+                    }
+                )
+            }
+        )
 
         if has_api:
             api_status = "Tuya IoT Platform credentials configured - Smart Discovery available!"
@@ -1199,16 +1237,14 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             description_placeholders={
                 "setup_mode": "Choose how you want to set up your KKT Kolbe device",
                 "api_status": api_status,
-            }
+            },
         )
 
     # =========================================================================
     # SmartLife / Tuya Smart QR-Code Authentication Flow
     # =========================================================================
 
-    async def async_step_smartlife_check_existing(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_smartlife_check_existing(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Check for existing SmartLife accounts and offer to reuse them.
 
         This prevents users from having to re-authenticate when adding
@@ -1251,25 +1287,33 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             status = "✓ Active" if has_token else "⚠ Re-auth needed"
             label = f"{entry.title} ({status})"
 
-            options.append({
-                "value": entry.entry_id,
-                "label": label,
-            })
+            options.append(
+                {
+                    "value": entry.entry_id,
+                    "label": label,
+                }
+            )
 
         # Add option to create new account
-        options.append({
-            "value": "new_account",
-            "label": "➕ Create new SmartLife account",
-        })
+        options.append(
+            {
+                "value": "new_account",
+                "label": "➕ Create new SmartLife account",
+            }
+        )
 
-        schema = vol.Schema({
-            vol.Required("account_choice"): selector.selector({
-                "select": {
-                    "options": options,
-                    "mode": "list",
-                }
-            }),
-        })
+        schema = vol.Schema(
+            {
+                vol.Required("account_choice"): selector.selector(
+                    {
+                        "select": {
+                            "options": options,
+                            "mode": "list",
+                        }
+                    }
+                ),
+            }
+        )
 
         return self.async_show_form(
             step_id="smartlife_check_existing",
@@ -1279,16 +1323,14 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             },
         )
 
-    async def async_step_smartlife_use_existing(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_smartlife_use_existing(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Use existing SmartLife account to add a new device.
 
         Loads tokens from existing account entry and proceeds to device selection.
         """
         from .clients.tuya_sharing_client import TuyaSharingClient
 
-        if not hasattr(self, '_existing_account_entry') or not self._existing_account_entry:
+        if not hasattr(self, "_existing_account_entry") or not self._existing_account_entry:
             return await self.async_step_smartlife_user_code()
 
         entry = self._existing_account_entry
@@ -1297,10 +1339,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
         # Check if tokens are valid
         if not token_info.get("access_token"):
             # No tokens - need re-auth
-            _LOGGER.warning(
-                "SmartLife account %s has no valid tokens, requiring re-auth",
-                entry.title
-            )
+            _LOGGER.warning("SmartLife account %s has no valid tokens, requiring re-auth", entry.title)
             return await self.async_step_smartlife_user_code()
 
         try:
@@ -1320,23 +1359,18 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             _LOGGER.info(
                 "Restored SmartLife client from existing account: %s (user_id=%s...)",
                 entry.title,
-                self._smartlife_auth_result.user_id[:8] if self._smartlife_auth_result.user_id else "unknown"
+                self._smartlife_auth_result.user_id[:8] if self._smartlife_auth_result.user_id else "unknown",
             )
 
             # Go directly to device selection
             return await self.async_step_smartlife_select_devices()
 
         except Exception as exc:
-            _LOGGER.error(
-                "Failed to restore SmartLife client from account %s: %s",
-                entry.title, exc
-            )
+            _LOGGER.error("Failed to restore SmartLife client from account %s: %s", entry.title, exc)
             # Fall back to new auth
             return await self.async_step_smartlife_user_code()
 
-    async def async_step_smartlife_user_code(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_smartlife_user_code(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle SmartLife user code input step.
 
         User provides their User Code from the SmartLife/Tuya Smart app:
@@ -1363,13 +1397,17 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                 return await self.async_step_smartlife_scan()
 
         # Show user code input form (simplified - no schema selection needed)
-        schema = vol.Schema({
-            vol.Required("user_code"): selector.selector({
-                "text": {
-                    "type": "text",
-                }
-            }),
-        })
+        schema = vol.Schema(
+            {
+                vol.Required("user_code"): selector.selector(
+                    {
+                        "text": {
+                            "type": "text",
+                        }
+                    }
+                ),
+            }
+        )
 
         return self.async_show_form(
             step_id="smartlife_user_code",
@@ -1383,9 +1421,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             },
         )
 
-    async def async_step_smartlife_scan(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_smartlife_scan(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle QR code generation and display step.
 
         Shows QR code using QrCodeSelector (like Tuya core integration).
@@ -1421,7 +1457,8 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                     self._smartlife_app_schema = schema
                     _LOGGER.info(
                         "Generated SmartLife QR code with %s schema for user code %s...",
-                        schema, self._smartlife_user_code[:4]
+                        schema,
+                        self._smartlife_user_code[:4],
                     )
                     break  # Success - exit loop
 
@@ -1436,17 +1473,16 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
 
             # If no schema worked, return to user code input
             if working_schema is None:
-                _LOGGER.error(
-                    "Failed to generate QR code with both schemas - invalid user code: %s",
-                    last_error
-                )
+                _LOGGER.error("Failed to generate QR code with both schemas - invalid user code: %s", last_error)
                 return self.async_show_form(
                     step_id="smartlife_user_code",
-                    data_schema=vol.Schema({
-                        vol.Required("user_code", default=self._smartlife_user_code or ""): selector.selector({
-                            "text": {"type": "text"}
-                        }),
-                    }),
+                    data_schema=vol.Schema(
+                        {
+                            vol.Required("user_code", default=self._smartlife_user_code or ""): selector.selector(
+                                {"text": {"type": "text"}}
+                            ),
+                        }
+                    ),
                     errors={"user_code": "invalid_user_code"},
                     description_placeholders={
                         "error_details": str(last_error) if last_error else "Unknown error",
@@ -1464,23 +1500,23 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
         # Show form with QR code selector
         return self.async_show_form(
             step_id="smartlife_scan",
-            data_schema=vol.Schema({
-                vol.Optional("qr_code"): selector.QrCodeSelector(
-                    config=selector.QrCodeSelectorConfig(
-                        data=qr_data,
-                        scale=5,
-                        error_correction_level=selector.QrErrorCorrectionLevel.QUARTILE,
-                    )
-                ),
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Optional("qr_code"): selector.QrCodeSelector(
+                        config=selector.QrCodeSelectorConfig(
+                            data=qr_data,
+                            scale=5,
+                            error_correction_level=selector.QrErrorCorrectionLevel.QUARTILE,
+                        )
+                    ),
+                }
+            ),
             description_placeholders={
                 "timeout": str(QR_LOGIN_TIMEOUT),
             },
         )
 
-    async def async_step_smartlife_check_login(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_smartlife_check_login(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Check if QR code was scanned and login successful."""
         from .exceptions import KKTAuthenticationError
         from .exceptions import KKTConnectionError
@@ -1500,7 +1536,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                 _LOGGER.info("SmartLife QR code scan successful for user %s", auth_result.user_id)
                 return await self.async_step_smartlife_select_devices()
             else:
-                error_msg = getattr(auth_result, 'error_message', 'Authentication failed')
+                error_msg = getattr(auth_result, "error_message", "Authentication failed")
                 _LOGGER.warning("SmartLife authentication failed: %s", error_msg)
                 return await self.async_step_smartlife_scan_failed()
 
@@ -1514,9 +1550,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             _LOGGER.exception("Unexpected error during SmartLife login check: %s", err)
             return await self.async_step_smartlife_scan_failed()
 
-    async def async_step_smartlife_scan_timeout(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_smartlife_scan_timeout(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle QR code scan timeout."""
         if user_input is not None:
             if user_input.get("retry"):
@@ -1530,9 +1564,11 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
 
         return self.async_show_form(
             step_id="smartlife_scan_timeout",
-            data_schema=vol.Schema({
-                vol.Optional("retry", default=True): bool,
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Optional("retry", default=True): bool,
+                }
+            ),
             description_placeholders={
                 "timeout_message": (
                     f"QR code scan timed out after {QR_LOGIN_TIMEOUT} seconds. "
@@ -1541,9 +1577,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             },
         )
 
-    async def async_step_smartlife_scan_failed(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_smartlife_scan_failed(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle QR code scan failure."""
         if user_input is not None:
             if user_input.get("retry"):
@@ -1557,20 +1591,17 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
 
         return self.async_show_form(
             step_id="smartlife_scan_failed",
-            data_schema=vol.Schema({
-                vol.Optional("retry", default=True): bool,
-            }),
+            data_schema=vol.Schema(
+                {
+                    vol.Optional("retry", default=True): bool,
+                }
+            ),
             description_placeholders={
-                "failure_message": (
-                    "QR code authentication failed. "
-                    "Please check your User Code and try again."
-                ),
+                "failure_message": ("QR code authentication failed. Please check your User Code and try again."),
             },
         )
 
-    async def async_step_smartlife_select_devices(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_smartlife_select_devices(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle device selection from SmartLife account.
 
         Fetches all devices from the account, filters for KKT Kolbe devices,
@@ -1632,7 +1663,9 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                         kkt_devices.append(device)
                         _LOGGER.debug(
                             "Found KKT device: %s (%s) - type: %s",
-                            device.name, device.device_id[:8], device_type or "unknown"
+                            device.name,
+                            device.device_id[:8],
+                            device_type or "unknown",
                         )
 
                 self._smartlife_devices = kkt_devices
@@ -1642,9 +1675,11 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                     # Show warning with fallback to manual setup
                     return self.async_show_form(
                         step_id="smartlife_select_devices",
-                        data_schema=vol.Schema({
-                            vol.Optional("use_manual", default=False): bool,
-                        }),
+                        data_schema=vol.Schema(
+                            {
+                                vol.Optional("use_manual", default=False): bool,
+                            }
+                        ),
                         errors={"base": "no_kkt_devices_found"},
                         description_placeholders={
                             "kkt_device_count": "0",
@@ -1683,25 +1718,31 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             ip_info = device.ip or "IP unknown"
 
             label = f"{device.name} ({device.kkt_product_name}) - {ip_info} - {status}, {local_key_status}"
-            device_options.append({
-                "value": device.device_id,
-                "label": label,
-            })
+            device_options.append(
+                {
+                    "value": device.device_id,
+                    "label": label,
+                }
+            )
 
         if not device_options:
             # All devices already configured
             return self.async_abort(reason="all_devices_configured")
 
         # Single-select schema for device selection (one device per setup)
-        schema = vol.Schema({
-            vol.Required("selected_devices"): selector.selector({
-                "select": {
-                    "options": device_options,
-                    "multiple": False,
-                    "mode": "list",
-                }
-            }),
-        })
+        schema = vol.Schema(
+            {
+                vol.Required("selected_devices"): selector.selector(
+                    {
+                        "select": {
+                            "options": device_options,
+                            "multiple": False,
+                            "mode": "list",
+                        }
+                    }
+                ),
+            }
+        )
 
         return self.async_show_form(
             step_id="smartlife_select_devices",
@@ -1721,7 +1762,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
         Only shown when a device is detected as KKT (by product_name prefix)
         but not found in KNOWN_DEVICES database.
         """
-        if not hasattr(self, '_unknown_devices_queue') or not self._unknown_devices_queue:
+        if not hasattr(self, "_unknown_devices_queue") or not self._unknown_devices_queue:
             return await self._async_create_smartlife_entries()
 
         current_device = self._unknown_devices_queue[0]
@@ -1733,8 +1774,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             if selected_type == "not_supported":
                 # User says device is not supported - remove from selection
                 self._smartlife_selected_devices = [
-                    d for d in self._smartlife_selected_devices
-                    if d != current_device.device_id
+                    d for d in self._smartlife_selected_devices if d != current_device.device_id
                 ]
             else:
                 # Store selected type on device
@@ -1760,19 +1800,25 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
 
         # Build device type options from KNOWN_DEVICES
         device_type_options = _get_device_type_options()
-        device_type_options.append({
-            "value": "not_supported",
-            "label": "This device is not supported",
-        })
+        device_type_options.append(
+            {
+                "value": "not_supported",
+                "label": "This device is not supported",
+            }
+        )
 
-        schema = vol.Schema({
-            vol.Required("device_type"): selector.selector({
-                "select": {
-                    "options": device_type_options,
-                    "mode": "dropdown",
-                }
-            }),
-        })
+        schema = vol.Schema(
+            {
+                vol.Required("device_type"): selector.selector(
+                    {
+                        "select": {
+                            "options": device_type_options,
+                            "mode": "dropdown",
+                        }
+                    }
+                ),
+            }
+        )
 
         return self.async_show_form(
             step_id="smartlife_select_device_type",
@@ -1823,10 +1869,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             if entry.unique_id == account_unique_id:
                 # Account already exists - use it as parent
                 parent_entry_id = entry.entry_id
-                _LOGGER.info(
-                    "Using existing SmartLife account entry: %s (%s)",
-                    entry.title, parent_entry_id[:8]
-                )
+                _LOGGER.info("Using existing SmartLife account entry: %s (%s)", entry.title, parent_entry_id[:8])
 
                 # Update tokens in existing entry
                 self.hass.config_entries.async_update_entry(
@@ -1834,7 +1877,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                     data={
                         **entry.data,
                         CONF_SMARTLIFE_TOKEN_INFO: token_info,
-                    }
+                    },
                 )
                 break
 
@@ -1867,10 +1910,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             await self.hass.config_entries.async_add(account_entry)
             parent_entry_id = account_entry.entry_id
 
-            _LOGGER.info(
-                "Created SmartLife account entry: %s (%s)",
-                account_entry.title, parent_entry_id[:8]
-            )
+            _LOGGER.info("Created SmartLife account entry: %s (%s)", account_entry.title, parent_entry_id[:8])
 
         # =====================================================================
         # Step 2: Create Device Entry (Child)
@@ -1929,8 +1969,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             discovered = discovered_devices[device.device_id]
             local_ip = discovered.get("ip")
             _LOGGER.info(
-                "Using discovered local IP %s for device %s (API had %s)",
-                local_ip, device.device_id[:8], device.ip
+                "Using discovered local IP %s for device %s (API had %s)", local_ip, device.device_id[:8], device.ip
             )
 
         # Use local IP if found, otherwise fall back to API IP (might be public)
@@ -1940,10 +1979,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             # Only use API IP if it's actually a private IP
             device_data[CONF_IP_ADDRESS] = device.ip
         else:
-            _LOGGER.warning(
-                "No local IP found for device %s - local communication may not work",
-                device.device_id[:8]
-            )
+            _LOGGER.warning("No local IP found for device %s - local communication may not work", device.device_id[:8])
 
         # Note: Tokens are stored in Account Entry only (not duplicated in device)
         # Device Entry references parent_entry_id to get tokens when needed
@@ -1953,10 +1989,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             "enable_debug_logging": False,
         }
 
-        _LOGGER.info(
-            "Creating SmartLife device entry: %s (parent: %s)",
-            friendly_type, parent_entry_id[:8]
-        )
+        _LOGGER.info("Creating SmartLife device entry: %s (parent: %s)", friendly_type, parent_entry_id[:8])
 
         return self.async_create_entry(
             title=friendly_type,
@@ -1970,18 +2003,14 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
 
     async def async_step_reauth(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle reauthentication for API credentials."""
-        self._reauth_entry = self.hass.config_entries.async_get_entry(
-            self.context["entry_id"]
-        )
+        self._reauth_entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
 
         if not self._reauth_entry:
             return self.async_abort(reason="reauth_failed")
 
         return await self.async_step_reauth_confirm()
 
-    async def async_step_reauth_confirm(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_reauth_confirm(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle reauthentication confirmation."""
         errors: dict[str, str] = {}
 
@@ -1998,7 +2027,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                         client_id=user_input["api_client_id"],
                         client_secret=user_input["api_client_secret"],
                         endpoint=user_input.get("api_endpoint", "https://openapi.tuyaeu.com"),
-                        session=session
+                        session=session,
                     )
 
                     async with client:
@@ -2012,7 +2041,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                                     "api_client_secret": user_input["api_client_secret"],
                                     "api_endpoint": user_input.get("api_endpoint", "https://openapi.tuyaeu.com"),
                                     "api_enabled": True,
-                                }
+                                },
                             )
                             await self.hass.config_entries.async_reload(self._reauth_entry.entry_id)
                             return self.async_abort(reason="reauth_successful")
@@ -2038,7 +2067,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                         data={
                             **self._reauth_entry.data,
                             "local_key": user_input["local_key"],
-                        }
+                        },
                     )
                     await self.hass.config_entries.async_reload(self._reauth_entry.entry_id)
                     return self.async_abort(reason="reauth_successful")
@@ -2050,16 +2079,23 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
 
         if is_api_mode:
             # API credentials reauth
-            reauth_schema = vol.Schema({
-                vol.Required("api_client_id", default=self._reauth_entry.data.get("api_client_id", "")): str,
-                vol.Required("api_client_secret"): str,
-                vol.Optional("api_endpoint", default=self._reauth_entry.data.get("api_endpoint", "https://openapi.tuyaeu.com")): str,
-            })
+            reauth_schema = vol.Schema(
+                {
+                    vol.Required("api_client_id", default=self._reauth_entry.data.get("api_client_id", "")): str,
+                    vol.Required("api_client_secret"): str,
+                    vol.Optional(
+                        "api_endpoint",
+                        default=self._reauth_entry.data.get("api_endpoint", "https://openapi.tuyaeu.com"),
+                    ): str,
+                }
+            )
         else:
             # Local key reauth
-            reauth_schema = vol.Schema({
-                vol.Required("local_key"): selector.selector({"text": {"type": "password"}}),
-            })
+            reauth_schema = vol.Schema(
+                {
+                    vol.Required("local_key"): selector.selector({"text": {"type": "password"}}),
+                }
+            )
 
         placeholders = {
             "device_name": self._reauth_entry.title,
@@ -2072,15 +2108,10 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             placeholders["setup_info"] = f"Setup Guide: {SETUP_GUIDE_URL}\nTuya IoT Platform: {TUYA_IOT_URL}"
 
         return self.async_show_form(
-            step_id="reauth_confirm",
-            data_schema=reauth_schema,
-            errors=errors,
-            description_placeholders=placeholders
+            step_id="reauth_confirm", data_schema=reauth_schema, errors=errors, description_placeholders=placeholders
         )
 
-    async def async_step_reconfigure(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle reconfiguration of an existing entry."""
         reconfigure_entry = self._get_reconfigure_entry()
 
@@ -2092,9 +2123,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
 
         return await self.async_step_reconfigure_menu()
 
-    async def async_step_reconfigure_menu(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_reconfigure_menu(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Show reconfiguration menu with options."""
         errors: dict[str, str] = {}
 
@@ -2123,19 +2152,23 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
         else:
             device_type_display = current_device_type
 
-        schema = vol.Schema({
-            vol.Required("reconfigure_option"): selector.selector({
-                "select": {
-                    "options": [
-                        {"value": "connection", "label": "🔌 Connection (IP & Local Key)"},
-                        {"value": "device_type", "label": "📱 Device Type"},
-                        {"value": "api", "label": "☁️ API Settings"},
-                        {"value": "all", "label": "🔧 All Settings"},
-                    ],
-                    "mode": "list",
-                }
-            }),
-        })
+        schema = vol.Schema(
+            {
+                vol.Required("reconfigure_option"): selector.selector(
+                    {
+                        "select": {
+                            "options": [
+                                {"value": "connection", "label": "🔌 Connection (IP & Local Key)"},
+                                {"value": "device_type", "label": "📱 Device Type"},
+                                {"value": "api", "label": "☁️ API Settings"},
+                                {"value": "all", "label": "🔧 All Settings"},
+                            ],
+                            "mode": "list",
+                        }
+                    }
+                ),
+            }
+        )
 
         return self.async_show_form(
             step_id="reconfigure_menu",
@@ -2150,9 +2183,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             },
         )
 
-    async def async_step_reconfigure_connection(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_reconfigure_connection(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Reconfigure connection settings (IP and Local Key)."""
         errors: dict[str, str] = {}
         entry = self._reconfigure_entry
@@ -2185,7 +2216,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                     connection_valid = await self._test_device_connection(
                         new_data[CONF_IP_ADDRESS],
                         new_data.get("device_id", entry.data.get("device_id")),
-                        new_data["local_key"]
+                        new_data["local_key"],
                     )
                     if not connection_valid:
                         errors["base"] = "cannot_connect"
@@ -2201,13 +2232,13 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
         # Current values
         current_ip = entry.data.get(CONF_IP_ADDRESS, "")
 
-        schema = vol.Schema({
-            vol.Optional("ip_address", default=current_ip): str,
-            vol.Optional("local_key", default=""): selector.selector({
-                "text": {"type": "password"}
-            }),
-            vol.Optional("test_connection", default=True): bool,
-        })
+        schema = vol.Schema(
+            {
+                vol.Optional("ip_address", default=current_ip): str,
+                vol.Optional("local_key", default=""): selector.selector({"text": {"type": "password"}}),
+                vol.Optional("test_connection", default=True): bool,
+            }
+        )
 
         return self.async_show_form(
             step_id="reconfigure_connection",
@@ -2220,9 +2251,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             },
         )
 
-    async def async_step_reconfigure_device_type(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_reconfigure_device_type(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Reconfigure device type."""
         errors: dict[str, str] = {}
         entry = self._reconfigure_entry
@@ -2249,14 +2278,18 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
 
         current_device_type = entry.data.get("device_type", "auto")
 
-        schema = vol.Schema({
-            vol.Required("device_type", default=current_device_type): selector.selector({
-                "select": {
-                    "options": _get_device_type_options(),
-                    "mode": "dropdown",
-                }
-            }),
-        })
+        schema = vol.Schema(
+            {
+                vol.Required("device_type", default=current_device_type): selector.selector(
+                    {
+                        "select": {
+                            "options": _get_device_type_options(),
+                            "mode": "dropdown",
+                        }
+                    }
+                ),
+            }
+        )
 
         return self.async_show_form(
             step_id="reconfigure_device_type",
@@ -2268,9 +2301,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             },
         )
 
-    async def async_step_reconfigure_api(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_reconfigure_api(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Reconfigure API settings."""
         errors: dict[str, str] = {}
         entry = self._reconfigure_entry
@@ -2334,24 +2365,26 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
         current_client_id = entry.data.get("api_client_id", "")
         current_endpoint = entry.data.get("api_endpoint", "https://openapi.tuyaeu.com")
 
-        schema = vol.Schema({
-            vol.Required("api_enabled", default=current_api_enabled): bool,
-            vol.Optional("api_client_id", default=current_client_id): str,
-            vol.Optional("api_client_secret", default=""): selector.selector({
-                "text": {"type": "password"}
-            }),
-            vol.Optional("api_endpoint", default=current_endpoint): selector.selector({
-                "select": {
-                    "options": [
-                        {"value": "https://openapi.tuyaeu.com", "label": "Europe (EU)"},
-                        {"value": "https://openapi.tuyaus.com", "label": "United States (US)"},
-                        {"value": "https://openapi.tuyacn.com", "label": "China (CN)"},
-                        {"value": "https://openapi.tuyain.com", "label": "India (IN)"},
-                    ],
-                    "mode": "dropdown",
-                }
-            }),
-        })
+        schema = vol.Schema(
+            {
+                vol.Required("api_enabled", default=current_api_enabled): bool,
+                vol.Optional("api_client_id", default=current_client_id): str,
+                vol.Optional("api_client_secret", default=""): selector.selector({"text": {"type": "password"}}),
+                vol.Optional("api_endpoint", default=current_endpoint): selector.selector(
+                    {
+                        "select": {
+                            "options": [
+                                {"value": "https://openapi.tuyaeu.com", "label": "Europe (EU)"},
+                                {"value": "https://openapi.tuyaus.com", "label": "United States (US)"},
+                                {"value": "https://openapi.tuyacn.com", "label": "China (CN)"},
+                                {"value": "https://openapi.tuyain.com", "label": "India (IN)"},
+                            ],
+                            "mode": "dropdown",
+                        }
+                    }
+                ),
+            }
+        )
 
         return self.async_show_form(
             step_id="reconfigure_api",
@@ -2364,9 +2397,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             },
         )
 
-    async def async_step_reconfigure_all(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_reconfigure_all(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Reconfigure all settings at once."""
         errors: dict[str, str] = {}
         entry = self._reconfigure_entry
@@ -2441,9 +2472,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                     device_id = new_data.get("device_id", entry.data.get("device_id"))
 
                     if final_ip and final_key and device_id:
-                        connection_valid = await self._test_device_connection(
-                            final_ip, device_id, final_key
-                        )
+                        connection_valid = await self._test_device_connection(final_ip, device_id, final_key)
                         if not connection_valid:
                             errors["base"] = "cannot_connect"
 
@@ -2461,35 +2490,37 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
         current_client_id = entry.data.get("api_client_id", "")
         current_endpoint = entry.data.get("api_endpoint", "https://openapi.tuyaeu.com")
 
-        schema = vol.Schema({
-            vol.Optional("ip_address", default=current_ip): str,
-            vol.Optional("local_key", default=""): selector.selector({
-                "text": {"type": "password"}
-            }),
-            vol.Required("device_type", default=current_device_type): selector.selector({
-                "select": {
-                    "options": _get_device_type_options(),
-                    "mode": "dropdown",
-                }
-            }),
-            vol.Required("api_enabled", default=current_api_enabled): bool,
-            vol.Optional("api_client_id", default=current_client_id): str,
-            vol.Optional("api_client_secret", default=""): selector.selector({
-                "text": {"type": "password"}
-            }),
-            vol.Optional("api_endpoint", default=current_endpoint): selector.selector({
-                "select": {
-                    "options": [
-                        {"value": "https://openapi.tuyaeu.com", "label": "Europe (EU)"},
-                        {"value": "https://openapi.tuyaus.com", "label": "United States (US)"},
-                        {"value": "https://openapi.tuyacn.com", "label": "China (CN)"},
-                        {"value": "https://openapi.tuyain.com", "label": "India (IN)"},
-                    ],
-                    "mode": "dropdown",
-                }
-            }),
-            vol.Optional("test_connection", default=True): bool,
-        })
+        schema = vol.Schema(
+            {
+                vol.Optional("ip_address", default=current_ip): str,
+                vol.Optional("local_key", default=""): selector.selector({"text": {"type": "password"}}),
+                vol.Required("device_type", default=current_device_type): selector.selector(
+                    {
+                        "select": {
+                            "options": _get_device_type_options(),
+                            "mode": "dropdown",
+                        }
+                    }
+                ),
+                vol.Required("api_enabled", default=current_api_enabled): bool,
+                vol.Optional("api_client_id", default=current_client_id): str,
+                vol.Optional("api_client_secret", default=""): selector.selector({"text": {"type": "password"}}),
+                vol.Optional("api_endpoint", default=current_endpoint): selector.selector(
+                    {
+                        "select": {
+                            "options": [
+                                {"value": "https://openapi.tuyaeu.com", "label": "Europe (EU)"},
+                                {"value": "https://openapi.tuyaus.com", "label": "United States (US)"},
+                                {"value": "https://openapi.tuyacn.com", "label": "China (CN)"},
+                                {"value": "https://openapi.tuyain.com", "label": "India (IN)"},
+                            ],
+                            "mode": "dropdown",
+                        }
+                    }
+                ),
+                vol.Optional("test_connection", default=True): bool,
+            }
+        )
 
         return self.async_show_form(
             step_id="reconfigure_all",
@@ -2501,26 +2532,18 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             },
         )
 
-    async def async_step_discovery(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_discovery(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle device discovery step."""
         errors: dict[str, str] = {}
 
         # Initialize discovery if not done yet or retry requested
         # Only run discovery on first visit or explicit retry request
-        should_run_discovery = (
-            not self._discovery_data or
-            (user_input and user_input.get("retry_discovery"))
-        )
+        should_run_discovery = not self._discovery_data or (user_input and user_input.get("retry_discovery"))
 
         if should_run_discovery:
             try:
                 # Show progress to user
-                self.hass.bus.async_fire("kkt_kolbe_discovery_started", {
-                    "integration": DOMAIN,
-                    "status": "scanning"
-                })
+                self.hass.bus.async_fire("kkt_kolbe_discovery_started", {"integration": DOMAIN, "status": "scanning"})
 
                 # Use global discovery instance (prevents UDP port conflicts)
                 await async_start_discovery(self.hass)
@@ -2528,10 +2551,9 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                 discovered = get_discovered_devices()
                 self._discovery_data = discovered
 
-                self.hass.bus.async_fire("kkt_kolbe_discovery_completed", {
-                    "integration": DOMAIN,
-                    "found": len(discovered)
-                })
+                self.hass.bus.async_fire(
+                    "kkt_kolbe_discovery_completed", {"integration": DOMAIN, "found": len(discovered)}
+                )
 
             except Exception as exc:
                 _LOGGER.error("Discovery failed: %s", exc)
@@ -2558,25 +2580,22 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
         description_placeholders = {
             "found_devices": len(self._discovery_data),
             "discovery_status": "completed" if self._discovery_data else "no_devices",
-            "fallback_info": ""  # Always provide fallback_info, even if empty
+            "fallback_info": "",  # Always provide fallback_info, even if empty
         }
 
         if not self._discovery_data:
             description_placeholders["fallback_info"] = (
-                "No KKT Kolbe devices found automatically. "
-                "You can retry discovery or use manual configuration."
+                "No KKT Kolbe devices found automatically. You can retry discovery or use manual configuration."
             )
 
         return self.async_show_form(
             step_id="discovery",
             data_schema=data_schema,
             errors=errors,
-            description_placeholders=description_placeholders
+            description_placeholders=description_placeholders,
         )
 
-    async def async_step_manual(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_manual(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle manual configuration step."""
         errors: dict[str, str] = {}
 
@@ -2634,13 +2653,11 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             description_placeholders={
                 "device_id_example": "bf735dfe2ad64fba7c1234",
                 "ip_example": "192.168.1.100",
-                "local_key_info": "Extract Local Key from Smart Life app using tuya-cli or tinytuya"
-            }
+                "local_key_info": "Extract Local Key from Smart Life app using tuya-cli or tinytuya",
+            },
         )
 
-    async def async_step_api_only(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_api_only(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle API-only setup step."""
         errors: dict[str, str] = {}
 
@@ -2663,11 +2680,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                 try:
                     from .api import TuyaCloudClient
 
-                    api_client = TuyaCloudClient(
-                        client_id=client_id,
-                        client_secret=client_secret,
-                        endpoint=endpoint
-                    )
+                    api_client = TuyaCloudClient(client_id=client_id, client_secret=client_secret, endpoint=endpoint)
 
                     # Test connection and get device list with full details (local_key, product_id)
                     async with api_client:
@@ -2682,8 +2695,10 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                                 category = device.get("category", "").lower()
 
                                 # Match by keywords or Tuya category
-                                is_kkt = any(keyword in f"{product_name} {device_name}"
-                                            for keyword in ["kkt", "kolbe", "range", "hood", "induction"])
+                                is_kkt = any(
+                                    keyword in f"{product_name} {device_name}"
+                                    for keyword in ["kkt", "kolbe", "range", "hood", "induction"]
+                                )
                                 is_hood_category = category in ["yyj", "dcl"]
 
                                 if is_kkt or is_hood_category:
@@ -2697,7 +2712,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                                 self._api_info = {
                                     "client_id": client_id,
                                     "client_secret": client_secret,
-                                    "endpoint": endpoint
+                                    "endpoint": endpoint,
                                 }
                                 self._discovered_devices = {}
                                 for device in kkt_devices:
@@ -2705,6 +2720,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
 
                                     # Get friendly_type from KNOWN_DEVICES
                                     from .device_types import KNOWN_DEVICES
+
                                     if device_type in KNOWN_DEVICES:
                                         friendly_type = KNOWN_DEVICES[device_type].get("name", device_type)
                                     else:
@@ -2741,12 +2757,10 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             description_placeholders={
                 "setup_info": f"Configure TinyTuya Cloud API for device discovery\n\nSetup Guide: {SETUP_GUIDE_URL}\nTuya IoT Platform: {TUYA_IOT_URL}",
                 **_URL_PLACEHOLDERS,
-            }
+            },
         )
 
-    async def async_step_api_device_selection(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_api_device_selection(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle device selection from API discovery."""
         errors: dict[str, str] = {}
 
@@ -2782,15 +2796,9 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                     f"Trying to discover local IP via mDNS..."
                 )
                 # Try to find local IP via discovery
-                local_ip = await _try_discover_local_ip(
-                    self.hass,
-                    selected_device_id,
-                    timeout=6.0
-                )
+                local_ip = await _try_discover_local_ip(self.hass, selected_device_id, timeout=6.0)
                 if local_ip:
-                    _LOGGER.info(
-                        f"Using discovered local IP {local_ip} instead of API IP {api_ip}"
-                    )
+                    _LOGGER.info(f"Using discovered local IP {local_ip} instead of API IP {api_ip}")
                     final_ip = local_ip
                 else:
                     _LOGGER.warning(
@@ -2828,14 +2836,10 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             step_id="api_device_selection",
             data_schema=schema,
             errors=errors,
-            description_placeholders={
-                "device_count": len(self._discovered_devices)
-            }
+            description_placeholders={"device_count": len(self._discovered_devices)},
         )
 
-    async def async_step_api_choice(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_api_choice(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle choice between using stored API credentials or entering new ones."""
         api_manager = GlobalAPIManager(self.hass)
 
@@ -2857,6 +2861,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
 
                             # Get friendly_type from KNOWN_DEVICES
                             from .device_types import KNOWN_DEVICES
+
                             friendly_type = KNOWN_DEVICES.get(device_type, {}).get("name")
 
                             self._discovered_devices[device["id"]] = {
@@ -2877,9 +2882,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                             step_id="api_choice",
                             data_schema=self._get_api_choice_schema(),
                             errors={"base": "no_kkt_devices_found"},
-                            description_placeholders={
-                                "stored_api_info": api_manager.get_api_info_summary()
-                            }
+                            description_placeholders={"stored_api_info": api_manager.get_api_info_summary()},
                         )
 
                 except Exception as exc:
@@ -2888,9 +2891,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                         step_id="api_choice",
                         data_schema=self._get_api_choice_schema(),
                         errors={"base": "api_test_failed"},
-                        description_placeholders={
-                            "stored_api_info": api_manager.get_api_info_summary()
-                        }
+                        description_placeholders={"stored_api_info": api_manager.get_api_info_summary()},
                     )
             else:
                 # User wants to enter new credentials
@@ -2900,21 +2901,19 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
         return self.async_show_form(
             step_id="api_choice",
             data_schema=self._get_api_choice_schema(),
-            description_placeholders={
-                "stored_api_info": api_manager.get_api_info_summary()
-            }
+            description_placeholders={"stored_api_info": api_manager.get_api_info_summary()},
         )
 
     def _get_api_choice_schema(self) -> vol.Schema:
         """Get schema for API choice step."""
-        return vol.Schema({
-            vol.Required("use_stored_api", default=True): bool,
-            vol.Optional("manage_api", default=False): bool,
-        })
+        return vol.Schema(
+            {
+                vol.Required("use_stored_api", default=True): bool,
+                vol.Optional("manage_api", default=False): bool,
+            }
+        )
 
-    async def async_step_api_credentials(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_api_credentials(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle entering new API credentials."""
         # This is essentially the same as the original api_only step
         # but without the stored credentials check
@@ -2932,11 +2931,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                 try:
                     from .api import TuyaCloudClient
 
-                    api_client = TuyaCloudClient(
-                        client_id=client_id,
-                        client_secret=client_secret,
-                        endpoint=endpoint
-                    )
+                    api_client = TuyaCloudClient(client_id=client_id, client_secret=client_secret, endpoint=endpoint)
 
                     # Test connection and get device list with full details (including local_key)
                     async with api_client:
@@ -2947,7 +2942,10 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                             kkt_devices = []
                             for device in devices:
                                 product_name = device.get("product_name", "").lower()
-                                if any(keyword in product_name for keyword in ["kkt", "kolbe", "range", "hood", "induction"]):
+                                if any(
+                                    keyword in product_name
+                                    for keyword in ["kkt", "kolbe", "range", "hood", "induction"]
+                                ):
                                     kkt_devices.append(device)
 
                             if kkt_devices:
@@ -2959,7 +2957,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                                 self._api_info = {
                                     "client_id": client_id,
                                     "client_secret": client_secret,
-                                    "endpoint": endpoint
+                                    "endpoint": endpoint,
                                 }
                                 self._discovered_devices = {}
                                 for device in kkt_devices:
@@ -2967,6 +2965,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
 
                                     # Get friendly_type from KNOWN_DEVICES
                                     from .device_types import KNOWN_DEVICES
+
                                     friendly_type = KNOWN_DEVICES.get(device_type, {}).get("name")
 
                                     self._discovered_devices[device["id"]] = {
@@ -2999,12 +2998,10 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             description_placeholders={
                 "setup_info": f"Enter new TinyTuya Cloud API credentials\n\nSetup Guide: {SETUP_GUIDE_URL}\nTuya IoT Platform: {TUYA_IOT_URL}",
                 **_URL_PLACEHOLDERS,
-            }
+            },
         )
 
-    async def async_step_authentication(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_authentication(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle authentication step - local key input and validation."""
         errors: dict[str, str] = {}
 
@@ -3030,9 +3027,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             if test_connection:
                 ip_addr = str(self._device_info.get("ip", ""))
                 dev_id = str(self._device_info.get("device_id", ""))
-                connection_valid = await self._test_device_connection(
-                    ip_addr, dev_id, local_key
-                )
+                connection_valid = await self._test_device_connection(ip_addr, dev_id, local_key)
 
                 if not connection_valid:
                     errors["base"] = "invalid_auth"
@@ -3047,13 +3042,13 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
         default_local_key = self._local_key or ""
 
         # Create schema with pre-filled local key and back option
-        auth_schema = vol.Schema({
-            vol.Required("local_key", default=default_local_key): selector.selector({
-                "text": {"type": "password"}
-            }),
-            vol.Optional("test_connection", default=True): bool,
-            vol.Optional("back_to_previous", default=False): bool,
-        })
+        auth_schema = vol.Schema(
+            {
+                vol.Required("local_key", default=default_local_key): selector.selector({"text": {"type": "password"}}),
+                vol.Optional("test_connection", default=True): bool,
+                vol.Optional("back_to_previous", default=False): bool,
+            }
+        )
 
         return self.async_show_form(
             step_id="authentication",
@@ -3064,12 +3059,10 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                 "device_id": self._device_info.get("device_id", "Unknown")[:8],
                 "ip_address": self._device_info.get("ip", "Unknown"),
                 **_URL_PLACEHOLDERS,
-            }
+            },
         )
 
-    async def async_step_settings(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_settings(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle advanced settings step."""
         if user_input is not None:
             # Check if user wants to go back
@@ -3092,13 +3085,11 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             data_schema=get_settings_schema(device_type),
             description_placeholders={
                 "device_name": self._device_info.get("name", "Unknown"),
-                "recommended_interval": "30 seconds for real-time control"
-            }
+                "recommended_interval": "30 seconds for real-time control",
+            },
         )
 
-    async def async_step_confirmation(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    async def async_step_confirmation(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle confirmation and create config entry."""
         if user_input is not None:
             # Check if user wants to go back to settings
@@ -3150,11 +3141,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                 "zone_naming_scheme": self._advanced_settings.get("zone_naming_scheme", "zone"),
             }
 
-            return self.async_create_entry(
-                title=title,
-                data=config_data,
-                options=options_data
-            )
+            return self.async_create_entry(title=title, data=config_data, options=options_data)
 
         # Show confirmation summary
         summary_info = {
@@ -3169,11 +3156,10 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
 
         return self.async_show_form(
             step_id="confirmation",
-            data_schema=vol.Schema({
-                vol.Optional("confirm", default=False): bool,
-                vol.Optional("back_to_settings", default=False): bool
-            }),
-            description_placeholders=summary_info
+            data_schema=vol.Schema(
+                {vol.Optional("confirm", default=False): bool, vol.Optional("back_to_settings", default=False): bool}
+            ),
+            description_placeholders=summary_info,
         )
 
     async def _validate_manual_input(self, user_input: dict[str, Any]) -> dict[str, str]:
@@ -3219,10 +3205,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             parts = ip_address.split(".")
             if len(parts) != 4:
                 return False
-            for part in parts:
-                if not 0 <= int(part) <= 255:
-                    return False
-            return True
+            return all(0 <= int(part) <= 255 for part in parts)
         except (ValueError, AttributeError):
             return False
 
@@ -3234,9 +3217,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
         """Validate local key format."""
         return len(local_key) >= 16
 
-    async def _test_device_connection(
-        self, ip_address: str, device_id: str, local_key: str
-    ) -> bool:
+    async def _test_device_connection(self, ip_address: str, device_id: str, local_key: str) -> bool:
         """Test connection to device using enhanced testing method."""
         try:
             device = KKTKolbeTuyaDevice(device_id, ip_address, local_key)
@@ -3248,4 +3229,3 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
         except Exception as exc:
             _LOGGER.debug("Connection test failed: %s", exc)
             return False
-

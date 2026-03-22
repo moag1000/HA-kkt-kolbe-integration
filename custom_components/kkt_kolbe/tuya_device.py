@@ -1,7 +1,9 @@
 """KKT Kolbe Tuya Device Handler with enhanced config flow and device selection."""
+
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 import random
 import socket
@@ -23,10 +25,13 @@ from .exceptions import KKTTimeoutError
 
 _LOGGER = logging.getLogger(__name__)
 
+
 class KKTKolbeTuyaDevice:
     """Handle communication with KKT Kolbe device via Tuya protocol."""
 
-    def __init__(self, device_id: str, ip_address: str, local_key: str, version: str = "auto", hass: HomeAssistant | None = None) -> None:
+    def __init__(
+        self, device_id: str, ip_address: str, local_key: str, version: str = "auto", hass: HomeAssistant | None = None
+    ) -> None:
         """Initialize the Tuya device connection.
 
         Args:
@@ -102,15 +107,18 @@ class KKTKolbeTuyaDevice:
                 "  Special chars: %s\n"
                 "  Char codes: %s\n"
                 "  Key (masked): %s...%s",
-                self.device_id[:8] if hasattr(self, 'device_id') else "???",
+                self.device_id[:8] if hasattr(self, "device_id") else "???",
                 key_len,
-                utf8_len, utf8_hex[:40] + "..." if len(utf8_hex) > 40 else utf8_hex,
-                latin1_len, latin1_hex[:40] + "..." if len(latin1_hex) > 40 else latin1_hex,
-                has_non_ascii, non_ascii[:5] if has_non_ascii else "none",
+                utf8_len,
+                utf8_hex[:40] + "..." if len(utf8_hex) > 40 else utf8_hex,
+                latin1_len,
+                latin1_hex[:40] + "..." if len(latin1_hex) > 40 else latin1_hex,
+                has_non_ascii,
+                non_ascii[:5] if has_non_ascii else "none",
                 special_chars,
                 [ord(c) for c in local_key],
                 local_key[:2] if key_len >= 2 else "?",
-                local_key[-2:] if key_len >= 2 else "?"
+                local_key[-2:] if key_len >= 2 else "?",
             )
 
             # Warn if UTF-8 and Latin1 produce different lengths
@@ -118,7 +126,8 @@ class KKTKolbeTuyaDevice:
                 _LOGGER.warning(
                     "LOCAL_KEY ENCODING MISMATCH: UTF-8 (%d bytes) != Latin1 (%d bytes). "
                     "This may cause connection failures!",
-                    utf8_len, latin1_len
+                    utf8_len,
+                    latin1_len,
                 )
 
         except Exception as e:
@@ -147,19 +156,17 @@ class KKTKolbeTuyaDevice:
         max_retries = 2  # Reduced from 3 to speed up failure detection
         base_retry_delay = 3.0  # Base delay for retry
 
-
         # Quick pre-check before full protocol detection
         is_reachable = await self.async_quick_check(timeout=2.0)
         if not is_reachable:
             _LOGGER.warning(
-                f"Quick check failed for device at {self.ip_address}. "
-                f"Device appears to be offline or unreachable."
+                f"Quick check failed for device at {self.ip_address}. Device appears to be offline or unreachable."
             )
             self._connection_stats["total_errors"] += 1
             raise KKTConnectionError(
                 operation="quick_check",
                 device_id=self.device_id[:8],
-                reason="Device not reachable on port 6668 - check if device is online"
+                reason="Device not reachable on port 6668 - check if device is online",
             )
 
         for attempt in range(max_retries):
@@ -206,13 +213,10 @@ class KKTKolbeTuyaDevice:
                         f"Device may be offline or network unreachable."
                     )
                     raise KKTTimeoutError(
-                        operation="connect",
-                        device_id=self.device_id[:8],
-                        timeout=DEFAULT_CONNECTION_TIMEOUT
+                        operation="connect", device_id=self.device_id[:8], timeout=DEFAULT_CONNECTION_TIMEOUT
                     ) from timeout_err
-                else:
-                    _LOGGER.info(f"Timeout, retrying in {retry_delay:.1f}s...")
-                    await asyncio.sleep(retry_delay)
+                _LOGGER.info(f"Timeout, retrying in {retry_delay:.1f}s...")
+                await asyncio.sleep(retry_delay)
 
             except KKTAuthenticationError as e:
                 # Authentication errors should not be retried - re-raise immediately
@@ -244,14 +248,9 @@ class KKTKolbeTuyaDevice:
                         f"Last error: {e}\n"
                         f"Please verify device is online and configuration is correct."
                     )
-                    raise KKTConnectionError(
-                        operation="connect",
-                        device_id=self.device_id[:8],
-                        reason=str(e)
-                    ) from e
-                else:
-                    _LOGGER.info(f"Connection attempt {attempt + 1} failed: {e}, retrying in {retry_delay}s...")
-                    await asyncio.sleep(retry_delay)
+                    raise KKTConnectionError(operation="connect", device_id=self.device_id[:8], reason=str(e)) from e
+                _LOGGER.info(f"Connection attempt {attempt + 1} failed: {e}, retrying in {retry_delay}s...")
+                await asyncio.sleep(retry_delay)
 
     async def _run_executor_job(self, func: Callable[..., Any], *args: Any) -> Any:
         """Run a function in executor - use hass if available, otherwise fallback to loop.
@@ -312,10 +311,7 @@ class KKTKolbeTuyaDevice:
         try:
             test_device = await self._run_executor_job(
                 lambda: tinytuya.Device(
-                    dev_id=self.device_id,
-                    address=self.ip_address,
-                    local_key=local_key,
-                    version=version
+                    dev_id=self.device_id, address=self.ip_address, local_key=local_key, version=version
                 )
             )
 
@@ -326,27 +322,20 @@ class KKTKolbeTuyaDevice:
             test_device.set_socketRetryLimit(1)
 
             # Get status with timeout
-            test_status = await asyncio.wait_for(
-                self._run_executor_job(test_device.status),
-                timeout=3.0
-            )
+            test_status = await asyncio.wait_for(self._run_executor_job(test_device.status), timeout=3.0)
 
             return test_device, test_status
 
-        except (TimeoutError, asyncio.TimeoutError):
+        except TimeoutError:
             if test_device:
-                try:
+                with contextlib.suppress(Exception):
                     test_device.close()
-                except Exception:
-                    pass
             return None, None
 
-        except Exception as e:
+        except Exception:
             if test_device:
-                try:
+                with contextlib.suppress(Exception):
                     test_device.close()
-                except Exception:
-                    pass
             raise
 
     async def _perform_connection(self) -> None:
@@ -362,15 +351,11 @@ class KKTKolbeTuyaDevice:
             # Try each version with each key variant
             for test_version in [3.3, 3.4, 3.1, 3.2]:
                 for key_variant, key_desc in key_variants:
-                    _LOGGER.debug(
-                        f"Testing version {test_version} with {key_desc} key for device {self.device_id[:8]}"
-                    )
+                    _LOGGER.debug(f"Testing version {test_version} with {key_desc} key for device {self.device_id[:8]}")
                     test_device = None
 
                     try:
-                        test_device, test_status = await self._try_connect_with_key(
-                            key_variant, float(test_version)
-                        )
+                        test_device, test_status = await self._try_connect_with_key(key_variant, float(test_version))
 
                         if test_status is None:
                             _LOGGER.debug(f"Version {test_version} ({key_desc}) timeout")
@@ -384,17 +369,18 @@ class KKTKolbeTuyaDevice:
                                 f"device key/version check failed"
                             )
                             if test_device:
-                                try:
+                                with contextlib.suppress(Exception):
                                     test_device.close()
-                                except Exception:
-                                    pass
                             continue
 
                         # Check for valid DPS response
-                        if (test_status and isinstance(test_status, dict) and
-                            "dps" in test_status and test_status["dps"] and
-                            len(test_status["dps"]) > 0):
-
+                        if (
+                            test_status
+                            and isinstance(test_status, dict)
+                            and "dps" in test_status
+                            and test_status["dps"]
+                            and len(test_status["dps"]) > 0
+                        ):
                             self.version = str(test_version)
                             self._connection_stats["protocol_version_detected"] = str(test_version)
 
@@ -413,34 +399,27 @@ class KKTKolbeTuyaDevice:
                         else:
                             # Invalid response, cleanup and try next
                             if test_device:
-                                try:
+                                with contextlib.suppress(Exception):
                                     test_device.close()
-                                except Exception:
-                                    pass
 
                     except asyncio.CancelledError:
                         if test_device:
-                            try:
+                            with contextlib.suppress(Exception):
                                 test_device.close()
-                            except Exception:
-                                pass
                         _LOGGER.warning(f"Protocol detection cancelled for version {test_version}")
                         raise
 
                     except Exception as e:
                         if test_device:
-                            try:
+                            with contextlib.suppress(Exception):
                                 test_device.close()
-                            except Exception:
-                                pass
 
                         # Check if this is an authentication error
                         error_msg = str(e).lower()
                         if any(keyword in error_msg for keyword in ["decrypt", "encrypt", "hmac", "key", "auth"]):
                             _LOGGER.error(f"Authentication error detected: {e}")
                             raise KKTAuthenticationError(
-                                device_id=self.device_id,
-                                message=f"Authentication failed - invalid local key: {e}"
+                                device_id=self.device_id, message=f"Authentication failed - invalid local key: {e}"
                             ) from e
 
                         _LOGGER.debug(f"Version {test_version} ({key_desc}) failed: {type(e).__name__}")
@@ -471,91 +450,75 @@ class KKTKolbeTuyaDevice:
                 operation="auto_detect",
                 device_id=self.device_id[:8],
                 reason=f"Device not responding to any Tuya protocol version (3.1-3.4). "
-                       f"Error 914 count: {error_914_count}. Check device connectivity and local key."
+                f"Error 914 count: {error_914_count}. Check device connectivity and local key.",
             )
-        else:
-            # Use specified version with key variants for encoding issues
-            version_float = float(self.version) if self.version != "auto" else 3.3
-            error_914_seen = False
+        # Use specified version with key variants for encoding issues
+        version_float = float(self.version) if self.version != "auto" else 3.3
+        error_914_seen = False
 
-            for key_variant, key_desc in key_variants:
-                try:
-                    test_device, test_status = await self._try_connect_with_key(
-                        key_variant, version_float
-                    )
+        for key_variant, key_desc in key_variants:
+            try:
+                test_device, test_status = await self._try_connect_with_key(key_variant, version_float)
 
-                    if test_status is None:
-                        _LOGGER.debug(f"Version {version_float} ({key_desc}) timeout")
-                        continue
-
-                    # Check for Error 914
-                    if self._is_error_914(test_status):
-                        error_914_seen = True
-                        _LOGGER.debug(
-                            f"Error 914 with version {version_float} ({key_desc} key)"
-                        )
-                        if test_device:
-                            try:
-                                test_device.close()
-                            except Exception:
-                                pass
-                        continue
-
-                    # Check for valid DPS response
-                    if (test_status and isinstance(test_status, dict) and
-                        "dps" in test_status and test_status["dps"]):
-
-                        # If we used a variant key, update local_key
-                        if key_variant != self.local_key:
-                            _LOGGER.warning(
-                                f"Connection successful with {key_desc} key variant! "
-                                f"Original key had encoding issues."
-                            )
-                            self.local_key = key_variant
-
-                        self._device = test_device
-                        self._connected = True
-                        _LOGGER.info(
-                            f"Connected to device at {self.ip_address} using version {self.version}"
-                        )
-                        return
-                    else:
-                        # Invalid response
-                        if test_device:
-                            try:
-                                test_device.close()
-                            except Exception:
-                                pass
-
-                except asyncio.CancelledError:
-                    raise
-
-                except Exception as e:
-                    # Check if this is an authentication error
-                    error_msg = str(e).lower()
-                    if any(keyword in error_msg for keyword in ["decrypt", "encrypt", "hmac", "key", "auth"]):
-                        _LOGGER.error(f"Authentication error detected: {e}")
-                        raise KKTAuthenticationError(
-                            device_id=self.device_id,
-                            message=f"Authentication failed - invalid local key: {e}"
-                        ) from e
-                    _LOGGER.debug(f"Version {version_float} ({key_desc}) failed: {e}")
+                if test_status is None:
+                    _LOGGER.debug(f"Version {version_float} ({key_desc}) timeout")
                     continue
 
-            # All key variants failed
-            if error_914_seen:
-                raise KKTConnectionError(
-                    operation="validate_connection",
-                    device_id=self.device_id[:8],
-                    reason=f"Error 914: Device rejected all key variants for version {version_float}. "
-                           f"Key may be incorrect or have unsupported encoding."
-                )
-            else:
-                raise KKTConnectionError(
-                    operation="validate_connection",
-                    device_id=self.device_id[:8],
-                    reason=f"Device did not return valid status for version {version_float}"
-                )
+                # Check for Error 914
+                if self._is_error_914(test_status):
+                    error_914_seen = True
+                    _LOGGER.debug(f"Error 914 with version {version_float} ({key_desc} key)")
+                    if test_device:
+                        with contextlib.suppress(Exception):
+                            test_device.close()
+                    continue
+
+                # Check for valid DPS response
+                if test_status and isinstance(test_status, dict) and "dps" in test_status and test_status["dps"]:
+                    # If we used a variant key, update local_key
+                    if key_variant != self.local_key:
+                        _LOGGER.warning(
+                            f"Connection successful with {key_desc} key variant! Original key had encoding issues."
+                        )
+                        self.local_key = key_variant
+
+                    self._device = test_device
+                    self._connected = True
+                    _LOGGER.info(f"Connected to device at {self.ip_address} using version {self.version}")
+                    return
+                else:
+                    # Invalid response
+                    if test_device:
+                        with contextlib.suppress(Exception):
+                            test_device.close()
+
+            except asyncio.CancelledError:
+                raise
+
+            except Exception as e:
+                # Check if this is an authentication error
+                error_msg = str(e).lower()
+                if any(keyword in error_msg for keyword in ["decrypt", "encrypt", "hmac", "key", "auth"]):
+                    _LOGGER.error(f"Authentication error detected: {e}")
+                    raise KKTAuthenticationError(
+                        device_id=self.device_id, message=f"Authentication failed - invalid local key: {e}"
+                    ) from e
+                _LOGGER.debug(f"Version {version_float} ({key_desc}) failed: {e}")
+                continue
+
+        # All key variants failed
+        if error_914_seen:
+            raise KKTConnectionError(
+                operation="validate_connection",
+                device_id=self.device_id[:8],
+                reason=f"Error 914: Device rejected all key variants for version {version_float}. "
+                f"Key may be incorrect or have unsupported encoding.",
+            )
+        raise KKTConnectionError(
+            operation="validate_connection",
+            device_id=self.device_id[:8],
+            reason=f"Device did not return valid status for version {version_float}",
+        )
 
     async def async_ensure_connected(self) -> None:
         """Ensure device is connected (async) with proper error handling."""
@@ -568,9 +531,7 @@ class KKTKolbeTuyaDevice:
             except Exception as e:
                 # Convert any other exceptions to our format
                 raise KKTConnectionError(
-                    operation="ensure_connected",
-                    device_id=self.device_id[:8],
-                    reason=str(e)
+                    operation="ensure_connected", device_id=self.device_id[:8], reason=str(e)
                 ) from e
 
     @property
@@ -632,8 +593,7 @@ class KKTKolbeTuyaDevice:
                     sock.close()
 
             is_reachable: bool = await asyncio.wait_for(
-                loop.run_in_executor(None, _check_socket),
-                timeout=timeout + 0.5
+                loop.run_in_executor(None, _check_socket), timeout=timeout + 0.5
             )
 
             if not is_reachable:
@@ -662,22 +622,23 @@ class KKTKolbeTuyaDevice:
         """Configure TCP Keep-Alive on the device socket."""
         try:
             # Get the underlying socket if available
-            if hasattr(device, '_socket') and device._socket:
+            if hasattr(device, "_socket") and device._socket:
                 sock = device._socket
                 # Enable TCP Keep-Alive
                 sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
 
                 # Platform-specific keep-alive settings
                 import platform
-                if platform.system() == 'Linux':
+
+                if platform.system() == "Linux":
                     # TCP_KEEPIDLE - time before sending keepalive probes
-                    tcp_keepidle = getattr(socket, 'TCP_KEEPIDLE', 4)  # 4 is the value on Linux
+                    tcp_keepidle = getattr(socket, "TCP_KEEPIDLE", 4)  # 4 is the value on Linux
                     sock.setsockopt(socket.IPPROTO_TCP, tcp_keepidle, TCP_KEEPALIVE_IDLE)
                     # TCP_KEEPINTVL - interval between probes
                     sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, TCP_KEEPALIVE_INTERVAL)
                     # TCP_KEEPCNT - number of failed probes before declaring dead
                     sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, TCP_KEEPALIVE_COUNT)
-                elif platform.system() == 'Darwin':  # macOS
+                elif platform.system() == "Darwin":  # macOS
                     # macOS uses TCP_KEEPALIVE for idle time
                     sock.setsockopt(socket.IPPROTO_TCP, 0x10, TCP_KEEPALIVE_IDLE)
 
@@ -705,40 +666,31 @@ class KKTKolbeTuyaDevice:
 
         if not self._device:
             raise KKTConnectionError(
-                operation="get_status",
-                device_id=self.device_id[:8],
-                reason="Device not connected"
+                operation="get_status", device_id=self.device_id[:8], reason="Device not connected"
             )
 
         try:
             # Explicit status() call with timeout protection
             # This triggers a status request and tinytuya internally merges
             # the response with any cached data
-            status = await asyncio.wait_for(
-                self._run_executor_job(self._device.status),
-                timeout=10.0
-            )
+            status = await asyncio.wait_for(self._run_executor_job(self._device.status), timeout=10.0)
 
             # Enhanced validation and error handling
             if not status:
                 raise KKTDataPointError(
-                    operation="get_status",
-                    device_id=self.device_id[:8],
-                    reason="Device returned empty status"
+                    operation="get_status", device_id=self.device_id[:8], reason="Device returned empty status"
                 )
 
             if not isinstance(status, dict):
                 raise KKTDataPointError(
                     operation="get_status",
                     device_id=self.device_id[:8],
-                    reason=f"Invalid status format: {type(status)}"
+                    reason=f"Invalid status format: {type(status)}",
                 )
 
             if "dps" not in status:
                 raise KKTDataPointError(
-                    operation="get_status",
-                    device_id=self.device_id[:8],
-                    reason="Status missing 'dps' field"
+                    operation="get_status", device_id=self.device_id[:8], reason="Status missing 'dps' field"
                 )
 
             # Try to get the merged/cached DPs from tinytuya
@@ -754,7 +706,7 @@ class KKTKolbeTuyaDevice:
             )
 
             # Check for dps_cache (merged DPs from all updates)
-            if hasattr(self._device, 'dps_cache'):
+            if hasattr(self._device, "dps_cache"):
                 cached_dps = self._device.dps_cache
                 _LOGGER.debug(f"dps_cache content: {list(cached_dps.keys()) if cached_dps else 'empty'}")
                 if isinstance(cached_dps, dict) and len(cached_dps) > len(dps):
@@ -765,15 +717,14 @@ class KKTKolbeTuyaDevice:
                     dps = cached_dps
 
             # Alternative: try _cache directly (tinytuya internal)
-            if hasattr(self._device, '_cache') and self._device._cache:
+            if hasattr(self._device, "_cache") and self._device._cache:
                 internal_cache = self._device._cache
-                if isinstance(internal_cache, dict) and 'dps' in internal_cache:
-                    cached_dps = internal_cache.get('dps', {})
+                if isinstance(internal_cache, dict) and "dps" in internal_cache:
+                    cached_dps = internal_cache.get("dps", {})
                     _LOGGER.debug(f"_cache['dps'] content: {list(cached_dps.keys()) if cached_dps else 'empty'}")
                     if len(cached_dps) > len(dps):
                         _LOGGER.debug(
-                            f"Using _cache['dps'] with {len(cached_dps)} data points "
-                            f"(current has {len(dps)} DPs)"
+                            f"Using _cache['dps'] with {len(cached_dps)} data points (current has {len(dps)} DPs)"
                         )
                         dps = cached_dps
 
@@ -791,11 +742,7 @@ class KKTKolbeTuyaDevice:
         except TimeoutError as timeout_err:
             self._connected = False
             self._device = None
-            raise KKTTimeoutError(
-                operation="get_status",
-                device_id=self.device_id[:8],
-                timeout=10.0
-            ) from timeout_err
+            raise KKTTimeoutError(operation="get_status", device_id=self.device_id[:8], timeout=10.0) from timeout_err
         except (KKTDataPointError, KKTTimeoutError):
             # Re-raise our custom exceptions
             raise
@@ -803,11 +750,7 @@ class KKTKolbeTuyaDevice:
             _LOGGER.error(f"Failed to get device status: {e}")
             self._connected = False  # Mark as disconnected on error - LocalTuya pattern
             self._device = None  # Clear device reference like LocalTuya
-            raise KKTConnectionError(
-                operation="get_status",
-                device_id=self.device_id[:8],
-                reason=str(e)
-            ) from e
+            raise KKTConnectionError(operation="get_status", device_id=self.device_id[:8], reason=str(e)) from e
 
     async def async_update_status(self) -> None:
         """Update device status asynchronously with timeout protection."""
@@ -815,17 +758,12 @@ class KKTKolbeTuyaDevice:
 
         if not self._device:
             raise KKTConnectionError(
-                operation="update_status",
-                device_id=self.device_id[:8],
-                reason="Device not connected"
+                operation="update_status", device_id=self.device_id[:8], reason="Device not connected"
             )
 
         try:
             # Explicit status() call with timeout protection
-            status = await asyncio.wait_for(
-                self._run_executor_job(self._device.status),
-                timeout=10.0
-            )
+            status = await asyncio.wait_for(self._run_executor_job(self._device.status), timeout=10.0)
 
             if status and isinstance(status, dict):
                 self._status = status
@@ -844,9 +782,7 @@ class KKTKolbeTuyaDevice:
             self._connected = False
             self._device = None
             raise KKTTimeoutError(
-                operation="update_status",
-                device_id=self.device_id[:8],
-                timeout=10.0
+                operation="update_status", device_id=self.device_id[:8], timeout=10.0
             ) from timeout_err
         except Exception as e:
             _LOGGER.error(f"Failed to update device status: {e}")
@@ -858,29 +794,18 @@ class KKTKolbeTuyaDevice:
                     pass  # Ignore errors during cleanup
             self._connected = False
             self._device = None
-            raise KKTConnectionError(
-                operation="update_status",
-                device_id=self.device_id[:8],
-                reason=str(e)
-            ) from e
+            raise KKTConnectionError(operation="update_status", device_id=self.device_id[:8], reason=str(e)) from e
 
     async def async_set_dp(self, dp: int, value: Any) -> bool:
         """Set data point value asynchronously with explicit data point writing logic."""
         await self.async_ensure_connected()
 
         if not self._device:
-            raise KKTConnectionError(
-                operation="set_dp",
-                device_id=self.device_id[:8],
-                reason="Device not connected"
-            )
+            raise KKTConnectionError(operation="set_dp", device_id=self.device_id[:8], reason="Device not connected")
 
         try:
             # Explicit set_value() call with timeout protection
-            result = await asyncio.wait_for(
-                self._run_executor_job(self._device.set_value, dp, value),
-                timeout=8.0
-            )
+            result = await asyncio.wait_for(self._run_executor_job(self._device.set_value, dp, value), timeout=8.0)
 
             # Validate the result
             if result is None:
@@ -900,10 +825,7 @@ class KKTKolbeTuyaDevice:
             self._connected = False
             self._device = None
             raise KKTTimeoutError(
-                operation="set_dp",
-                device_id=self.device_id[:8],
-                data_point=dp,
-                timeout=8.0
+                operation="set_dp", device_id=self.device_id[:8], data_point=dp, timeout=8.0
             ) from timeout_err
         except Exception as e:
             _LOGGER.error(f"Failed to set DP {dp} to {value}: {e}")
@@ -916,10 +838,7 @@ class KKTKolbeTuyaDevice:
             self._connected = False
             self._device = None
             raise KKTDataPointError(
-                operation="set_dp",
-                device_id=self.device_id[:8],
-                data_point=dp,
-                reason=str(e)
+                operation="set_dp", device_id=self.device_id[:8], data_point=dp, reason=str(e)
             ) from e
 
     def turn_on(self) -> None:
@@ -935,13 +854,7 @@ class KKTKolbeTuyaDevice:
     def set_fan_speed(self, speed: str) -> None:
         """Set fan speed (DP 10). DEPRECATED: Use coordinator.async_set_data_point() instead."""
         _LOGGER.warning("set_fan_speed() is deprecated. Use coordinator.async_set_data_point() instead.")
-        speed_map = {
-            "off": "0",
-            "low": "1",
-            "middle": "2",
-            "high": "3",
-            "strong": "4"
-        }
+        speed_map = {"off": "0", "low": "1", "middle": "2", "high": "3", "strong": "4"}
         if speed in speed_map:
             self._create_safe_task(self.async_set_dp(10, speed_map[speed]))
 
@@ -949,13 +862,7 @@ class KKTKolbeTuyaDevice:
     def fan_speed(self) -> str:
         """Get current fan speed."""
         speed_value = self.get_dp_value(10, "0")
-        speed_map = {
-            "0": "off",
-            "1": "low",
-            "2": "middle",
-            "3": "high",
-            "4": "strong"
-        }
+        speed_map = {"0": "off", "1": "low", "2": "middle", "3": "high", "4": "strong"}
         return speed_map.get(str(speed_value), "off")
 
     def set_light(self, state: bool) -> None:
@@ -1016,13 +923,7 @@ class KKTKolbeTuyaDevice:
 
     def set_fan_speed_direct(self, speed: str) -> None:
         """Set fan speed directly (DP 11)."""
-        speed_map = {
-            "off": 0,
-            "low": 1,
-            "middle": 2,
-            "high": 3,
-            "strong": 4
-        }
+        speed_map = {"off": 0, "low": 1, "middle": 2, "high": 3, "strong": 4}
         if speed in speed_map:
             self._create_safe_task(self.async_set_dp(11, speed_map[speed]))
 
@@ -1030,13 +931,7 @@ class KKTKolbeTuyaDevice:
     def fan_speed_setting(self) -> str:
         """Get current fan speed setting (DP 11)."""
         speed_value = self.get_dp_value(11, 0)
-        speed_map = {
-            0: "off",
-            1: "low",
-            2: "middle",
-            3: "high",
-            4: "strong"
-        }
+        speed_map = {0: "off", 1: "low", 2: "middle", 3: "high", 4: "strong"}
         return speed_map.get(speed_value, "off")
 
     # === COOKTOP METHODS FOR IND7705HC ===
@@ -1045,7 +940,7 @@ class KKTKolbeTuyaDevice:
         """Get power level for specific zone (1-5) from DP 162 bitfield."""
         if not 1 <= zone <= 5:
             return 0
-        raw_value = self.get_dp_value(162, b'\x00' * 5)
+        raw_value = self.get_dp_value(162, b"\x00" * 5)
         if isinstance(raw_value, (bytes, bytearray)) and len(raw_value) >= zone:
             return raw_value[zone - 1]
         return 0
@@ -1054,7 +949,7 @@ class KKTKolbeTuyaDevice:
         """Set power level for specific zone (1-5) in DP 162 bitfield."""
         if not (1 <= zone <= 5 and 0 <= level <= 25):
             return
-        raw_value = self.get_dp_value(162, b'\x00' * 5)
+        raw_value = self.get_dp_value(162, b"\x00" * 5)
         if isinstance(raw_value, (bytes, bytearray)):
             data = bytearray(raw_value)
         else:
@@ -1067,7 +962,7 @@ class KKTKolbeTuyaDevice:
         """Get timer for specific zone (1-5) from DP 167 bitfield."""
         if not 1 <= zone <= 5:
             return 0
-        raw_value = self.get_dp_value(167, b'\x00' * 5)
+        raw_value = self.get_dp_value(167, b"\x00" * 5)
         if isinstance(raw_value, (bytes, bytearray)) and len(raw_value) >= zone:
             return raw_value[zone - 1]
         return 0
@@ -1076,7 +971,7 @@ class KKTKolbeTuyaDevice:
         """Set timer for specific zone (1-5) in DP 167 bitfield."""
         if not (1 <= zone <= 5 and 0 <= minutes <= 255):
             return
-        raw_value = self.get_dp_value(167, b'\x00' * 5)
+        raw_value = self.get_dp_value(167, b"\x00" * 5)
         if isinstance(raw_value, (bytes, bytearray)):
             data = bytearray(raw_value)
         else:
@@ -1089,7 +984,7 @@ class KKTKolbeTuyaDevice:
         """Get core temperature for specific zone (1-5) from DP 168 bitfield."""
         if not 1 <= zone <= 5:
             return 0
-        raw_value = self.get_dp_value(168, b'\x00' * 5)
+        raw_value = self.get_dp_value(168, b"\x00" * 5)
         if isinstance(raw_value, (bytes, bytearray)) and len(raw_value) >= zone:
             return raw_value[zone - 1]
         return 0
@@ -1098,7 +993,7 @@ class KKTKolbeTuyaDevice:
         """Set core temperature for specific zone (1-5) in DP 168 bitfield."""
         if not (1 <= zone <= 5 and 0 <= temp <= 300):
             return
-        raw_value = self.get_dp_value(168, b'\x00' * 5)
+        raw_value = self.get_dp_value(168, b"\x00" * 5)
         if isinstance(raw_value, (bytes, bytearray)):
             data = bytearray(raw_value)
         else:
@@ -1111,7 +1006,7 @@ class KKTKolbeTuyaDevice:
         """Get displayed core temperature for specific zone (1-5) from DP 169 bitfield."""
         if not 1 <= zone <= 5:
             return 0
-        raw_value = self.get_dp_value(169, b'\x00' * 5)
+        raw_value = self.get_dp_value(169, b"\x00" * 5)
         if isinstance(raw_value, (bytes, bytearray)) and len(raw_value) >= zone:
             return raw_value[zone - 1]
         return 0
@@ -1120,7 +1015,7 @@ class KKTKolbeTuyaDevice:
         """Get error code for specific zone (1-5) from DP 105 bitfield."""
         if not 1 <= zone <= 5:
             return 0
-        raw_value = self.get_dp_value(105, b'\x00' * 5)
+        raw_value = self.get_dp_value(105, b"\x00" * 5)
         if isinstance(raw_value, (bytes, bytearray)) and len(raw_value) >= zone:
             return raw_value[zone - 1]
         return 0
@@ -1129,7 +1024,7 @@ class KKTKolbeTuyaDevice:
         """Check if specific zone (1-5) is selected from DP 161 bitfield."""
         if not 1 <= zone <= 5:
             return False
-        raw_value = self.get_dp_value(161, b'\x00')
+        raw_value = self.get_dp_value(161, b"\x00")
         if isinstance(raw_value, (bytes, bytearray)) and len(raw_value) > 0:
             return bool(raw_value[0] & (1 << (zone - 1)))
         return False
@@ -1138,13 +1033,13 @@ class KKTKolbeTuyaDevice:
         """Set zone selection for specific zone (1-5) in DP 161 bitfield."""
         if not 1 <= zone <= 5:
             return
-        raw_value = self.get_dp_value(161, b'\x00')
+        raw_value = self.get_dp_value(161, b"\x00")
         if isinstance(raw_value, (bytes, bytearray)) and len(raw_value) > 0:
             data = raw_value[0]
         else:
             data = 0
         if selected:
-            data |= (1 << (zone - 1))
+            data |= 1 << (zone - 1)
         else:
             data &= ~(1 << (zone - 1))
         self._create_safe_task(self.async_set_dp(161, bytes([data])))
@@ -1153,7 +1048,7 @@ class KKTKolbeTuyaDevice:
         """Check if specific zone (1-5) is in boost mode from DP 163 bitfield."""
         if not 1 <= zone <= 5:
             return False
-        raw_value = self.get_dp_value(163, b'\x00')
+        raw_value = self.get_dp_value(163, b"\x00")
         if isinstance(raw_value, (bytes, bytearray)) and len(raw_value) > 0:
             return bool(raw_value[0] & (1 << (zone - 1)))
         return False
@@ -1162,13 +1057,13 @@ class KKTKolbeTuyaDevice:
         """Set boost mode for specific zone (1-5) in DP 163 bitfield."""
         if not 1 <= zone <= 5:
             return
-        raw_value = self.get_dp_value(163, b'\x00')
+        raw_value = self.get_dp_value(163, b"\x00")
         if isinstance(raw_value, (bytes, bytearray)) and len(raw_value) > 0:
             data = raw_value[0]
         else:
             data = 0
         if boost:
-            data |= (1 << (zone - 1))
+            data |= 1 << (zone - 1)
         else:
             data &= ~(1 << (zone - 1))
         self._create_safe_task(self.async_set_dp(163, bytes([data])))
@@ -1177,7 +1072,7 @@ class KKTKolbeTuyaDevice:
         """Check if specific zone (1-5) is in keep warm mode from DP 164 bitfield."""
         if not 1 <= zone <= 5:
             return False
-        raw_value = self.get_dp_value(164, b'\x00')
+        raw_value = self.get_dp_value(164, b"\x00")
         if isinstance(raw_value, (bytes, bytearray)) and len(raw_value) > 0:
             return bool(raw_value[0] & (1 << (zone - 1)))
         return False
@@ -1186,13 +1081,13 @@ class KKTKolbeTuyaDevice:
         """Set keep warm mode for specific zone (1-5) in DP 164 bitfield."""
         if not 1 <= zone <= 5:
             return
-        raw_value = self.get_dp_value(164, b'\x00')
+        raw_value = self.get_dp_value(164, b"\x00")
         if isinstance(raw_value, (bytes, bytearray)) and len(raw_value) > 0:
             data = raw_value[0]
         else:
             data = 0
         if keep_warm:
-            data |= (1 << (zone - 1))
+            data |= 1 << (zone - 1)
         else:
             data &= ~(1 << (zone - 1))
         self._create_safe_task(self.async_set_dp(164, bytes([data])))
@@ -1201,7 +1096,7 @@ class KKTKolbeTuyaDevice:
         """Check if flex zone is active (left/right) from DP 165 bitfield."""
         if side not in ["left", "right"]:
             return False
-        raw_value = self.get_dp_value(165, b'\x00')
+        raw_value = self.get_dp_value(165, b"\x00")
         if isinstance(raw_value, (bytes, bytearray)) and len(raw_value) > 0:
             bit = 0 if side == "left" else 1
             return bool(raw_value[0] & (1 << bit))
@@ -1211,14 +1106,14 @@ class KKTKolbeTuyaDevice:
         """Set flex zone active state (left/right) in DP 165 bitfield."""
         if side not in ["left", "right"]:
             return
-        raw_value = self.get_dp_value(165, b'\x00')
+        raw_value = self.get_dp_value(165, b"\x00")
         if isinstance(raw_value, (bytes, bytearray)) and len(raw_value) > 0:
             data = raw_value[0]
         else:
             data = 0
         bit = 0 if side == "left" else 1
         if active:
-            data |= (1 << bit)
+            data |= 1 << bit
         else:
             data &= ~(1 << bit)
         self._create_safe_task(self.async_set_dp(165, bytes([data])))
@@ -1227,7 +1122,7 @@ class KKTKolbeTuyaDevice:
         """Check if BBQ mode is active (left/right) from DP 166 bitfield."""
         if side not in ["left", "right"]:
             return False
-        raw_value = self.get_dp_value(166, b'\x00')
+        raw_value = self.get_dp_value(166, b"\x00")
         if isinstance(raw_value, (bytes, bytearray)) and len(raw_value) > 0:
             bit = 0 if side == "left" else 1
             return bool(raw_value[0] & (1 << bit))
@@ -1237,14 +1132,14 @@ class KKTKolbeTuyaDevice:
         """Set BBQ mode active state (left/right) in DP 166 bitfield."""
         if side not in ["left", "right"]:
             return
-        raw_value = self.get_dp_value(166, b'\x00')
+        raw_value = self.get_dp_value(166, b"\x00")
         if isinstance(raw_value, (bytes, bytearray)) and len(raw_value) > 0:
             data = raw_value[0]
         else:
             data = 0
         bit = 0 if side == "left" else 1
         if active:
-            data |= (1 << bit)
+            data |= 1 << bit
         else:
             data &= ~(1 << bit)
         self._create_safe_task(self.async_set_dp(166, bytes([data])))

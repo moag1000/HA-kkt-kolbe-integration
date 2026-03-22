@@ -13,6 +13,7 @@ For range hoods (Dunstabzugshauben), the main power (DP 1) must be on
 before fan speed can be set. This module automatically turns on the hood
 if it's off when setting fan speed.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -70,7 +71,9 @@ async def async_setup_entry(
 
     # Only add if device has fan configuration
     if fan_config:
-        _LOGGER.info(f"Setting up fan entity for {lookup_key} (device_type={device_type}, product={product_name}) with config: {fan_config}")
+        _LOGGER.info(
+            f"Setting up fan entity for {lookup_key} (device_type={device_type}, product={product_name}) with config: {fan_config}"
+        )
         async_add_entities([KKTKolbeFan(coordinator, entry, fan_config)])
     else:
         _LOGGER.debug(f"No fan configuration found for {lookup_key}")
@@ -117,9 +120,7 @@ class KKTKolbeFan(KKTBaseEntity, FanEntity):
 
         # Supported features for HomeKit compatibility
         self._attr_supported_features = (
-            FanEntityFeature.SET_SPEED |
-            FanEntityFeature.TURN_ON |
-            FanEntityFeature.TURN_OFF
+            FanEntityFeature.SET_SPEED | FanEntityFeature.TURN_ON | FanEntityFeature.TURN_OFF
         )
 
         # Speed count for HomeKit slider
@@ -137,7 +138,10 @@ class KKTKolbeFan(KKTBaseEntity, FanEntity):
         mode_str = "numeric (0-9)" if self._numeric_mode else "enum"
         _LOGGER.info(
             "KKTKolbeFan [%s] initialized - mode: %s, speeds: %s, dp: %d",
-            self._name, mode_str, self._speed_list, self._dp_id
+            self._name,
+            mode_str,
+            self._speed_list,
+            self._dp_id,
         )
 
         # Initialize state from coordinator data
@@ -169,10 +173,7 @@ class KKTKolbeFan(KKTBaseEntity, FanEntity):
             True if the hood was just turned on, False if it was already on.
         """
         if not self._is_hood_powered_on():
-            _LOGGER.info(
-                "KKTKolbeFan [%s]: Hood is off, turning on before setting fan speed",
-                self._name
-            )
+            _LOGGER.info("KKTKolbeFan [%s]: Hood is off, turning on before setting fan speed", self._name)
             await self._async_set_data_point(HOOD_POWER_DP, True)
             # Wait for the hood to power on before setting fan speed
             await asyncio.sleep(POWER_ON_DELAY)
@@ -212,9 +213,7 @@ class KKTKolbeFan(KKTBaseEntity, FanEntity):
                 if speed_value == "off" or speed_value not in self._speed_list:
                     self._cached_percentage = 0
                 else:
-                    self._cached_percentage = ordered_list_item_to_percentage(
-                        self._speed_list, speed_value
-                    )
+                    self._cached_percentage = ordered_list_item_to_percentage(self._speed_list, speed_value)
                     self._last_non_off_speed = speed_value
             elif isinstance(speed_value, (int, float)):
                 # Some devices return index instead of string
@@ -226,9 +225,7 @@ class KKTKolbeFan(KKTBaseEntity, FanEntity):
                     self._cached_percentage = 0
                 else:
                     speed_name = self._speed_list[idx]
-                    self._cached_percentage = ordered_list_item_to_percentage(
-                        self._speed_list, speed_name
-                    )
+                    self._cached_percentage = ordered_list_item_to_percentage(self._speed_list, speed_name)
                     self._last_non_off_speed = speed_name
             else:
                 self._cached_state = None

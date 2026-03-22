@@ -5,6 +5,56 @@ All notable changes to the KKT Kolbe Home Assistant Integration will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.4.0] - 2026-03-22
+
+### Added
+
+- **EASY HCM Hood Support**: EASY9005SM (90cm), EASY909SHCM (90cm), EASY609SHCM (60cm) als eigener Gerätetyp. Basiert auf HCM-Familie mit 9 Lüfterstufen, RGBW-LED, Dualfilter-Monitoring
+- **Backofen Vorbereitung (Stub)**: Infrastruktur für KKT Kolbe Backöfen (EB8313HC, EB8317HC, EB8313ED) mit geschätzten DPs. Markiert als unverifiziert, bis Nutzer die korrekten DPs melden
+- **CATEGORY_OVEN Konstante**: Neue Gerätekategorie für Backöfen
+- **FLAT Hood**: Explizit in der Geräteliste aufgeführt
+- **Filter Reset (DP 15)**: Neuer Switch für HERMES Hauben zum Zurücksetzen des Filterzählers
+- **Light Brightness (DP 5)**: Helligkeitssteuerung nativ in der Light-Entity für HERMES Hauben
+- **Chef Level Sensoren (DP 106)**: Zone 1-5 Chef-Funktion als Sensor für IND7705HC
+- **BBQ Timer Sensoren (DP 107)**: BBQ-Timer Left/Right als Sensor für IND7705HC
+- **RGB Color Data Sensor (DP 107)**: Farbdaten-Sensor für HCM Hauben
+
+### Fixed
+
+- **RGB Mode max=8 statt 9**: Grasgrün (Wert 9) war über den Number-Slider nicht erreichbar (HERMES Hauben)
+- **SOLO HCM fehlende "sensor" Platform**: Sensor-Entities wurden nicht geladen
+- **hermes_hood fehlende Advanced Entities**: Filter Reset, Delayed Shutdown, Eco Mode, Brightness, Color Temp ergänzt
+
+### Changed
+
+- **Backofen Issue Template**: Erweitert mit Anleitung zum Auslesen der DPs und spezifischen Fragen für Backofen-Besitzer
+- **Dokumentation**: README, known_configs, CHANGELOG aktualisiert
+
+### Important
+
+- Backofen-DPs sind Schätzungen basierend auf Tuya-Konventionen und nicht verifiziert
+- EASY HCM Hauben sind basierend auf der HCM-Architektur implementiert, aber nicht mit echten Geräten getestet
+
+---
+
+## [4.3.0] - 2026-03-06
+
+### Fixed
+
+- **Hassfest-Compliance**: Inline-URLs in config_flow durch `description_placeholders` ersetzt, damit die Integration die hassfest-Validierung besteht
+
+---
+
+## [4.2.0] - 2026-02-19
+
+### Added
+
+- **SmartLife Info Sensor**: Neuer Sensor zeigt erweiterte Geräteinformationen aus der SmartLife-API (UUID, Erstellungsdatum, Aktivitätszeit, Zeitzone)
+- **Entity Picture**: Geräte-Icon aus der Tuya Cloud wird als `entity_picture` angezeigt
+- **Disable Fan Auto-Start Option**: Neue Config-Option `disable_fan_auto_start` verhindert, dass der Lüfter beim Einschalten der Haube automatisch startet (z.B. wenn nur das Licht gewünscht ist)
+
+---
+
 ## [4.1.0] - 2026-01-08
 
 ### Device ID Change Repair Flow
@@ -47,7 +97,7 @@ Diese Release fügt einen wichtigen Repair Flow hinzu, der automatisch erkennt w
 
 ### SmartLife Integration Release - QR-Code Setup ohne Developer Account
 
-Diese Major-Release bietet eine revolutionäre neue Einrichtungsmethode für KKT Kolbe Geräte über die SmartLife/Tuya Smart App - **ohne Developer Account erforderlich**!
+Diese Major-Release bietet eine neue Einrichtungsmethode für KKT Kolbe Geräte über die SmartLife/Tuya Smart App - ohne Developer Account erforderlich.
 
 ### Added
 

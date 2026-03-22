@@ -1,4 +1,5 @@
 """TinyTuya Cloud API Client for KKT Kolbe integration."""
+
 from __future__ import annotations
 
 import asyncio
@@ -65,12 +66,7 @@ class TuyaCloudClient:
             await self.session.close()
 
     def _generate_signature(
-        self,
-        method: str,
-        url: str,
-        headers: dict[str, str],
-        body: str = "",
-        nonce: str = ""
+        self, method: str, url: str, headers: dict[str, str], body: str = "", nonce: str = ""
     ) -> str:
         """Generate HMAC-SHA256 signature for Tuya API request.
 
@@ -83,7 +79,7 @@ class TuyaCloudClient:
         path = url.replace(self.endpoint, "")
 
         # Build stringToSign according to Tuya spec
-        content_sha256 = hashlib.sha256(body.encode('utf-8')).hexdigest()
+        content_sha256 = hashlib.sha256(body.encode("utf-8")).hexdigest()
 
         # Build headers section - empty string for all requests per Tuya docs
         # (Headers are included in sign calculation separately)
@@ -103,11 +99,11 @@ class TuyaCloudClient:
             # Token request: client_id + timestamp + nonce + stringToSign
             sign_payload = self.client_id + timestamp + nonce + string_to_sign
 
-        signature = hmac.new(
-            self.client_secret.encode('utf-8'),
-            sign_payload.encode('utf-8'),
-            hashlib.sha256
-        ).hexdigest().upper()
+        signature = (
+            hmac.new(self.client_secret.encode("utf-8"), sign_payload.encode("utf-8"), hashlib.sha256)
+            .hexdigest()
+            .upper()
+        )
 
         return signature
 
@@ -208,12 +204,7 @@ class TuyaCloudClient:
             self._rate_limit_backoff = 0
             _LOGGER.debug("Rate limit backoff reset")
 
-    async def _make_request(
-        self,
-        method: str,
-        path: str,
-        data: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
+    async def _make_request(self, method: str, path: str, data: dict[str, Any] | None = None) -> dict[str, Any]:
         """Make authenticated request to Tuya API with rate limiting."""
         await self._ensure_session()
         await self._wait_for_rate_limit()
@@ -226,9 +217,7 @@ class TuyaCloudClient:
 
         assert self.session is not None  # Guaranteed by _ensure_session()
         try:
-            async with self.session.request(
-                method, url, headers=headers, data=body
-            ) as response:
+            async with self.session.request(method, url, headers=headers, data=body) as response:
                 response_data: dict[str, Any] = await response.json()
 
                 # Check for API errors
@@ -244,23 +233,19 @@ class TuyaCloudClient:
 
                     # Common error codes
                     if error_code == 1010:
-                        raise TuyaAuthenticationError(
-                            f"{error_msg} (Check client_id and client_secret)",
-                            error_code
-                        )
-                    elif error_code == 1011:
+                        raise TuyaAuthenticationError(f"{error_msg} (Check client_id and client_secret)", error_code)
+                    if error_code == 1011:
                         retry_after = self._handle_rate_limit_error()
                         raise TuyaRateLimitError(error_msg, retry_after=retry_after)
-                    elif error_code == 1004:
+                    if error_code == 1004:
                         raise TuyaAuthenticationError(
                             f"Sign validation failed. Possible causes:\n"
                             f"1. Client Secret is incorrect\n"
                             f"2. System time is not synchronized\n"
                             f"3. Endpoint {self.endpoint} is wrong for your region",
-                            error_code
+                            error_code,
                         )
-                    else:
-                        raise TuyaAPIError(f"{error_msg} (Code: {error_code})", error_code)
+                    raise TuyaAPIError(f"{error_msg} (Code: {error_code})", error_code)
 
                 # Success - reset rate limit backoff
                 self._reset_rate_limit_backoff()
@@ -345,10 +330,7 @@ class TuyaCloudClient:
             devices = response.get("result", [])
 
             # Normalize v2.0 response to v1.0 format (camelCase → snake_case)
-            normalized_devices = [
-                self._normalize_device_response(device, "v2.0")
-                for device in devices
-            ]
+            normalized_devices = [self._normalize_device_response(device, "v2.0") for device in devices]
 
             _LOGGER.info(f"Retrieved {len(normalized_devices)} devices from API v2.0")
             return normalized_devices
@@ -386,9 +368,11 @@ class TuyaCloudClient:
             device: dict[str, Any] = response.get("result", {})
 
             if device:
-                has_local_key = bool(device.get('local_key'))
-                _LOGGER.info(f"Retrieved device details (v1.0): product_id={device.get('product_id', 'N/A')}, "
-                            f"local_key={'present' if has_local_key else 'MISSING'}")
+                has_local_key = bool(device.get("local_key"))
+                _LOGGER.info(
+                    f"Retrieved device details (v1.0): product_id={device.get('product_id', 'N/A')}, "
+                    f"local_key={'present' if has_local_key else 'MISSING'}"
+                )
                 return device
 
         except TuyaAPIError as e:
@@ -414,9 +398,11 @@ class TuyaCloudClient:
                     "uuid": result.get("uuid"),
                     "time_zone": result.get("timeZone"),
                 }
-                has_local_key = bool(device.get('local_key'))
-                _LOGGER.info(f"Retrieved device details (v2.0): product_id={device.get('product_id', 'N/A')}, "
-                            f"local_key={'present' if has_local_key else 'MISSING'}")
+                has_local_key = bool(device.get("local_key"))
+                _LOGGER.info(
+                    f"Retrieved device details (v2.0): product_id={device.get('product_id', 'N/A')}, "
+                    f"local_key={'present' if has_local_key else 'MISSING'}"
+                )
                 return device
 
         except TuyaAPIError as e:
@@ -473,10 +459,7 @@ class TuyaCloudClient:
 
         # Try v2.0 Things Data Model API first (Free tier compatible)
         try:
-            response = await self._make_request(
-                "GET",
-                f"/v2.0/cloud/thing/{device_id}/model"
-            )
+            response = await self._make_request("GET", f"/v2.0/cloud/thing/{device_id}/model")
 
             result = response.get("result", {})
             model_str = result.get("model", "{}")
@@ -505,7 +488,7 @@ class TuyaCloudClient:
                             "dp_id": prop.get("abilityId"),
                         }
                         for prop in properties
-                    ]
+                    ],
                 }
 
                 return functions
@@ -519,10 +502,7 @@ class TuyaCloudClient:
 
             # Fallback to v1.0 iot-03 device functions
             try:
-                response = await self._make_request(
-                    "GET",
-                    f"/v1.0/iot-03/devices/{device_id}/functions"
-                )
+                response = await self._make_request("GET", f"/v1.0/iot-03/devices/{device_id}/functions")
 
                 iot03_result: dict[str, Any] = response.get("result", {})
                 _LOGGER.debug("Retrieved properties from v1.0 iot-03 API")
@@ -533,10 +513,7 @@ class TuyaCloudClient:
 
                 # Final fallback to legacy v1.0 API
                 try:
-                    response = await self._make_request(
-                        "GET",
-                        f"/v1.0/devices/{device_id}/functions"
-                    )
+                    response = await self._make_request("GET", f"/v1.0/devices/{device_id}/functions")
 
                     legacy_result: dict[str, Any] = response.get("result", {})
                     return legacy_result
@@ -558,10 +535,7 @@ class TuyaCloudClient:
 
         # Try v2.0 Shadow Properties API first (Free tier compatible)
         try:
-            response = await self._make_request(
-                "GET",
-                f"/v2.0/cloud/thing/{device_id}/shadow/properties"
-            )
+            response = await self._make_request("GET", f"/v2.0/cloud/thing/{device_id}/shadow/properties")
 
             # v2.0 nests properties: result.properties[]
             result: dict[str, Any] = response.get("result", {})
@@ -575,10 +549,7 @@ class TuyaCloudClient:
 
             # Fallback to v1.0 Device Status API
             try:
-                response = await self._make_request(
-                    "GET",
-                    f"/v1.0/devices/{device_id}/status"
-                )
+                response = await self._make_request("GET", f"/v1.0/devices/{device_id}/status")
 
                 status: list[dict[str, Any]] = response.get("result", [])
                 _LOGGER.debug(f"Retrieved {len(status)} status values from v1.0 API")
@@ -606,9 +577,7 @@ class TuyaCloudClient:
 
         try:
             response = await self._make_request(
-                "POST",
-                f"/v1.0/devices/{device_id}/commands",
-                data={"commands": commands}
+                "POST", f"/v1.0/devices/{device_id}/commands", data={"commands": commands}
             )
 
             success: bool = response.get("success", False)
@@ -646,9 +615,7 @@ class TuyaCloudClient:
         try:
             # Try iot-03 API first (supports DPs directly)
             response = await self._make_request(
-                "POST",
-                f"/v1.0/iot-03/devices/{device_id}/commands",
-                data={"commands": commands}
+                "POST", f"/v1.0/iot-03/devices/{device_id}/commands", data={"commands": commands}
             )
 
             success: bool = response.get("success", False)
@@ -662,9 +629,7 @@ class TuyaCloudClient:
         # Fallback to standard commands API
         try:
             response = await self._make_request(
-                "POST",
-                f"/v1.0/devices/{device_id}/commands",
-                data={"commands": commands}
+                "POST", f"/v1.0/devices/{device_id}/commands", data={"commands": commands}
             )
 
             std_success: bool = response.get("success", False)
@@ -701,8 +666,5 @@ class TuyaCloudClient:
             )
             return False
         except Exception as err:
-            _LOGGER.error(
-                f"Connection test failed: {err}\n"
-                f"Endpoint: {self.endpoint}"
-            )
+            _LOGGER.error(f"Connection test failed: {err}\nEndpoint: {self.endpoint}")
             return False

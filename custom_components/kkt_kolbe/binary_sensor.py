@@ -1,4 +1,5 @@
 """Binary Sensor platform for KKT Kolbe devices."""
+
 from __future__ import annotations
 
 import logging
@@ -341,7 +342,9 @@ class KKTKolbeAPIStatusSensor(CoordinatorEntity, BinarySensorEntity):
             if hasattr(runtime_data.api_client, "_token_expires_at"):
                 expires_at = runtime_data.api_client._token_expires_at
                 if expires_at:
-                    attrs["token_expires_at"] = expires_at.isoformat() if hasattr(expires_at, "isoformat") else str(expires_at)
+                    attrs["token_expires_at"] = (
+                        expires_at.isoformat() if hasattr(expires_at, "isoformat") else str(expires_at)
+                    )
 
         if self._last_check_error:
             attrs["last_error"] = self._last_check_error

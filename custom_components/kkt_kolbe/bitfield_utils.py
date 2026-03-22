@@ -1,4 +1,5 @@
 """Bitfield utilities for KKT Kolbe RAW data point handling."""
+
 from __future__ import annotations
 
 import base64
@@ -14,7 +15,7 @@ def is_hex_string(data: str) -> bool:
     # Hex strings have even length and only contain hex characters
     if len(data) % 2 != 0:
         return False
-    return bool(re.match(r'^[0-9a-fA-F]+$', data))
+    return bool(re.match(r"^[0-9a-fA-F]+$", data))
 
 
 def is_base64_string(data: str) -> bool:
@@ -23,7 +24,7 @@ def is_base64_string(data: str) -> bool:
     if len(data) < 4:
         return False
     # Base64 uses A-Z, a-z, 0-9, +, /, and = for padding
-    if not re.match(r'^[A-Za-z0-9+/]+=*$', data):
+    if not re.match(r"^[A-Za-z0-9+/]+=*$", data):
         return False
     # Length should be multiple of 4 (with padding)
     return len(data) % 4 == 0
@@ -52,7 +53,7 @@ def decode_raw_data_to_bytes(raw_data: str | bytes | bytearray) -> bytes:
     # Handle string data
     if isinstance(raw_data, str):
         if not raw_data:
-            return b''
+            return b""
 
         # Try hex string first (most common for local Tuya protocol)
         if is_hex_string(raw_data):
@@ -81,10 +82,10 @@ def decode_raw_data_to_bytes(raw_data: str | bytes | bytearray) -> bytes:
             pass
 
         _LOGGER.warning(f"Could not decode raw data string '{raw_data}' (len={len(raw_data)})")
-        return b''
+        return b""
 
     _LOGGER.warning(f"Unsupported raw data type: {type(raw_data)}")
-    return b''
+    return b""
 
 
 def decode_base64_to_bytes(base64_data: str) -> bytes:
@@ -95,7 +96,7 @@ def decode_base64_to_bytes(base64_data: str) -> bytes:
 def encode_bytes_to_base64(data: bytes) -> str:
     """Encode bytes to Base64 string."""
     try:
-        return base64.b64encode(data).decode('utf-8')
+        return base64.b64encode(data).decode("utf-8")
     except Exception as e:
         _LOGGER.error(f"Failed to encode bytes to Base64: {e}")
         return ""
@@ -142,7 +143,9 @@ def extract_zone_value_from_bitfield(raw_data: str | bytes | bytearray, zone: in
 
         # Check if we have enough data
         if byte_index >= len(data):
-            _LOGGER.debug(f"Zone {zone} byte index {byte_index} exceeds data length {len(data)}, data hex: {data.hex()}")
+            _LOGGER.debug(
+                f"Zone {zone} byte index {byte_index} exceeds data length {len(data)}, data hex: {data.hex()}"
+            )
             return 0
 
         # Extract byte value for the zone
@@ -153,6 +156,7 @@ def extract_zone_value_from_bitfield(raw_data: str | bytes | bytearray, zone: in
     except Exception as e:
         _LOGGER.error(f"Failed to extract zone {zone} value from bitfield (type={type(raw_data).__name__}): {e}")
         return 0
+
 
 def extract_zone_bit_from_bitfield(raw_data: str | bytes | bytearray, zone: int) -> bool:
     """
@@ -188,22 +192,26 @@ def extract_zone_bit_from_bitfield(raw_data: str | bytes | bytearray, zone: int)
 
         # Check if we have enough data
         if byte_index >= len(data):
-            _LOGGER.debug(f"Zone {zone} byte index {byte_index} exceeds data length {len(data)}, data hex: {data.hex()}")
+            _LOGGER.debug(
+                f"Zone {zone} byte index {byte_index} exceeds data length {len(data)}, data hex: {data.hex()}"
+            )
             return False
 
         # Extract bit value
         byte_value = data[byte_index]
         bit_value = bool(byte_value & (1 << bit_position))
-        _LOGGER.debug(f"Zone {zone}: extracted bit {bit_value} from byte 0x{byte_value:02x} bit position {bit_position}")
+        _LOGGER.debug(
+            f"Zone {zone}: extracted bit {bit_value} from byte 0x{byte_value:02x} bit position {bit_position}"
+        )
         return bit_value
 
     except Exception as e:
         _LOGGER.error(f"Failed to extract zone {zone} bit from bitfield (type={type(raw_data).__name__}): {e}")
         return False
 
+
 def update_zone_value_in_bitfield(
-    raw_data: str | bytes | bytearray, zone: int, new_value: int,
-    bits_per_zone: int = 8, output_format: str = "base64"
+    raw_data: str | bytes | bytearray, zone: int, new_value: int, bits_per_zone: int = 8, output_format: str = "base64"
 ) -> str:
     """
     Update zone-specific value in bitfield data.
@@ -254,9 +262,9 @@ def update_zone_value_in_bitfield(
         _LOGGER.error(f"Failed to update zone {zone} value {new_value} in bitfield: {e}")
         return str(raw_data) if raw_data else ""
 
+
 def update_zone_bit_in_bitfield(
-    raw_data: str | bytes | bytearray, zone: int, new_value: bool,
-    output_format: str = "base64"
+    raw_data: str | bytes | bytearray, zone: int, new_value: bool, output_format: str = "base64"
 ) -> str:
     """
     Update zone-specific bit in bitfield data.
@@ -296,7 +304,7 @@ def update_zone_bit_in_bitfield(
 
         # Update the bit
         if new_value:
-            data[byte_index] |= (1 << bit_position)  # Set bit
+            data[byte_index] |= 1 << bit_position  # Set bit
         else:
             data[byte_index] &= ~(1 << bit_position)  # Clear bit
 
@@ -313,68 +321,68 @@ def update_zone_bit_in_bitfield(
         _LOGGER.error(f"Failed to update zone {zone} bit {new_value} in bitfield: {e}")
         return str(raw_data) if raw_data else ""
 
+
 # Bitfield configuration for IND7705HC data points
 BITFIELD_CONFIG: dict[int, dict[str, Any]] = {
     # Value-based bitfields (8 bits per zone)
     162: {  # oem_hob_level_num - Zone power levels
         "type": "value",
         "bits_per_zone": 8,
-        "description": "bit0-7 -> hob1, bit8-15 -> hob2, bit16-23 -> hob3, bit24-31 -> hob4, bit32-39 -> hob5"
+        "description": "bit0-7 -> hob1, bit8-15 -> hob2, bit16-23 -> hob3, bit24-31 -> hob4, bit32-39 -> hob5",
     },
     167: {  # oem_hob_timer_num - Zone timers
         "type": "value",
         "bits_per_zone": 8,
-        "description": "bit0-7 -> hob1, bit8-15 -> hob2, bit16-23 -> hob3, bit24-31 -> hob4, bit32-39 -> hob5"
+        "description": "bit0-7 -> hob1, bit8-15 -> hob2, bit16-23 -> hob3, bit24-31 -> hob4, bit32-39 -> hob5",
     },
     168: {  # oem_hob_set_core_sensor - Zone core sensor settings
         "type": "value",
         "bits_per_zone": 8,
-        "description": "bit0-7 -> hob1, bit8-15 -> hob2, bit16-23 -> hob3, bit24-31 -> hob4, bit32-39 -> hob5"
+        "description": "bit0-7 -> hob1, bit8-15 -> hob2, bit16-23 -> hob3, bit24-31 -> hob4, bit32-39 -> hob5",
     },
     169: {  # oem_hob_disp_coresensor - Zone core sensor display
         "type": "value",
         "bits_per_zone": 8,
-        "description": "bit0-7 -> hob1, bit8-15 -> hob2, bit16-23 -> hob3, bit24-31 -> hob4, bit32-39 -> hob5"
+        "description": "bit0-7 -> hob1, bit8-15 -> hob2, bit16-23 -> hob3, bit24-31 -> hob4, bit32-39 -> hob5",
     },
-
     # Bit-based bitfields (1 bit per zone)
     161: {  # oem_hob_selected_switch - Zone selection
         "type": "bit",
-        "description": "bit0->hob1 bit1->hob2 bit2->hob3 bit3->hob4 bit4->hob5"
+        "description": "bit0->hob1 bit1->hob2 bit2->hob3 bit3->hob4 bit4->hob5",
     },
     163: {  # oem_hob_boost_switch - Zone boost status
         "type": "bit",
-        "description": "bit0->hob1 bit1->hob2 bit2->hob3 bit3->hob4 bit4->hob5"
+        "description": "bit0->hob1 bit1->hob2 bit2->hob3 bit3->hob4 bit4->hob5",
     },
     164: {  # oem_hob_warm_switch - Zone keep warm status
         "type": "bit",
-        "description": "bit0->hob1 bit1->hob2 bit2->hob3 bit3->hob4 bit4->hob5"
+        "description": "bit0->hob1 bit1->hob2 bit2->hob3 bit3->hob4 bit4->hob5",
     },
     165: {  # oem_hob_flex_switch - Flex zone status
         "type": "bit",
-        "description": "bit0->left bit1->right"
+        "description": "bit0->left bit1->right",
     },
     166: {  # oem_hob_bbq_switch - BBQ mode status
         "type": "bit",
-        "description": "bit0->left bit1->right"
+        "description": "bit0->left bit1->right",
     },
-
     # Special bitfields for errors (boolean states)
     105: {  # oem_hob_error_num - Zone errors
         "type": "bit",
-        "description": "bit0->hob1 bit1->hob2 bit2->hob3 bit3->hob4 bit4->hob5"
+        "description": "bit0->hob1 bit1->hob2 bit2->hob3 bit3->hob4 bit4->hob5",
     },
     106: {  # oem_device_chef_level - Chef function levels
         "type": "value",
         "bits_per_zone": 8,
-        "description": "bit0-7 -> hob1, bit8-15 -> hob2, bit16-23 -> hob3, bit24-31 -> hob4, bit32-39 -> hob5"
+        "description": "bit0-7 -> hob1, bit8-15 -> hob2, bit16-23 -> hob3, bit24-31 -> hob4, bit32-39 -> hob5",
     },
     107: {  # oem_hob_bbq_timer - BBQ timer
         "type": "value",
         "bits_per_zone": 8,
-        "description": "bit0-7 left_bbq, bit8-15 right_bbq"
-    }
+        "description": "bit0-7 left_bbq, bit8-15 right_bbq",
+    },
 }
+
 
 def get_zone_value_from_coordinator(coordinator: Any, dp_id: int, zone: int) -> int | bool:
     """
@@ -404,7 +412,9 @@ def get_zone_value_from_coordinator(coordinator: Any, dp_id: int, zone: int) -> 
         if raw_data is None:
             raw_data = dps_data.get(dp_id)
         if raw_data is None:
-            _LOGGER.debug(f"DP {dp_id} not in current update (tried both str and int keys). Zone entities will use cached values.")
+            _LOGGER.debug(
+                f"DP {dp_id} not in current update (tried both str and int keys). Zone entities will use cached values."
+            )
             return 0 if BITFIELD_CONFIG.get(dp_id, {}).get("type") == "value" else False
 
         _LOGGER.debug(f"DP {dp_id} raw data: {raw_data} (type: {type(raw_data)})")
@@ -426,6 +436,7 @@ def get_zone_value_from_coordinator(coordinator: Any, dp_id: int, zone: int) -> 
     except Exception as e:
         _LOGGER.error(f"Failed to get zone {zone} value for DP {dp_id}: {e}")
         return 0 if BITFIELD_CONFIG.get(dp_id, {}).get("type") == "value" else False
+
 
 async def set_zone_value_in_coordinator(coordinator: Any, dp_id: int, zone: int, value: int | bool) -> None:
     """
@@ -452,7 +463,9 @@ async def set_zone_value_in_coordinator(coordinator: Any, dp_id: int, zone: int,
 
         # Update bitfield based on type
         if config["type"] == "value":
-            new_data = update_zone_value_in_bitfield(str(current_data), zone, int(value), config.get("bits_per_zone", 8))
+            new_data = update_zone_value_in_bitfield(
+                str(current_data), zone, int(value), config.get("bits_per_zone", 8)
+            )
         elif config["type"] == "bit":
             new_data = update_zone_bit_in_bitfield(str(current_data), zone, bool(value))
         else:

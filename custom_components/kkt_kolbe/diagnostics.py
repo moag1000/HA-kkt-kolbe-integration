@@ -1,4 +1,5 @@
 """Diagnostics support for KKT Kolbe integration."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -58,9 +59,7 @@ def _get_dps_diagnostics(data: dict[str, Any] | None) -> dict[str, Any]:
     }
 
 
-async def async_get_config_entry_diagnostics(
-    hass: HomeAssistant, entry: KKTKolbeConfigEntry
-) -> dict[str, Any]:
+async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: KKTKolbeConfigEntry) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
     runtime_data = entry.runtime_data
 
@@ -118,9 +117,7 @@ async def async_get_config_entry_diagnostics(
             diagnostics_data["coordinator"]["connection_state"] = conn_info.get("state", "unknown")
             diagnostics_data["coordinator"]["consecutive_failures"] = conn_info.get("consecutive_failures", 0)
             diagnostics_data["coordinator"]["last_successful_update"] = (
-                conn_info.get("last_update").isoformat()
-                if conn_info.get("last_update")
-                else None
+                conn_info.get("last_update").isoformat() if conn_info.get("last_update") else None
             )
 
             # Add circuit breaker info if using ReconnectCoordinator
@@ -145,9 +142,7 @@ async def async_get_config_entry_diagnostics(
 
         # Add available data points (values redacted for privacy)
         if coordinator.data:
-            diagnostics_data["coordinator"]["available_data_points"] = list(
-                coordinator.data.keys()
-            )
+            diagnostics_data["coordinator"]["available_data_points"] = list(coordinator.data.keys())
 
         # Add detailed DPS diagnostics with sanitized values
         diagnostics_data["dps"] = _get_dps_diagnostics(coordinator.data)
@@ -161,7 +156,9 @@ async def async_get_config_entry_diagnostics(
         if hasattr(coordinator, "_error_history"):
             diagnostics_data["error_history"] = [
                 {
-                    "timestamp": err.get("timestamp").isoformat() if isinstance(err.get("timestamp"), datetime) else err.get("timestamp"),
+                    "timestamp": err.get("timestamp").isoformat()
+                    if isinstance(err.get("timestamp"), datetime)
+                    else err.get("timestamp"),
                     "error_type": err.get("error_type", "unknown"),
                     "message": err.get("message", "")[:100],  # Truncate for privacy
                     "recoverable": err.get("recoverable", True),
