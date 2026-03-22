@@ -11,6 +11,7 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.helpers.update_coordinator import UpdateFailed
 
@@ -163,8 +164,11 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
                     _LOGGER.debug("SmartLife communication successful as fallback")
 
                 return data
+            except ConfigEntryAuthFailed:
+                # Auth errors must propagate to trigger HA's reauth flow
+                raise
             except Exception as err:
-                _LOGGER.warning(f"SmartLife communication failed: {err}")
+                _LOGGER.debug("SmartLife communication failed: %s", err)
 
         # If multiple modes available, try hybrid approach
         if self.local_available and (self.api_available or self.smartlife_available):

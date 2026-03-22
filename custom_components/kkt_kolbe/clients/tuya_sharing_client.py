@@ -763,10 +763,22 @@ class TuyaSharingClient:
             _LOGGER.debug("Retrieved %d status items for device %s via SmartLife", len(status), device_id[:8])
             return status
         except Exception as err:
+            err_str = str(err)
+            # Detect auth/token errors that require re-authentication
+            if "sign invalid" in err_str or "token" in err_str.lower() or "-9999999" in err_str:
+                _LOGGER.error(
+                    "SmartLife authentication expired for device %s: %s. "
+                    "Please re-authenticate via the integration options.",
+                    device_id[:8],
+                    err,
+                )
+                from homeassistant.exceptions import ConfigEntryAuthFailed
+
+                raise ConfigEntryAuthFailed(f"SmartLife token expired: {err}. Re-authentication required.") from err
             _LOGGER.error("Failed to get device status: %s", err)
             raise KKTConnectionError(
                 operation="get_device_status",
-                reason=str(err),
+                reason=err_str,
             ) from err
 
     async def async_send_commands(self, device_id: str, commands: list[dict[str, Any]]) -> bool:
