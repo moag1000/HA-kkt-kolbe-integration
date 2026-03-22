@@ -2126,28 +2126,86 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
         )
 
     async def _async_complete_smartlife_reauth(self) -> ConfigFlowResult:
-        """Complete SmartLife reauth by updating tokens in existing config entry."""
+        """Complete SmartLife reauth by updating tokens, local key, and device ID.
+
+        After QR code re-login, this method:
+        1. Stores the fresh OAuth tokens
+        2. Fetches the current device list from SmartLife
+        3. Matches the configured device by product_id or name
+        4. Updates local_key and device_id if they changed (common after device re-add)
+        5. Clears any existing device-id-changed repair issues
+        """
         if not self._smartlife_client or not self._reauth_entry:
             return self.async_abort(reason="reauth_failed")
 
-        # Get fresh token info from the client
         token_info = self._smartlife_client.get_token_info_for_storage()
+        entry_data = {**self._reauth_entry.data, "smartlife_token_info": token_info}
 
-        _LOGGER.info(
-            "SmartLife re-authentication successful, updating tokens for %s",
-            self._reauth_entry.title,
-        )
+        # Try to fetch devices and update local_key + device_id
+        try:
+            devices = await self._smartlife_client.async_get_devices()
 
-        # Update the existing config entry with new tokens
-        self.hass.config_entries.async_update_entry(
-            self._reauth_entry,
-            data={
-                **self._reauth_entry.data,
-                "smartlife_token_info": token_info,
-            },
-        )
+            old_device_id = self._reauth_entry.data.get("device_id")
+            old_product_id = self._reauth_entry.data.get("product_id")
 
-        # Reload the integration to use the new tokens
+            # Match device by product_id (stable) or device_id (may have changed)
+            matched_device = None
+            for device in devices:
+                if old_product_id and hasattr(device, "product_id") and device.product_id == old_product_id:
+                    matched_device = device
+                    break
+                if old_device_id and device.device_id == old_device_id:
+                    matched_device = device
+                    break
+
+            if matched_device:
+                updates: list[str] = []
+
+                # Update local_key if available
+                if matched_device.local_key and matched_device.local_key != self._reauth_entry.data.get("local_key"):
+                    entry_data["local_key"] = matched_device.local_key
+                    updates.append("local_key")
+
+                # Update device_id if changed
+                if matched_device.device_id and matched_device.device_id != old_device_id:
+                    entry_data["device_id"] = matched_device.device_id
+                    updates.append(f"device_id ({old_device_id[:8]}... -> {matched_device.device_id[:8]}...)")
+
+                    # Clear device-id-changed repair issue
+                    from homeassistant.helpers import issue_registry as ir
+
+                    ir.async_delete_issue(self.hass, DOMAIN, f"device_id_changed_{self._reauth_entry.entry_id}")
+
+                # Update IP if available
+                if hasattr(matched_device, "ip") and matched_device.ip:
+                    entry_data["ip_address"] = matched_device.ip
+                    entry_data[CONF_IP_ADDRESS] = matched_device.ip
+
+                if updates:
+                    _LOGGER.info(
+                        "SmartLife reauth: Updated %s for %s",
+                        ", ".join(updates),
+                        self._reauth_entry.title,
+                    )
+                else:
+                    _LOGGER.info(
+                        "SmartLife reauth: Token refreshed for %s (no device changes)", self._reauth_entry.title
+                    )
+            else:
+                _LOGGER.warning(
+                    "SmartLife reauth: Could not find device in account (checked %d devices). "
+                    "Token updated but local_key/device_id unchanged.",
+                    len(devices),
+                )
+
+        except Exception as err:
+            # Token is still updated even if device fetch fails
+            _LOGGER.warning("SmartLife reauth: Token updated but device refresh failed: %s", err)
+
+        # Update config entry
+        self.hass.config_entries.async_update_entry(self._reauth_entry, data=entry_data)
+
+        # Reload the integration
         await self.hass.config_entries.async_reload(self._reauth_entry.entry_id)
         return self.async_abort(reason="reauth_successful")
 
