@@ -105,7 +105,7 @@ KNOWN_DEVICES = {
         "product_names": ["ypaixllljc2dcpae"],
         "device_ids": ["bf735dfe2ad64fba7cpyhn"],
         "device_id_patterns": ["bf735dfe2ad64fba7c"],
-        "platforms": ["fan", "light", "switch", "sensor", "select", "number"],
+        "platforms": ["fan", "light", "switch", "sensor", "select", "number", "scene"],
         "data_points": {
             # Active DPs (verified working)
             1: "switch",  # Main power
@@ -272,7 +272,7 @@ KNOWN_DEVICES = {
         "product_names": ["luoxakxm2vm9azwu", "KKT Kolbe FLAT"],
         "device_ids": ["bff904d332b57484da1twc"],
         "device_id_patterns": ["bff904d332b57484da"],
-        "platforms": ["fan", "light", "switch", "sensor", "select", "number"],
+        "platforms": ["fan", "light", "switch", "sensor", "select", "number", "scene"],
         "data_points": {
             1: "switch",  # Main power
             4: "light",  # Light on/off (no RGB)
@@ -339,7 +339,7 @@ KNOWN_DEVICES = {
         "product_names": ["0fcj8kha86svfmve", "KKT Kolbe HERMES"],
         "device_ids": [],  # Will be filled when users report
         "device_id_patterns": [],
-        "platforms": ["fan", "light", "switch", "sensor", "select", "number"],
+        "platforms": ["fan", "light", "switch", "sensor", "select", "number", "scene"],
         "data_points": HOOD_DPS,
         "entities": {
             "fan": {
@@ -493,7 +493,7 @@ KNOWN_DEVICES = {
         "product_names": ["bgvbvjwomgbisd8x", "KKT Kolbe SOLO HCM"],
         "device_ids": ["bf34515c4ab6ec7f9axqy8"],
         "device_id_patterns": ["bf34515c4ab6ec7f9a"],
-        "platforms": ["fan", "light", "switch", "sensor", "select", "number"],
+        "platforms": ["fan", "light", "switch", "sensor", "select", "number", "scene"],
         "data_points": {
             1: "switch",  # Main power (ON/OFF)
             4: "light",  # Main light on/off
@@ -634,7 +634,7 @@ KNOWN_DEVICES = {
         "product_names": ["gwdgkteknzvsattn"],
         "device_ids": ["bfd0c94cb36bf4f28epxcf"],
         "device_id_patterns": ["bfd0c94cb36bf4f28e"],
-        "platforms": ["fan", "light", "switch", "sensor", "select", "number"],
+        "platforms": ["fan", "light", "switch", "sensor", "select", "number", "scene"],
         "data_points": {
             1: "switch",  # Main power
             4: "light",  # Main light on/off
@@ -784,7 +784,7 @@ KNOWN_DEVICES = {
         "product_names": ["KKT Kolbe EASY9005SM", "KKT Kolbe EASY909SHCM", "KKT Kolbe EASY609SHCM"],
         "device_ids": [],
         "device_id_patterns": [],
-        "platforms": ["fan", "light", "switch", "sensor", "select", "number"],
+        "platforms": ["fan", "light", "switch", "sensor", "select", "number", "scene"],
         "data_points": {
             1: "switch",  # Main power (ON/OFF)
             4: "light",  # Main light on/off
@@ -921,7 +921,7 @@ KNOWN_DEVICES = {
         "product_names": ["default_hood_hermes"],
         "device_ids": [],
         "device_id_patterns": [],
-        "platforms": ["fan", "light", "switch", "sensor", "select", "number"],
+        "platforms": ["fan", "light", "switch", "sensor", "select", "number", "scene"],
         "data_points": {
             1: "switch",  # Main power
             4: "light",  # Light on/off
@@ -1083,7 +1083,7 @@ KNOWN_DEVICES = {
         "product_names": ["default_hood"],
         "device_ids": [],  # Matches any device when selected manually
         "device_id_patterns": [],
-        "platforms": ["fan", "light", "switch", "sensor", "select", "number"],
+        "platforms": ["fan", "light", "switch", "sensor", "select", "number", "scene"],
         "data_points": {
             1: "switch",  # Main power (ON/OFF)
             4: "light",  # Main light on/off

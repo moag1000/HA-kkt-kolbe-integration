@@ -45,6 +45,7 @@ PLATFORMS = [
     Platform.SELECT,
     Platform.NUMBER,
     Platform.BINARY_SENSOR,
+    Platform.SCENE,
 ]
 
 
