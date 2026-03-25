@@ -289,7 +289,8 @@ class KKTKolbeFan(KKTBaseEntity, FanEntity):
         except Exception as err:
             _LOGGER.warning(
                 "KKTKolbeFan [%s]: Auto-Power-On failed (%s), attempting to set fan speed directly",
-                self._name, err,
+                self._name,
+                err,
             )
 
         if percentage is not None:
@@ -340,7 +341,8 @@ class KKTKolbeFan(KKTBaseEntity, FanEntity):
         except Exception as err:
             _LOGGER.warning(
                 "KKTKolbeFan [%s]: Auto-Power-On failed (%s), attempting to set fan speed directly",
-                self._name, err,
+                self._name,
+                err,
             )
 
         if self._numeric_mode:

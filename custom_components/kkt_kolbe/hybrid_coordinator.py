@@ -468,7 +468,9 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
         """Set a data point on the device (compatibility wrapper for async_send_command)."""
         success = await self.async_send_command(dp, value)
         if not success:
-            raise HomeAssistantError(f"Failed to set DP {dp} to {value} — all communication methods (local/API/SmartLife) failed")
+            raise HomeAssistantError(
+                f"Failed to set DP {dp} to {value} — all communication methods (local/API/SmartLife) failed"
+            )
 
     async def async_send_command(self, dp_id: int, value: Any) -> bool:
         """Send command using available communication method.

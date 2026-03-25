@@ -1,4 +1,5 @@
 """Test the KKT Kolbe switch platform."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, call, patch
@@ -17,9 +18,9 @@ def mock_runtime_data():
     """Create mock runtime data."""
     coordinator = MagicMock()
     coordinator.data = {
-        1: True,     # Power on
-        "1": True,   # Also string key
-        6: False,    # Filter reminder off
+        1: True,  # Power on
+        "1": True,  # Also string key
+        6: False,  # Filter reminder off
         "6": False,  # Also string key
     }
     coordinator.last_update_success = True
@@ -89,7 +90,11 @@ async def test_switch_turn_on(
 
     await switch.async_turn_on()
 
-    mock_runtime_data.coordinator.async_set_data_point.assert_called_once_with(1, True)
+    # Power switch (DP 1) turn_on sends power-on AND fan auto-start suppression (DP 10 = "off")
+    # because disable_fan_auto_start defaults to True for hood devices
+    calls = mock_runtime_data.coordinator.async_set_data_point.call_args_list
+    assert calls[0] == call(1, True)
+    assert calls[1] == call(10, "off")
 
 
 @pytest.mark.asyncio

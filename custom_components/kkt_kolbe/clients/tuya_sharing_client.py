@@ -836,7 +836,8 @@ class TuyaSharingClient:
             if methods_tried:
                 _LOGGER.warning(
                     "All SmartLife command methods failed for device %s (tried: %s)",
-                    device_id[:8], ", ".join(methods_tried),
+                    device_id[:8],
+                    ", ".join(methods_tried),
                 )
             else:
                 _LOGGER.warning("No command sending method available for device %s", device_id[:8])

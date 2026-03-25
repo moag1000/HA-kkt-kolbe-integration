@@ -303,7 +303,8 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
         except Exception as err:
             _LOGGER.warning(
                 "KKTKolbeLight [%s]: Auto-Power-On failed (%s), attempting to set light directly",
-                self._name, err,
+                self._name,
+                err,
             )
             hood_was_off = False
 

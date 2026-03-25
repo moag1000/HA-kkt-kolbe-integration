@@ -265,7 +265,9 @@ class KKTKolbeHoodScene(KKTBaseEntity, Scene):
         if errors:
             _LOGGER.error(
                 "Scene '%s' completed with %d error(s): %s",
-                self._name, len(errors), "; ".join(errors),
+                self._name,
+                len(errors),
+                "; ".join(errors),
             )
         else:
             _LOGGER.debug("Scene '%s' activated successfully", self._name)
