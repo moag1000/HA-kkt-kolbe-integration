@@ -284,7 +284,13 @@ class KKTKolbeFan(KKTBaseEntity, FanEntity):
         (DP 1) if it's off before setting fan speed.
         """
         # Ensure hood is powered on first (Auto-Power-On feature)
-        await self._async_ensure_hood_power_on()
+        try:
+            await self._async_ensure_hood_power_on()
+        except Exception as err:
+            _LOGGER.warning(
+                "KKTKolbeFan [%s]: Auto-Power-On failed (%s), attempting to set fan speed directly",
+                self._name, err,
+            )
 
         if percentage is not None:
             await self.async_set_percentage(percentage)
@@ -329,7 +335,13 @@ class KKTKolbeFan(KKTBaseEntity, FanEntity):
             return
 
         # Ensure hood is powered on first (Auto-Power-On feature)
-        await self._async_ensure_hood_power_on()
+        try:
+            await self._async_ensure_hood_power_on()
+        except Exception as err:
+            _LOGGER.warning(
+                "KKTKolbeFan [%s]: Auto-Power-On failed (%s), attempting to set fan speed directly",
+                self._name, err,
+            )
 
         if self._numeric_mode:
             # Convert percentage to 1-9

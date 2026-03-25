@@ -482,9 +482,10 @@ class KKTBaseEntity(CoordinatorEntity["KKTKolbeUpdateCoordinator"]):
         the fan. This method sends a fan-off command to prevent that behavior
         when the user only wants the light or power switch.
 
-        Only active when the 'disable_fan_auto_start' option is enabled.
+        Active by default for hood devices. Can be disabled via the
+        'disable_fan_auto_start' option (set to False to disable).
         """
-        if not self._entry.options.get("disable_fan_auto_start", False):
+        if not self._entry.options.get("disable_fan_auto_start", True):
             return
 
         # Lazy imports (existing pattern from _build_device_info)

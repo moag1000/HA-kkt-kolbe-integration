@@ -12,6 +12,7 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.helpers.update_coordinator import UpdateFailed
 
@@ -467,11 +468,16 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
         """Set a data point on the device (compatibility wrapper for async_send_command)."""
         success = await self.async_send_command(dp, value)
         if not success:
-            raise Exception(f"Failed to set DP {dp} to {value}")
+            raise HomeAssistantError(f"Failed to set DP {dp} to {value} — all communication methods (local/API/SmartLife) failed")
 
     async def async_send_command(self, dp_id: int, value: Any) -> bool:
-        """Send command using available communication method."""
+        """Send command using available communication method.
+
+        Tries local → API → SmartLife in order. Returns True on first success.
+        Collects errors from all attempts for better diagnostics.
+        """
         _LOGGER.debug(f"Sending command to DP {dp_id}: {value}")
+        last_error: str | None = None
 
         # Try local first if available and preferred
         if self.local_available and self.local_device and (self.prefer_local or self.current_mode == "local"):
@@ -479,43 +485,41 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
                 result = await self.local_device.async_set_dp(dp_id, value)
                 if result:
                     _LOGGER.debug("Command sent successfully via local communication")
-                    # Trigger immediate update to reflect change
                     await self.async_request_refresh()
                     return True
+                last_error = "local: device returned failure"
             except Exception as err:
-                _LOGGER.warning(f"Local command failed: {err}")
+                last_error = f"local: {err}"
+                _LOGGER.warning(f"Local command failed for DP {dp_id}: {err}")
 
         # Try API if local failed or not preferred
         if self.api_available and self.api_client:
             try:
-                # Get DP-to-property-code mapping for API commands
                 dp_mapping = await self._get_dp_mapping()
                 property_code = dp_mapping.get(dp_id)
 
                 if property_code:
-                    # Send command via Tuya Cloud API using property code
                     _LOGGER.debug(f"Attempting API command for DP {dp_id} (code: {property_code}): {value}")
                     commands = [{"code": property_code, "value": value}]
                     result = await self.api_client.send_commands(self.device_id, commands)
                 else:
-                    # Fallback: try sending DP ID directly (iot-03 API)
                     _LOGGER.debug(f"No property code for DP {dp_id}, trying DP ID directly")
                     result = await self.api_client.send_dp_commands(self.device_id, {str(dp_id): value})
 
                 if result:
                     _LOGGER.info(f"Command sent successfully via API for DP {dp_id}")
-                    # Trigger update to reflect change
                     await self.async_request_refresh()
                     return True
                 else:
-                    _LOGGER.warning(f"API command returned failure for DP {dp_id}")
+                    last_error = f"api: command returned failure for DP {dp_id}"
+                    _LOGGER.warning(last_error)
             except Exception as err:
-                _LOGGER.warning(f"API command failed: {err}")
+                last_error = f"api: {err}"
+                _LOGGER.warning(f"API command failed for DP {dp_id}: {err}")
 
         # Try SmartLife if local and API failed
         if self.smartlife_available and self.smartlife_client:
             try:
-                # Get DP-to-property-code mapping for SmartLife commands
                 dp_mapping = await self._get_dp_mapping()
                 property_code = dp_mapping.get(dp_id)
 
@@ -524,7 +528,6 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
                     commands = [{"code": property_code, "value": value}]
                     result = await self.smartlife_client.async_send_commands(self.device_id, commands)
                 else:
-                    # Try sending DP ID directly
                     _LOGGER.debug(f"No property code for DP {dp_id}, trying DP ID directly via SmartLife")
                     result = await self.smartlife_client.async_send_dp_commands(self.device_id, {str(dp_id): value})
 
@@ -533,11 +536,13 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
                     await self.async_request_refresh()
                     return True
                 else:
-                    _LOGGER.warning(f"SmartLife command returned failure for DP {dp_id}")
+                    last_error = f"smartlife: command returned failure for DP {dp_id}"
+                    _LOGGER.warning(last_error)
             except Exception as err:
-                _LOGGER.warning(f"SmartLife command failed: {err}")
+                last_error = f"smartlife: {err}"
+                _LOGGER.warning(f"SmartLife command failed for DP {dp_id}: {err}")
 
-        _LOGGER.error("All command sending methods failed")
+        _LOGGER.error("All command sending methods failed for DP %d = %s (last error: %s)", dp_id, value, last_error)
         return False
 
     def set_local_device(self, device: KKTKolbeTuyaDevice) -> None:

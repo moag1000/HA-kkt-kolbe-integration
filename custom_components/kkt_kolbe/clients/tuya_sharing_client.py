@@ -813,23 +813,33 @@ class TuyaSharingClient:
                 _LOGGER.warning("Device %s not found in manager cache", device_id[:8])
                 return False
 
+            methods_tried = []
+
             # The tuya_sharing library's device might have a send_commands method
             if hasattr(device, "send_commands"):
+                methods_tried.append("device.send_commands")
                 try:
                     device.send_commands(commands)
                     return True
                 except Exception as err:
-                    _LOGGER.warning("send_commands failed: %s", err)
+                    _LOGGER.warning("device.send_commands failed for %s: %s", device_id[:8], err)
 
             # Alternative: Use manager's device control method if available
             if hasattr(self._manager, "send_commands"):
+                methods_tried.append("manager.send_commands")
                 try:
                     self._manager.send_commands(device_id, commands)
                     return True
                 except Exception as err:
-                    _LOGGER.warning("manager.send_commands failed: %s", err)
+                    _LOGGER.warning("manager.send_commands failed for %s: %s", device_id[:8], err)
 
-            _LOGGER.warning("No command sending method available for device %s", device_id[:8])
+            if methods_tried:
+                _LOGGER.warning(
+                    "All SmartLife command methods failed for device %s (tried: %s)",
+                    device_id[:8], ", ".join(methods_tried),
+                )
+            else:
+                _LOGGER.warning("No command sending method available for device %s", device_id[:8])
             return False
 
         try:

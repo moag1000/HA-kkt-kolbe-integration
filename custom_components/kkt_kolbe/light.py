@@ -298,7 +298,14 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
         as most devices require the light to be on before accepting mode changes.
         """
         # Ensure hood is powered on first (Auto-Power-On feature)
-        hood_was_off = await self._async_ensure_hood_power_on()
+        try:
+            hood_was_off = await self._async_ensure_hood_power_on()
+        except Exception as err:
+            _LOGGER.warning(
+                "KKTKolbeLight [%s]: Auto-Power-On failed (%s), attempting to set light directly",
+                self._name, err,
+            )
+            hood_was_off = False
 
         # Suppress fan auto-start if hood was just turned on
         if hood_was_off:

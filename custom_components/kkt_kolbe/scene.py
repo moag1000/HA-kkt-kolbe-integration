@@ -222,37 +222,50 @@ class KKTKolbeHoodScene(KKTBaseEntity, Scene):
         _LOGGER.debug("Activating scene '%s' with %d actions", self._name, len(self._actions))
 
         hood_was_off = False
+        errors: list[str] = []
 
         for action in self._actions:
             cmd = action[0]
 
-            if cmd == "power_on":
-                if not self._is_hood_on():
-                    hood_was_off = True
-                    await self._async_set_data_point(1, True)
-                    await asyncio.sleep(POWER_ON_DELAY)
+            try:
+                if cmd == "power_on":
+                    if not self._is_hood_on():
+                        hood_was_off = True
+                        await self._async_set_data_point(1, True)
+                        await asyncio.sleep(POWER_ON_DELAY)
 
-            elif cmd == "power_off":
-                await self._async_set_data_point(1, False)
+                elif cmd == "power_off":
+                    await self._async_set_data_point(1, False)
 
-            elif cmd == "suppress_fan":
-                if hood_was_off:
-                    await self._async_suppress_fan_auto_start()
+                elif cmd == "suppress_fan":
+                    if hood_was_off:
+                        await self._async_suppress_fan_auto_start()
 
-            elif cmd == "light_on":
-                await self._async_set_data_point(self._light_dp, True)
+                elif cmd == "light_on":
+                    await self._async_set_data_point(self._light_dp, True)
 
-            elif cmd == "light_off":
-                await self._async_set_data_point(self._light_dp, False)
+                elif cmd == "light_off":
+                    await self._async_set_data_point(self._light_dp, False)
 
-            elif cmd == "dp":
-                dp_id = action[1]
-                value = action[2]
-                if not self._is_hood_on():
-                    hood_was_off = True
-                    await self._async_set_data_point(1, True)
-                    await asyncio.sleep(POWER_ON_DELAY)
-                    await self._async_suppress_fan_auto_start()
-                await self._async_set_data_point(dp_id, value)
+                elif cmd == "dp":
+                    dp_id = action[1]
+                    value = action[2]
+                    if not self._is_hood_on():
+                        hood_was_off = True
+                        await self._async_set_data_point(1, True)
+                        await asyncio.sleep(POWER_ON_DELAY)
+                        await self._async_suppress_fan_auto_start()
+                    await self._async_set_data_point(dp_id, value)
 
-        _LOGGER.debug("Scene '%s' activated", self._name)
+            except Exception as err:
+                error_msg = f"Action '{cmd}' failed: {err}"
+                _LOGGER.warning("Scene '%s': %s", self._name, error_msg)
+                errors.append(error_msg)
+
+        if errors:
+            _LOGGER.error(
+                "Scene '%s' completed with %d error(s): %s",
+                self._name, len(errors), "; ".join(errors),
+            )
+        else:
+            _LOGGER.debug("Scene '%s' activated successfully", self._name)
