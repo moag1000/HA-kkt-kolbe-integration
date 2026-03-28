@@ -110,6 +110,7 @@ async def test_async_unload_entry(
     # Mock runtime_data
     mock_config_entry.runtime_data = MagicMock()
     mock_config_entry.runtime_data.device_info = {"category": "hood"}
+    mock_config_entry.runtime_data.coordinator.async_shutdown = AsyncMock()
 
     with patch.object(
         hass.config_entries,
