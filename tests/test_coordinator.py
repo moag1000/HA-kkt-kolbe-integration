@@ -1,4 +1,5 @@
 """Test the KKT Kolbe coordinator."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -175,15 +176,14 @@ async def test_coordinator_set_data_point(
 
 
 @pytest.mark.asyncio
-async def test_coordinator_connection_failure(
+async def test_coordinator_returns_pending_before_initial_connect(
     hass: HomeAssistant,
     mock_device,
     mock_config_entry,
 ) -> None:
-    """Test coordinator handles connection failure."""
+    """Test coordinator returns pending data before background connect completes."""
     from custom_components.kkt_kolbe.coordinator import KKTKolbeUpdateCoordinator
 
-    mock_device.async_get_status.side_effect = Exception("Connection refused")
     mock_device.is_connected = False
     mock_config_entry.add_to_hass(hass)
 
@@ -192,6 +192,15 @@ async def test_coordinator_connection_failure(
         entry=mock_config_entry,
         device=mock_device,
     )
+
+    # Before mark_initial_connect_done: should return pending data, not block
+    data = await coordinator._async_update_data()
+    assert data["source"] == "pending"
+    assert data["dps"] == {}
+
+    # After mark_initial_connect_done: normal behavior resumes
+    coordinator.mark_initial_connect_done()
+    mock_device.async_get_status.side_effect = Exception("Connection refused")
 
     with pytest.raises(UpdateFailed):
         await coordinator._async_update_data()
@@ -294,9 +303,7 @@ async def test_hybrid_coordinator_api_fallback(
 
     mock_api_client = MagicMock()
     mock_api_client.is_authenticated = True
-    mock_api_client.get_device_status = AsyncMock(
-        return_value=[{"code": "switch", "value": True}]
-    )
+    mock_api_client.get_device_status = AsyncMock(return_value=[{"code": "switch", "value": True}])
 
     mock_device.async_get_status.side_effect = Exception("Local connection failed")
     mock_device.is_connected = False

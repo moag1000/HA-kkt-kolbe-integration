@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from typing import Any
 
@@ -14,7 +13,6 @@ from homeassistant.const import CONF_DEVICE_ID
 from homeassistant.const import CONF_IP_ADDRESS
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers import issue_registry as ir
 
 from .const import CONF_API_ENDPOINT
@@ -189,6 +187,77 @@ async def _async_setup_account_entry(hass: HomeAssistant, entry: ConfigEntry) ->
     # Account entries don't forward to any platforms
     # They only manage token information
     return True
+
+
+async def _async_background_connect(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    coordinator: Any,
+    device: Any | None,
+    api_client: Any | None,
+) -> None:
+    """Background task: connect device and perform first data refresh.
+
+    Runs after async_setup_entry returns, so HA startup is not blocked.
+    Handles auth errors via reauth flow and repair issues.
+    """
+    from .exceptions import KKTAuthenticationError
+    from .exceptions import KKTConnectionError
+    from .exceptions import KKTTimeoutError
+
+    # Step 1: Try connecting local device
+    if device:
+        try:
+            await device.async_connect()
+            _LOGGER.info("Background connect succeeded for %s", entry.title)
+        except KKTAuthenticationError as e:
+            _LOGGER.error(
+                "Authentication failed for %s: %s. Local key may be incorrect or expired.",
+                entry.title,
+                e,
+            )
+            ir.async_create_issue(
+                hass,
+                DOMAIN,
+                f"local_key_expired_{entry.entry_id}",
+                is_fixable=True,
+                severity=ir.IssueSeverity.ERROR,
+                translation_key="local_key_expired",
+                translation_placeholders={
+                    "entry_title": entry.title,
+                    "device_id": entry.data.get(CONF_DEVICE_ID, "Unknown"),
+                },
+                data={
+                    "entry_id": entry.entry_id,
+                    "entry_title": entry.title,
+                    "device_id": entry.data.get(CONF_DEVICE_ID, "Unknown"),
+                },
+            )
+            entry.async_start_reauth(hass)
+            # Still mark connect done so coordinator can try cloud fallback
+        except (KKTConnectionError, KKTTimeoutError) as e:
+            _LOGGER.debug(
+                "Background connect failed for %s: %s (coordinator will retry)",
+                entry.title,
+                e,
+            )
+        except Exception as e:
+            _LOGGER.warning("Unexpected error during background connect for %s: %s", entry.title, e)
+
+    # Step 2: Test API connection
+    if api_client:
+        try:
+            await api_client.test_connection()
+            _LOGGER.info("API connection verified for %s", entry.title)
+        except Exception as e:
+            _LOGGER.debug("API connection test failed for %s: %s", entry.title, e)
+
+    # Step 3: Mark initial connect done (coordinator can now do normal updates)
+    if hasattr(coordinator, "mark_initial_connect_done"):
+        coordinator.mark_initial_connect_done()
+
+    # Step 4: Trigger first data refresh
+    await coordinator.async_refresh()
 
 
 async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEntry) -> bool:
@@ -490,171 +559,14 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
     else:
         raise ValueError("No valid communication method configured")
 
-    # Test connection to validate credentials early
-    # For hybrid/API mode, allow setup even if local connection fails initially
-    from .exceptions import KKTAuthenticationError
-    from .exceptions import KKTConnectionError
-    from .exceptions import KKTTimeoutError
-
-    connection_successful = False
-    local_connection_failed = False
-    local_error_msg = None
-
-    try:
-        if device:
-            try:
-                await device.async_connect()
-                connection_successful = True
-                _LOGGER.info("Local device connection successful during setup")
-            except KKTAuthenticationError as e:
-                # Authentication errors should trigger reauth flow
-                _LOGGER.error(
-                    f"Authentication failed for device at {ip_address}. Local key may be incorrect or expired."
-                )
-
-                # Create repair issue for expired local key
-                ir.async_create_issue(
-                    hass,
-                    DOMAIN,
-                    f"local_key_expired_{entry.entry_id}",
-                    is_fixable=True,
-                    severity=ir.IssueSeverity.ERROR,
-                    translation_key="local_key_expired",
-                    translation_placeholders={
-                        "entry_title": entry.title,
-                        "device_id": entry.data.get(CONF_DEVICE_ID, "Unknown"),
-                    },
-                    data={
-                        "entry_id": entry.entry_id,
-                        "entry_title": entry.title,
-                        "device_id": entry.data.get(CONF_DEVICE_ID, "Unknown"),
-                    },
-                )
-
-                raise ConfigEntryAuthFailed(f"Authentication failed: {e}. Please check your local key.") from e
-            except (KKTConnectionError, KKTTimeoutError) as e:
-                local_connection_failed = True
-                local_error_msg = str(e)
-
-                # Log at debug level to avoid filling logs (HA Best Practice)
-                _LOGGER.debug(
-                    f"Device connection failed during setup: {e}. "
-                    f"Common causes: offline device, network unreachable, firewall."
-                )
-
-                # Only raise if this is manual mode (requires local connection)
-                if integration_mode == "manual":
-                    # For temporary connection issues, use ConfigEntryNotReady
-                    # This tells HA to retry setup automatically
-                    _LOGGER.warning(
-                        f"Device at {ip_address} is not reachable. Home Assistant will retry setup automatically."
-                    )
-                    raise ConfigEntryNotReady(f"Device not reachable at {ip_address}: {e}") from e
-            except Exception as e:
-                local_connection_failed = True
-                local_error_msg = str(e)
-                _LOGGER.debug(f"Unexpected error during local connection: {e}")
-
-                if integration_mode == "manual":
-                    _LOGGER.warning("Device connection failed, will retry automatically")
-                    raise ConfigEntryNotReady(f"Setup failed: {e}") from e
-
-        if api_client:
-            try:
-                await api_client.test_connection()
-                connection_successful = True
-                _LOGGER.info("API connection successful during setup")
-            except Exception as e:
-                _LOGGER.debug(f"API connection failed during setup: {e}")
-
-                # Only raise if this is API-only mode and local also failed
-                if integration_mode == "api_discovery" and local_connection_failed:
-                    # Check if it's an auth issue
-                    if "auth" in str(e).lower() or "401" in str(e) or "403" in str(e):
-                        # Create repair issue for API authentication
-                        ir.async_create_issue(
-                            hass,
-                            DOMAIN,
-                            f"tuya_api_auth_failed_{entry.entry_id}",
-                            is_fixable=True,
-                            severity=ir.IssueSeverity.ERROR,
-                            translation_key="tuya_api_auth_failed",
-                            translation_placeholders={
-                                "entry_title": entry.title,
-                            },
-                            data={
-                                "entry_id": entry.entry_id,
-                                "entry_title": entry.title,
-                            },
-                        )
-
-                        raise ConfigEntryAuthFailed(f"API authentication failed: {e}. Please check credentials.") from e
-                    # Check if it's a wrong region/endpoint issue (error code 1004)
-                    if "1004" in str(e) or "sign" in str(e).lower():
-                        # Create repair issue for wrong region
-                        ir.async_create_issue(
-                            hass,
-                            DOMAIN,
-                            f"tuya_api_wrong_region_{entry.entry_id}",
-                            is_fixable=True,
-                            severity=ir.IssueSeverity.WARNING,
-                            translation_key="tuya_api_wrong_region",
-                            translation_placeholders={
-                                "entry_title": entry.title,
-                                "current_endpoint": entry.data.get(CONF_API_ENDPOINT, "Unknown"),
-                            },
-                            data={
-                                "entry_id": entry.entry_id,
-                                "entry_title": entry.title,
-                                "current_endpoint": entry.data.get(CONF_API_ENDPOINT, "Unknown"),
-                            },
-                        )
-
-                        raise ConfigEntryAuthFailed(
-                            f"API signature validation failed: {e}. Wrong region/endpoint?"
-                        ) from e
-                    _LOGGER.warning("API connection failed, will retry automatically")
-                    raise ConfigEntryNotReady(f"API not reachable: {e}") from e
-
-        # Perform initial data fetch if at least one connection method works
-        # Use timeout to prevent indefinite hang during setup
-        FIRST_REFRESH_TIMEOUT = 60  # seconds
-        # Allow initial refresh for modes with cloud fallback even if local fails
-        if connection_successful or integration_mode in ["hybrid", "api_discovery", "smartlife"]:
-            try:
-                await asyncio.wait_for(coordinator.async_config_entry_first_refresh(), timeout=FIRST_REFRESH_TIMEOUT)
-                _LOGGER.info("Initial data fetch successful")
-            except TimeoutError:
-                _LOGGER.warning(
-                    f"Initial data fetch timed out after {FIRST_REFRESH_TIMEOUT}s, coordinator will retry automatically"
-                )
-                # Don't raise - let coordinator handle retries
-            except Exception as e:
-                # Log at debug to avoid excessive logging (HA Best Practice)
-                _LOGGER.debug(f"Initial data fetch failed, coordinator will retry: {e}")
-                # Don't raise here - let coordinator handle retries
-                # This allows the integration to load even if the first fetch fails
-        else:
-            error_details = []
-            if local_connection_failed and local_error_msg:
-                error_details.append(f"Local: {local_error_msg}")
-            if not api_client and not device:
-                error_details.append("No connection methods configured")
-
-            full_error = " | ".join(error_details) if error_details else "No connection methods available"
-            _LOGGER.warning(f"Setup incomplete: {full_error}")
-            raise ConfigEntryNotReady(f"Setup incomplete: {full_error}")
-
-    except (ConfigEntryAuthFailed, ConfigEntryNotReady):
-        # Re-raise these Home Assistant exceptions as-is
-        raise
-    except (KKTConnectionError, KKTTimeoutError) as e:
-        # Convert connection errors to ConfigEntryNotReady for auto-retry
-        _LOGGER.debug(f"Connection error during setup: {e}")
-        raise ConfigEntryNotReady(f"Device connection failed: {e}") from e
-    except Exception as e:
-        _LOGGER.error(f"Unexpected error during setup: {e}", exc_info=True)
-        raise
+    # Schedule background connection (non-blocking HA startup)
+    # Connection + first data refresh happens in a background task so that
+    # HA startup is not delayed by unreachable devices.
+    entry.async_create_background_task(
+        hass,
+        _async_background_connect(hass, entry, coordinator, device, api_client),
+        name=f"kkt_kolbe_{entry.entry_id}_connect",
+    )
 
     # Determine device type and platforms
     # Priority: device_type (KNOWN_DEVICES key) > product_name (Tuya product ID)

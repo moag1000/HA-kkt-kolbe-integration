@@ -64,6 +64,7 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
         self._last_successful_update: datetime | None = None
         self._consecutive_failures = 0
         self._is_first_update = True  # Track first update for lenient handling
+        self._initial_connect_done = False  # Background connect not yet completed
 
         # DPS cache for merging partial updates
         # Tuya devices often send delta/partial updates (only changed DPs)
@@ -112,9 +113,15 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
         if self._device_state == DeviceState.ONLINE:
             return True
 
-        # During initial startup phase, also treat RECONNECTING as available
-        # This prevents "unavailable" flash during first connection attempt
+        # During initial startup phase, treat as available to prevent "unavailable" flash
+        if not self._initial_connect_done:
+            return True
+
         return bool(self._is_first_update and self._device_state == DeviceState.RECONNECTING)
+
+    def mark_initial_connect_done(self) -> None:
+        """Mark that the background connection attempt has completed."""
+        self._initial_connect_done = True
 
     @property
     def last_successful_update(self) -> datetime | None:
@@ -266,6 +273,14 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
         try:
             # Ensure device is connected
             if not self.device.is_connected:
+                # Before background connect completes, return empty data immediately
+                if not self._initial_connect_done:
+                    _LOGGER.debug(
+                        "Device %s: awaiting background connection, skipping update",
+                        self.device.device_id[:8],
+                    )
+                    return {"dps": {}, "source": "pending", "available": False}
+
                 _LOGGER.debug(f"Device {self.device.device_id[:8]} not connected, attempting to connect")
                 self._device_state = DeviceState.RECONNECTING
                 await self.device.async_connect()

@@ -81,6 +81,9 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
         # Timestamp tracking for last successful update
         self._last_update_success_time: datetime | None = None
 
+        # Background connect tracking (non-blocking setup)
+        self._initial_connect_done = False
+
         # DPS cache for merging partial updates
         # Tuya devices often send delta/partial updates (only changed DPs)
         # This cache accumulates all DPs seen so far
@@ -102,8 +105,17 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
         """Return the timestamp of the last successful update."""
         return self._last_update_success_time
 
+    def mark_initial_connect_done(self) -> None:
+        """Mark that the background connection attempt has completed."""
+        self._initial_connect_done = True
+
     async def _async_update_data(self) -> dict[str, Any]:
         """Update data using hybrid approach."""
+        # Before background connect completes, return empty data immediately
+        if not self._initial_connect_done and not self._dps_cache:
+            _LOGGER.debug("Device %s: awaiting background connection, skipping update", self.device_id[:8])
+            return {"dps": {}, "source": "pending", "available": False}
+
         _LOGGER.debug(f"Updating data for device {self.device_id[:8]} in {self.current_mode} mode")
 
         # Try primary mode first
@@ -183,7 +195,8 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
             cached_data: dict[str, Any] = self.data
             return cached_data
 
-        raise UpdateFailed("All communication methods failed and no cached data available")
+        _LOGGER.warning("All communication methods failed for device %s, no cached data", self.device_id[:8])
+        return {"dps": {}, "source": "failed", "available": False}
 
     async def async_update_local(self) -> dict[str, Any]:
         """Update data via local communication.

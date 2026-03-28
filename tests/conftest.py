@@ -1,4 +1,5 @@
 """Fixtures for KKT Kolbe integration tests."""
+
 from __future__ import annotations
 
 from collections.abc import Generator
@@ -12,6 +13,7 @@ from homeassistant.config_entries import ConfigEntry
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.kkt_kolbe.const import DOMAIN
+
 # Import config_flow to ensure it's registered
 import custom_components.kkt_kolbe.config_flow  # noqa: F401
 
@@ -25,6 +27,7 @@ def auto_enable_custom_integrations(enable_custom_integrations):
 @pytest.fixture(autouse=True)
 def mock_zeroconf_setup():
     """Mock zeroconf component setup to avoid socket issues in tests."""
+
     async def mock_async_setup(hass, config):
         """Mock zeroconf async_setup."""
         hass.data["zeroconf"] = MagicMock()
@@ -42,6 +45,7 @@ def mock_device_tracker_and_discovery():
     """Mock device tracker and discovery to avoid timer and socket issues in tests."""
     # Reset the global tracker instance before each test
     import custom_components.kkt_kolbe.device_tracker as dt
+
     dt._tracker_instance = None
 
     # Mock the StaleDeviceTracker class itself to prevent timer creation
@@ -139,11 +143,13 @@ def mock_tuya_device() -> Generator[MagicMock, None, None]:
 
         # Mock async methods
         mock_device.async_connect = AsyncMock(return_value=True)
-        mock_device.async_get_status = AsyncMock(return_value={
-            "1": True,   # Power
-            "4": False,  # Light
-            "10": "off", # Fan speed
-        })
+        mock_device.async_get_status = AsyncMock(
+            return_value={
+                "1": True,  # Power
+                "4": False,  # Light
+                "10": "off",  # Fan speed
+            }
+        )
         mock_device.async_set_dp = AsyncMock(return_value=True)
 
         mock_device_class.return_value = mock_device
@@ -159,12 +165,13 @@ def mock_coordinator() -> Generator[MagicMock, None, None]:
     ) as mock_coordinator_class:
         mock_coordinator = MagicMock()
         mock_coordinator.data = {
-            "1": True,   # Power
+            "1": True,  # Power
             "4": False,  # Light
-            "10": "off", # Fan speed
+            "10": "off",  # Fan speed
         }
         mock_coordinator.last_update_success = True
         mock_coordinator.last_update_success_time = None
+        mock_coordinator._initial_connect_done = True
 
         # Mock async methods
         mock_coordinator.async_config_entry_first_refresh = AsyncMock()
@@ -187,11 +194,13 @@ def mock_api_client() -> Generator[MagicMock, None, None]:
 
         # Mock async methods
         mock_client.test_connection = AsyncMock(return_value=True)
-        mock_client.get_device_status = AsyncMock(return_value={
-            "1": True,
-            "4": False,
-            "10": "off",
-        })
+        mock_client.get_device_status = AsyncMock(
+            return_value={
+                "1": True,
+                "4": False,
+                "10": "off",
+            }
+        )
         mock_client.get_device_local_key = AsyncMock(return_value="1234567890abcdef")
 
         mock_client_class.return_value = mock_client
@@ -298,9 +307,7 @@ def mock_tuya_sharing_client() -> Generator[MagicMock, None, None]:
         mock_client.is_authenticated = True
 
         # Mock async methods
-        mock_client.async_generate_qr_code = AsyncMock(
-            return_value="tuyaSmart--qrLogin?token=test_qr_token"
-        )
+        mock_client.async_generate_qr_code = AsyncMock(return_value="tuyaSmart--qrLogin?token=test_qr_token")
         mock_client.async_poll_login_result = AsyncMock(
             return_value=MagicMock(
                 success=True,
@@ -360,9 +367,7 @@ def mock_tuya_sharing_client_no_kkt() -> Generator[MagicMock, None, None]:
         mock_client.app_schema = "smartlife"
         mock_client.is_authenticated = True
 
-        mock_client.async_generate_qr_code = AsyncMock(
-            return_value="tuyaSmart--qrLogin?token=test_qr_token"
-        )
+        mock_client.async_generate_qr_code = AsyncMock(return_value="tuyaSmart--qrLogin?token=test_qr_token")
         mock_client.async_poll_login_result = AsyncMock(
             return_value=MagicMock(
                 success=True,
