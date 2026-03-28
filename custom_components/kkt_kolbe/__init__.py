@@ -15,7 +15,6 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
 
-from .const import CONF_API_ENDPOINT
 from .const import CONF_SMARTLIFE_TOKEN_INFO
 from .const import DOMAIN
 from .const import ENTRY_TYPE_ACCOUNT
