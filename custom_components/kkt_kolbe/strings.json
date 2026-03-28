@@ -85,53 +85,6 @@
           "device_type": "Select the model that matches your KKT Kolbe device"
         }
       },
-      "manual_config": {
-        "title": "Manual Configuration",
-        "description": "Enter device details manually.",
-        "data": {
-          "device_id": "Device ID",
-          "host": "IP Address",
-          "local_key": "Local Key"
-        },
-        "data_description": {
-          "device_id": "20-character device ID from Tuya/Smart Life app",
-          "host": "IP address of the device on your network",
-          "local_key": "Local encryption key (16 characters)"
-        }
-      },
-      "api_config": {
-        "title": "API Configuration",
-        "description": "Configure TinyTuya Cloud API credentials.",
-        "data": {
-          "api_client_id": "Client ID",
-          "api_client_secret": "Client Secret",
-          "api_endpoint": "API Endpoint"
-        },
-        "data_description": {
-          "api_client_id": "Access ID from Tuya IoT Platform project",
-          "api_client_secret": "Access Secret from Tuya IoT Platform project",
-          "api_endpoint": "API endpoint (EU: openapi.tuyaeu.com, US: openapi.tuyaus.com)"
-        }
-      },
-      "api_discovery": {
-        "title": "Device Discovery",
-        "description": "Select your KKT Kolbe device from discovered devices.",
-        "data": {
-          "selected_device": "Device"
-        }
-      },
-      "hybrid_manual_details": {
-        "title": "Local Connection Details",
-        "description": "Enter local connection details for hybrid mode.",
-        "data": {
-          "host": "IP Address",
-          "local_key": "Local Key"
-        },
-        "data_description": {
-          "host": "IP address for local communication",
-          "local_key": "Local encryption key for direct communication"
-        }
-      },
       "api_only": {
         "title": "API-Only Setup",
         "description": "Configure your device using TinyTuya Cloud API only.",
@@ -284,6 +237,16 @@
           "back_to_discovery": "Return to automatic device discovery"
         }
       },
+      "smartlife_reauth": {
+        "title": "SmartLife Re-authentication",
+        "description": "Re-authenticate your SmartLife account for **{device_name}**.\n\nEnter the User Code from your SmartLife/Tuya Smart App.",
+        "data": {
+          "user_code": "User Code"
+        },
+        "data_description": {
+          "user_code": "Your User Code from the SmartLife/Tuya Smart App"
+        }
+      },
       "reauth_confirm": {
         "title": "Update Credentials",
         "description": "Update authentication credentials for {device_name}.",
@@ -384,36 +347,6 @@
           "enable_debug_logging": "Enable detailed logging for troubleshooting",
           "zone_naming_scheme": "Naming convention for multi-zone devices"
         }
-      },
-      "init": {
-        "title": "KKT Kolbe Options",
-        "description": "Configure options for your KKT Kolbe device.",
-        "data": {
-          "scan_interval": "Update Interval",
-          "new_local_key": "New Local Key",
-          "api_enabled": "Enable TinyTuya Cloud API",
-          "api_client_id": "API Client ID",
-          "api_client_secret": "API Client Secret",
-          "api_endpoint": "API Endpoint Region",
-          "enable_debug_logging": "Enable Debug Logging",
-          "enable_advanced_entities": "Enable Advanced Entities",
-          "zone_naming_scheme": "Zone Naming Scheme",
-          "disable_fan_auto_start": "Disable Fan Auto-Start",
-          "test_connection": "Test Connection"
-        },
-        "data_description": {
-          "scan_interval": "How often to update device status (10-300 seconds)",
-          "new_local_key": "Enter new local key if device was reset (16 characters)",
-          "api_enabled": "Enable TinyTuya Cloud API for hybrid mode and device discovery",
-          "api_client_id": "Access ID from Tuya IoT Platform project",
-          "api_client_secret": "Access Secret from Tuya IoT Platform project",
-          "api_endpoint": "Select your regional API endpoint",
-          "enable_debug_logging": "Enable detailed logging for troubleshooting",
-          "enable_advanced_entities": "Show additional diagnostic entities",
-          "zone_naming_scheme": "How to name multi-zone entities",
-          "disable_fan_auto_start": "When turning on the light or power, prevent the fan from starting automatically (hood devices only)",
-          "test_connection": "Test device connection after changes"
-        }
       }
     },
     "progress": {
@@ -443,6 +376,9 @@
       "already_configured": "Device is already configured",
       "already_in_progress": "A setup flow for this device is already running. Please complete or dismiss the existing flow first.",
       "no_device_id": "Could not identify device. No device ID found.",
+      "no_local_key": "No local key available. Please provide a local key or use API credentials to fetch it automatically.",
+      "device_not_found": "The selected device was not found. It may have been removed from your SmartLife account.",
+      "no_devices_selected": "No devices were selected. Please select at least one device to add.",
       "reauth_failed": "Reauthentication failed. Entry not found.",
       "reauth_successful": "Reauthentication successful. The integration has been reloaded.",
       "reconfigure_failed": "Reconfiguration failed. Entry not found.",
@@ -479,6 +415,81 @@
           "enable_advanced_entities": "Show additional diagnostic entities",
           "zone_naming_scheme": "How to name multi-zone entities",
           "disable_fan_auto_start": "When turning on the light or power, prevent the fan from starting automatically (hood devices only)",
+          "test_connection": "Test device connection after changes"
+        }
+      },
+      "smartlife_account": {
+        "title": "SmartLife Account Options",
+        "description": "Manage your SmartLife account **{account_name}**.",
+        "menu_options": {
+          "renew_token": "Renew Authentication Token",
+          "account_settings": "Account Settings"
+        }
+      },
+      "account_settings": {
+        "title": "Account Settings",
+        "description": "Configure settings for SmartLife account **{account_name}**.",
+        "data": {
+          "enable_debug_logging": "Enable Debug Logging"
+        },
+        "data_description": {
+          "enable_debug_logging": "Enable detailed logging for troubleshooting"
+        }
+      },
+      "renew_token": {
+        "title": "Renew SmartLife Token",
+        "description": "Scan the QR code below with your SmartLife or Tuya Smart App to renew the authentication token for **{account_name}**.\n\n![QR Code]({qr_code_url})\n\nAfter scanning, click Submit.",
+        "data": {}
+      },
+      "smartlife_device": {
+        "title": "SmartLife Device Options",
+        "description": "Configure options for **{device_name}**.\nCurrent update interval: {current_interval}s",
+        "data": {
+          "scan_interval": "Update Interval",
+          "new_local_key": "New Local Key",
+          "enable_debug_logging": "Enable Debug Logging",
+          "enable_advanced_entities": "Enable Advanced Entities",
+          "zone_naming_scheme": "Zone Naming Scheme",
+          "disable_fan_auto_start": "Disable Fan Auto-Start",
+          "test_connection": "Test Connection"
+        },
+        "data_description": {
+          "scan_interval": "How often to update device status (10-300 seconds)",
+          "new_local_key": "Enter new local key if device was reset (16 characters)",
+          "enable_debug_logging": "Enable detailed logging for troubleshooting",
+          "enable_advanced_entities": "Show additional diagnostic entities",
+          "zone_naming_scheme": "How to name multi-zone entities",
+          "disable_fan_auto_start": "Prevent fan from starting automatically when turning on light or power",
+          "test_connection": "Test device connection after changes"
+        }
+      },
+      "device": {
+        "title": "Device Options",
+        "description": "Configure options for **{device_name}**.\nCurrent update interval: {current_interval}s",
+        "data": {
+          "scan_interval": "Update Interval",
+          "new_local_key": "New Local Key",
+          "api_enabled": "Enable TinyTuya Cloud API",
+          "api_client_id": "API Client ID",
+          "api_client_secret": "API Client Secret",
+          "api_endpoint": "API Endpoint Region",
+          "enable_debug_logging": "Enable Debug Logging",
+          "enable_advanced_entities": "Enable Advanced Entities",
+          "zone_naming_scheme": "Zone Naming Scheme",
+          "disable_fan_auto_start": "Disable Fan Auto-Start",
+          "test_connection": "Test Connection"
+        },
+        "data_description": {
+          "scan_interval": "How often to update device status (10-300 seconds)",
+          "new_local_key": "Enter new local key if device was reset (16 characters)",
+          "api_enabled": "Enable TinyTuya Cloud API for hybrid mode",
+          "api_client_id": "Access ID from Tuya IoT Platform project",
+          "api_client_secret": "Access Secret from Tuya IoT Platform project",
+          "api_endpoint": "Select your regional API endpoint",
+          "enable_debug_logging": "Enable detailed logging for troubleshooting",
+          "enable_advanced_entities": "Show additional diagnostic entities",
+          "zone_naming_scheme": "How to name multi-zone entities",
+          "disable_fan_auto_start": "Prevent fan from starting automatically when turning on light or power",
           "test_connection": "Test device connection after changes"
         }
       }
