@@ -228,6 +228,7 @@ async def test_coordinator_reconnect_on_failure(
         entry=mock_config_entry,
         device=mock_device,
     )
+    coordinator.mark_initial_connect_done()
 
     # First update should fail
     with pytest.raises(UpdateFailed):
@@ -285,6 +286,7 @@ async def test_hybrid_coordinator_local_first(
         update_interval=timedelta(seconds=30),
         entry=mock_config_entry,
     )
+    coordinator.mark_initial_connect_done()
 
     await coordinator.async_refresh()
 
@@ -317,6 +319,7 @@ async def test_hybrid_coordinator_api_fallback(
         update_interval=timedelta(seconds=30),
         entry=mock_config_entry,
     )
+    coordinator.mark_initial_connect_done()
 
     # Should try API after local fails
     try:
@@ -368,6 +371,7 @@ async def test_coordinator_error_history(
         entry=mock_config_entry,
         device=mock_device,
     )
+    coordinator.mark_initial_connect_done()
 
     # Trigger an update that will fail
     await coordinator._async_update_data()
@@ -397,6 +401,7 @@ async def test_coordinator_exponential_backoff(
         entry=mock_config_entry,
         device=mock_device,
     )
+    coordinator.mark_initial_connect_done()
 
     initial_backoff = coordinator._current_backoff
 
@@ -431,6 +436,7 @@ async def test_coordinator_circuit_breaker(
         entry=mock_config_entry,
         device=mock_device,
     )
+    coordinator.mark_initial_connect_done()
 
     # Override max attempts for faster test
     coordinator._max_reconnect_attempts = 3
@@ -494,6 +500,7 @@ async def test_coordinator_reset_on_success(
     )
 
     # First, cause some failures
+    coordinator.mark_initial_connect_done()
     mock_device.async_get_status.side_effect = KKTConnectionError("Test")
     mock_device.is_connected = False
     await coordinator._async_update_data()
