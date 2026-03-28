@@ -808,7 +808,8 @@ async def _async_unload_account_entry(hass: HomeAssistant, entry: ConfigEntry) -
 
 async def _async_unload_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEntry) -> bool:
     """Unload a KKT Kolbe device entry."""
-    # Get the platforms that were loaded for this specific device
+    import asyncio
+
     from .device_types import get_device_platforms
 
     # Use runtime_data if available, fallback to entry.data
@@ -824,6 +825,19 @@ async def _async_unload_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigE
 
     unload_ok: bool = await hass.config_entries.async_unload_platforms(entry, platforms)
     if unload_ok:
+        # Shutdown coordinator with timeout to prevent hanging during HA shutdown
+        _SHUTDOWN_TIMEOUT = 30
+        if hasattr(entry, "runtime_data") and entry.runtime_data:
+            try:
+                async with asyncio.timeout(_SHUTDOWN_TIMEOUT):
+                    await entry.runtime_data.coordinator.async_shutdown()
+            except TimeoutError:
+                _LOGGER.warning(
+                    "Coordinator shutdown timed out after %ds for %s",
+                    _SHUTDOWN_TIMEOUT,
+                    entry.title,
+                )
+
         # Remove from hass.data (backward compatibility)
         hass.data[DOMAIN].pop(entry.entry_id, None)
 
