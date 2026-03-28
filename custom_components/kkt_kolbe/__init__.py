@@ -51,6 +51,15 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
         config_entry.version,
     )
 
+    if config_entry.version > 2:
+        # Downgrade protection: can't migrate from a future version
+        _LOGGER.error(
+            "Cannot migrate config entry %s from version %s (current: 2). Please update the integration.",
+            config_entry.entry_id,
+            config_entry.version,
+        )
+        return False
+
     if config_entry.version == 1:
         # Migrate from version 1 to version 2
         new_data = dict(config_entry.data)

@@ -506,6 +506,54 @@
       "title": "SmartLife Token Expired",
       "description": "The SmartLife authentication token has expired.\n\n**To fix:** Go to the integration settings and re-authenticate with SmartLife."
     },
+    "local_key_expired": {
+      "title": "Local Key Expired",
+      "fix_flow": {
+        "step": {
+          "update_local_key": {
+            "title": "Enter New Local Key",
+            "description": "The local key for **{entry_title}** (Device: {device_id}) has expired or is incorrect.\n\nPlease enter the new 16-character encryption key.",
+            "data": {
+              "local_key": "Local Key"
+            },
+            "data_description": {
+              "local_key": "The new 16-character encryption key from Tuya IoT Platform or SmartLife"
+            }
+          }
+        },
+        "error": {
+          "invalid_local_key": "Local key must be exactly 16 characters"
+        }
+      }
+    },
+    "tuya_api_auth_failed": {
+      "title": "Tuya API Authentication Failed",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Re-authenticate Tuya API",
+            "description": "The API credentials for **{entry_title}** are no longer valid.\n\nClick Submit to start the re-authentication process."
+          }
+        }
+      }
+    },
+    "tuya_api_wrong_region": {
+      "title": "Tuya API Wrong Region",
+      "fix_flow": {
+        "step": {
+          "confirm_region": {
+            "title": "Select Correct Region",
+            "description": "The API endpoint for **{entry_title}** appears to be incorrect (current: {current_endpoint}).\n\nPlease select the correct region for your Tuya account.",
+            "data": {
+              "region": "Region"
+            }
+          }
+        },
+        "error": {
+          "invalid_region": "Please select a valid region"
+        }
+      }
+    },
     "device_id_changed": {
       "title": "Device ID Changed",
       "fix_flow": {
