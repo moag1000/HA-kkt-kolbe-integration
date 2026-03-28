@@ -4,6 +4,20 @@ from __future__ import annotations
 
 from typing import Final
 
+from homeassistant.const import Platform
+
+# === PLATFORMS ===
+PLATFORMS: Final[list[Platform]] = [
+    Platform.SENSOR,
+    Platform.FAN,
+    Platform.LIGHT,
+    Platform.SWITCH,
+    Platform.SELECT,
+    Platform.NUMBER,
+    Platform.BINARY_SENSOR,
+    Platform.SCENE,
+]
+
 # === VERSION ===
 VERSION: Final = "4.5.3"
 

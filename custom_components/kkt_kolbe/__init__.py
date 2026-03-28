@@ -11,7 +11,6 @@ from homeassistant.config_entries import ConfigEntryNotReady
 from homeassistant.const import CONF_ACCESS_TOKEN
 from homeassistant.const import CONF_DEVICE_ID
 from homeassistant.const import CONF_IP_ADDRESS
-from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
 
@@ -19,6 +18,7 @@ from .const import CONF_SMARTLIFE_TOKEN_INFO
 from .const import DOMAIN
 from .const import ENTRY_TYPE_ACCOUNT
 from .const import ENTRY_TYPE_DEVICE
+from .const import PLATFORMS  # noqa: F401
 from .data import KKTKolbeAccountConfigEntry  # noqa: F401
 from .data import KKTKolbeAccountRuntimeData
 from .data import KKTKolbeConfigEntry
@@ -29,17 +29,6 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 # Heavy imports moved to lazy loading to prevent blocking the event loop
 
 _LOGGER = logging.getLogger(__name__)
-
-PLATFORMS = [
-    Platform.SENSOR,
-    Platform.FAN,
-    Platform.LIGHT,
-    Platform.SWITCH,
-    Platform.SELECT,
-    Platform.NUMBER,
-    Platform.BINARY_SENSOR,
-    Platform.SCENE,
-]
 
 
 # Runtime data types are defined in data.py (imported above)
