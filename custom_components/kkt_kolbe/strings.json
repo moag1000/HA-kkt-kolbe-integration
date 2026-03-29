@@ -353,24 +353,23 @@
       "smartlife_scanning": "Waiting for QR code scan..."
     },
     "error": {
-      "missing_required_fields": "Please fill in all required fields",
-      "api_connection_failed": "Could not connect to Tuya Cloud API",
-      "api_auth_failed": "API authentication failed. Check your credentials",
-      "api_error": "API error occurred",
-      "unknown_api_error": "Unknown API error occurred",
-      "device_not_found": "Selected device not found",
-      "discovery_failed": "Device discovery failed",
-      "analysis_failed": "Device analysis failed",
-      "no_kkt_devices_found": "No KKT Kolbe devices found in your SmartLife account",
-      "missing_local_details": "Please provide local connection details",
-      "no_devices_found": "No devices were found. Make sure your device is powered on and connected to the network.",
-      "invalid_local_key": "Invalid local key. Must be 16 characters.",
+      "cannot_connect": "Failed to connect to device. Check IP address and network.",
       "invalid_auth": "Authentication failed. Please check your local key.",
+      "unknown": "An unexpected error occurred. Please check the logs.",
+      "invalid_ip": "Invalid IP address format.",
+      "invalid_device_id": "Invalid device ID. Must be at least 20 characters.",
+      "invalid_local_key": "Invalid local key. Must be 16 characters.",
       "invalid_user_code": "Invalid User Code. Please check the User Code in your SmartLife/Tuya Smart App.",
+      "api_connection_failed": "Could not connect to Tuya Cloud API.",
+      "api_test_failed": "Failed to connect to Tuya Cloud API. Please verify your credentials.",
+      "api_client_id_required": "API Client ID is required when API is enabled.",
+      "api_client_id_invalid": "API Client ID must be at least 10 characters.",
+      "api_client_secret_required": "API Client Secret is required when API is enabled.",
+      "api_client_secret_invalid": "API Client Secret must be at least 20 characters.",
+      "discovery_failed": "Device discovery failed.",
+      "no_kkt_devices_found": "No KKT Kolbe devices found in your SmartLife account.",
       "no_devices_selected": "Please select at least one device to add.",
-      "smartlife_not_authenticated": "SmartLife authentication not completed. Please start the setup again.",
-      "all_devices_configured": "All discovered devices are already configured.",
-      "no_devices_created": "No devices were created. Please check the logs for details."
+      "device_not_found": "Selected device not found."
     },
     "abort": {
       "already_configured": "Device is already configured",
@@ -384,8 +383,7 @@
       "reconfigure_failed": "Reconfiguration failed. Entry not found.",
       "reconfigure_successful": "Configuration updated successfully. The integration has been reloaded.",
       "smartlife_not_authenticated": "SmartLife authentication was not completed. Please start the setup again.",
-      "all_devices_configured": "All KKT Kolbe devices in your SmartLife account are already configured.",
-      "no_devices_created": "No devices were created. This may happen if all selected devices are already configured."
+      "all_devices_configured": "All KKT Kolbe devices in your SmartLife account are already configured."
     }
   },
   "options": {
@@ -504,8 +502,8 @@
       "api_client_secret_invalid": "API Client Secret must be at least 20 characters",
       "api_test_failed": "Failed to connect to TinyTuya Cloud API. Please verify your credentials",
       "connection_test_failed": "Connection test failed. Please check your device settings",
-      "invalid_region": "Invalid region selected",
-      "invalid_local_key": "Local key must be exactly 16 characters"
+      "auth_failed": "SmartLife authentication failed. Please try again.",
+      "qr_code_failed": "Failed to generate QR code. Please check your User Code."
     }
   },
   "issues": {
