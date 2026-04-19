@@ -293,7 +293,10 @@ def _is_kkt_device(device: Any) -> tuple[bool, str | None]:
         name = getattr(device, "name", "") or ""
         search_text = f"{product_name} {name}".lower()
 
-        if any(kw in search_text for kw in ["kkt", "kolbe", "hermes", "ecco", "solo", "flat", "eb831", "backofen", "elektroherd"]):
+        if any(
+            kw in search_text
+            for kw in ["kkt", "kolbe", "hermes", "ecco", "solo", "flat", "eb831", "backofen", "elektroherd"]
+        ):
             _LOGGER.info(
                 "KKT device detected by category + keywords: category=%s, name=%s",
                 device.category,
