@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [4.6.0] - 2026-04-17
+
+### Added
+
+- **EB8313HC Backofen Support**: DPs 101-120 aus echtem Gerät ermittelt (Issue #6, @Lucky-ESA). Entitäten: Programm-Auswahl (f1-f10, p1-p8), Temperatur (35-250°C), Timer (0-360 min), Countdown-Sensor, Tür-Sensor, Start/Pause-Schalter
+- **Oven-Erkennung**: Tuya-Kategorie `kfj` wird in allen Discovery-Pfaden erkannt (config_flow, smart_discovery, device_detection)
+- **Oven in Device-Type-Dropdown**: EB8313HC im manuellen Setup und Reconfigure auswählbar
+
+### Fixed
+
+- **Translation Sync**: strings.json, en.json, de.json synchronisiert — fehlende `selector`, `entity`, Reconfigure-Steps und Repair-Issue fix_flows ergänzt
+- **Cooktop Product-Name**: Kategorie-basierte Erkennung gibt jetzt korrekte Tuya Product-ID `p8volecsgzdyun29` zurück statt Device-Key
+- **VERSION Konstante**: const.py VERSION auf 4.6.0 aktualisiert (war 4.5.3)
+- **Fan Auto-Start Default**: `disable_fan_auto_start` konsistent auf `True` gesetzt
+- **Test-Fixes**: Fehlende `async_refresh` AsyncMock in test_init.py, fehlende `tuya-device-sharing-sdk` Dependency installiert
+
+### Changed
+
+- **Oven Device-Key**: `oven_generic` (Stub) ersetzt durch `eb8313hc_oven` mit echten DPs
+- **Kommentar-Nummerierung**: Detection-Methoden korrekt nummeriert (Method 1-4)
+
+---
+
 ## [4.5.3] - 2026-03-22
 
 ### Fixed

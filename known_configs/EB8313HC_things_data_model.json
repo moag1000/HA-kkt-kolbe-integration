@@ -1,0 +1,367 @@
+{
+  "schema": [
+    {
+      "code": "dw",
+      "defaultValue": "f1",
+      "canTrigger": true,
+      "type": "obj",
+      "executable": true,
+      "mode": "rw",
+      "name": "DW",
+      "property": {
+        "range": ["f1","f2","f3","f4","f5","f6","f7","f8","f9","f10","p1","p2","p3","p4","p5","p6","p7","p8"],
+        "type": "enum"
+      },
+      "subType": "enum",
+      "id": 101
+    },
+    {
+      "code": "wd",
+      "defaultValue": "35",
+      "canTrigger": true,
+      "type": "obj",
+      "executable": true,
+      "mode": "rw",
+      "name": "wd",
+      "property": {
+        "unit": "℃",
+        "min": 35,
+        "max": 250,
+        "scale": 0,
+        "step": 5,
+        "type": "value"
+      },
+      "subType": "value",
+      "id": 102
+    },
+    {
+      "code": "ds",
+      "defaultValue": "0",
+      "canTrigger": true,
+      "type": "obj",
+      "executable": true,
+      "mode": "rw",
+      "name": "ds",
+      "property": {
+        "unit": "min",
+        "min": 0,
+        "max": 360,
+        "scale": 0,
+        "step": 1,
+        "type": "value"
+      },
+      "subType": "value",
+      "id": 103
+    },
+    {
+      "code": "djs",
+      "defaultValue": "0",
+      "canTrigger": true,
+      "type": "obj",
+      "executable": true,
+      "mode": "ro",
+      "name": "djs",
+      "property": {
+        "unit": "min",
+        "min": 0,
+        "max": 360,
+        "scale": 0,
+        "step": 1,
+        "type": "value"
+      },
+      "subType": "value",
+      "id": 104
+    },
+    {
+      "code": "kg",
+      "defaultValue": "false",
+      "canTrigger": true,
+      "type": "obj",
+      "executable": true,
+      "mode": "rw",
+      "name": "kg",
+      "property": {
+        "type": "bool"
+      },
+      "subType": "bool",
+      "id": 105
+    },
+    {
+      "code": "ztjx",
+      "defaultValue": "false",
+      "canTrigger": true,
+      "type": "obj",
+      "executable": true,
+      "mode": "rw",
+      "name": "Pause/Resume",
+      "property": {
+        "type": "bool"
+      },
+      "subType": "bool",
+      "id": 106
+    },
+    {
+      "code": "doorstate",
+      "defaultValue": "false",
+      "canTrigger": true,
+      "type": "obj",
+      "executable": true,
+      "mode": "rw",
+      "name": "Door State",
+      "property": {
+        "type": "bool"
+      },
+      "subType": "bool",
+      "id": 107
+    },
+    {
+      "code": "f3wd",
+      "defaultValue": "35",
+      "canTrigger": true,
+      "type": "obj",
+      "executable": true,
+      "mode": "rw",
+      "name": "F3wd",
+      "property": {
+        "unit": "℃",
+        "min": 35,
+        "max": 200,
+        "scale": 0,
+        "step": 5,
+        "type": "value"
+      },
+      "subType": "value",
+      "id": 108
+    },
+    {
+      "code": "p3wd",
+      "defaultValue": "180",
+      "canTrigger": true,
+      "type": "obj",
+      "executable": true,
+      "mode": "rw",
+      "name": "p3wd",
+      "property": {
+        "unit": "℃",
+        "min": 180,
+        "max": 200,
+        "scale": 0,
+        "step": 5,
+        "type": "value"
+      },
+      "subType": "value",
+      "id": 109
+    },
+    {
+      "code": "p3ds",
+      "defaultValue": "8",
+      "canTrigger": true,
+      "type": "obj",
+      "executable": true,
+      "mode": "rw",
+      "name": "p3ds",
+      "property": {
+        "unit": "min",
+        "min": 8,
+        "max": 15,
+        "scale": 0,
+        "step": 1,
+        "type": "value"
+      },
+      "subType": "value",
+      "id": 110
+    },
+    {
+      "code": "p4wd",
+      "defaultValue": "170",
+      "canTrigger": true,
+      "type": "obj",
+      "executable": true,
+      "mode": "rw",
+      "name": "p4wd",
+      "property": {
+        "unit": "℃",
+        "min": 170,
+        "max": 190,
+        "scale": 0,
+        "step": 5,
+        "type": "value"
+      },
+      "subType": "value",
+      "id": 111
+    },
+    {
+      "code": "p4ds",
+      "defaultValue": "16",
+      "canTrigger": true,
+      "type": "obj",
+      "executable": true,
+      "mode": "rw",
+      "name": "p4ds",
+      "property": {
+        "unit": "min",
+        "min": 16,
+        "max": 20,
+        "scale": 0,
+        "step": 1,
+        "type": "value"
+      },
+      "subType": "value",
+      "id": 112
+    },
+    {
+      "code": "p5wd",
+      "defaultValue": "180",
+      "canTrigger": true,
+      "type": "obj",
+      "executable": true,
+      "mode": "rw",
+      "name": "p5wd",
+      "property": {
+        "unit": "℃",
+        "min": 180,
+        "max": 200,
+        "scale": 0,
+        "step": 5,
+        "type": "value"
+      },
+      "subType": "value",
+      "id": 113
+    },
+    {
+      "code": "p5ds",
+      "defaultValue": "40",
+      "canTrigger": true,
+      "type": "obj",
+      "executable": true,
+      "mode": "rw",
+      "name": "p5ds",
+      "property": {
+        "unit": "min",
+        "min": 40,
+        "max": 50,
+        "scale": 0,
+        "step": 1,
+        "type": "value"
+      },
+      "subType": "value",
+      "id": 114
+    },
+    {
+      "code": "p6wd",
+      "defaultValue": "180",
+      "canTrigger": true,
+      "type": "obj",
+      "executable": true,
+      "mode": "rw",
+      "name": "p6wd",
+      "property": {
+        "unit": "℃",
+        "min": 180,
+        "max": 220,
+        "scale": 0,
+        "step": 5,
+        "type": "value"
+      },
+      "subType": "value",
+      "id": 115
+    },
+    {
+      "code": "p6ds",
+      "defaultValue": "20",
+      "canTrigger": true,
+      "type": "obj",
+      "executable": true,
+      "mode": "rw",
+      "name": "p6ds",
+      "property": {
+        "unit": "min",
+        "min": 20,
+        "max": 30,
+        "scale": 0,
+        "step": 1,
+        "type": "value"
+      },
+      "subType": "value",
+      "id": 116
+    },
+    {
+      "code": "p7wd",
+      "defaultValue": "190",
+      "canTrigger": true,
+      "type": "obj",
+      "executable": true,
+      "mode": "rw",
+      "name": "p7wd",
+      "property": {
+        "unit": "℃",
+        "min": 190,
+        "max": 210,
+        "scale": 0,
+        "step": 5,
+        "type": "value"
+      },
+      "subType": "value",
+      "id": 117
+    },
+    {
+      "code": "p7ds",
+      "defaultValue": "25",
+      "canTrigger": true,
+      "type": "obj",
+      "executable": true,
+      "mode": "rw",
+      "name": "p7ds",
+      "property": {
+        "unit": "min",
+        "min": 25,
+        "max": 35,
+        "scale": 0,
+        "step": 1,
+        "type": "value"
+      },
+      "subType": "value",
+      "id": 118
+    },
+    {
+      "code": "p8wd",
+      "defaultValue": "175",
+      "canTrigger": true,
+      "type": "obj",
+      "executable": true,
+      "mode": "rw",
+      "name": "p8wd",
+      "property": {
+        "unit": "℃",
+        "min": 175,
+        "max": 190,
+        "scale": 0,
+        "step": 5,
+        "type": "value"
+      },
+      "subType": "value",
+      "id": 119
+    },
+    {
+      "code": "p8ds",
+      "defaultValue": "25",
+      "canTrigger": true,
+      "type": "obj",
+      "executable": true,
+      "mode": "rw",
+      "name": "p8ds",
+      "property": {
+        "unit": "min",
+        "min": 25,
+        "max": 35,
+        "scale": 0,
+        "step": 1,
+        "type": "value"
+      },
+      "subType": "value",
+      "id": 120
+    }
+  ],
+  "productKey": "be8ooigdvjvy1q4a",
+  "version": "3.4"
+}

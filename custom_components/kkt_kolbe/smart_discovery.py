@@ -351,9 +351,12 @@ class SmartDiscovery:
         # Method 3: Category-based detection with keyword matching
         search_text = f"{api_product_name} {device_name}".lower()
 
-        if tuya_category == "dcl":  # Cooktop category
+        if tuya_category == "kfj":  # Oven category
+            friendly_type = str(KNOWN_DEVICES.get("eb8313hc_oven", {}).get("name", "EB8313HC Oven"))
+            return ("eb8313hc_oven", "be8ooigdvjvy1q4a", friendly_type)
+        elif tuya_category == "dcl":  # Cooktop category
             friendly_type = str(KNOWN_DEVICES.get("ind7705hc_cooktop", {}).get("name", "Induction Cooktop"))
-            return ("ind7705hc_cooktop", "ind7705hc_cooktop", friendly_type)
+            return ("ind7705hc_cooktop", "p8volecsgzdyun29", friendly_type)
         elif tuya_category == "yyj":  # Hood category
             # Try to identify specific hood model
             if "solo" in search_text:
@@ -374,9 +377,12 @@ class SmartDiscovery:
                 return ("default_hood", "default_hood", friendly_type)
 
         # Method 4: Fallback keyword detection
-        if "ind" in search_text or "cooktop" in search_text or "kochfeld" in search_text:
+        if any(kw in search_text for kw in ["oven", "backofen", "eb831", "elektroherd"]):
+            friendly_type = str(KNOWN_DEVICES.get("eb8313hc_oven", {}).get("name", "EB8313HC Oven"))
+            return ("eb8313hc_oven", "be8ooigdvjvy1q4a", friendly_type)
+        elif "ind" in search_text or "cooktop" in search_text or "kochfeld" in search_text:
             friendly_type = str(KNOWN_DEVICES.get("ind7705hc_cooktop", {}).get("name", "Induction Cooktop"))
-            return ("ind7705hc_cooktop", "ind7705hc_cooktop", friendly_type)
+            return ("ind7705hc_cooktop", "p8volecsgzdyun29", friendly_type)
         elif any(kw in search_text for kw in ["hood", "hermes", "style", "ecco", "solo", "dunst", "abzug"]):
             if "solo" in search_text:
                 friendly_type = str(KNOWN_DEVICES.get("solo_hcm_hood", {}).get("name", "SOLO HCM Hood"))

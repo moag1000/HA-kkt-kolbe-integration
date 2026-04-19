@@ -1,11 +1,12 @@
 # KKT Kolbe Integration
 
-Home Assistant Integration für KKT Kolbe Dunstabzugshauben und Induktionskochfelder.
+Home Assistant Integration für KKT Kolbe Dunstabzugshauben, Induktionskochfelder und Backöfen.
 
-## v4.0.0 Highlights
+## v4.6.0 Highlights
 
+- **EB8313HC Backofen** - DPs aus echtem Gerät, Integration bereit zum Testen (Issue #6)
 - **SmartLife Setup** - Kein Developer Account nötig
-- **Auto-Power-On** - Hood schaltet automatisch ein
+- **Siri/HomeKit Szenen** - RGB-Farben und Licht per Sprachbefehl
 - **Lokale Steuerung** - Kein Cloud-Zwang
 
 ## Quick Start
@@ -18,9 +19,11 @@ Home Assistant Integration für KKT Kolbe Dunstabzugshauben und Induktionskochfe
 
 ## Unterstützte Geräte
 
-**Dunstabzugshauben:** HERMES, HERMES & STYLE, ECCO HCM, SOLO HCM
+**Dunstabzugshauben:** HERMES & STYLE, HERMES, ECCO HCM, SOLO HCM, EASY, FLAT
 
 **Induktionskochfeld:** IND7705HC (5 Zonen)
+
+**Backofen:** EB8313HC (DPs bekannt, Integration ungetestet)
 
 ## Links
 
@@ -30,4 +33,4 @@ Home Assistant Integration für KKT Kolbe Dunstabzugshauben und Induktionskochfe
 
 ---
 
-**Version:** 4.0.0 | **HA:** ≥2025.12.0 | **Lizenz:** MIT
+**Version:** 4.6.0 | **HA:** ≥2025.12.0 | **Lizenz:** MIT

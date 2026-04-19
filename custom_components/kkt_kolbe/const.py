@@ -19,7 +19,7 @@ PLATFORMS: Final[list[Platform]] = [
 ]
 
 # === VERSION ===
-VERSION: Final = "4.5.3"
+VERSION: Final = "4.6.0"
 
 # === CORE IDENTIFIERS ===
 DOMAIN: Final = "kkt_kolbe"
@@ -83,7 +83,7 @@ MODE_HYBRID: Final = "hybrid"
 # === DEVICE CATEGORIES (Tuya) ===
 CATEGORY_HOOD: Final = "yyj"  # Dunstabzugshaube
 CATEGORY_COOKTOP: Final = "dcl"  # Induktionskochfeld
-CATEGORY_OVEN: Final = "kfj"  # Backofen (Tuya standard category, unverified for KKT)
+CATEGORY_OVEN: Final = "kfj"  # Backofen (EB8313HC DPs from Issue #6, integration untested)
 
 # === DEVICE MODELS ===
 # Model codes are stable identifiers - device IDs change when re-adding to Tuya/SmartLife!

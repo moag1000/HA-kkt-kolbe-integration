@@ -64,25 +64,30 @@ COOKTOP_DPS = {
     169: "oem_hob_disp_coresensor",  # Core probe current temp (optional meat thermometer)
 }
 
-# KKT Kolbe Oven Data Points - UNVERIFIED
-# Based on standard Tuya oven DP conventions. Actual DPs for KKT Kolbe ovens
-# (EB8313HC, EB8317HC, EB8313ED) have not been confirmed with a real device.
-# All DP IDs and names are estimates. Do not rely on these without verification.
+# KKT Kolbe EB8313HC Oven Data Points - DPs from real device (Issue #6, @Lucky-ESA)
+# Integration NOT yet tested end-to-end with a real oven
+# Product key: be8ooigdvjvy1q4a, Protocol version: 3.4
 OVEN_DPS = {
-    1: "switch",  # Main power on/off (estimated)
-    2: "temp_set",  # Target temperature in C (estimated)
-    3: "temp_current",  # Current oven temperature (estimated)
-    4: "mode",  # Cooking mode/program (estimated)
-    5: "countdown",  # Timer/countdown in minutes (estimated)
-    6: "time_remaining",  # Remaining time (estimated)
-    7: "status",  # Device status (estimated)
-    11: "child_lock",  # Child lock (estimated)
-    12: "light",  # Oven light (estimated)
-    101: "preheat",  # Preheat function (estimated)
-    102: "upper_temp",  # Upper heater temperature (estimated)
-    103: "lower_temp",  # Lower heater temperature (estimated)
-    104: "core_temp_set",  # Core probe target temp - EB8313ED (estimated)
-    105: "core_temp_current",  # Core probe current temp - EB8313ED (estimated)
+    101: "dw",  # Program/mode selection (enum: f1-f10 manual, p1-p8 presets)
+    102: "wd",  # Target temperature in °C (35-250, step 5)
+    103: "ds",  # Timer duration in minutes (0-360, step 1)
+    104: "djs",  # Countdown/remaining time in minutes (read-only)
+    105: "kg",  # Start/Cancel (bool: true=start, false=cancel)
+    106: "ztjx",  # Pause/Resume (bool: false=pause, true=resume)
+    107: "doorstate",  # Door open/close state (bool, read-only per user report)
+    108: "f3wd",  # Default temp for Unterhitze/f3 (35-200°C)
+    109: "p3wd",  # Default temp for Pizza/p3 (180-200°C)
+    110: "p3ds",  # Default time for Pizza/p3 (8-15 min)
+    111: "p4wd",  # Default temp for p4 (170-190°C)
+    112: "p4ds",  # Default time for p4 (16-20 min)
+    113: "p5wd",  # Default temp for Hühnerschenkel/p5 (180-200°C)
+    114: "p5ds",  # Default time for Hühnerschenkel/p5 (40-50 min)
+    115: "p6wd",  # Default temp for p6 (180-220°C)
+    116: "p6ds",  # Default time for p6 (20-30 min)
+    117: "p7wd",  # Default temp for Kuchen/p7 (190-210°C)
+    118: "p7ds",  # Default time for Kuchen/p7 (25-35 min)
+    119: "p8wd",  # Default temp for Rind/p8 (175-190°C)
+    120: "p8ds",  # Default time for Rind/p8 (25-35 min)
 }
 
 # Quick level presets
@@ -1696,49 +1701,46 @@ KNOWN_DEVICES = {
             ],
         },
     },
-    # === OVEN (Backofen) - UNVERIFIED STUB ===
-    # KKT Kolbe Ovens: EB8313HC, EB8317HC, EB8313ED
-    # These ovens use Tuya/SmartLife WiFi but actual DPs have not been confirmed.
-    # All DP IDs and entity mappings are ESTIMATES based on Tuya conventions.
-    # This entry exists so oven owners can test and report correct DPs.
-    # See: https://github.com/moag1000/HA-kkt-kolbe-integration/issues (new_device template)
-    "oven_generic": {
-        "model_id": "oven_generic",
+    # === OVEN (Backofen) - DPs from real device via Issue #6 (@Lucky-ESA) ===
+    # KKT Kolbe EB8313HC - Product key: be8ooigdvjvy1q4a, Protocol: 3.4
+    # DPs 101-107 are active controls, DPs 108-120 are preset defaults
+    # NOTE: DPs verified from device data model, integration NOT yet tested end-to-end
+    "eb8313hc_oven": {
+        "model_id": "be8ooigdvjvy1q4a",
         "category": CATEGORY_OVEN,
-        "name": "KKT Kolbe Oven (unverified)",
-        "product_names": ["KKT Kolbe EB8313HC", "KKT Kolbe EB8317HC", "KKT Kolbe EB8313ED"],
+        "name": "KKT Kolbe EB8313HC Oven",
+        "product_names": ["be8ooigdvjvy1q4a"],
         "device_ids": [],
-        "device_id_patterns": [],
-        "platforms": ["switch", "number", "sensor", "select"],
+        "device_id_patterns": ["deca12d3eb98d446"],
+        "platforms": ["switch", "number", "sensor", "select", "binary_sensor"],
         "data_points": OVEN_DPS,
         "entities": {
             "switch": [
-                {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
+                {"dp": 105, "name": "Start", "device_class": "switch", "icon": "mdi:stove"},
                 {
-                    "dp": 11,
-                    "name": "Child Lock",
+                    "dp": 106,
+                    "name": "Pause",
                     "device_class": "switch",
-                    "icon": "mdi:lock",
+                    "icon": "mdi:pause-circle",
                     "advanced": True,
-                    "entity_category": "config",
                 },
-                {"dp": 12, "name": "Oven Light", "device_class": "switch", "icon": "mdi:lightbulb", "advanced": True},
             ],
             "number": [
                 {
-                    "dp": 2,
-                    "name": "Target Temperature",
-                    "min": 30,
-                    "max": 300,
+                    "dp": 102,
+                    "name": "Temperature",
+                    "min": 35,
+                    "max": 250,
+                    "step": 5,
                     "unit": UnitOfTemperature.CELSIUS,
                     "device_class": "temperature",
                     "icon": "mdi:thermometer",
                 },
                 {
-                    "dp": 5,
+                    "dp": 103,
                     "name": "Timer",
                     "min": 0,
-                    "max": 720,
+                    "max": 360,
                     "unit": UnitOfTime.MINUTES,
                     "device_class": "duration",
                     "icon": "mdi:timer",
@@ -1746,26 +1748,31 @@ KNOWN_DEVICES = {
             ],
             "sensor": [
                 {
-                    "dp": 3,
-                    "name": "Current Temperature",
-                    "unit_of_measurement": UnitOfTemperature.CELSIUS,
-                    "device_class": "temperature",
-                    "icon": "mdi:thermometer",
-                },
-                {
-                    "dp": 6,
+                    "dp": 104,
                     "name": "Time Remaining",
                     "unit_of_measurement": UnitOfTime.MINUTES,
                     "device_class": "duration",
                     "icon": "mdi:timer-sand",
                 },
-                {"dp": 7, "name": "Status", "icon": "mdi:stove"},
+            ],
+            "binary_sensor": [
+                {
+                    "dp": 107,
+                    "name": "Door",
+                    "device_class": "door",
+                    "icon": "mdi:door-open",
+                },
             ],
             "select": [
                 {
-                    "dp": 4,
-                    "name": "Cooking Mode",
-                    "options": ["conventional", "top_bottom_heat", "fan_assisted", "grill", "pizza", "defrost"],
+                    "dp": 101,
+                    "name": "Program",
+                    "options": [
+                        "f1", "f2", "f3", "f4", "f5",
+                        "f6", "f7", "f8", "f9", "f10",
+                        "p1", "p2", "p3", "p4", "p5",
+                        "p6", "p7", "p8",
+                    ],
                     "icon": "mdi:chef-hat",
                 },
             ],

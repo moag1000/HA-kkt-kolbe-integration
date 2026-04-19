@@ -70,6 +70,7 @@ async def test_async_setup_entry_success(
                 ) as mock_coord_class:
                     mock_coord = MagicMock()
                     mock_coord.async_config_entry_first_refresh = AsyncMock()
+                    mock_coord.async_refresh = AsyncMock()
                     mock_coord.data = {}
                     mock_coord.last_update_success = True
                     mock_coord.last_update_success_time = None

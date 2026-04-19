@@ -13,16 +13,17 @@
 
   [![Buy Me A Coffee][coffee-shield]][coffee]
 
-  *Dunstabzugshauben und Induktionskochfelder lokal steuern*
+  *Dunstabzugshauben, Induktionskochfelder und Backöfen lokal steuern*
 </div>
 
 ---
 
-## Highlights v4.5
+## Highlights v4.6
 
+- **EB8313HC Backofen** - DPs 101-120 aus echtem Gerät ermittelt, Integration bereit zum Testen (Issue #6, @Lucky-ESA)
 - **Siri/HomeKit Szenen** - RGB-Farben und Licht per Sprachbefehl, Fan-Autostart wird unterdrückt
 - **EASY Hood verifiziert** - EASY9005SM/909SHCM/609SHCM mit korrekten DPs (Community Issue #5)
-- **7 Dunstabzugshauben + 1 Kochfeld** unterstützt, Backofen in Vorbereitung
+- **7 Dunstabzugshauben + 1 Kochfeld + 1 Backofen** unterstützt
 - **Kein Developer Account nötig** - Setup via SmartLife/Tuya Smart App
 - **Lokale Steuerung** - Tuya Protocol ohne Cloud-Abhängigkeit
 
@@ -64,17 +65,23 @@ EASY-Modelle: EASY9005SM (90cm), EASY909SHCM (90cm), EASY609SHCM (60cm) - HERMES
 |--------|-------|----------|--------|
 | **IND7705HC** | 5 | Power 0-25, Timer, Temp, Boost, Flex | ✅ Getestet |
 
-### Backofen (in Vorbereitung)
+### Backofen
+
+| Modell | Features | Status |
+|--------|----------|--------|
+| **EB8313HC** | Programm (f1-f10, p1-p8), Temp 35-250°C, Timer, Tür-Sensor | ⚡ DPs bekannt, Integration ungetestet |
+
+EB8313HC: Product Key `be8ooigdvjvy1q4a`, Protocol 3.4, DPs 101-120. DPs ermittelt von @Lucky-ESA (Issue #6) aus echtem Gerät. Integration implementiert aber noch nicht End-to-End getestet — Tester willkommen!
+
+#### Weitere Backöfen (Tester gesucht)
 
 | Modell | WiFi | Status |
 |--------|------|--------|
-| **EB8313HC** | Tuya/SmartLife | DPs unbekannt - Tester gesucht |
-| **EB8317HC** | Tuya/SmartLife | DPs unbekannt - Tester gesucht |
+| **EB8317HC** | Tuya/SmartLife | Vermutlich identisch mit EB8313HC - Tester gesucht |
 | **EB8313ED** | Tuya/SmartLife, Kerntemperaturfühler | DPs unbekannt - Tester gesucht |
 
-Die Backofen-Unterstützung ist vorbereitet, aber die Tuya Data Points (DPs) sind noch nicht
-mit einem echten Gerät verifiziert. Falls du einen dieser Backöfen besitzt, hilf uns die
-korrekten DPs zu ermitteln: [Issue erstellen](https://github.com/moag1000/HA-kkt-kolbe-integration/issues/new?template=new_device.md)
+Falls du einen dieser Backöfen besitzt, hilf uns die korrekten DPs zu ermitteln:
+[Issue erstellen](https://github.com/moag1000/HA-kkt-kolbe-integration/issues/new?template=new_device.md)
 
 ### Weitere Geräte gesucht
 

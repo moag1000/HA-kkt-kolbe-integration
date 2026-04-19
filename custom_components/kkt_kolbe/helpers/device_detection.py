@@ -81,8 +81,10 @@ def detect_device_type_from_api(device: dict[str, Any]) -> tuple[str, str]:
     # Method 3: Category-based detection
     search_text = f"{api_product_name} {device_name}".lower()
 
-    if tuya_category == "dcl":  # Cooktop category
-        return ("ind7705hc_cooktop", "ind7705hc_cooktop")
+    if tuya_category == "kfj":  # Oven category
+        return ("eb8313hc_oven", "be8ooigdvjvy1q4a")
+    elif tuya_category == "dcl":  # Cooktop category
+        return ("ind7705hc_cooktop", "p8volecsgzdyun29")
     elif tuya_category == "yyj":  # Hood category
         if "solo" in search_text:
             return ("solo_hcm_hood", "bgvbvjwomgbisd8x")
@@ -96,8 +98,10 @@ def detect_device_type_from_api(device: dict[str, Any]) -> tuple[str, str]:
             return ("default_hood", "default_hood")
 
     # Method 4: Keyword-based fallback
-    if "ind" in search_text or "cooktop" in search_text or "kochfeld" in search_text:
-        return ("ind7705hc_cooktop", "ind7705hc_cooktop")
+    if any(kw in search_text for kw in ["oven", "backofen", "eb831", "elektroherd"]):
+        return ("eb8313hc_oven", "be8ooigdvjvy1q4a")
+    elif "ind" in search_text or "cooktop" in search_text or "kochfeld" in search_text:
+        return ("ind7705hc_cooktop", "p8volecsgzdyun29")
     elif any(kw in search_text for kw in ["hood", "hermes", "style", "ecco", "solo", "dunst", "abzug"]):
         if "solo" in search_text:
             return ("solo_hcm_hood", "bgvbvjwomgbisd8x")
@@ -171,11 +175,13 @@ def get_device_type_options() -> list[dict[str, str]]:
     """
     from ..device_types import CATEGORY_COOKTOP
     from ..device_types import CATEGORY_HOOD
+    from ..device_types import CATEGORY_OVEN
     from ..device_types import KNOWN_DEVICES
 
     options: list[dict[str, str]] = []
     hoods: list[dict[str, str]] = []
     cooktops: list[dict[str, str]] = []
+    ovens: list[dict[str, str]] = []
     default_options: list[dict[str, str]] = []
 
     for device_key, device_info in KNOWN_DEVICES.items():
@@ -190,14 +196,18 @@ def get_device_type_options() -> list[dict[str, str]]:
             hoods.append({"value": device_key, "label": name})
         elif category == CATEGORY_COOKTOP:
             cooktops.append({"value": device_key, "label": name})
+        elif category == CATEGORY_OVEN:
+            ovens.append({"value": device_key, "label": name})
 
     # Sort alphabetically
     hoods.sort(key=lambda x: x["label"])
     cooktops.sort(key=lambda x: x["label"])
+    ovens.sort(key=lambda x: x["label"])
 
-    # Build final list: specific hoods, cooktops, then defaults
+    # Build final list: specific hoods, cooktops, ovens, then defaults
     options.extend(hoods)
     options.extend(cooktops)
+    options.extend(ovens)
     options.extend(default_options)
 
     return options
@@ -237,6 +247,10 @@ def detect_device_type_from_product_key(product_key: str, device_id: str = "") -
 
     # Try keyword-based detection from product_key
     product_lower = product_key.lower()
+
+    if any(kw in product_lower for kw in ["oven", "backofen", "eb831", "elektroherd", "kfj"]):
+        _LOGGER.info(f"Detected oven from product_key keywords: {product_key}")
+        return ("eb8313hc_oven", "KKT Kolbe EB8313HC Oven")
 
     if "ind" in product_lower or "cooktop" in product_lower or "dcl" in product_lower:
         _LOGGER.info(f"Detected cooktop from product_key keywords: {product_key}")

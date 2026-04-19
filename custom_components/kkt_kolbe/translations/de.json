@@ -1,5 +1,6 @@
 {
   "config": {
+    "flow_title": "{name}",
     "step": {
       "user": {
         "title": "KKT Kolbe Integration Einrichtung",
@@ -450,7 +451,9 @@
       "no_kkt_devices_found": "Keine KKT Kolbe Geräte in Ihrem SmartLife-Konto gefunden",
       "missing_local_details": "Bitte geben Sie lokale Verbindungsdetails an",
       "no_devices_found": "Keine Geräte im Netzwerk gefunden. Stellen Sie sicher, dass das Gerät eingeschaltet ist.",
+      "api_client_id_required": "API Client ID ist erforderlich, wenn API aktiviert ist.",
       "api_client_id_invalid": "Access ID muss mindestens 10 Zeichen haben",
+      "api_client_secret_required": "API Client Secret ist erforderlich, wenn API aktiviert ist.",
       "api_client_secret_invalid": "Access Secret muss mindestens 20 Zeichen haben",
       "invalid_user_code": "Ungültiger Benutzercode. Bitte überprüfen Sie den Benutzercode in Ihrer SmartLife/Tuya Smart App.",
       "no_devices_selected": "Bitte wählen Sie mindestens ein Gerät zum Hinzufügen aus.",
@@ -463,6 +466,8 @@
       "already_in_progress": "Konfiguration für dieses Gerät läuft bereits",
       "no_device_id": "Geräte-ID konnte nicht aus der Erkennung ermittelt werden",
       "no_local_key": "Kein Local Key verfügbar. Verwenden Sie Smart Discovery mit API-Zugangsdaten, um ihn automatisch abzurufen.",
+      "device_not_found": "Das ausgewählte Gerät wurde nicht gefunden. Es wurde möglicherweise aus Ihrem SmartLife-Konto entfernt.",
+      "no_devices_selected": "Es wurden keine Geräte ausgewählt. Bitte wählen Sie mindestens ein Gerät zum Hinzufügen aus.",
       "reauth_successful": "Erneute Authentifizierung erfolgreich. Die Integration wurde neu geladen.",
       "reauth_failed": "Erneute Authentifizierung fehlgeschlagen",
       "reconfigure_failed": "Neukonfiguration fehlgeschlagen. Eintrag nicht gefunden.",
@@ -613,7 +618,9 @@
         "ecco_hcm_hood": "KKT Kolbe ECCO HCM (Dunstabzugshaube)",
         "solo_hcm_hood": "KKT Kolbe SOLO HCM (Dunstabzugshaube)",
         "flat_hood": "KKT Kolbe FLAT (Dunstabzugshaube)",
+        "easy_hood": "KKT Kolbe EASY (Dunstabzugshaube)",
         "ind7705hc_cooktop": "KKT IND7705HC (Induktionskochfeld)",
+        "eb8313hc_oven": "KKT Kolbe EB8313HC (Backofen)",
         "default_hood": "Default Hood - Generische Dunstabzugshaube"
       }
     }
@@ -699,6 +706,54 @@
     "smartlife_token_expired": {
       "title": "SmartLife-Token abgelaufen",
       "description": "Das SmartLife-Authentifizierungstoken ist abgelaufen.\n\n**Lösung:** Gehen Sie zu den Integrationseinstellungen und authentifizieren Sie sich erneut mit SmartLife."
+    },
+    "local_key_expired": {
+      "title": "Local Key abgelaufen",
+      "fix_flow": {
+        "step": {
+          "update_local_key": {
+            "title": "Neuen Local Key eingeben",
+            "description": "Der Local Key für **{entry_title}** (Gerät: {device_id}) ist abgelaufen oder fehlerhaft.\n\nBitte geben Sie den neuen 16-stelligen Verschlüsselungsschlüssel ein.",
+            "data": {
+              "local_key": "Local Key"
+            },
+            "data_description": {
+              "local_key": "Der neue 16-stellige Verschlüsselungsschlüssel von der Tuya IoT Platform oder SmartLife"
+            }
+          }
+        },
+        "error": {
+          "invalid_local_key": "Local Key muss exakt 16 Zeichen haben"
+        }
+      }
+    },
+    "tuya_api_auth_failed": {
+      "title": "Tuya API Authentifizierung fehlgeschlagen",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Tuya API erneut authentifizieren",
+            "description": "Die API-Zugangsdaten für **{entry_title}** sind nicht mehr gültig.\n\nKlicken Sie auf Absenden, um den Authentifizierungsprozess zu starten."
+          }
+        }
+      }
+    },
+    "tuya_api_wrong_region": {
+      "title": "Tuya API falsche Region",
+      "fix_flow": {
+        "step": {
+          "confirm_region": {
+            "title": "Korrekte Region auswählen",
+            "description": "Der API-Endpunkt für **{entry_title}** scheint falsch zu sein (aktuell: {current_endpoint}).\n\nBitte wählen Sie die korrekte Region für Ihr Tuya-Konto.",
+            "data": {
+              "region": "Region"
+            }
+          }
+        },
+        "error": {
+          "invalid_region": "Bitte wählen Sie eine gültige Region"
+        }
+      }
     },
     "device_id_changed": {
       "title": "Geräte-ID hat sich geändert",

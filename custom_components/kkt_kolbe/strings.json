@@ -586,5 +586,106 @@
         }
       }
     }
+  },
+  "selector": {
+    "connection_method": {
+      "options": {
+        "discovery": "Automatic Discovery",
+        "manual": "Manual Configuration"
+      }
+    },
+    "zone_naming": {
+      "options": {
+        "zone": "Zone 1, Zone 2, ...",
+        "numeric": "1, 2, 3, ...",
+        "custom": "Custom Names"
+      }
+    },
+    "device_type": {
+      "options": {
+        "hermes_style_hood": "KKT Kolbe HERMES & STYLE (Range Hood)",
+        "hermes_hood": "KKT Kolbe HERMES (Range Hood)",
+        "ecco_hcm_hood": "KKT Kolbe ECCO HCM (Range Hood)",
+        "solo_hcm_hood": "KKT Kolbe SOLO HCM (Range Hood)",
+        "flat_hood": "KKT Kolbe FLAT (Range Hood)",
+        "easy_hood": "KKT Kolbe EASY (Range Hood)",
+        "ind7705hc_cooktop": "KKT IND7705HC (Induction Cooktop)",
+        "eb8313hc_oven": "KKT Kolbe EB8313HC (Oven)",
+        "default_hood": "Default Hood - Generic Range Hood"
+      }
+    }
+  },
+  "entity": {
+    "switch": {
+      "power": {
+        "name": "Power",
+        "state": {
+          "on": "On",
+          "off": "Off"
+        }
+      },
+      "light": {
+        "name": "Light"
+      },
+      "child_lock": {
+        "name": "Child Lock"
+      },
+      "pause": {
+        "name": "Pause"
+      }
+    },
+    "fan": {
+      "hood_fan": {
+        "name": "Hood Fan"
+      }
+    },
+    "sensor": {
+      "filter_status": {
+        "name": "Filter Status"
+      },
+      "current_temperature": {
+        "name": "Current Temperature"
+      },
+      "connection_mode": {
+        "name": "Connection Mode"
+      },
+      "smartlife_device_info": {
+        "name": "SmartLife Device Info"
+      }
+    },
+    "binary_sensor": {
+      "zone_active": {
+        "name": "Zone Active"
+      },
+      "boost_active": {
+        "name": "Boost Active"
+      },
+      "error": {
+        "name": "Error"
+      }
+    },
+    "number": {
+      "timer": {
+        "name": "Timer"
+      },
+      "power_level": {
+        "name": "Power Level"
+      },
+      "rgb_mode": {
+        "name": "RGB Mode"
+      }
+    },
+    "select": {
+      "fan_speed": {
+        "name": "Fan Speed",
+        "state": {
+          "off": "Off",
+          "low": "Low",
+          "middle": "Middle",
+          "high": "High",
+          "strong": "Strong"
+        }
+      }
+    }
   }
 }
