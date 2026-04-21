@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [4.6.2] - 2026-04-21
+
+### Fixed
+
+- **Discovery-Filter dynamisch**: Hardcodierte Product-ID-Liste (nur 8 IDs) durch dynamische Generierung aus KNOWN_DEVICES ersetzt. EASY/PLOOM, FLAT, HERMES und EB8313HC Oven wurden vorher bei UDP/Zeroconf-Discovery gefiltert und ignoriert
+- **Auto-IP bei fehlendem Local-IP**: Wenn ein Gerät ohne gespeicherte IP per UDP/Zeroconf entdeckt wird, wird die IP jetzt automatisch gesetzt und das Entry reloaded — automatischer Switch zu lokaler Steuerung
+- **Bitfield None-Guard**: Early-Return bei `coordinator.data = None` in Cooktop Zone-Entities (56 Fehler pro Restart)
+
+---
+
 ## [4.6.1] - 2026-04-21
 
 ### Added
