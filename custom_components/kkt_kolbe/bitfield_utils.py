@@ -397,12 +397,12 @@ def get_zone_value_from_coordinator(coordinator: Any, dp_id: int, zone: int) -> 
         Zone-specific value or default
     """
     try:
-        # Debug: Log all available data keys
-        if coordinator.data:
-            available_keys = list(coordinator.data.keys())
-            _LOGGER.debug(f"Coordinator data keys: {available_keys}")
-        else:
-            _LOGGER.debug("Coordinator data is None")
+        # Early return if coordinator has no data yet
+        if not coordinator.data:
+            _LOGGER.debug("Coordinator data is None/empty, skipping zone value extraction")
+            return 0 if BITFIELD_CONFIG.get(dp_id, {}).get("type") == "value" else False
+
+        _LOGGER.debug(f"Coordinator data keys: {list(coordinator.data.keys())}")
 
         # Get the DPS dictionary - coordinator may return data with DPs under 'dps' key
         dps_data = coordinator.data.get("dps", coordinator.data)
