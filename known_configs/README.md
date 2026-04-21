@@ -22,8 +22,9 @@ Dieses Verzeichnis enthält Referenzdaten für unterstützte KKT Kolbe Geräte.
 - **SOLO HCM** - Dunstabzugshaube, 9 Stufen, RGBW, Dualfilter
 - **IND7705HC** - Induktionskochfeld, 5 Zonen, Bitfield-DPs
 
-### Verifiziert durch Community (Issue #5)
+### Verifiziert durch Community (Issue #5, #8)
 - **EASY** - EASY9005SM, EASY909SHCM, EASY609SHCM (HERMES-basiert, Model-ID: e1my0pj8, 10 Stufen, RGB DP 102)
+- **PLOOM** - PLOOM6005 G/M/S (identische DPs wie EASY, gleiche Model-ID: e1my0pj8, Issue #8)
 
 ### DPs ermittelt durch Community (Issue #6) — Integration ungetestet
 - **EB8313HC** - Backofen, WiFi/Tuya, Protocol 3.4, DPs 101-120 (Product Key: be8ooigdvjvy1q4a). DPs aus echtem Gerät (@Lucky-ESA), Integration implementiert aber End-to-End ungetestet

@@ -148,8 +148,25 @@ class KKTKolbeOptionsFlow(OptionsFlow):
                     self._qr_code_url = None
                     self._smartlife_client = None
 
-                    # Reload the integration to use new tokens
+                    # Reload the parent account entry to use new tokens
                     await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+
+                    # Reload all child device entries so they pick up the new token
+                    child_reload_count = 0
+                    for entry in self.hass.config_entries.async_entries(DOMAIN):
+                        if entry.data.get("parent_entry_id") == self.config_entry.entry_id:
+                            _LOGGER.info(
+                                "Reloading child device %s after token renewal",
+                                entry.title,
+                            )
+                            await self.hass.config_entries.async_reload(entry.entry_id)
+                            child_reload_count += 1
+
+                    if child_reload_count:
+                        _LOGGER.info(
+                            "Token renewal complete: reloaded %d child device(s)",
+                            child_reload_count,
+                        )
 
                     return self.async_create_entry(title="", data={})
                 else:

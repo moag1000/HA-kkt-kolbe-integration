@@ -778,16 +778,23 @@ KNOWN_DEVICES = {
             ],
         },
     },
-    # KKT Kolbe EASY Hood - EASY9005SM (90cm), EASY909SHCM (90cm), EASY609SHCM (60cm)
-    # Verified via Things Data Model from GitHub Issue #5 (user: Eischer)
+    # KKT Kolbe EASY / PLOOM Hood
+    # EASY: EASY9005SM (90cm), EASY909SHCM (90cm), EASY609SHCM (60cm) - Issue #5
+    # PLOOM: PLOOM6005 G/M/S - Issue #8 (identical DPs, same model_id)
     # Model ID: e1my0pj8
     # HERMES-based DPs (not HCM!): DP 1,4,10,13,101,102
     # 9+1 fan speeds via enum (off/one/two/.../nine), RGB 0-9 via DP 102
     "easy_hood": {
         "model_id": "e1my0pj8",
         "category": CATEGORY_HOOD,
-        "name": "KKT Kolbe EASY Hood",
-        "product_names": ["e1my0pj8", "KKT Kolbe EASY9005SM", "KKT Kolbe EASY909SHCM", "KKT Kolbe EASY609SHCM"],
+        "name": "KKT Kolbe EASY / PLOOM Hood",
+        "product_names": [
+            "e1my0pj8",
+            "KKT Kolbe EASY9005SM",
+            "KKT Kolbe EASY909SHCM",
+            "KKT Kolbe EASY609SHCM",
+            "KKT Kolbe PLOOM6005",
+        ],
         "device_ids": [],
         "device_id_patterns": [],
         "platforms": ["fan", "light", "switch", "sensor", "select", "number", "scene"],

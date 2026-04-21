@@ -204,6 +204,7 @@ class TuyaSharingClient:
         self._token_info: dict[str, Any] = {}
         self._auth_result: TuyaSharingAuthResult | None = None
         self._token_update_callback: Any | None = None  # Callback for token persistence
+        self._auth_failed_logged: bool = False  # Rate-limit sign invalid logging
 
     def set_token_update_callback(
         self,
@@ -766,12 +767,19 @@ class TuyaSharingClient:
             err_str = str(err)
             # Detect auth/token errors that require re-authentication
             if "sign invalid" in err_str or "token" in err_str.lower() or "-9999999" in err_str:
-                _LOGGER.error(
-                    "SmartLife authentication expired for device %s: %s. "
-                    "Please re-authenticate via the integration options.",
-                    device_id[:8],
-                    err,
-                )
+                if not self._auth_failed_logged:
+                    _LOGGER.error(
+                        "SmartLife authentication expired for device %s: %s. "
+                        "Please re-authenticate via the integration options.",
+                        device_id[:8],
+                        err,
+                    )
+                    self._auth_failed_logged = True
+                else:
+                    _LOGGER.debug(
+                        "SmartLife auth still expired for device %s (suppressing repeated error)",
+                        device_id[:8],
+                    )
                 from homeassistant.exceptions import ConfigEntryAuthFailed
 
                 raise ConfigEntryAuthFailed(f"SmartLife token expired: {err}. Re-authentication required.") from err
