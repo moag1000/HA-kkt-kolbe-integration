@@ -42,6 +42,26 @@ _last_log_time: dict[str, float] = {}
 LOG_COOLDOWN = 300  # Only log same message every 5 minutes
 
 
+def _get_known_product_ids() -> set[str]:
+    """Build set of known product IDs and model codes from KNOWN_DEVICES.
+
+    Single source of truth — no more hardcoded lists to maintain.
+    """
+    from .device_types import KNOWN_DEVICES
+
+    ids: set[str] = set()
+    for _key, info in KNOWN_DEVICES.items():
+        # Add model_id
+        model_id = info.get("model_id", "")
+        if model_id:
+            ids.add(model_id.lower())
+        # Add all product_names (includes Tuya product IDs)
+        for pn in info.get("product_names", []):
+            if pn:
+                ids.add(pn.lower())
+    return ids
+
+
 def _should_log(key: str) -> bool:
     """Check if we should log this message (rate limiting)."""
     current_time = time.time()
@@ -201,20 +221,8 @@ class TuyaUDPDiscovery(asyncio.DatagramProtocol):
         IMPORTANT: Device IDs change when re-adding devices to Tuya/SmartLife,
         so we identify KKT devices by product_id/product_key, NOT by device ID.
         """
-        # Known KKT Kolbe product IDs and model codes (stable identifiers)
-        # Device IDs change when re-adding to Tuya/SmartLife - these don't!
-        known_product_ids = [
-            # Product IDs
-            "ypaixllljc2dcpae",  # HERMES & STYLE
-            "bgvbvjwomgbisd8x",  # SOLO HCM
-            "gwdgkteknzvsattn",  # ECCO HCM
-            "p8volecsgzdyun29",  # IND7705HC
-            # Model codes
-            "e1k6i0zo",  # HERMES & STYLE
-            "edjszs",  # SOLO HCM
-            "edjsx0",  # ECCO HCM
-            "e1kc5q64",  # IND7705HC
-        ]
+        # Build known IDs dynamically from KNOWN_DEVICES (single source of truth)
+        known_product_ids = _get_known_product_ids()
 
         # Check product key/ID first (most reliable)
         product_key = (
@@ -587,31 +595,19 @@ class KKTKolbeDiscovery(ServiceListener):
         model = txt_data.get("model", "") or txt_data.get("md", "") or txt_data.get("productid", "")
         product_key = txt_data.get("productkey", "") or txt_data.get("product_key", "")
 
-        # Known KKT Kolbe product IDs and model codes (stable identifiers)
-        # Device IDs change when re-adding to Tuya/SmartLife - these don't!
-        known_product_ids = [
-            # Product IDs
-            "ypaixllljc2dcpae",  # HERMES & STYLE
-            "bgvbvjwomgbisd8x",  # SOLO HCM
-            "gwdgkteknzvsattn",  # ECCO HCM
-            "p8volecsgzdyun29",  # IND7705HC
-            # Model codes
-            "e1k6i0zo",  # HERMES & STYLE
-            "edjszs",  # SOLO HCM
-            "edjsx0",  # ECCO HCM
-            "e1kc5q64",  # IND7705HC
-        ]
+        # Build known IDs dynamically from KNOWN_DEVICES (single source of truth)
+        known_product_ids = _get_known_product_ids()
 
         # Check if this matches known KKT models
         if model in MODELS:
             return True
 
         # Check product key/ID
-        if product_key and product_key.lower() in [p.lower() for p in known_product_ids]:
+        if product_key and product_key.lower() in known_product_ids:
             return True
 
         # Check model against known product IDs
-        if model and model.lower() in [p.lower() for p in known_product_ids]:
+        if model and model.lower() in known_product_ids:
             return True
 
         # Do NOT use device ID prefix matching - device IDs are not stable!
@@ -860,7 +856,21 @@ class KKTKolbeDiscovery(ServiceListener):
 
                         _LOGGER.info(f"Updated and reloaded config entry for device {device_id}")
                     elif not old_ip:
-                        _LOGGER.debug(f"Device {device_id} discovered with IP {new_ip}, but no existing IP to compare")
+                        _LOGGER.info(f"Device {device_id[:8]} has no IP stored — setting discovered IP {new_ip}")
+
+                        # Update config entry with discovered IP
+                        new_data = dict(entry.data)
+                        new_data["ip_address"] = new_ip
+                        new_data[CONF_IP_ADDRESS] = new_ip
+                        if "host" in new_data:
+                            new_data["host"] = new_ip
+
+                        self.hass.config_entries.async_update_entry(entry, data=new_data)
+                        await self.hass.config_entries.async_reload(entry.entry_id)
+
+                        _LOGGER.info(
+                            f"Auto-configured local IP {new_ip} for device {device_id[:8]} — switching to local control"
+                        )
                     break
 
             # Also update discovered devices cache
