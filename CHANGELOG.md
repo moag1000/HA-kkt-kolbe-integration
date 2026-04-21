@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [4.6.1] - 2026-04-21
+
+### Added
+
+- **PLOOM6005 Support**: PLOOM6005 G/M/S Dunstabzugshaube (Issue #8, @dernick79). Identische DPs wie EASY Hood (Model-ID: e1my0pj8)
+
+### Fixed
+
+- **Token-Renewal: Child-Reload**: Nach SmartLife Token-Erneuerung werden jetzt automatisch alle verknüpften Geräte-Einträge neu geladen (vorher mussten Children manuell reloaded werden)
+- **Log-Spam "sign invalid"**: Fehlermeldung bei abgelaufenem SmartLife-Token wird nur noch 1x als ERROR geloggt, danach als DEBUG (war 4000+ Wiederholungen)
+
+---
+
 ## [4.6.0] - 2026-04-17
 
 ### Added

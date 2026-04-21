@@ -19,7 +19,7 @@ PLATFORMS: Final[list[Platform]] = [
 ]
 
 # === VERSION ===
-VERSION: Final = "4.6.0"
+VERSION: Final = "4.6.1"
 
 # === CORE IDENTIFIERS ===
 DOMAIN: Final = "kkt_kolbe"
