@@ -707,6 +707,10 @@
       "title": "SmartLife-Token abgelaufen",
       "description": "Das SmartLife-Authentifizierungstoken ist abgelaufen.\n\n**Lösung:** Gehen Sie zu den Integrationseinstellungen und authentifizieren Sie sich erneut mit SmartLife."
     },
+    "localtuya_conflict": {
+      "title": "LocalTuya Konflikt erkannt",
+      "description": "Die **LocalTuya** Integration ist aktiv und blockiert möglicherweise die UDP-Ports 6666/6667, die für die KKT Kolbe Geräteerkennung benötigt werden.\n\nFalls Ihre Geräte nicht lokal gefunden werden, versuchen Sie **LocalTuya zu deaktivieren** und Home Assistant neu zu starten.\n\nAlternativ können Sie die Geräte-IP manuell eingeben über **Neu konfigurieren → Verbindung**."
+    },
     "local_key_expired": {
       "title": "Local Key abgelaufen",
       "fix_flow": {

@@ -707,6 +707,10 @@
       "title": "SmartLife Token Expired",
       "description": "The SmartLife authentication token has expired.\n\n**To fix:** Go to the integration settings and re-authenticate with SmartLife."
     },
+    "localtuya_conflict": {
+      "title": "LocalTuya Conflict Detected",
+      "description": "The **LocalTuya** integration is active and may block UDP ports 6666/6667 needed for KKT Kolbe device discovery.\n\nIf your devices are not found locally, try **disabling LocalTuya** and restarting Home Assistant.\n\nAlternatively, you can enter the device IP manually via **Reconfigure → Connection**."
+    },
     "local_key_expired": {
       "title": "Local Key Expired",
       "fix_flow": {

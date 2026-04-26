@@ -98,6 +98,23 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up the KKT Kolbe component from YAML configuration."""
+    # Warn if LocalTuya is active — it blocks UDP ports 6666/6667 needed for device discovery
+    if "localtuya" in hass.config.components:
+        _LOGGER.warning(
+            "LocalTuya integration detected! LocalTuya may block UDP ports 6666/6667 "
+            "which are needed for KKT Kolbe device discovery. If devices are not found "
+            "locally, try disabling LocalTuya and restarting Home Assistant."
+        )
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            "localtuya_conflict",
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="localtuya_conflict",
+            learn_more_url="https://github.com/moag1000/HA-kkt-kolbe-integration/issues/8",
+        )
+
     # Start automatic discovery when Home Assistant starts
     # This enables discovery even before any devices are configured
 
