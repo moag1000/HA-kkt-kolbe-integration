@@ -134,8 +134,13 @@ class KKTKolbeSensor(KKTBaseEntity, SensorEntity):
         # Temperature sensors: 1 decimal
         if device_class == SensorDeviceClass.TEMPERATURE:
             return 1
+        # Duration sensors: whole numbers (minutes)
+        if device_class == "duration":
+            return 0
         # Timer, filter, level: whole numbers
-        if any(kw in name_lower for kw in ["timer", "filter", "level", "hours", "days"]):
+        if any(
+            kw in name_lower for kw in ["timer", "time", "remaining", "countdown", "filter", "level", "hours", "days"]
+        ):
             return 0
         # Default: no decimals
         return 0

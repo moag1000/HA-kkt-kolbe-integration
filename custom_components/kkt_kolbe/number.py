@@ -128,6 +128,12 @@ class KKTKolbeNumber(KKTBaseEntity, NumberEntity):
     async def async_set_native_value(self, value: float) -> None:
         """Set the number value."""
         int_value = int(value)
+
+        # Optimistic update to prevent snap-back from stale coordinator poll
+        self._cached_value = float(int_value)
+        if self.hass:
+            self.async_write_ha_state()
+
         await self._async_set_data_point(self._dp, int_value)
         self._log_entity_state("Set Value", f"DP {self._dp} set to {int_value}")
 

@@ -119,5 +119,11 @@ class KKTKolbeSelect(KKTBaseEntity, SelectEntity):
         # Map option to device value
         device_value = self._options_map.get(option, option)
 
+        # Optimistic update: set cached option immediately to prevent snap-back
+        # The coordinator poll may return the old value before the device updates
+        self._cached_option = option
+        if self.hass:
+            self.async_write_ha_state()
+
         await self._async_set_data_point(self._dp, device_value)
         self._log_entity_state("Select Option", f"Option: {option}, Value: {device_value}")

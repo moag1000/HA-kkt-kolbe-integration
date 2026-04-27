@@ -116,6 +116,11 @@ class KKTKolbeSwitch(KKTBaseEntity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the switch on."""
+        # Optimistic update to prevent snap-back from stale coordinator poll
+        self._cached_state = True
+        if self.hass:
+            self.async_write_ha_state()
+
         await self._async_set_data_point(self._dp, True)
         self._log_entity_state("Turn On", f"DP {self._dp} set to True")
 
@@ -126,5 +131,10 @@ class KKTKolbeSwitch(KKTBaseEntity, SwitchEntity):
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the switch off."""
+        # Optimistic update to prevent snap-back from stale coordinator poll
+        self._cached_state = False
+        if self.hass:
+            self.async_write_ha_state()
+
         await self._async_set_data_point(self._dp, False)
         self._log_entity_state("Turn Off", f"DP {self._dp} set to False")
