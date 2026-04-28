@@ -443,69 +443,71 @@ class TuyaSharingClient:
                 message="Must authenticate first via QR code",
             )
 
-        from tuya_sharing import Manager
-        from tuya_sharing import SharingTokenListener
-
-        # Token update listener to keep tokens fresh
-        class TokenListener(SharingTokenListener):
-            """Listener for token updates from the SDK."""
-
-            def __init__(self, client: TuyaSharingClient) -> None:
-                self._client = client
-
-            def update_token(self, token_info: dict[str, Any]) -> None:
-                """Handle token refresh events."""
-                _LOGGER.info("Token refreshed by SDK - persisting new tokens")
-
-                # Convert relative expire_time to absolute timestamp if needed
-                import time
-
-                raw_expire_time = token_info.get("expire_time", 0)
-                if raw_expire_time < 1000000000:  # Less than year 2001 = probably relative
-                    absolute_expire_time = int(time.time()) + raw_expire_time
-                    token_info = dict(token_info)  # Copy to avoid modifying original
-                    token_info["expire_time"] = absolute_expire_time
-                    _LOGGER.debug(
-                        "Converted relative expire_time %d to absolute timestamp %d",
-                        raw_expire_time,
-                        absolute_expire_time,
-                    )
-
-                self._client._token_info.update(token_info)
-                if self._client._auth_result:
-                    self._client._auth_result.access_token = token_info.get("access_token")
-                    self._client._auth_result.refresh_token = token_info.get("refresh_token")
-                    self._client._auth_result.expire_time = token_info.get("expire_time", 0)
-
-                # Call the persistence callback if registered
-                if self._client._token_update_callback:
-                    # Get full token info for storage
-                    full_token_info = self._client.get_token_info_for_storage()
-                    try:
-                        # Schedule the async callback
-                        asyncio.run_coroutine_threadsafe(
-                            self._client._token_update_callback(full_token_info),
-                            self._client.hass.loop,
-                        )
-                        _LOGGER.debug("Token persistence callback scheduled")
-                    except Exception as err:
-                        _LOGGER.warning("Failed to schedule token persistence: %s", err)
+        # NOTE: tuya_sharing imports are inside _init_manager (executor thread)
+        # to avoid blocking I/O in the event loop (HA 2025.12+ strict mode)
+        client_ref = self  # Capture for use inside executor
 
         def _init_manager() -> Any:
-            """Initialize the SDK Manager in executor thread."""
+            """Initialize the SDK Manager in executor thread.
+
+            Imports tuya_sharing here to avoid blocking I/O in the event loop.
+            """
+            from tuya_sharing import Manager
+            from tuya_sharing import SharingTokenListener
+
+            class TokenListener(SharingTokenListener):
+                """Listener for token updates from the SDK."""
+
+                def __init__(self, client: TuyaSharingClient) -> None:
+                    self._client = client
+
+                def update_token(self, token_info: dict[str, Any]) -> None:
+                    """Handle token refresh events."""
+                    _LOGGER.info("Token refreshed by SDK - persisting new tokens")
+
+                    import time
+
+                    raw_expire_time = token_info.get("expire_time", 0)
+                    if raw_expire_time < 1000000000:
+                        absolute_expire_time = int(time.time()) + raw_expire_time
+                        token_info = dict(token_info)
+                        token_info["expire_time"] = absolute_expire_time
+                        _LOGGER.debug(
+                            "Converted relative expire_time %d to absolute timestamp %d",
+                            raw_expire_time,
+                            absolute_expire_time,
+                        )
+
+                    self._client._token_info.update(token_info)
+                    if self._client._auth_result:
+                        self._client._auth_result.access_token = token_info.get("access_token")
+                        self._client._auth_result.refresh_token = token_info.get("refresh_token")
+                        self._client._auth_result.expire_time = token_info.get("expire_time", 0)
+
+                    if self._client._token_update_callback:
+                        full_token_info = self._client.get_token_info_for_storage()
+                        try:
+                            asyncio.run_coroutine_threadsafe(
+                                self._client._token_update_callback(full_token_info),
+                                self._client.hass.loop,
+                            )
+                            _LOGGER.debug("Token persistence callback scheduled")
+                        except Exception as err:
+                            _LOGGER.warning("Failed to schedule token persistence: %s", err)
+
             token_info = {
-                "access_token": self._auth_result.access_token,
-                "refresh_token": self._auth_result.refresh_token,
-                "expire_time": self._auth_result.expire_time,
-                "uid": self._auth_result.user_id,
+                "access_token": client_ref._auth_result.access_token,
+                "refresh_token": client_ref._auth_result.refresh_token,
+                "expire_time": client_ref._auth_result.expire_time,
+                "uid": client_ref._auth_result.user_id,
             }
             return Manager(
                 SMARTLIFE_CLIENT_ID,
-                self._user_code,
-                self._auth_result.terminal_id,
-                self._auth_result.endpoint,
+                client_ref._user_code,
+                client_ref._auth_result.terminal_id,
+                client_ref._auth_result.endpoint,
                 token_info,
-                TokenListener(self),
+                TokenListener(client_ref),
             )
 
         def _fetch_devices() -> list[Any]:
