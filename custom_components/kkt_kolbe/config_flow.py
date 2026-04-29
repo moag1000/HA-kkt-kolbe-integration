@@ -2394,13 +2394,14 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                         reason="reconfigure_successful",
                     )
 
-        # Current values
+        # Current values — pre-fill so user sees what's stored
         current_ip = entry.data.get(CONF_IP_ADDRESS, "")
+        current_local_key = entry.data.get("local_key") or entry.data.get(CONF_ACCESS_TOKEN) or ""
 
         schema = vol.Schema(
             {
                 vol.Optional("ip_address", default=current_ip): str,
-                vol.Optional("local_key", default=""): selector.selector({"text": {"type": "password"}}),
+                vol.Optional("local_key", default=current_local_key): selector.selector({"text": {"type": "password"}}),
                 vol.Optional("test_connection", default=True): bool,
             }
         )
@@ -2654,11 +2655,12 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
         current_api_enabled = entry.data.get("api_enabled", False)
         current_client_id = entry.data.get("api_client_id", "")
         current_endpoint = entry.data.get("api_endpoint", "https://openapi.tuyaeu.com")
+        current_local_key = entry.data.get("local_key") or entry.data.get(CONF_ACCESS_TOKEN) or ""
 
         schema = vol.Schema(
             {
                 vol.Optional("ip_address", default=current_ip): str,
-                vol.Optional("local_key", default=""): selector.selector({"text": {"type": "password"}}),
+                vol.Optional("local_key", default=current_local_key): selector.selector({"text": {"type": "password"}}),
                 vol.Required("device_type", default=current_device_type): selector.selector(
                     {
                         "select": {
