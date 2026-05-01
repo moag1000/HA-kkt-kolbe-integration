@@ -492,9 +492,7 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
                 return
             self.hass.async_create_task(self.async_refresh())
 
-        self._pending_refresh_handle = self.hass.loop.call_later(
-            CLOUD_PROPAGATION_DELAY_SECONDS, _trigger_refresh
-        )
+        self._pending_refresh_handle = self.hass.loop.call_later(CLOUD_PROPAGATION_DELAY_SECONDS, _trigger_refresh)
 
     @property
     def device_info(self) -> DeviceInfo:
