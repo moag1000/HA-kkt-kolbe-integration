@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [4.6.5] - 2026-05-01
+
+### Fixed
+
+- **Snap-Back beim Programmwechsel** (Issue #6, @Lucky-ESA): Auswahl im Backofen-Program-Selector sprang nach 1–3s auf alten Wert zurück. Root cause: `coordinator.async_set_data_point` triggerte sofortigen Refresh, der den noch nicht propagierten Tuya-Cloud-Wert las und die optimistische UI-Anzeige überschrieb. Fix: Refresh wird jetzt um 3s verzögert (Cloud-Propagation-Window).
+- **Switch toggelt automatisch Ein/Aus** (Issue #6, @Lucky-ESA): Selbe Race-Bedingung. Power-Switch flippte zwischen On/Off bei stale Cloud-Reads.
+- **Optimistic-Lock in `KKTBaseEntity`**: Neuer Mechanismus (`_set_optimistic`) blockiert Coordinator-Updates für 8s nach einem Write, solange die DPS noch nicht den geschriebenen Wert melden. Wirkt auf select, switch und number. Auto-Release sobald Cloud nachzieht.
+- **Time Remaining als Float** (Issue #6, @Lucky-ESA): Backofen-Sensor zeigte in HA-Geräteansicht "10.0" statt "10". `suggested_display_precision` betrifft nur Entity-Cards, nicht den raw native_value. Fix: int-Cast in `_update_cached_state` wenn precision=0 und Wert ist float.
+
+### Hardening
+
+- **Optimistic-Lock Rollback bei Write-Fehler**: Wenn der Device-Write nach `_set_optimistic` wirft (Gerät offline, Auth-Fehler), wird die Lock sofort gelöst und die UI zurück auf den echten Coord-Wert gerollt. Vorher hätte die Entity 8s lang den falschen Wert angezeigt obwohl der Schreibvorgang gescheitert war.
+- **Deferred-Refresh Guard**: Wird der Config Entry innerhalb der 3s Cloud-Propagation-Window unloaded oder reloaded, läuft der geplante Refresh-Callback in einen No-Op statt auf einem zerstörten Coordinator zu feuern. Verhindert Hintergrund-Exceptions beim Entry-Reload.
+
+---
+
 ## [4.6.4] - 2026-04-29
 
 ### Fixed

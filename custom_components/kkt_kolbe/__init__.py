@@ -843,9 +843,14 @@ async def _async_unload_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigE
         # Shutdown coordinator with timeout to prevent hanging during HA shutdown
         _SHUTDOWN_TIMEOUT = 30
         if hasattr(entry, "runtime_data") and entry.runtime_data:
+            coordinator = entry.runtime_data.coordinator
+            # Mark destroyed first so any in-flight deferred refresh callbacks
+            # noop instead of running against the torn-down coordinator.
+            if hasattr(coordinator, "async_mark_destroyed"):
+                coordinator.async_mark_destroyed()
             try:
                 async with asyncio.timeout(_SHUTDOWN_TIMEOUT):
-                    await entry.runtime_data.coordinator.async_shutdown()
+                    await coordinator.async_shutdown()
             except TimeoutError:
                 _LOGGER.warning(
                     "Coordinator shutdown timed out after %ds for %s",

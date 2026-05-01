@@ -113,16 +113,17 @@ class KKTKolbeSensor(KKTBaseEntity, SensorEntity):
         super().__init__(coordinator, entry, config, "sensor")
         self._cached_value: int | float | None = None
 
-        # Initialize state from coordinator data
-        self._update_cached_state()
-
         # Set sensor-specific attributes
         self._attr_state_class = config.get("state_class")
         self._attr_native_unit_of_measurement = config.get("unit_of_measurement")
         self._attr_icon = self._get_icon()
 
-        # Set display precision based on sensor type (HA 2025.1+)
+        # Set display precision before initial state update — _update_cached_state
+        # uses precision to decide int vs float coercion.
         self._attr_suggested_display_precision = self._get_display_precision()
+
+        # Initialize state from coordinator data
+        self._update_cached_state()
 
         # Note: entity_category is now handled in base_entity.py from device_types.py config
 
@@ -177,6 +178,10 @@ class KKTKolbeSensor(KKTBaseEntity, SensorEntity):
                 self._cached_value = value
             else:
                 self._cached_value = None
+        elif isinstance(value, float) and self._attr_suggested_display_precision == 0:
+            # Tuya devices may report integer DPs as float (e.g. 10.0).
+            # When precision=0, coerce to int so HA device view shows whole numbers.
+            self._cached_value = int(round(value))
         else:
             self._cached_value = value
 

@@ -268,3 +268,89 @@ async def test_sensor_none_value(
 
     # Should handle missing DP gracefully
     assert sensor.native_value is None
+
+
+@pytest.mark.asyncio
+async def test_sensor_duration_returns_int_when_device_sends_float(
+    hass: HomeAssistant,
+    mock_config_entry,
+) -> None:
+    """Duration sensors must coerce float DP values (e.g. 10.0) to int.
+
+    Regression: Issue #6, Lucky-ESA reported "Time Remaining" shown as "10.0"
+    in HA device view despite suggested_display_precision=0. The precision
+    suggestion only affects entity-card formatting, not the raw native_value.
+    """
+    from custom_components.kkt_kolbe.sensor import KKTKolbeSensor
+
+    coordinator = MagicMock()
+    coordinator.data = {104: 10.0, "104": 10.0}
+    coordinator.last_update_success = True
+
+    runtime_data = KKTKolbeRuntimeData(
+        coordinator=coordinator,
+        device=MagicMock(),
+        api_client=None,
+        device_info={"name": "Test Oven", "category": "oven"},
+        product_name="eb8313hc_oven",
+        device_type="eb8313hc_oven",
+        integration_mode="manual",
+    )
+
+    mock_config_entry.add_to_hass(hass)
+
+    config = {
+        "dp": 104,
+        "name": "Time Remaining",
+        "unit_of_measurement": UnitOfTime.MINUTES,
+        "device_class": "duration",
+    }
+
+    sensor = KKTKolbeSensor(
+        runtime_data.coordinator,
+        mock_config_entry,
+        config,
+    )
+
+    assert sensor.native_value == 10
+    assert isinstance(sensor.native_value, int)
+
+
+@pytest.mark.asyncio
+async def test_sensor_temperature_keeps_float_precision(
+    hass: HomeAssistant,
+    mock_config_entry,
+) -> None:
+    """Temperature sensors must preserve float for 1-decimal display."""
+    from custom_components.kkt_kolbe.sensor import KKTKolbeSensor
+
+    coordinator = MagicMock()
+    coordinator.data = {2: 21.5, "2": 21.5}
+    coordinator.last_update_success = True
+
+    runtime_data = KKTKolbeRuntimeData(
+        coordinator=coordinator,
+        device=MagicMock(),
+        api_client=None,
+        device_info={"name": "Test Oven", "category": "oven"},
+        product_name="eb8313hc_oven",
+        device_type="eb8313hc_oven",
+        integration_mode="manual",
+    )
+
+    mock_config_entry.add_to_hass(hass)
+
+    config = {
+        "dp": 2,
+        "name": "Temperature",
+        "device_class": "temperature",
+    }
+
+    sensor = KKTKolbeSensor(
+        runtime_data.coordinator,
+        mock_config_entry,
+        config,
+    )
+
+    assert sensor.native_value == 21.5
+    assert isinstance(sensor.native_value, float)

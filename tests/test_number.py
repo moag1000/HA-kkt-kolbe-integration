@@ -222,3 +222,85 @@ async def test_number_unique_id(
     assert number.unique_id is not None
     assert mock_config_entry.entry_id in number.unique_id
     assert "number" in number.unique_id
+
+
+@pytest.mark.asyncio
+async def test_number_optimistic_survives_stale_coordinator_update(
+    hass: HomeAssistant,
+    mock_config_entry,
+) -> None:
+    """Number must keep set value when coordinator returns stale value (Issue #6)."""
+    from custom_components.kkt_kolbe.number import KKTKolbeNumber
+
+    coordinator = MagicMock()
+    coordinator.data = {103: 30, "103": 30}  # Currently 30 min
+    coordinator.last_update_success = True
+    coordinator.async_set_data_point = AsyncMock()
+
+    mock_config_entry.add_to_hass(hass)
+
+    config = {
+        "dp": 103,
+        "name": "Timer",
+        "min": 0,
+        "max": 360,
+        "unit": "min",
+        "device_class": "duration",
+    }
+
+    number = KKTKolbeNumber(coordinator, mock_config_entry, config)
+    number.hass = hass
+    number.entity_id = "number.test_timer"
+    number.async_write_ha_state = MagicMock()
+
+    assert number.native_value == 30.0
+
+    # User sets timer to 60
+    await number.async_set_native_value(60)
+    assert number.native_value == 60.0
+
+    # Coordinator polls — Tuya cloud still reports old value
+    number._handle_coordinator_update()
+    assert number.native_value == 60.0, "Number snapped back to stale value"
+
+    # Cloud propagates
+    coordinator.data = {103: 60, "103": 60}
+    number._handle_coordinator_update()
+    assert number.native_value == 60.0
+
+
+@pytest.mark.asyncio
+async def test_number_optimistic_released_when_write_fails(
+    hass: HomeAssistant,
+    mock_config_entry,
+) -> None:
+    """Failed device write must release optimistic lock."""
+    from custom_components.kkt_kolbe.number import KKTKolbeNumber
+
+    coordinator = MagicMock()
+    coordinator.data = {103: 30, "103": 30}
+    coordinator.last_update_success = True
+    coordinator.async_set_data_point = AsyncMock(side_effect=RuntimeError("device offline"))
+
+    mock_config_entry.add_to_hass(hass)
+
+    config = {
+        "dp": 103,
+        "name": "Timer",
+        "min": 0,
+        "max": 360,
+        "unit": "min",
+        "device_class": "duration",
+    }
+
+    number = KKTKolbeNumber(coordinator, mock_config_entry, config)
+    number.hass = hass
+    number.entity_id = "number.test_timer_fail"
+    number.async_write_ha_state = MagicMock()
+
+    with pytest.raises(RuntimeError):
+        await number.async_set_native_value(60)
+
+    assert number._is_optimistic_active() is False
+    number._handle_coordinator_update()
+    assert number.native_value == 30.0

@@ -322,3 +322,164 @@ async def test_non_power_switch_ignores_fan_suppress(
     # Expected: only DP 6 = True, NO fan-off
     assert len(calls) == 1, f"Expected only 1 call (DP 6=True), got: {calls}"
     assert call(6, True) in calls, f"Expected DP 6 call, got: {calls}"
+
+
+@pytest.mark.asyncio
+async def test_switch_optimistic_survives_stale_coordinator_update(
+    hass: HomeAssistant,
+) -> None:
+    """Switch must keep optimistic state when coordinator returns stale value.
+
+    Regression: Issue #6, Lucky-ESA reported on/off toggling automatically.
+    Root cause: coordinator.async_set_data_point forces immediate refresh,
+    which reads stale value from Tuya cloud (1-3s propagation lag) and
+    overwrites the optimistic value via _handle_coordinator_update.
+
+    Expected: after async_turn_on, even if next coordinator update reports
+    the OLD value (False), the switch must remain True for the optimistic
+    window (default 8s).
+    """
+    from custom_components.kkt_kolbe.switch import KKTKolbeSwitch
+
+    coordinator = MagicMock()
+    coordinator.data = {1: False, "1": False}  # Device currently OFF
+    coordinator.last_update_success = True
+    coordinator.async_set_data_point = AsyncMock()
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Test Hood",
+        data={
+            "device_id": "bf735dfe2ad64fba7cpyhn",
+            "ip_address": "192.168.1.100",
+            "local_key": "1234567890abcdef",
+            "product_name": "hermes_style_hood",
+            "device_type": "hermes_style_hood",
+        },
+        options={"disable_fan_auto_start": False},
+        unique_id="bf735dfe2ad64fba7cpyhn_dp1_opt",
+    )
+    entry.add_to_hass(hass)
+
+    config = {"dp": 1, "name": "Power", "device_class": "switch"}
+    switch = KKTKolbeSwitch(coordinator, entry, config)
+
+    # Initial state from coordinator: OFF
+    assert switch.is_on is False
+
+    # Mock hass to allow async_write_ha_state
+    switch.hass = hass
+    switch.entity_id = "switch.test_power"
+    switch.async_write_ha_state = MagicMock()
+
+    # User turns on
+    await switch.async_turn_on()
+
+    # Optimistic update: state immediately True
+    assert switch.is_on is True
+
+    # Simulate coordinator update with STALE value (cloud not yet propagated)
+    # _handle_coordinator_update fires → _update_cached_state → reads coord
+    switch._handle_coordinator_update()
+
+    # Switch must STILL be True (optimistic active, stale value rejected)
+    assert switch.is_on is True, (
+        "Switch snapped back to stale coordinator value — optimistic lock failed"
+    )
+
+
+@pytest.mark.asyncio
+async def test_switch_optimistic_clears_when_coordinator_catches_up(
+    hass: HomeAssistant,
+) -> None:
+    """Once coordinator reports the optimistic value, lock must release."""
+    from custom_components.kkt_kolbe.switch import KKTKolbeSwitch
+
+    coordinator = MagicMock()
+    coordinator.data = {1: False, "1": False}
+    coordinator.last_update_success = True
+    coordinator.async_set_data_point = AsyncMock()
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Test Hood",
+        data={
+            "device_id": "bf735dfe2ad64fba7cpyhn",
+            "ip_address": "192.168.1.100",
+            "local_key": "1234567890abcdef",
+            "product_name": "hermes_style_hood",
+            "device_type": "hermes_style_hood",
+        },
+        options={"disable_fan_auto_start": False},
+        unique_id="bf735dfe2ad64fba7cpyhn_dp1_clear",
+    )
+    entry.add_to_hass(hass)
+
+    config = {"dp": 1, "name": "Power", "device_class": "switch"}
+    switch = KKTKolbeSwitch(coordinator, entry, config)
+
+    switch.hass = hass
+    switch.entity_id = "switch.test_power"
+    switch.async_write_ha_state = MagicMock()
+
+    await switch.async_turn_on()
+    assert switch.is_on is True
+
+    # Coordinator now reports the new value (cloud propagated)
+    coordinator.data = {1: True, "1": True}
+    switch._handle_coordinator_update()
+
+    # State stays True, optimistic lock auto-cleared
+    assert switch.is_on is True
+
+    # Now if external actor turns it off, coord update must take effect
+    coordinator.data = {1: False, "1": False}
+    switch._handle_coordinator_update()
+    assert switch.is_on is False
+
+
+@pytest.mark.asyncio
+async def test_switch_optimistic_released_when_write_fails(
+    hass: HomeAssistant,
+) -> None:
+    """If the device write raises, optimistic lock must release.
+
+    Otherwise the entity would lie to the user for the entire TTL window
+    (8s) about a state change that never reached the device.
+    """
+    from custom_components.kkt_kolbe.switch import KKTKolbeSwitch
+
+    coordinator = MagicMock()
+    coordinator.data = {1: False, "1": False}
+    coordinator.last_update_success = True
+    coordinator.async_set_data_point = AsyncMock(side_effect=RuntimeError("device offline"))
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Test Hood",
+        data={
+            "device_id": "bf735dfe2ad64fba7cpyhn",
+            "ip_address": "192.168.1.100",
+            "local_key": "1234567890abcdef",
+            "product_name": "hermes_style_hood",
+            "device_type": "hermes_style_hood",
+        },
+        options={"disable_fan_auto_start": False},
+        unique_id="bf735dfe2ad64fba7cpyhn_dp1_fail",
+    )
+    entry.add_to_hass(hass)
+
+    config = {"dp": 1, "name": "Power", "device_class": "switch"}
+    switch = KKTKolbeSwitch(coordinator, entry, config)
+    switch.hass = hass
+    switch.entity_id = "switch.test_power_fail"
+    switch.async_write_ha_state = MagicMock()
+
+    with pytest.raises(RuntimeError):
+        await switch.async_turn_on()
+
+    # Optimistic lock must be released so the next coordinator update
+    # restores the truthful (still-OFF) device state.
+    assert switch._is_optimistic_active() is False
+    switch._handle_coordinator_update()
+    assert switch.is_on is False

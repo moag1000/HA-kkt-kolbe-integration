@@ -129,12 +129,22 @@ class KKTKolbeNumber(KKTBaseEntity, NumberEntity):
         """Set the number value."""
         int_value = int(value)
 
-        # Optimistic update to prevent snap-back from stale coordinator poll
+        # Optimistic write: lock the DP at int_value so subsequent coordinator
+        # polls cannot overwrite us with stale Tuya cloud reads (Issue #6).
+        self._set_optimistic(int_value)
         self._cached_value = float(int_value)
         if self.hass:
             self.async_write_ha_state()
 
-        await self._async_set_data_point(self._dp, int_value)
+        try:
+            await self._async_set_data_point(self._dp, int_value)
+        except Exception:
+            self._clear_optimistic()
+            self._update_cached_state()
+            if self.hass:
+                self.async_write_ha_state()
+            raise
+
         self._log_entity_state("Set Value", f"DP {self._dp} set to {int_value}")
 
 

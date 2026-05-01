@@ -176,6 +176,81 @@ async def test_coordinator_set_data_point(
 
 
 @pytest.mark.asyncio
+async def test_coordinator_set_data_point_does_not_refresh_immediately(
+    hass: HomeAssistant,
+    mock_device,
+    mock_config_entry,
+) -> None:
+    """async_set_data_point must defer the refresh to allow Tuya cloud propagation.
+
+    Regression: Issue #6, Lucky-ESA. The previous implementation called
+    ``await self.async_refresh()`` immediately after the device write. Tuya
+    cloud takes 1-3s to propagate writes, so the refresh re-read the OLD
+    value and clobbered the optimistic state, causing UI snap-back.
+    """
+    from custom_components.kkt_kolbe.coordinator import KKTKolbeUpdateCoordinator
+
+    mock_config_entry.add_to_hass(hass)
+
+    coordinator = KKTKolbeUpdateCoordinator(
+        hass=hass,
+        entry=mock_config_entry,
+        device=mock_device,
+    )
+
+    with patch.object(coordinator, "async_refresh", new=AsyncMock()) as mock_refresh, \
+            patch.object(coordinator, "async_request_refresh", new=AsyncMock()) as mock_request:
+        await coordinator.async_set_data_point(1, True)
+
+        # Device write happened
+        mock_device.async_set_dp.assert_called_once_with(1, True)
+
+        # Immediate refresh must NOT happen (would re-read stale cloud value)
+        assert mock_refresh.call_count == 0
+        assert mock_request.call_count == 0
+
+
+@pytest.mark.asyncio
+async def test_coordinator_deferred_refresh_skips_when_marked_destroyed(
+    hass: HomeAssistant,
+    mock_device,
+    mock_config_entry,
+) -> None:
+    """Deferred refresh callback must noop if the coordinator has been torn down.
+
+    If the user removes the integration / reloads the entry within 3s of a
+    write, the scheduled callback would otherwise fire on a coordinator whose
+    ``hass`` is gone, raising in the background. The guard checks
+    ``coordinator._destroyed`` before triggering.
+    """
+    from custom_components.kkt_kolbe.coordinator import KKTKolbeUpdateCoordinator
+
+    mock_config_entry.add_to_hass(hass)
+
+    coordinator = KKTKolbeUpdateCoordinator(
+        hass=hass,
+        entry=mock_config_entry,
+        device=mock_device,
+    )
+
+    with patch.object(coordinator, "async_refresh", new=AsyncMock()) as mock_refresh:
+        await coordinator.async_set_data_point(1, True)
+
+        # Simulate teardown before the deferred callback fires.
+        coordinator.async_mark_destroyed()
+
+        # Manually invoke the scheduled callback (skip the 3s wait in tests).
+        # We grab the most recent scheduled handle and run its callback.
+        callbacks = [h for h in hass.loop._scheduled if hasattr(h, "_callback")]
+        assert callbacks, "expected a deferred refresh to be scheduled"
+        callbacks[-1]._callback(*callbacks[-1]._args)
+        await hass.async_block_till_done()
+
+        # Refresh must NOT have run because coordinator was marked destroyed.
+        assert mock_refresh.call_count == 0
+
+
+@pytest.mark.asyncio
 async def test_coordinator_returns_pending_before_initial_connect(
     hass: HomeAssistant,
     mock_device,

@@ -6,6 +6,7 @@ Based on patterns from https://github.com/ludeeus/integration_blueprint
 from __future__ import annotations
 
 import logging
+import time
 from datetime import datetime
 from typing import TYPE_CHECKING
 from typing import Any
@@ -21,6 +22,11 @@ if TYPE_CHECKING:
     from .coordinator import KKTKolbeUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
+
+# Optimistic update window. Tuya cloud propagation typically takes 1-3s after
+# a write before subsequent reads return the new value. Within this window we
+# trust our just-written value over coordinator polls to prevent UI snap-back.
+OPTIMISTIC_TTL_SECONDS = 8.0
 
 
 class KKTBaseEntity(CoordinatorEntity["KKTKolbeUpdateCoordinator"]):
@@ -64,6 +70,12 @@ class KKTBaseEntity(CoordinatorEntity["KKTKolbeUpdateCoordinator"]):
         # State caching to prevent "unknown" values when DPs are temporarily unavailable
         self._cached_value: Any = None
         self._last_update_time: datetime | None = None
+
+        # Optimistic update tracking. After a user-initiated write, the entity
+        # holds the expected raw DP value here. Coordinator polls within the
+        # TTL window are ignored unless they confirm the optimistic value.
+        self._optimistic_value: Any = None
+        self._optimistic_until: float = 0.0
 
         # Device info cache
         self._device_info_cached: DeviceInfo | None = None
@@ -320,6 +332,30 @@ class KKTBaseEntity(CoordinatorEntity["KKTKolbeUpdateCoordinator"]):
         """Update the cached state from coordinator data."""
         # This method should be overridden by specific entity types
 
+    def _set_optimistic(self, raw_value: Any, ttl: float = OPTIMISTIC_TTL_SECONDS) -> None:
+        """Mark the entity's own DP as having a pending write.
+
+        While the optimistic window is active, ``_get_data_point_value`` returns
+        ``raw_value`` instead of the coordinator value for ``self._dp``. The
+        lock auto-releases as soon as the coordinator reports the matching
+        value, or after ``ttl`` seconds (whichever comes first).
+
+        Use this in ``async_turn_on`` / ``async_select_option`` /
+        ``async_set_native_value`` BEFORE the device write to prevent UI
+        snap-back caused by stale Tuya cloud reads.
+        """
+        self._optimistic_value = raw_value
+        self._optimistic_until = time.monotonic() + ttl
+
+    def _is_optimistic_active(self) -> bool:
+        """Return True if the optimistic window is still open."""
+        return self._optimistic_until > time.monotonic()
+
+    def _clear_optimistic(self) -> None:
+        """Release the optimistic lock immediately."""
+        self._optimistic_value = None
+        self._optimistic_until = 0.0
+
     def _get_data_point_value(self, dp: int | None = None) -> Any:
         """Get value for a specific data point, with zone support and state caching."""
         data_point = dp if dp is not None else self._dp
@@ -341,6 +377,22 @@ class KKTBaseEntity(CoordinatorEntity["KKTKolbeUpdateCoordinator"]):
         value = dps_data.get(str(data_point))
         if value is None:
             value = dps_data.get(data_point)
+
+        # Optimistic override: if this is our own DP and the optimistic window
+        # is open, return the pending value unless the coordinator has caught up.
+        if data_point == self._dp and self._is_optimistic_active():
+            if value == self._optimistic_value:
+                # Coordinator confirmed the write — release the lock and let
+                # the real value flow through.
+                self._clear_optimistic()
+            else:
+                _LOGGER.debug(
+                    f"Entity {self._attr_unique_id}: DP {data_point} optimistic override "
+                    f"(coord={value}, optimistic={self._optimistic_value})"
+                )
+                self._cached_value = self._optimistic_value
+                self._last_update_time = datetime.now()
+                return self._optimistic_value
 
         if value is None:
             # DP not available in current update - use cached value instead of None

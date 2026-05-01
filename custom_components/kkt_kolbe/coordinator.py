@@ -28,6 +28,11 @@ from .const import DOMAIN
 from .const import MAX_ERROR_HISTORY
 from .tuya_device import KKTKolbeTuyaDevice
 
+# Seconds to wait after a device write before refreshing the coordinator.
+# Tuya cloud propagation typically completes within 1-3s; reading sooner
+# returns the stale pre-write value and overwrites entity optimistic state.
+CLOUD_PROPAGATION_DELAY_SECONDS = 3.0
+
 _LOGGER = logging.getLogger(__name__)
 
 # Polling intervals
@@ -85,6 +90,10 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
         self._circuit_breaker_retries: int = 0
         self._circuit_breaker_next_retry: datetime | None = None
 
+        # Teardown flag — set on unload so deferred refresh callbacks noop
+        # instead of running against a torn-down coordinator.
+        self._destroyed: bool = False
+
         # Update every 30 seconds for real-time control
         super().__init__(
             hass,
@@ -122,6 +131,10 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
     def mark_initial_connect_done(self) -> None:
         """Mark that the background connection attempt has completed."""
         self._initial_connect_done = True
+
+    def async_mark_destroyed(self) -> None:
+        """Mark the coordinator as torn down so deferred work skips itself."""
+        self._destroyed = True
 
     @property
     def last_successful_update(self) -> datetime | None:
@@ -434,14 +447,32 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
             raise UpdateFailed(f"Error communicating with device: {err}") from err
 
     async def async_set_data_point(self, dp: int, value: Any) -> None:
-        """Set a data point on the device and refresh data."""
+        """Set a data point on the device and schedule a deferred refresh.
+
+        Tuya cloud takes ~1-3s to propagate writes. An immediate refresh would
+        read the OLD value back and clobber any optimistic state in entities,
+        causing UI snap-back (Issue #6). We defer the refresh by
+        ``CLOUD_PROPAGATION_DELAY_SECONDS`` so the read sees the fresh value.
+
+        During the delay, entities use their optimistic lock (see
+        ``KKTBaseEntity._set_optimistic``) to keep showing the new value.
+        """
         try:
             await self.device.async_set_dp(dp, value)
-            # Immediately refresh data after command (use async_refresh for immediate update)
-            await self.async_refresh()
         except Exception as err:
             _LOGGER.error(f"Failed to set DP {dp} to {value}: {err}")
             raise UpdateFailed(f"Failed to set DP {dp}: {err}") from err
+
+        # Schedule a refresh after Tuya cloud has propagated the write. We use
+        # call_later (sync API) because we don't want to block the caller.
+        # The destroyed-flag check avoids firing on a torn-down coordinator
+        # if the entry is unloaded within the propagation window.
+        def _trigger_refresh() -> None:
+            if self._destroyed:
+                return
+            self.hass.async_create_task(self.async_refresh())
+
+        self.hass.loop.call_later(CLOUD_PROPAGATION_DELAY_SECONDS, _trigger_refresh)
 
     @property
     def device_info(self) -> DeviceInfo:

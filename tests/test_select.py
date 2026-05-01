@@ -236,3 +236,88 @@ async def test_select_invalid_option(
     await select.async_select_option("InvalidOption")
 
     mock_runtime_data.coordinator.async_set_data_point.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_select_optimistic_survives_stale_coordinator_update(
+    hass: HomeAssistant,
+    mock_config_entry,
+) -> None:
+    """Select must keep chosen option when coordinator returns stale value.
+
+    Regression: Issue #6, Lucky-ESA reported program selector snap-back.
+    Forced refresh in coordinator.async_set_data_point reads stale Tuya cloud
+    value (1-3s propagation), which then overwrites the optimistic option.
+    """
+    from custom_components.kkt_kolbe.select import KKTKolbeSelect
+
+    coordinator = MagicMock()
+    coordinator.data = {101: "f1", "101": "f1"}  # Currently F1
+    coordinator.last_update_success = True
+    coordinator.async_set_data_point = AsyncMock()
+
+    mock_config_entry.add_to_hass(hass)
+
+    config = {
+        "dp": 101,
+        "name": "Program",
+        "options": ["F1 Auftaustufe", "P5 Hühnerschenkel"],
+        "options_map": {"F1 Auftaustufe": "f1", "P5 Hühnerschenkel": "p5"},
+    }
+
+    select = KKTKolbeSelect(coordinator, mock_config_entry, config)
+    select.hass = hass
+    select.entity_id = "select.test_program"
+    select.async_write_ha_state = MagicMock()
+
+    assert select.current_option == "F1 Auftaustufe"
+
+    # User selects P5
+    await select.async_select_option("P5 Hühnerschenkel")
+    assert select.current_option == "P5 Hühnerschenkel"
+
+    # Coordinator polls — Tuya cloud still reports old value
+    select._handle_coordinator_update()
+    assert select.current_option == "P5 Hühnerschenkel", (
+        "Select snapped back to stale coordinator value"
+    )
+
+    # Cloud propagates — coordinator now reports new value
+    coordinator.data = {101: "p5", "101": "p5"}
+    select._handle_coordinator_update()
+    assert select.current_option == "P5 Hühnerschenkel"
+
+
+@pytest.mark.asyncio
+async def test_select_optimistic_released_when_write_fails(
+    hass: HomeAssistant,
+    mock_config_entry,
+) -> None:
+    """Failed device write must release optimistic lock."""
+    from custom_components.kkt_kolbe.select import KKTKolbeSelect
+
+    coordinator = MagicMock()
+    coordinator.data = {101: "f1", "101": "f1"}
+    coordinator.last_update_success = True
+    coordinator.async_set_data_point = AsyncMock(side_effect=RuntimeError("device offline"))
+
+    mock_config_entry.add_to_hass(hass)
+
+    config = {
+        "dp": 101,
+        "name": "Program",
+        "options": ["F1 Auftaustufe", "P5 Hühnerschenkel"],
+        "options_map": {"F1 Auftaustufe": "f1", "P5 Hühnerschenkel": "p5"},
+    }
+
+    select = KKTKolbeSelect(coordinator, mock_config_entry, config)
+    select.hass = hass
+    select.entity_id = "select.test_program_fail"
+    select.async_write_ha_state = MagicMock()
+
+    with pytest.raises(RuntimeError):
+        await select.async_select_option("P5 Hühnerschenkel")
+
+    assert select._is_optimistic_active() is False
+    select._handle_coordinator_update()
+    assert select.current_option == "F1 Auftaustufe"
