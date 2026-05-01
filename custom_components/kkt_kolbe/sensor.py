@@ -181,7 +181,7 @@ class KKTKolbeSensor(KKTBaseEntity, SensorEntity):
         elif isinstance(value, float) and self._attr_suggested_display_precision == 0:
             # Tuya devices may report integer DPs as float (e.g. 10.0).
             # When precision=0, coerce to int so HA device view shows whole numbers.
-            self._cached_value = int(round(value))
+            self._cached_value = round(value)
         else:
             self._cached_value = value
 

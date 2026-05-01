@@ -168,11 +168,14 @@ async def test_coordinator_set_data_point(
         device=mock_device,
     )
 
-    await coordinator.async_set_data_point(1, True)
-    # Wait for debounced refresh to complete
-    await hass.async_block_till_done()
+    try:
+        await coordinator.async_set_data_point(1, True)
+        # Wait for debounced refresh to complete
+        await hass.async_block_till_done()
 
-    mock_device.async_set_dp.assert_called()
+        mock_device.async_set_dp.assert_called()
+    finally:
+        coordinator.async_mark_destroyed()
 
 
 @pytest.mark.asyncio
@@ -198,16 +201,21 @@ async def test_coordinator_set_data_point_does_not_refresh_immediately(
         device=mock_device,
     )
 
-    with patch.object(coordinator, "async_refresh", new=AsyncMock()) as mock_refresh, \
-            patch.object(coordinator, "async_request_refresh", new=AsyncMock()) as mock_request:
-        await coordinator.async_set_data_point(1, True)
+    try:
+        with patch.object(coordinator, "async_refresh", new=AsyncMock()) as mock_refresh, \
+                patch.object(coordinator, "async_request_refresh", new=AsyncMock()) as mock_request:
+            await coordinator.async_set_data_point(1, True)
 
-        # Device write happened
-        mock_device.async_set_dp.assert_called_once_with(1, True)
+            # Device write happened
+            mock_device.async_set_dp.assert_called_once_with(1, True)
 
-        # Immediate refresh must NOT happen (would re-read stale cloud value)
-        assert mock_refresh.call_count == 0
-        assert mock_request.call_count == 0
+            # Immediate refresh must NOT happen (would re-read stale cloud value)
+            assert mock_refresh.call_count == 0
+            assert mock_request.call_count == 0
+    finally:
+        # Cancel the pending deferred refresh so pytest-HA's lingering-timer
+        # check passes.
+        coordinator.async_mark_destroyed()
 
 
 @pytest.mark.asyncio
@@ -216,12 +224,13 @@ async def test_coordinator_deferred_refresh_skips_when_marked_destroyed(
     mock_device,
     mock_config_entry,
 ) -> None:
-    """Deferred refresh callback must noop if the coordinator has been torn down.
+    """Deferred refresh must be cancelled and skip firing after destroy.
 
     If the user removes the integration / reloads the entry within 3s of a
     write, the scheduled callback would otherwise fire on a coordinator whose
-    ``hass`` is gone, raising in the background. The guard checks
-    ``coordinator._destroyed`` before triggering.
+    ``hass`` is gone, raising in the background. ``async_mark_destroyed``
+    cancels the pending TimerHandle and sets a flag so the callback is a noop
+    even if it has already started running.
     """
     from custom_components.kkt_kolbe.coordinator import KKTKolbeUpdateCoordinator
 
@@ -236,14 +245,15 @@ async def test_coordinator_deferred_refresh_skips_when_marked_destroyed(
     with patch.object(coordinator, "async_refresh", new=AsyncMock()) as mock_refresh:
         await coordinator.async_set_data_point(1, True)
 
+        # A pending refresh handle was scheduled.
+        assert coordinator._pending_refresh_handle is not None
+
         # Simulate teardown before the deferred callback fires.
         coordinator.async_mark_destroyed()
 
-        # Manually invoke the scheduled callback (skip the 3s wait in tests).
-        # We grab the most recent scheduled handle and run its callback.
-        callbacks = [h for h in hass.loop._scheduled if hasattr(h, "_callback")]
-        assert callbacks, "expected a deferred refresh to be scheduled"
-        callbacks[-1]._callback(*callbacks[-1]._args)
+        # Handle was cancelled and dropped.
+        assert coordinator._pending_refresh_handle is None
+
         await hass.async_block_till_done()
 
         # Refresh must NOT have run because coordinator was marked destroyed.

@@ -94,6 +94,10 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
         # instead of running against a torn-down coordinator.
         self._destroyed: bool = False
 
+        # Pending deferred-refresh handle. Tracked so we can cancel it on
+        # shutdown / destroy and avoid lingering timers in tests.
+        self._pending_refresh_handle: Any = None
+
         # Update every 30 seconds for real-time control
         super().__init__(
             hass,
@@ -133,8 +137,18 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
         self._initial_connect_done = True
 
     def async_mark_destroyed(self) -> None:
-        """Mark the coordinator as torn down so deferred work skips itself."""
+        """Mark the coordinator as torn down and cancel pending deferred work."""
         self._destroyed = True
+        if self._pending_refresh_handle is not None:
+            self._pending_refresh_handle.cancel()
+            self._pending_refresh_handle = None
+
+    async def async_shutdown(self) -> None:
+        """Shut down coordinator and cancel any pending deferred refresh."""
+        if self._pending_refresh_handle is not None:
+            self._pending_refresh_handle.cancel()
+            self._pending_refresh_handle = None
+        await super().async_shutdown()
 
     @property
     def last_successful_update(self) -> datetime | None:
@@ -467,12 +481,20 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
         # call_later (sync API) because we don't want to block the caller.
         # The destroyed-flag check avoids firing on a torn-down coordinator
         # if the entry is unloaded within the propagation window.
+        # Cancel any previously pending handle so rapid successive writes
+        # don't pile up timers.
+        if self._pending_refresh_handle is not None:
+            self._pending_refresh_handle.cancel()
+
         def _trigger_refresh() -> None:
+            self._pending_refresh_handle = None
             if self._destroyed:
                 return
             self.hass.async_create_task(self.async_refresh())
 
-        self.hass.loop.call_later(CLOUD_PROPAGATION_DELAY_SECONDS, _trigger_refresh)
+        self._pending_refresh_handle = self.hass.loop.call_later(
+            CLOUD_PROPAGATION_DELAY_SECONDS, _trigger_refresh
+        )
 
     @property
     def device_info(self) -> DeviceInfo:
