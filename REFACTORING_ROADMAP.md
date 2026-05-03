@@ -187,6 +187,21 @@ Die Integration erfüllt nun alle 21 Gold-Tier Anforderungen der Home Assistant 
 
 ---
 
+## v4.7 Roadmap (vorgemerkt)
+
+### MQTT-Push-Updates via SDK DeviceListener
+**Aktuell:** Coordinator pollt alle 30s. State-Changes vom Gerät (z.B. physischer Knopfdruck) werden erst beim nächsten Poll sichtbar. Optimistic-Lock muss ~3s Cloud-Propagation überbrücken.
+
+**Idee:** `tuya_sharing.Manager.add_device_listener(SharingDeviceListener)` registrieren. Listener-Callback `update_device_function_status(device, dp_id, value)` feuert sofort bei MQTT-Push vom Tuya-Cloud → Coordinator-Update ohne Poll-Lag. Optimistic-Lock kann sofort released werden wenn Push den geschriebenen Wert bestätigt.
+
+**SDK Voraussetzung:** `tuya-device-sharing-sdk>=0.2.8` (für `report_type` Feld zur Push/Query-Unterscheidung) — bereits gebumpt in v4.6.6.
+
+**Risiko:** Signifikanter Refactor in `hybrid_coordinator.py` + `coordinator.py`. MQTT-Verbindungs-Lifecycle muss sauber gehandhabt werden (cancel on stop ist seit SDK 0.2.x ok).
+
+**Impact:** Unmittelbare State-Changes in HA UI, weniger API-Last gegen Tuya-Cloud, semantisch korrektere Optimistic-Lock-Releases.
+
+---
+
 ## Referenzen
 - [Integration Quality Scale](https://developers.home-assistant.io/docs/core/integration-quality-scale/)
 - [Quality Scale Rules](https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/)

@@ -790,6 +790,7 @@ KNOWN_DEVICES = {
         "name": "KKT Kolbe EASY / PLOOM Hood",
         "product_names": [
             "e1my0pj8",
+            "kllmaunpnsvj9ag6",  # PLOOM 3.5 firmware variant (Issue #8, @dernick79)
             "KKT Kolbe EASY9005SM",
             "KKT Kolbe EASY909SHCM",
             "KKT Kolbe EASY609SHCM",

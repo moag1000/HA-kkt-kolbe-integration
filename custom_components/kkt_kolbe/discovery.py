@@ -28,8 +28,13 @@ from .const import MODELS
 _LOGGER = logging.getLogger(__name__)
 
 # Tuya UDP Discovery (based on Local Tuya implementation)
-# NOTE: Must use standard ports 6666/6667 - Tuya devices only broadcast on these!
-UDP_PORTS = [6666, 6667]
+# - 6666: Tuya 3.1 (cleartext)
+# - 6667: Tuya 3.3 (encrypted)
+# - 7000: Tuya 3.5 (encrypted, App-style). 3.5 devices DO NOT passively broadcast
+#   on 6666/6667 — they only respond to active discovery requests on 7000.
+#   Without this port, PLOOM and other 2024+ KKT devices on 3.5 firmware are
+#   silently missed by passive discovery (Issue #8).
+UDP_PORTS = [6666, 6667, 7000]
 UDP_KEY = md5(b"yGAdlopoPVldABfn").digest()
 DISCOVERY_TIMEOUT = 6  # seconds
 

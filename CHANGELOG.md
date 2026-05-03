@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [4.6.6] - 2026-05-03
+
+### Added
+
+- **Tuya Protocol 3.5 Support** (Issue #8, @dernick79): Auto-Detection in `tuya_device.py` testet jetzt auch Version 3.5. Vorher war die Liste `[3.3, 3.4, 3.1, 3.2]` — neuere KKT-Geräte (PLOOM 2024+, andere 3.5-Firmwares) konnten lokal nicht verbunden werden weil 3.5 fehlte. tinytuya unterstützt 3.5 seit 1.13.x.
+- **UDP Port 7000 für Discovery** (Issue #8): 3.5-Devices broadcasten NICHT passiv auf 6666/6667 — sie nutzen Port 7000 (App-style, encrypted). Discovery hört jetzt auch dort. Vorher wurden 3.5-Geräte von der Auto-Erkennung übersehen.
+- **PLOOM 3.5 product_id** (Issue #8, @dernick79): Mapping für `kllmaunpnsvj9ag6` (3.5-Firmware-Variante) zur `easy_hood` Device-Definition hinzugefügt.
+
+### Changed
+
+- **tinytuya minimum bump**: `>=1.14.0` → `>=1.17.0`. Profitiert von ~2 Jahren Bugfixes (1.16.2 robusteres JSON-Parsing, 1.16.3 Cloud-getdevices Error-Handling, 1.17.x Stabilität).
+- **tuya-device-sharing-sdk minimum bump**: `>=0.2.0` → `>=0.2.8`. Aligned mit Home Assistant Core Tuya. Brings: `report_type` Feld bei device_status_update (push vs query unterscheidbar), Default-Request-Timeout, sauberes MQTT-Reconnect-Cancel beim Stop, Type-Hint-Fixes.
+- **pyproject.toml Version-Sync**: Stand auf `4.5.3` (drift seit Monaten) — auf aktuelle Version synchronisiert.
+
+### Notes
+
+- Issue #6 Time-Decimal (Lucky-ESA): defensive Wartestellung. Lokaler Test bestätigt unsere `native_value`-Logik liefert int. Vermutlich HA Entity-Registry Cache von alter Version. Test nach Update + ggf. Entity-Display-Precision in HA UI auf "Default" zurücksetzen.
+
+---
+
 ## [4.6.5] - 2026-05-01
 
 ### Fixed

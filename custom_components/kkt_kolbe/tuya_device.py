@@ -348,8 +348,10 @@ class KKTKolbeTuyaDevice:
         if self.version == "auto":
             _LOGGER.info(f"Auto-detecting Tuya protocol version for {self.ip_address}")
 
-            # Try each version with each key variant
-            for test_version in [3.3, 3.4, 3.1, 3.2]:
+            # Try each version with each key variant. Order roughly by frequency
+            # in the wild: 3.3/3.4 are most common KKT firmwares, 3.5 is the
+            # newest (PLOOM and other 2024+ models, Issue #8), 3.1/3.2 legacy.
+            for test_version in [3.3, 3.4, 3.5, 3.1, 3.2]:
                 for key_variant, key_desc in key_variants:
                     _LOGGER.debug(f"Testing version {test_version} with {key_desc} key for device {self.device_id[:8]}")
                     test_device = None
@@ -438,7 +440,7 @@ class KKTKolbeTuyaDevice:
             else:
                 _LOGGER.error(
                     f"Protocol auto-detection failed for device at {self.ip_address}\n"
-                    f"Tested versions: 3.3, 3.4, 3.1, 3.2\n"
+                    f"Tested versions: 3.3, 3.4, 3.5, 3.1, 3.2\n"
                     f"Common causes:\n"
                     f"  1. Device is offline or unreachable\n"
                     f"  2. Incorrect local key (check Tuya IoT Platform)\n"
@@ -449,7 +451,7 @@ class KKTKolbeTuyaDevice:
             raise KKTConnectionError(
                 operation="auto_detect",
                 device_id=self.device_id[:8],
-                reason=f"Device not responding to any Tuya protocol version (3.1-3.4). "
+                reason=f"Device not responding to any Tuya protocol version (3.1-3.5). "
                 f"Error 914 count: {error_914_count}. Check device connectivity and local key.",
             )
         # Use specified version with key variants for encoding issues

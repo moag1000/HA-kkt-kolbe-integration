@@ -317,6 +317,58 @@ async def test_sensor_duration_returns_int_when_device_sends_float(
 
 
 @pytest.mark.asyncio
+async def test_sensor_duration_zero_returns_int(
+    hass: HomeAssistant,
+    mock_config_entry,
+) -> None:
+    """Specifically reproduce Lucky-ESA's "0.0" report.
+
+    His Time Remaining sensor showed 0.0 in the device view even after
+    v4.6.5. This locks in the contract: native_value MUST be int 0,
+    not float 0.0, for a duration sensor whose Tuya DP returns float 0.0.
+    If this passes locally but Lucky still sees 0.0, the issue is in
+    HA's display_precision registry override, not our native_value.
+    """
+    from custom_components.kkt_kolbe.sensor import KKTKolbeSensor
+
+    coordinator = MagicMock()
+    coordinator.data = {104: 0.0, "104": 0.0}
+    coordinator.last_update_success = True
+
+    runtime_data = KKTKolbeRuntimeData(
+        coordinator=coordinator,
+        device=MagicMock(),
+        api_client=None,
+        device_info={"name": "Test Oven", "category": "oven"},
+        product_name="eb8313hc_oven",
+        device_type="eb8313hc_oven",
+        integration_mode="manual",
+    )
+
+    mock_config_entry.add_to_hass(hass)
+
+    config = {
+        "dp": 104,
+        "name": "Time Remaining",
+        "unit_of_measurement": UnitOfTime.MINUTES,
+        "device_class": "duration",
+    }
+
+    sensor = KKTKolbeSensor(
+        runtime_data.coordinator,
+        mock_config_entry,
+        config,
+    )
+
+    assert sensor.native_value == 0
+    assert isinstance(sensor.native_value, int), (
+        f"native_value must be int but got {type(sensor.native_value).__name__}: "
+        f"{sensor.native_value!r}"
+    )
+    assert sensor._attr_suggested_display_precision == 0
+
+
+@pytest.mark.asyncio
 async def test_sensor_temperature_keeps_float_precision(
     hass: HomeAssistant,
     mock_config_entry,
