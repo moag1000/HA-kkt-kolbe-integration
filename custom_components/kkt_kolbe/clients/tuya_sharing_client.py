@@ -240,9 +240,7 @@ class TuyaSharingClient:
 
     # === MQTT push dispatcher (Task 1: v4.7 push listener) ===
 
-    def register_push_callback(
-        self, device_id: str, callback: PushCallback
-    ) -> None:
+    def register_push_callback(self, device_id: str, callback: PushCallback) -> None:
         """Register a callback for MQTT push updates for a device.
 
         On the first registration the SDK listener is created lazily and
@@ -283,9 +281,7 @@ class TuyaSharingClient:
             len(self._push_callbacks[device_id]),
         )
 
-    def unregister_push_callback(
-        self, device_id: str, callback: PushCallback
-    ) -> None:
+    def unregister_push_callback(self, device_id: str, callback: PushCallback) -> None:
         """Unregister a previously registered push callback.
 
         When the last callback for the last device is removed, the SDK
