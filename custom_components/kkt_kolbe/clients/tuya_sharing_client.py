@@ -303,6 +303,34 @@ class TuyaSharingClient:
             self._sdk_listener = None
             _LOGGER.debug("Removed SDK push listener (no remaining callbacks)")
 
+    def _dispatch_push(
+        self,
+        device_id: str,
+        updated_dps: dict[str, Any],
+        report_type: str,
+    ) -> None:
+        """Dispatch an MQTT push to all registered callbacks for a device.
+
+        Called on the HA event loop (the listener bridge uses
+        loop.call_soon_threadsafe to hop from the SDK MQTT thread). Exceptions
+        from individual callbacks are logged and isolated so one bad consumer
+        cannot break delivery to the others.
+
+        Args:
+            device_id: The originating device ID.
+            updated_dps: DP-id-keyed dict of changed data points.
+            report_type: Currently always "report" (see PushCallback docstring).
+        """
+        for callback in list(self._push_callbacks.get(device_id, [])):
+            try:
+                callback(updated_dps, report_type)
+            except Exception:
+                # Never let one bad callback break delivery to others
+                _LOGGER.exception(
+                    "Push callback raised for device %s",
+                    device_id[:8],
+                )
+
     @property
     def user_code(self) -> str:
         """Get the user code."""

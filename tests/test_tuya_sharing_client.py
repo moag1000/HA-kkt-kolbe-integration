@@ -808,3 +808,59 @@ class TestPushDispatcher:
         assert client._sdk_listener is not None
         assert "device_1" not in client._push_callbacks
         assert callback_b in client._push_callbacks["device_2"]
+
+    @pytest.mark.asyncio
+    async def test_dispatch_push_calls_all_callbacks_for_device(
+        self, hass: HomeAssistant
+    ):
+        """All callbacks for the target device receive the push."""
+        client = TuyaSharingClient(hass, "EU12345678")
+        client._manager = MagicMock()
+
+        cb_a = MagicMock()
+        cb_b = MagicMock()
+        client.register_push_callback("device_1", cb_a)
+        client.register_push_callback("device_1", cb_b)
+
+        updated_dps = {"1": True, "4": False}
+        client._dispatch_push("device_1", updated_dps, "report")
+
+        cb_a.assert_called_once_with(updated_dps, "report")
+        cb_b.assert_called_once_with(updated_dps, "report")
+
+    @pytest.mark.asyncio
+    async def test_dispatch_push_only_callbacks_for_target_device(
+        self, hass: HomeAssistant
+    ):
+        """Pushes to one device must not invoke callbacks registered for another."""
+        client = TuyaSharingClient(hass, "EU12345678")
+        client._manager = MagicMock()
+
+        cb_a = MagicMock()
+        cb_b = MagicMock()
+        client.register_push_callback("device_1", cb_a)
+        client.register_push_callback("device_2", cb_b)
+
+        client._dispatch_push("device_1", {"1": True}, "report")
+
+        cb_a.assert_called_once_with({"1": True}, "report")
+        cb_b.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_dispatch_push_isolates_callback_exceptions(
+        self, hass: HomeAssistant
+    ):
+        """A callback that raises must not break delivery to other callbacks."""
+        client = TuyaSharingClient(hass, "EU12345678")
+        client._manager = MagicMock()
+
+        bad_cb = MagicMock(side_effect=RuntimeError("boom"))
+        good_cb = MagicMock()
+        client.register_push_callback("device_1", bad_cb)
+        client.register_push_callback("device_1", good_cb)
+
+        # Should not raise
+        client._dispatch_push("device_1", {"1": True}, "report")
+
+        bad_cb.assert_called_once()
+        good_cb.assert_called_once_with({"1": True}, "report")
