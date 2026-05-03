@@ -189,6 +189,61 @@ async def test_setup_invokes_async_register_push(
 
         mock_register.assert_awaited_once()
     # And it actually fired through to the smartlife client
-    mock_smartlife_client.register_push_callback.assert_called_once_with(
-        coord.device_id, coord._handle_push_update
+    mock_smartlife_client.register_push_callback.assert_called_once_with(coord.device_id, coord._handle_push_update)
+
+
+@pytest.mark.asyncio
+async def test_full_chain_client_dispatch_to_coordinator(
+    hass: HomeAssistant,
+    mock_tuya_device: MagicMock,
+    mock_config_entry,
+) -> None:
+    """End-to-end: real TuyaSharingClient.dispatch -> real coordinator handler.
+
+    Drive a push through the real dispatcher (with mocked Manager) into a
+    real coordinator and verify async_set_updated_data fires with merged
+    DPs. Catches wiring bugs that purely-mocked unit tests cannot.
+    """
+    from custom_components.kkt_kolbe.clients.tuya_sharing_client import TuyaSharingClient
+    from custom_components.kkt_kolbe.hybrid_coordinator import KKTKolbeHybridCoordinator
+
+    # Real client with mocked Manager (Manager needs a live token to instantiate)
+    client = TuyaSharingClient(hass=hass, user_code="EU12345678", app_schema="smartlife")
+    client._manager = MagicMock()
+
+    mock_config_entry.add_to_hass(hass)
+
+    # Real coordinator wired to the real client
+    coord = KKTKolbeHybridCoordinator(
+        hass=hass,
+        entry=mock_config_entry,
+        local_device=mock_tuya_device,
+        device_id="bf735dfe2ad64fba7cpyhn",
+        device_type="hermes_style_hood",
+        smartlife_client=client,
     )
+    coord._dps_cache = {"1": False, "10": "off"}
+    captured: list[dict] = []
+    coord.async_set_updated_data = lambda data: captured.append(data)
+
+    # Register through the real lifecycle (renamed from async_added_to_hass per Task 2 fix)
+    await coord.async_register_push()
+
+    # Verify the client now has the coord's callback registered
+    assert "bf735dfe2ad64fba7cpyhn" in client._push_callbacks
+    assert coord._handle_push_update in client._push_callbacks["bf735dfe2ad64fba7cpyhn"]
+
+    # Fire a push via the REAL dispatcher (skips the SDK-listener thread bounce
+    # since we're already on the event loop and the listener bridge is tested
+    # in test_tuya_sharing_client.py)
+    client._dispatch_push("bf735dfe2ad64fba7cpyhn", {"1": True}, "report")
+
+    # Verify the coordinator handler ran and merged correctly
+    assert len(captured) == 1
+    assert captured[0]["dps"] == {"1": True, "10": "off"}  # merged: existing 10 preserved
+    assert captured[0]["source"] == "smartlife_push"
+    assert "timestamp" in captured[0]
+
+    # Cleanup: shutdown should unregister
+    await coord.async_shutdown()
+    assert "bf735dfe2ad64fba7cpyhn" not in client._push_callbacks
