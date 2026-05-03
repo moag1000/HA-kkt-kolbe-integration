@@ -144,16 +144,19 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
             self.last_update_was_push = False
             self.last_push_report_type = ""
 
-    async def async_added_to_hass(self) -> None:
+    async def async_register_push(self) -> None:
         """Register the MQTT push callback with the SmartLife client.
 
-        Called by HA's CoordinatorEntity machinery after construction. Safe to
+        Called by __init__.py during entry setup, after the coordinator is
+        constructed and the SmartLife client (if any) is wired in. Safe to
         call when smartlife_client is None — silently skips registration for
         local-only setups.
+
+        Note: We deliberately do NOT use async_added_to_hass here.
+        DataUpdateCoordinator (unlike Entity) has no such lifecycle hook,
+        so HA would never invoke it in production — see commit history for
+        the v4.7 critical-bug fix.
         """
-        parent = getattr(super(), "async_added_to_hass", None)
-        if parent is not None:
-            await parent()
         if self.smartlife_client is None or self._push_callback_registered:
             return
         self.smartlife_client.register_push_callback(self.device_id, self._handle_push_update)

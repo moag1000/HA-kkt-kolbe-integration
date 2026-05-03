@@ -107,15 +107,15 @@ async def test_handle_push_update_sets_and_clears_last_update_was_push(
 
 
 @pytest.mark.asyncio
-async def test_hybrid_coord_registers_push_callback_when_smartlife_client_present(
+async def test_hybrid_coord_registers_push_callback_via_async_register_push(
     hass: HomeAssistant,
     mock_config_entry,
     mock_smartlife_client: MagicMock,
 ) -> None:
-    """async_added_to_hass registers our handler on the smartlife client."""
+    """async_register_push registers our handler on the smartlife client."""
     coord = _make_coord(hass, mock_config_entry, smartlife_client=mock_smartlife_client)
 
-    await coord.async_added_to_hass()
+    await coord.async_register_push()
 
     mock_smartlife_client.register_push_callback.assert_called_once_with(coord.device_id, coord._handle_push_update)
     assert coord._push_callback_registered is True
@@ -126,11 +126,11 @@ async def test_hybrid_coord_skips_registration_without_smartlife_client(
     hass: HomeAssistant,
     mock_config_entry,
 ) -> None:
-    """async_added_to_hass is a no-op when smartlife_client is None."""
+    """async_register_push is a no-op when smartlife_client is None."""
     coord = _make_coord(hass, mock_config_entry, smartlife_client=None)
 
     # Must not raise
-    await coord.async_added_to_hass()
+    await coord.async_register_push()
 
     assert coord._push_callback_registered is False
 
@@ -144,10 +144,51 @@ async def test_hybrid_coord_unregisters_on_shutdown(
     """async_shutdown unregisters the push callback and clears the flag."""
     coord = _make_coord(hass, mock_config_entry, smartlife_client=mock_smartlife_client)
 
-    await coord.async_added_to_hass()
+    await coord.async_register_push()
     assert coord._push_callback_registered is True
 
     await coord.async_shutdown()
 
     mock_smartlife_client.unregister_push_callback.assert_called_once_with(coord.device_id, coord._handle_push_update)
     assert coord._push_callback_registered is False
+
+
+@pytest.mark.asyncio
+async def test_setup_invokes_async_register_push(
+    hass: HomeAssistant,
+    mock_config_entry,
+    mock_smartlife_client: MagicMock,
+) -> None:
+    """Production wiring test: _async_background_connect must call async_register_push.
+
+    This is the regression test for the v4.7 critical bug where the original
+    Task 2 used async_added_to_hass — a hook DataUpdateCoordinator does not
+    have, so the registration never fired in production despite tests passing.
+
+    Drives the actual production code path (_async_background_connect) with
+    a coordinator instance and verifies async_register_push is invoked.
+    """
+    from unittest.mock import patch
+
+    from custom_components.kkt_kolbe import _async_background_connect
+
+    coord = _make_coord(hass, mock_config_entry, smartlife_client=mock_smartlife_client)
+
+    with patch.object(
+        coord,
+        "async_register_push",
+        new=AsyncMock(wraps=coord.async_register_push),
+    ) as mock_register:
+        await _async_background_connect(
+            hass=hass,
+            entry=mock_config_entry,
+            coordinator=coord,
+            device=None,
+            api_client=None,
+        )
+
+        mock_register.assert_awaited_once()
+    # And it actually fired through to the smartlife client
+    mock_smartlife_client.register_push_callback.assert_called_once_with(
+        coord.device_id, coord._handle_push_update
+    )

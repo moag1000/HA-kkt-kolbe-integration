@@ -4,7 +4,7 @@
 
 **Goal:** Add SDK SharingDeviceListener to KKTKolbeHybridCoordinator so MQTT pushes from Tuya cloud trigger immediate state updates and confirmed-write optimistic-lock release, without removing the existing 30 s polling fallback.
 
-**Architecture:** Single `_KKTSharingDeviceListener` registered with `tuya_sharing.Manager` per SmartLife account. Listener dispatches to per-device callbacks held in `TuyaSharingClient`. Each `KKTKolbeHybridCoordinator` registers its `_handle_push_update` callback in `async_added_to_hass`, deregisters in `async_shutdown`. On push, coordinator merges DPs and calls `async_set_updated_data`. Entities check `coordinator.last_update_was_push` + `last_push_report_type == "report"` to hard-release optimistic locks on confirmed writes.
+**Architecture:** Single `_KKTSharingDeviceListener` registered with `tuya_sharing.Manager` per SmartLife account. Listener dispatches to per-device callbacks held in `TuyaSharingClient`. Each `KKTKolbeHybridCoordinator` registers its `_handle_push_update` callback via `async_register_push`, called from `_async_background_connect` in `__init__.py` after `mark_initial_connect_done()`; deregisters in `async_shutdown`. (Note: `DataUpdateCoordinator` does not have an `async_added_to_hass` hook — that is Entity-only — so we wire registration explicitly from setup. See spec "Lessons learned" for the bug history.) On push, coordinator merges DPs and calls `async_set_updated_data`. Entities check `coordinator.last_update_was_push` + `last_push_report_type == "report"` to hard-release optimistic locks on confirmed writes.
 
 **Tech Stack:** Python 3.12, Home Assistant, `tuya-device-sharing-sdk>=0.2.8`, pytest, pytest-homeassistant-custom-component, ruff.
 
@@ -806,16 +806,18 @@ git commit -m "test(push): verify async_set_updated_data fan-out and flag lifecy
 
 ### Task 2.3: Test — coordinator registers/unregisters push callback at lifecycle hooks
 
+> **Important — corrected during implementation:** the original draft of this task used `async_added_to_hass`. That is an Entity-only hook; `DataUpdateCoordinator` does not have it, so production HA never invoked it (tests were green because they called the method directly). The corrected design exposes `async_register_push` and wires it from `__init__.py:_async_background_connect`. See "Lessons learned" in the spec.
+
 - [ ] **Step 1: Write the failing test**
 
 Append to `tests/test_hybrid_coordinator_push.py`:
 
 ```python
 @pytest.mark.asyncio
-async def test_hybrid_coord_registers_push_callback_when_smartlife_client_present(
+async def test_hybrid_coord_registers_push_callback_via_async_register_push(
     hass: HomeAssistant, mock_local_device, mock_smartlife_client, mock_config_entry
 ):
-    """async_added_to_hass must register the push callback if smartlife_client is set."""
+    """async_register_push must register the push callback if smartlife_client is set."""
     from custom_components.kkt_kolbe.hybrid_coordinator import KKTKolbeHybridCoordinator
 
     mock_config_entry.add_to_hass(hass)
@@ -828,7 +830,7 @@ async def test_hybrid_coord_registers_push_callback_when_smartlife_client_presen
         smartlife_client=mock_smartlife_client,
     )
 
-    await coord.async_added_to_hass()
+    await coord.async_register_push()
 
     mock_smartlife_client.register_push_callback.assert_called_once_with(
         "bf735dfe2ad64fba7cpyhn", coord._handle_push_update
@@ -840,7 +842,7 @@ async def test_hybrid_coord_registers_push_callback_when_smartlife_client_presen
 async def test_hybrid_coord_skips_registration_without_smartlife_client(
     hass: HomeAssistant, mock_local_device, mock_config_entry
 ):
-    """async_added_to_hass must NOT call register if smartlife_client is None."""
+    """async_register_push must NOT call register if smartlife_client is None."""
     from custom_components.kkt_kolbe.hybrid_coordinator import KKTKolbeHybridCoordinator
 
     mock_config_entry.add_to_hass(hass)
@@ -854,7 +856,7 @@ async def test_hybrid_coord_skips_registration_without_smartlife_client(
     )
 
     # Should not raise
-    await coord.async_added_to_hass()
+    await coord.async_register_push()
 
     assert coord._push_callback_registered is False
 
@@ -875,7 +877,7 @@ async def test_hybrid_coord_unregisters_on_shutdown(
         device_type="hermes_style_hood",
         smartlife_client=mock_smartlife_client,
     )
-    await coord.async_added_to_hass()
+    await coord.async_register_push()
 
     await coord.async_shutdown()
 
@@ -887,24 +889,25 @@ async def test_hybrid_coord_unregisters_on_shutdown(
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `pytest tests/test_hybrid_coordinator_push.py::test_hybrid_coord_registers_push_callback_when_smartlife_client_present tests/test_hybrid_coordinator_push.py::test_hybrid_coord_skips_registration_without_smartlife_client tests/test_hybrid_coordinator_push.py::test_hybrid_coord_unregisters_on_shutdown -v`
-Expected: FAIL — `async_added_to_hass` and `async_shutdown` lifecycle methods either missing or not wired to push.
+Run: `pytest tests/test_hybrid_coordinator_push.py::test_hybrid_coord_registers_push_callback_via_async_register_push tests/test_hybrid_coordinator_push.py::test_hybrid_coord_skips_registration_without_smartlife_client tests/test_hybrid_coordinator_push.py::test_hybrid_coord_unregisters_on_shutdown -v`
+Expected: FAIL — `async_register_push` not yet defined; `async_shutdown` not yet wired to push.
 
 - [ ] **Step 3: Implement lifecycle hooks**
 
 Add to `KKTKolbeHybridCoordinator`:
 
 ```python
-async def async_added_to_hass(self) -> None:
+async def async_register_push(self) -> None:
     """Register the MQTT push callback with the SmartLife client.
 
-    Called by HA's CoordinatorEntity machinery after construction. Safe
-    to call when smartlife_client is None — silently skips registration
-    for local-only setups.
+    Called by __init__.py during entry setup, after the coordinator is
+    constructed and the SmartLife client (if any) is wired in. Safe to
+    call when smartlife_client is None — silently skips registration for
+    local-only setups.
+
+    Note: We deliberately do NOT use async_added_to_hass.
+    DataUpdateCoordinator (unlike Entity) has no such lifecycle hook.
     """
-    parent = getattr(super(), "async_added_to_hass", None)
-    if parent is not None:
-        await parent()
     if self.smartlife_client is None or self._push_callback_registered:
         return
     self.smartlife_client.register_push_callback(
@@ -921,6 +924,23 @@ async def async_shutdown(self) -> None:
         self._push_callback_registered = False
     await super().async_shutdown()
 ```
+
+Then wire it into `_async_background_connect` in `custom_components/kkt_kolbe/__init__.py`, after `mark_initial_connect_done()`:
+
+```python
+# Register MQTT push callback now that the SmartLife client is fully initialized
+if hasattr(coordinator, "async_register_push"):
+    try:
+        await coordinator.async_register_push()
+    except Exception as exc:
+        _LOGGER.warning(
+            "Failed to register MQTT push callback for device %s: %s",
+            getattr(coordinator, "device_id", "?")[:8],
+            exc,
+        )
+```
+
+The `hasattr` guard makes local-only coordinators safe; the `try/except` ensures push-registration failures never break setup (push is supplementary; 30s polling fallback works without it).
 
 - [ ] **Step 4: Run tests to verify they pass**
 
@@ -1220,7 +1240,7 @@ async def test_full_chain_client_dispatch_to_coordinator_to_entity(
     captured: list[dict] = []
     coord.async_set_updated_data = lambda data: captured.append(data)
 
-    await coord.async_added_to_hass()
+    await coord.async_register_push()
 
     # Dispatch a push directly through the real client dispatcher
     client._dispatch_push("bf735dfe2ad64fba7cpyhn", {"1": True}, "report")
