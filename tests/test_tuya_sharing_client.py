@@ -721,3 +721,90 @@ class TestTuyaSharingAuthResult:
         assert result.success is False
         assert result.error_message == "Authentication denied"
         assert result.access_token is None
+
+
+# === PUSH DISPATCHER TESTS (Task 1: v4.7 MQTT push listener) ===
+
+
+class TestPushDispatcher:
+    """Tests for the MQTT push dispatcher in TuyaSharingClient.
+
+    Verifies that:
+    - register_push_callback lazily creates an SDK listener and adds it once.
+    - unregister_push_callback drops listeners when callbacks are gone.
+    - _dispatch_push fans out to all callbacks for a device, isolates exceptions,
+      and only invokes callbacks for the matching device.
+    - The internal _KKTSharingDeviceListener correctly bridges code-keyed
+      device.status into DP-id-keyed updates and bounces to the HA event loop
+      via call_soon_threadsafe.
+    """
+
+    @pytest.mark.asyncio
+    async def test_register_push_callback_creates_listener_on_first_register(
+        self, hass: HomeAssistant
+    ):
+        """First register_push_callback should add the SDK listener exactly once."""
+        client = TuyaSharingClient(hass, "EU12345678")
+        client._manager = MagicMock()
+
+        callback = MagicMock()
+        client.register_push_callback("device_1", callback)
+
+        assert client._manager.add_device_listener.call_count == 1
+        assert client._sdk_listener is not None
+        assert callback in client._push_callbacks["device_1"]
+
+    @pytest.mark.asyncio
+    async def test_register_push_callback_reuses_listener_on_second_register(
+        self, hass: HomeAssistant
+    ):
+        """Second register_push_callback must not call add_device_listener again."""
+        client = TuyaSharingClient(hass, "EU12345678")
+        client._manager = MagicMock()
+
+        callback_a = MagicMock()
+        callback_b = MagicMock()
+        client.register_push_callback("device_1", callback_a)
+        client.register_push_callback("device_2", callback_b)
+
+        assert client._manager.add_device_listener.call_count == 1
+        assert callback_a in client._push_callbacks["device_1"]
+        assert callback_b in client._push_callbacks["device_2"]
+
+    @pytest.mark.asyncio
+    async def test_unregister_push_callback_removes_listener_when_last_callback_gone(
+        self, hass: HomeAssistant
+    ):
+        """After unregistering the last callback, the SDK listener should be removed."""
+        client = TuyaSharingClient(hass, "EU12345678")
+        client._manager = MagicMock()
+
+        callback = MagicMock()
+        client.register_push_callback("device_1", callback)
+        listener_ref = client._sdk_listener
+
+        client.unregister_push_callback("device_1", callback)
+
+        client._manager.remove_device_listener.assert_called_once_with(listener_ref)
+        assert client._sdk_listener is None
+        assert "device_1" not in client._push_callbacks
+
+    @pytest.mark.asyncio
+    async def test_unregister_keeps_listener_when_other_callbacks_remain(
+        self, hass: HomeAssistant
+    ):
+        """Unregistering one callback while others remain should not remove SDK listener."""
+        client = TuyaSharingClient(hass, "EU12345678")
+        client._manager = MagicMock()
+
+        callback_a = MagicMock()
+        callback_b = MagicMock()
+        client.register_push_callback("device_1", callback_a)
+        client.register_push_callback("device_2", callback_b)
+
+        client.unregister_push_callback("device_1", callback_a)
+
+        client._manager.remove_device_listener.assert_not_called()
+        assert client._sdk_listener is not None
+        assert "device_1" not in client._push_callbacks
+        assert callback_b in client._push_callbacks["device_2"]

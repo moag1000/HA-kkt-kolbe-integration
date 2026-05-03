@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from typing import Any
@@ -36,6 +37,15 @@ if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
 _LOGGER = logging.getLogger(__name__)
+
+# Type alias for MQTT push callbacks dispatched by TuyaSharingClient.
+# Signature: callback(updated_dps, report_type) where:
+#   - updated_dps: dict mapping DP-id strings (e.g. "1", "4") to the new value
+#   - report_type: currently always "report" (the SDK's Manager.on_message
+#     filters PROTOCOL_DEVICE_REPORT internally and only invokes the listener
+#     for actual device-pushed status reports). The parameter is retained for
+#     forward compatibility with future report kinds.
+PushCallback = Callable[[dict[str, Any], str], None]
 
 
 @dataclass
@@ -205,6 +215,13 @@ class TuyaSharingClient:
         self._auth_result: TuyaSharingAuthResult | None = None
         self._token_update_callback: Any | None = None  # Callback for token persistence
         self._auth_failed_logged: bool = False  # Rate-limit sign invalid logging
+        # MQTT push dispatcher state (Task 1: v4.7 push listener).
+        # _push_callbacks: device_id -> list of registered PushCallbacks
+        # _sdk_listener: lazily created _KKTSharingDeviceListener; registered
+        # with the SDK Manager exactly once while any callbacks exist, and
+        # removed when the last callback is unregistered.
+        self._push_callbacks: dict[str, list[PushCallback]] = {}
+        self._sdk_listener: Any = None
 
     def set_token_update_callback(
         self,
@@ -220,6 +237,71 @@ class TuyaSharingClient:
         """
         self._token_update_callback = callback
         _LOGGER.debug("Token update callback registered")
+
+    # === MQTT push dispatcher (Task 1: v4.7 push listener) ===
+
+    def register_push_callback(
+        self, device_id: str, callback: PushCallback
+    ) -> None:
+        """Register a callback for MQTT push updates for a device.
+
+        On the first registration the SDK listener is created lazily and
+        attached to the SDK Manager via add_device_listener. Subsequent
+        registrations reuse the same listener.
+
+        Args:
+            device_id: The Tuya device ID to subscribe to.
+            callback: Synchronous callable invoked on the HA event loop with
+                      (updated_dps, report_type). updated_dps is keyed by
+                      DP-id strings (e.g. {"1": True}), report_type is "report".
+        """
+        if self._sdk_listener is None:
+            self._sdk_listener = _KKTSharingDeviceListener(self)
+            if self._manager is not None:
+                self._manager.add_device_listener(self._sdk_listener)
+            else:
+                _LOGGER.debug(
+                    "register_push_callback called before manager is initialized; "
+                    "listener will be attached when manager is available"
+                )
+
+        self._push_callbacks.setdefault(device_id, []).append(callback)
+        _LOGGER.debug(
+            "Registered push callback for device %s (total: %d)",
+            device_id[:8],
+            len(self._push_callbacks[device_id]),
+        )
+
+    def unregister_push_callback(
+        self, device_id: str, callback: PushCallback
+    ) -> None:
+        """Unregister a previously registered push callback.
+
+        When the last callback for the last device is removed, the SDK
+        listener is detached from the Manager and dropped.
+
+        Args:
+            device_id: The device ID whose callback should be removed.
+            callback: The exact callable previously passed to register_push_callback.
+        """
+        callbacks = self._push_callbacks.get(device_id)
+        if not callbacks:
+            return
+        try:
+            callbacks.remove(callback)
+        except ValueError:
+            return
+        if not callbacks:
+            del self._push_callbacks[device_id]
+
+        if not self._push_callbacks and self._sdk_listener is not None:
+            if self._manager is not None:
+                try:
+                    self._manager.remove_device_listener(self._sdk_listener)
+                except Exception as err:
+                    _LOGGER.debug("remove_device_listener raised: %s", err)
+            self._sdk_listener = None
+            _LOGGER.debug("Removed SDK push listener (no remaining callbacks)")
 
     @property
     def user_code(self) -> str:
@@ -1138,3 +1220,36 @@ class TuyaSharingClient:
             f"app_schema={self._app_schema}, "
             f"authenticated={self.is_authenticated})"
         )
+
+
+class _KKTSharingDeviceListener:
+    """Bridge between the tuya_sharing SDK push listener and TuyaSharingClient.
+
+    The SDK calls `update_device(device, updated_status_properties, dp_timestamps)`
+    from the MQTT background thread (`SharingMQ` extends `threading.Thread`), so
+    callbacks registered with the client must be hopped onto the HA event loop
+    before they touch coordinator state.
+
+    Implements the duck-typed SharingDeviceListener interface (the SDK does not
+    require a strict ABC subclass for `Manager.add_device_listener`).
+
+    The translation logic in `update_device` is added in a follow-up commit.
+    """
+
+    def __init__(self, client: TuyaSharingClient) -> None:
+        """Store a back-reference to the owning client."""
+        self._client = client
+
+    def update_device(
+        self,
+        device: Any,
+        updated_status_properties: list[str] | None = None,
+        dp_timestamps: dict | None = None,
+    ) -> None:
+        """SDK push entry point. Filled in by the listener-bridge commit."""
+
+    def add_device(self, device: Any) -> None:
+        """Handle device-added events from the SDK (no-op for push dispatcher)."""
+
+    def remove_device(self, device_id: str) -> None:
+        """Handle device-removed events from the SDK (no-op for push dispatcher)."""
