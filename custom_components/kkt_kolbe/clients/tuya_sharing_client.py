@@ -1258,10 +1258,14 @@ class _KKTSharingDeviceListener:
     callbacks registered with the client must be hopped onto the HA event loop
     before they touch coordinator state.
 
+    The SDK exposes the post-update device.status keyed by status code strings
+    (e.g. {"switch_1": True, "fan_speed": "low"}), but the KKT coordinators
+    store DPs keyed by DP-id strings. This listener performs the reverse lookup
+    via `device.local_strategy[dp_id]["status_code"]` and dispatches a
+    DP-id-keyed dict.
+
     Implements the duck-typed SharingDeviceListener interface (the SDK does not
     require a strict ABC subclass for `Manager.add_device_listener`).
-
-    The translation logic in `update_device` is added in a follow-up commit.
     """
 
     def __init__(self, client: TuyaSharingClient) -> None:
@@ -1274,7 +1278,45 @@ class _KKTSharingDeviceListener:
         updated_status_properties: list[str] | None = None,
         dp_timestamps: dict | None = None,
     ) -> None:
-        """SDK push entry point. Filled in by the listener-bridge commit."""
+        """Translate a code-keyed device update into a DP-id-keyed dispatch.
+
+        Runs on the SDK MQTT thread. Builds the updated_dps dict and schedules
+        `_dispatch_push` on the HA event loop via call_soon_threadsafe.
+        """
+        if not updated_status_properties:
+            return
+
+        # Reverse map: status_code -> dp_id (int). local_strategy is a
+        # dict[int, dict[str, Any]] where each entry has a "status_code" key.
+        local_strategy = getattr(device, "local_strategy", None) or {}
+        code_to_dp: dict[str, int] = {}
+        for dp_id, entry in local_strategy.items():
+            if not isinstance(entry, dict):
+                continue
+            code = entry.get("status_code")
+            if code is None:
+                continue
+            code_to_dp[code] = dp_id
+
+        device_status = getattr(device, "status", None) or {}
+        updated_dps: dict[str, Any] = {}
+        for code in updated_status_properties:
+            dp_id = code_to_dp.get(code)
+            if dp_id is None:
+                # Unknown code (no local_strategy entry); silently skip
+                continue
+            updated_dps[str(dp_id)] = device_status.get(code)
+
+        if not updated_dps:
+            return
+
+        # Bounce to HA loop before touching coordinator-bound callbacks
+        self._client.hass.loop.call_soon_threadsafe(
+            self._client._dispatch_push,
+            device.id,
+            updated_dps,
+            "report",
+        )
 
     def add_device(self, device: Any) -> None:
         """Handle device-added events from the SDK (no-op for push dispatcher)."""

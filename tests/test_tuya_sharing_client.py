@@ -864,3 +864,107 @@ class TestPushDispatcher:
 
         bad_cb.assert_called_once()
         good_cb.assert_called_once_with({"1": True}, "report")
+
+    @pytest.mark.asyncio
+    async def test_sdk_listener_translates_update_device_to_dispatch(
+        self, hass: HomeAssistant
+    ):
+        """_KKTSharingDeviceListener converts code-keyed status to DP-id-keyed dict
+        and schedules the dispatch on the HA event loop via call_soon_threadsafe.
+        """
+        from custom_components.kkt_kolbe.clients.tuya_sharing_client import (
+            _KKTSharingDeviceListener,
+        )
+
+        client = TuyaSharingClient(hass, "EU12345678")
+        client._manager = MagicMock()
+        client._dispatch_push = MagicMock()
+
+        # local_strategy is dict[int, dict[str, Any]] with "status_code" key
+        device = MagicMock()
+        device.id = "device_1"
+        device.local_strategy = {
+            1: {"status_code": "switch_1"},
+            4: {"status_code": "light"},
+            10: {"status_code": "fan_speed"},
+        }
+        device.status = {"switch_1": True, "light": False, "fan_speed": "low"}
+
+        # Capture call_soon_threadsafe to invoke its callback synchronously
+        with patch.object(hass.loop, "call_soon_threadsafe") as mock_cst:
+            listener = _KKTSharingDeviceListener(client)
+            listener.update_device(
+                device,
+                updated_status_properties=["switch_1", "light"],
+            )
+
+            assert mock_cst.call_count == 1
+            scheduled_fn, *args = mock_cst.call_args.args
+            # Manually invoke what was scheduled to validate correct args
+            scheduled_fn(*args)
+
+        client._dispatch_push.assert_called_once_with(
+            "device_1",
+            {"1": True, "4": False},
+            "report",
+        )
+
+    @pytest.mark.asyncio
+    async def test_sdk_listener_noop_when_no_updated_properties(
+        self, hass: HomeAssistant
+    ):
+        """When updated_status_properties is None or empty, listener does nothing."""
+        from custom_components.kkt_kolbe.clients.tuya_sharing_client import (
+            _KKTSharingDeviceListener,
+        )
+
+        client = TuyaSharingClient(hass, "EU12345678")
+        client._manager = MagicMock()
+        client._dispatch_push = MagicMock()
+
+        device = MagicMock()
+        device.id = "device_1"
+        device.local_strategy = {1: {"status_code": "switch_1"}}
+        device.status = {"switch_1": True}
+
+        with patch.object(hass.loop, "call_soon_threadsafe") as mock_cst:
+            listener = _KKTSharingDeviceListener(client)
+            listener.update_device(device, updated_status_properties=None)
+            listener.update_device(device, updated_status_properties=[])
+
+            mock_cst.assert_not_called()
+
+        client._dispatch_push.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_sdk_listener_skips_unknown_codes(self, hass: HomeAssistant):
+        """Codes that aren't in local_strategy must be silently skipped."""
+        from custom_components.kkt_kolbe.clients.tuya_sharing_client import (
+            _KKTSharingDeviceListener,
+        )
+
+        client = TuyaSharingClient(hass, "EU12345678")
+        client._manager = MagicMock()
+        client._dispatch_push = MagicMock()
+
+        device = MagicMock()
+        device.id = "device_1"
+        device.local_strategy = {1: {"status_code": "switch_1"}}
+        device.status = {"switch_1": True, "ghost_code": 42}
+
+        with patch.object(hass.loop, "call_soon_threadsafe") as mock_cst:
+            listener = _KKTSharingDeviceListener(client)
+            # Mix of known + unknown codes
+            listener.update_device(
+                device, updated_status_properties=["switch_1", "ghost_code"]
+            )
+
+            assert mock_cst.call_count == 1
+            scheduled_fn, *args = mock_cst.call_args.args
+            scheduled_fn(*args)
+
+        client._dispatch_push.assert_called_once_with(
+            "device_1",
+            {"1": True},
+            "report",
+        )
