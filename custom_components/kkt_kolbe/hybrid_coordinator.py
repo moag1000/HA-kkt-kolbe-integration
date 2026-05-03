@@ -11,6 +11,7 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.core import callback
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
@@ -89,6 +90,11 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
         # This cache accumulates all DPs seen so far
         self._dps_cache: dict[str, Any] = {}
 
+        # MQTT push state — see docs/superpowers/specs/2026-05-04-mqtt-push-listener-design.md
+        self.last_update_was_push: bool = False
+        self.last_push_report_type: str = ""
+        self._push_callback_registered: bool = False
+
         super().__init__(
             hass,
             _LOGGER,
@@ -108,6 +114,35 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
     def mark_initial_connect_done(self) -> None:
         """Mark that the background connection attempt has completed."""
         self._initial_connect_done = True
+
+    @callback
+    def _handle_push_update(self, updated_dps: dict[str, Any], report_type: str) -> None:
+        """Handle an MQTT push update from the SmartLife SDK.
+
+        Called by TuyaSharingClient._dispatch_push on the HA event loop.
+        Merges changed DPs into our cache, marks the next coordinator update
+        as push-originated so entities can hard-release optimistic locks on
+        confirmed writes (see KKTBaseEntity._handle_coordinator_update),
+        and triggers immediate state fan-out.
+
+        This callback is synchronous — never await or block here. To trigger
+        async work, use self.hass.async_create_task(...).
+        """
+        self._dps_cache.update({str(k): v for k, v in updated_dps.items()})
+
+        new_data = {
+            "dps": dict(self._dps_cache),
+            "source": "smartlife_push",
+            "timestamp": datetime.now().isoformat(),
+        }
+        self.last_update_was_push = True
+        self.last_push_report_type = report_type
+        try:
+            self.async_set_updated_data(new_data)
+        finally:
+            # Reset after fan-out so subsequent polled updates aren't mistaken for pushes
+            self.last_update_was_push = False
+            self.last_push_report_type = ""
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Update data using hybrid approach."""
