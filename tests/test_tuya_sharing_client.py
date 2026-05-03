@@ -937,6 +937,36 @@ class TestPushDispatcher:
         client._dispatch_push.assert_not_called()
 
     @pytest.mark.asyncio
+    async def test_register_push_callback_warns_when_manager_not_initialized(
+        self, hass: HomeAssistant, caplog
+    ):
+        """Pre-init register_push_callback must warn (not silently no-op).
+
+        Guards against the silent-no-attach failure mode where a listener is
+        created but never attached to the SDK Manager because the Manager has
+        not been initialized yet.
+        """
+        client = TuyaSharingClient(
+            hass=hass, user_code="EU12345678", app_schema=SMARTLIFE_SCHEMA
+        )
+        client._manager = None  # Simulate pre-init state
+
+        cb = MagicMock()
+        with caplog.at_level("WARNING"):
+            client.register_push_callback("device_pre_init", cb)
+
+        assert any(
+            "Manager not yet initialized" in record.message
+            for record in caplog.records
+            if record.levelname == "WARNING"
+        )
+        # device_id is logged truncated to 8 chars
+        assert "device_p" in caplog.text
+        # Listener was created but never attached
+        assert client._sdk_listener is not None
+        assert cb in client._push_callbacks["device_pre_init"]
+
+    @pytest.mark.asyncio
     async def test_sdk_listener_skips_unknown_codes(self, hass: HomeAssistant):
         """Codes that aren't in local_strategy must be silently skipped."""
         from custom_components.kkt_kolbe.clients.tuya_sharing_client import (

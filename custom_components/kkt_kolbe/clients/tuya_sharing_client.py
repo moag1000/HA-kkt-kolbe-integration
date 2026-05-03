@@ -249,6 +249,15 @@ class TuyaSharingClient:
         attached to the SDK Manager via add_device_listener. Subsequent
         registrations reuse the same listener.
 
+        Synchronous-callback contract:
+            The callback is invoked synchronously on the HA event loop via
+            ``hass.loop.call_soon_threadsafe`` -> ``_dispatch_push`` ->
+            ``callback(...)``. It MUST NOT block, await, or perform I/O
+            directly. Decorate the callback with
+            ``homeassistant.core.callback`` and keep it cheap. To trigger
+            async work from inside the callback, schedule it with
+            ``hass.async_create_task(...)``.
+
         Args:
             device_id: The Tuya device ID to subscribe to.
             callback: Synchronous callable invoked on the HA event loop with
@@ -260,9 +269,11 @@ class TuyaSharingClient:
             if self._manager is not None:
                 self._manager.add_device_listener(self._sdk_listener)
             else:
-                _LOGGER.debug(
-                    "register_push_callback called before manager is initialized; "
-                    "listener will be attached when manager is available"
+                _LOGGER.warning(
+                    "Push callback for device %s registered but Manager not yet "
+                    "initialized - listener will not receive MQTT updates. "
+                    "Ensure register_push_callback is called after async_get_devices().",
+                    device_id[:8],
                 )
 
         self._push_callbacks.setdefault(device_id, []).append(callback)
