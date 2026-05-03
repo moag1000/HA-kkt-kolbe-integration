@@ -264,10 +264,18 @@ Extension to `tests/test_switch.py` (and select, number):
 
 None required. Pure additive change. Roll back by reverting the commit.
 
-## Open Questions for Implementation
+## Resolved Open Questions
 
 1. Does `tuya-device-sharing-sdk>=0.2.8` actually expose `report_type` on the `update_device` callback path, or only inside `Manager.on_message` before it dispatches? Spike first.
+
+   **Resolved:** No — the listener signature is `update_device(device, updated_status_properties, dp_timestamps)`; `Manager.on_message` filters by `PROTOCOL_DEVICE_REPORT` internally and never forwards report_type, so Task 1's listener must treat every callback as a device-status report (use the `updated_status_properties` list to scope which DPs changed) and ignore report-type-based branching.
+
 2. Is `Manager.add_device_listener` thread-safe? SDK callbacks may fire from MQTT thread, not HA event loop. We need `hass.loop.call_soon_threadsafe` to bounce into the loop before calling `async_set_updated_data`.
+
+   **Resolved:** Not safe — `SharingMQ` extends `threading.Thread` (`tuya_sharing/mq.py` line 33), so `on_message` and the chained listener callback execute on the MQTT background thread; Task 1's `update_device` implementation must use `hass.loop.call_soon_threadsafe(coordinator.async_set_updated_data, ...)` to hop into the HA event loop before touching coordinator state or entities.
+
 3. What does `device.status` look like after an MQTT update — keyed by string DP IDs as the coordinator expects, or by `code` strings (e.g. `"switch_1"`)? Need to confirm with a small live test or by reading SDK source.
 
-These are pinned for the implementation plan to address as the first three steps (probe SDK behavior before writing the bridge code).
+   **Resolved:** Keyed by `code` strings — `Manager._on_device_report` runs `strategy.convert()` against `device.local_strategy[dpId]` to produce `(code, value)` and writes `device.status[code] = value` (raw DP-id integers are never exposed); Task 1's listener must read `device.status` by status_code and the coordinator's update path needs to map those codes back to DP-id keys (via the existing `local_strategy` reverse lookup) before merging into the coordinator's DP-id-keyed snapshot.
+
+These were pinned for the implementation plan to address as the first three steps (probe SDK behavior before writing the bridge code) and were resolved by Task 0's spike.
