@@ -187,18 +187,21 @@ Die Integration erfüllt nun alle 21 Gold-Tier Anforderungen der Home Assistant 
 
 ---
 
-## v4.7 Roadmap (vorgemerkt)
+## v4.7 Roadmap — UMGESETZT
 
-### MQTT-Push-Updates via SDK DeviceListener
-**Aktuell:** Coordinator pollt alle 30s. State-Changes vom Gerät (z.B. physischer Knopfdruck) werden erst beim nächsten Poll sichtbar. Optimistic-Lock muss ~3s Cloud-Propagation überbrücken.
+**Status:** Implementiert in v4.7.0 (2026-05-04). Siehe CHANGELOG.md.
 
-**Idee:** `tuya_sharing.Manager.add_device_listener(SharingDeviceListener)` registrieren. Listener-Callback `update_device_function_status(device, dp_id, value)` feuert sofort bei MQTT-Push vom Tuya-Cloud → Coordinator-Update ohne Poll-Lag. Optimistic-Lock kann sofort released werden wenn Push den geschriebenen Wert bestätigt.
+MQTT-Push-Updates via SDK DeviceListener wurden geshipped:
+- `clients/tuya_sharing_client.py`: `_KKTSharingDeviceListener` + Push-Dispatcher
+- `hybrid_coordinator.py`: `_handle_push_update` + `async_register_push` Lifecycle
+- `base_entity.py`: Hard-Release des Optimistic-Locks bei bestätigtem Push
 
-**SDK Voraussetzung:** `tuya-device-sharing-sdk>=0.2.8` (für `report_type` Feld zur Push/Query-Unterscheidung) — bereits gebumpt in v4.6.6.
+Spike-Findings dokumentiert in `docs/superpowers/specs/2026-05-04-mqtt-push-listener-design.md`. Plan in `docs/superpowers/plans/2026-05-04-mqtt-push-listener.md`.
 
-**Risiko:** Signifikanter Refactor in `hybrid_coordinator.py` + `coordinator.py`. MQTT-Verbindungs-Lifecycle muss sauber gehandhabt werden (cancel on stop ist seit SDK 0.2.x ok).
-
-**Impact:** Unmittelbare State-Changes in HA UI, weniger API-Last gegen Tuya-Cloud, semantisch korrektere Optimistic-Lock-Releases.
+**Lessons learned:**
+- `DataUpdateCoordinator` hat KEIN `async_added_to_hass` Hook (Entity-only) — eigener Setup-Aufruf nötig
+- `tuya-device-sharing-sdk` exposiert `report_type` NICHT auf der Listener-Callback-Pfad (always-report intern), Forward-Compat-Defense im Code
+- MQTT läuft in eigenem Thread → `hass.loop.call_soon_threadsafe` zwingend
 
 ---
 
