@@ -483,3 +483,142 @@ async def test_switch_optimistic_released_when_write_fails(
     assert switch._is_optimistic_active() is False
     switch._handle_coordinator_update()
     assert switch.is_on is False
+
+
+@pytest.mark.asyncio
+async def test_switch_optimistic_releases_immediately_on_matching_push_report(
+    hass: HomeAssistant,
+) -> None:
+    """A push with report_type='report' that matches our optimistic value
+    must release the lock immediately (faster path than read-time auto-release).
+    """
+    from custom_components.kkt_kolbe.switch import KKTKolbeSwitch
+
+    coordinator = MagicMock()
+    coordinator.data = {1: False, "1": False}
+    coordinator.last_update_success = True
+    coordinator.async_set_data_point = AsyncMock()
+    coordinator.last_update_was_push = False
+    coordinator.last_push_report_type = ""
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Test Hood",
+        data={
+            "device_id": "bf735dfe2ad64fba7cpyhn",
+            "ip_address": "192.168.1.100",
+            "local_key": "1234567890abcdef",
+            "product_name": "hermes_style_hood",
+            "device_type": "hermes_style_hood",
+        },
+        options={"disable_fan_auto_start": False},
+        unique_id="bf735dfe2ad64fba7cpyhn_dp1_pushrelease",
+    )
+    entry.add_to_hass(hass)
+
+    config = {"dp": 1, "name": "Power", "device_class": "switch"}
+    switch = KKTKolbeSwitch(coordinator, entry, config)
+    switch.hass = hass
+    switch.entity_id = "switch.test_power_pushrelease"
+    switch.async_write_ha_state = MagicMock()
+
+    await switch.async_turn_on()
+    assert switch._is_optimistic_active() is True
+
+    # Simulate a push from the device that matches what we wrote
+    coordinator.data = {1: True, "1": True}
+    coordinator.last_update_was_push = True
+    coordinator.last_push_report_type = "report"
+    switch._handle_coordinator_update()
+
+    assert switch._is_optimistic_active() is False
+    assert switch.is_on is True
+
+
+@pytest.mark.asyncio
+async def test_switch_optimistic_holds_when_push_value_does_not_match(
+    hass: HomeAssistant,
+) -> None:
+    """A push with a value DIFFERENT from our optimistic must NOT release the lock."""
+    from custom_components.kkt_kolbe.switch import KKTKolbeSwitch
+
+    coordinator = MagicMock()
+    coordinator.data = {1: False, "1": False}
+    coordinator.last_update_success = True
+    coordinator.async_set_data_point = AsyncMock()
+    coordinator.last_update_was_push = False
+    coordinator.last_push_report_type = ""
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Test Hood",
+        data={
+            "device_id": "bf735dfe2ad64fba7cpyhn",
+            "ip_address": "192.168.1.100",
+            "local_key": "1234567890abcdef",
+            "product_name": "hermes_style_hood",
+            "device_type": "hermes_style_hood",
+        },
+        options={"disable_fan_auto_start": False},
+        unique_id="bf735dfe2ad64fba7cpyhn_dp1_pushhold",
+    )
+    entry.add_to_hass(hass)
+
+    config = {"dp": 1, "name": "Power", "device_class": "switch"}
+    switch = KKTKolbeSwitch(coordinator, entry, config)
+    switch.hass = hass
+    switch.entity_id = "switch.test_power_pushhold"
+    switch.async_write_ha_state = MagicMock()
+
+    await switch.async_turn_on()  # optimistic = True
+
+    # Push reports a DIFFERENT value (e.g. external automation turned it off)
+    coordinator.data = {1: False, "1": False}
+    coordinator.last_update_was_push = True
+    coordinator.last_push_report_type = "report"
+    switch._handle_coordinator_update()
+
+    # Optimistic still active (we wrote True, device says False — wait for resolution)
+    assert switch._is_optimistic_active() is True
+    assert switch.is_on is True
+
+
+@pytest.mark.asyncio
+async def test_switch_handle_coordinator_update_works_without_push_fields(
+    hass: HomeAssistant,
+) -> None:
+    """Local-only coordinator does not have last_update_was_push fields.
+    The hard-release block must use getattr() defaults and not crash.
+    """
+    from custom_components.kkt_kolbe.switch import KKTKolbeSwitch
+
+    coordinator = MagicMock(spec=["data", "last_update_success", "async_set_data_point", "async_add_listener", "async_remove_listener"])
+    coordinator.data = {1: True, "1": True}
+    coordinator.last_update_success = True
+    coordinator.async_set_data_point = AsyncMock()
+    # Note: last_update_was_push and last_push_report_type are NOT set (spec=[...] enforces it)
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Test Hood",
+        data={
+            "device_id": "bf735dfe2ad64fba7cpyhn",
+            "ip_address": "192.168.1.100",
+            "local_key": "1234567890abcdef",
+            "product_name": "hermes_style_hood",
+            "device_type": "hermes_style_hood",
+        },
+        options={"disable_fan_auto_start": False},
+        unique_id="bf735dfe2ad64fba7cpyhn_dp1_localcoord",
+    )
+    entry.add_to_hass(hass)
+
+    config = {"dp": 1, "name": "Power", "device_class": "switch"}
+    switch = KKTKolbeSwitch(coordinator, entry, config)
+    switch.hass = hass
+    switch.entity_id = "switch.test_power_localcoord"
+    switch.async_write_ha_state = MagicMock()
+
+    # Should not raise even though coordinator lacks the v4.7 push fields
+    switch._handle_coordinator_update()
+    assert switch.is_on is True

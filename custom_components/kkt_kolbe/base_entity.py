@@ -324,6 +324,29 @@ class KKTBaseEntity(CoordinatorEntity["KKTKolbeUpdateCoordinator"]):
                 f"Available DPs: {data_keys}"
             )
 
+        # Hard-release optimistic on confirmed device push (v4.7+, Task 3):
+        # If this update was triggered by an MQTT report_type=='report' push (real
+        # device confirmation, not cached cloud read) AND the pushed value for our
+        # DP matches what we wrote, the device has confirmed our write. Release
+        # immediately rather than waiting for the value-match auto-release in
+        # _get_data_point_value (which only runs on the next read).
+        # getattr() defaults make this safe for non-Hybrid coordinators (the
+        # local-only KKTKolbeUpdateCoordinator) that lack these fields.
+        if (
+            getattr(self.coordinator, "last_update_was_push", False)
+            and getattr(self.coordinator, "last_push_report_type", "") == "report"
+            and self._is_optimistic_active()
+            and self._optimistic_value is not None
+        ):
+            # Read the raw coordinator value WITHOUT going through optimistic override
+            if self.coordinator.data:
+                dps_data = self.coordinator.data.get("dps", self.coordinator.data)
+                raw = dps_data.get(str(self._dp))
+                if raw is None:
+                    raw = dps_data.get(self._dp)
+                if raw == self._optimistic_value:
+                    self._clear_optimistic()
+
         # Update cached state from coordinator data
         self._update_cached_state()
         self.async_write_ha_state()
