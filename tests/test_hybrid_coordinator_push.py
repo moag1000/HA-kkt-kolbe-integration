@@ -3,9 +3,23 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
 
 import pytest
 from homeassistant.core import HomeAssistant
+
+
+@pytest.fixture
+def mock_smartlife_client() -> MagicMock:
+    """Build a mock TuyaSharingClient with push (un)register methods."""
+    client = MagicMock()
+    client.register_push_callback = MagicMock()
+    client.unregister_push_callback = MagicMock()
+    client.async_get_device_status = AsyncMock(return_value=[])
+    client.async_send_commands = AsyncMock(return_value=True)
+    client.async_send_dp_commands = AsyncMock(return_value=True)
+    return client
 
 
 def _make_coord(
@@ -90,3 +104,50 @@ async def test_handle_push_update_sets_and_clears_last_update_was_push(
     # Flag is cleared after
     assert coord.last_update_was_push is False
     assert coord.last_push_report_type == ""
+
+
+@pytest.mark.asyncio
+async def test_hybrid_coord_registers_push_callback_when_smartlife_client_present(
+    hass: HomeAssistant,
+    mock_config_entry,
+    mock_smartlife_client: MagicMock,
+) -> None:
+    """async_added_to_hass registers our handler on the smartlife client."""
+    coord = _make_coord(hass, mock_config_entry, smartlife_client=mock_smartlife_client)
+
+    await coord.async_added_to_hass()
+
+    mock_smartlife_client.register_push_callback.assert_called_once_with(coord.device_id, coord._handle_push_update)
+    assert coord._push_callback_registered is True
+
+
+@pytest.mark.asyncio
+async def test_hybrid_coord_skips_registration_without_smartlife_client(
+    hass: HomeAssistant,
+    mock_config_entry,
+) -> None:
+    """async_added_to_hass is a no-op when smartlife_client is None."""
+    coord = _make_coord(hass, mock_config_entry, smartlife_client=None)
+
+    # Must not raise
+    await coord.async_added_to_hass()
+
+    assert coord._push_callback_registered is False
+
+
+@pytest.mark.asyncio
+async def test_hybrid_coord_unregisters_on_shutdown(
+    hass: HomeAssistant,
+    mock_config_entry,
+    mock_smartlife_client: MagicMock,
+) -> None:
+    """async_shutdown unregisters the push callback and clears the flag."""
+    coord = _make_coord(hass, mock_config_entry, smartlife_client=mock_smartlife_client)
+
+    await coord.async_added_to_hass()
+    assert coord._push_callback_registered is True
+
+    await coord.async_shutdown()
+
+    mock_smartlife_client.unregister_push_callback.assert_called_once_with(coord.device_id, coord._handle_push_update)
+    assert coord._push_callback_registered is False

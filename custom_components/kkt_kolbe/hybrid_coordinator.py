@@ -144,6 +144,28 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
             self.last_update_was_push = False
             self.last_push_report_type = ""
 
+    async def async_added_to_hass(self) -> None:
+        """Register the MQTT push callback with the SmartLife client.
+
+        Called by HA's CoordinatorEntity machinery after construction. Safe to
+        call when smartlife_client is None — silently skips registration for
+        local-only setups.
+        """
+        parent = getattr(super(), "async_added_to_hass", None)
+        if parent is not None:
+            await parent()
+        if self.smartlife_client is None or self._push_callback_registered:
+            return
+        self.smartlife_client.register_push_callback(self.device_id, self._handle_push_update)
+        self._push_callback_registered = True
+
+    async def async_shutdown(self) -> None:
+        """Unregister the push callback before tearing down the coordinator."""
+        if self._push_callback_registered and self.smartlife_client is not None:
+            self.smartlife_client.unregister_push_callback(self.device_id, self._handle_push_update)
+            self._push_callback_registered = False
+        await super().async_shutdown()
+
     async def _async_update_data(self) -> dict[str, Any]:
         """Update data using hybrid approach."""
         # Before background connect completes, return empty data immediately
