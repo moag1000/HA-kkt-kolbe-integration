@@ -270,7 +270,21 @@ async def _async_background_connect(
     if hasattr(coordinator, "mark_initial_connect_done"):
         coordinator.mark_initial_connect_done()
 
-    # Step 4: Trigger first data refresh
+    # Step 4: Register MQTT push callback now that the SmartLife client is fully initialized.
+    # The hasattr guard means local-only coordinators (no async_register_push) are safe.
+    # The try/except keeps push-registration failures from breaking setup —
+    # push is supplementary; the 30s polling fallback works without it.
+    if hasattr(coordinator, "async_register_push"):
+        try:
+            await coordinator.async_register_push()
+        except Exception as exc:
+            _LOGGER.warning(
+                "Failed to register MQTT push callback for device %s: %s",
+                getattr(coordinator, "device_id", "?")[:8],
+                exc,
+            )
+
+    # Step 5: Trigger first data refresh
     await coordinator.async_refresh()
 
 

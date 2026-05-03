@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from typing import Any
@@ -36,6 +37,15 @@ if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
 _LOGGER = logging.getLogger(__name__)
+
+# Type alias for MQTT push callbacks dispatched by TuyaSharingClient.
+# Signature: callback(updated_dps, report_type) where:
+#   - updated_dps: dict mapping DP-id strings (e.g. "1", "4") to the new value
+#   - report_type: currently always "report" (the SDK's Manager.on_message
+#     filters PROTOCOL_DEVICE_REPORT internally and only invokes the listener
+#     for actual device-pushed status reports). The parameter is retained for
+#     forward compatibility with future report kinds.
+PushCallback = Callable[[dict[str, Any], str], None]
 
 
 @dataclass
@@ -205,6 +215,13 @@ class TuyaSharingClient:
         self._auth_result: TuyaSharingAuthResult | None = None
         self._token_update_callback: Any | None = None  # Callback for token persistence
         self._auth_failed_logged: bool = False  # Rate-limit sign invalid logging
+        # MQTT push dispatcher state (Task 1: v4.7 push listener).
+        # _push_callbacks: device_id -> list of registered PushCallbacks
+        # _sdk_listener: lazily created _KKTSharingDeviceListener; registered
+        # with the SDK Manager exactly once while any callbacks exist, and
+        # removed when the last callback is unregistered.
+        self._push_callbacks: dict[str, list[PushCallback]] = {}
+        self._sdk_listener: Any = None
 
     def set_token_update_callback(
         self,
@@ -220,6 +237,106 @@ class TuyaSharingClient:
         """
         self._token_update_callback = callback
         _LOGGER.debug("Token update callback registered")
+
+    # === MQTT push dispatcher (Task 1: v4.7 push listener) ===
+
+    def register_push_callback(self, device_id: str, callback: PushCallback) -> None:
+        """Register a callback for MQTT push updates for a device.
+
+        On the first registration the SDK listener is created lazily and
+        attached to the SDK Manager via add_device_listener. Subsequent
+        registrations reuse the same listener.
+
+        Synchronous-callback contract:
+            The callback is invoked synchronously on the HA event loop via
+            ``hass.loop.call_soon_threadsafe`` -> ``_dispatch_push`` ->
+            ``callback(...)``. It MUST NOT block, await, or perform I/O
+            directly. Decorate the callback with
+            ``homeassistant.core.callback`` and keep it cheap. To trigger
+            async work from inside the callback, schedule it with
+            ``hass.async_create_task(...)``.
+
+        Args:
+            device_id: The Tuya device ID to subscribe to.
+            callback: Synchronous callable invoked on the HA event loop with
+                      (updated_dps, report_type). updated_dps is keyed by
+                      DP-id strings (e.g. {"1": True}), report_type is "report".
+        """
+        if self._sdk_listener is None:
+            self._sdk_listener = _KKTSharingDeviceListener(self)
+            if self._manager is not None:
+                self._manager.add_device_listener(self._sdk_listener)
+            else:
+                _LOGGER.warning(
+                    "Push callback for device %s registered but Manager not yet "
+                    "initialized - listener will not receive MQTT updates. "
+                    "Ensure register_push_callback is called after async_get_devices().",
+                    device_id[:8],
+                )
+
+        self._push_callbacks.setdefault(device_id, []).append(callback)
+        _LOGGER.debug(
+            "Registered push callback for device %s (total: %d)",
+            device_id[:8],
+            len(self._push_callbacks[device_id]),
+        )
+
+    def unregister_push_callback(self, device_id: str, callback: PushCallback) -> None:
+        """Unregister a previously registered push callback.
+
+        When the last callback for the last device is removed, the SDK
+        listener is detached from the Manager and dropped.
+
+        Args:
+            device_id: The device ID whose callback should be removed.
+            callback: The exact callable previously passed to register_push_callback.
+        """
+        callbacks = self._push_callbacks.get(device_id)
+        if not callbacks:
+            return
+        try:
+            callbacks.remove(callback)
+        except ValueError:
+            return
+        if not callbacks:
+            del self._push_callbacks[device_id]
+
+        if not self._push_callbacks and self._sdk_listener is not None:
+            if self._manager is not None:
+                try:
+                    self._manager.remove_device_listener(self._sdk_listener)
+                except Exception as err:
+                    _LOGGER.debug("remove_device_listener raised: %s", err)
+            self._sdk_listener = None
+            _LOGGER.debug("Removed SDK push listener (no remaining callbacks)")
+
+    def _dispatch_push(
+        self,
+        device_id: str,
+        updated_dps: dict[str, Any],
+        report_type: str,
+    ) -> None:
+        """Dispatch an MQTT push to all registered callbacks for a device.
+
+        Called on the HA event loop (the listener bridge uses
+        loop.call_soon_threadsafe to hop from the SDK MQTT thread). Exceptions
+        from individual callbacks are logged and isolated so one bad consumer
+        cannot break delivery to the others.
+
+        Args:
+            device_id: The originating device ID.
+            updated_dps: DP-id-keyed dict of changed data points.
+            report_type: Currently always "report" (see PushCallback docstring).
+        """
+        for callback in list(self._push_callbacks.get(device_id, [])):
+            try:
+                callback(updated_dps, report_type)
+            except Exception:
+                # Never let one bad callback break delivery to others
+                _LOGGER.exception(
+                    "Push callback raised for device %s",
+                    device_id[:8],
+                )
 
     @property
     def user_code(self) -> str:
@@ -1138,3 +1255,78 @@ class TuyaSharingClient:
             f"app_schema={self._app_schema}, "
             f"authenticated={self.is_authenticated})"
         )
+
+
+class _KKTSharingDeviceListener:
+    """Bridge between the tuya_sharing SDK push listener and TuyaSharingClient.
+
+    The SDK calls `update_device(device, updated_status_properties, dp_timestamps)`
+    from the MQTT background thread (`SharingMQ` extends `threading.Thread`), so
+    callbacks registered with the client must be hopped onto the HA event loop
+    before they touch coordinator state.
+
+    The SDK exposes the post-update device.status keyed by status code strings
+    (e.g. {"switch_1": True, "fan_speed": "low"}), but the KKT coordinators
+    store DPs keyed by DP-id strings. This listener performs the reverse lookup
+    via `device.local_strategy[dp_id]["status_code"]` and dispatches a
+    DP-id-keyed dict.
+
+    Implements the duck-typed SharingDeviceListener interface (the SDK does not
+    require a strict ABC subclass for `Manager.add_device_listener`).
+    """
+
+    def __init__(self, client: TuyaSharingClient) -> None:
+        """Store a back-reference to the owning client."""
+        self._client = client
+
+    def update_device(
+        self,
+        device: Any,
+        updated_status_properties: list[str] | None = None,
+        dp_timestamps: dict | None = None,
+    ) -> None:
+        """Translate a code-keyed device update into a DP-id-keyed dispatch.
+
+        Runs on the SDK MQTT thread. Builds the updated_dps dict and schedules
+        `_dispatch_push` on the HA event loop via call_soon_threadsafe.
+        """
+        if not updated_status_properties:
+            return
+
+        # Reverse map: status_code -> dp_id (int). local_strategy is a
+        # dict[int, dict[str, Any]] where each entry has a "status_code" key.
+        local_strategy = getattr(device, "local_strategy", None) or {}
+        code_to_dp: dict[str, int] = {}
+        for dp_id, entry in local_strategy.items():
+            if not isinstance(entry, dict):
+                continue
+            code = entry.get("status_code")
+            if code is None:
+                continue
+            code_to_dp[code] = dp_id
+
+        device_status = getattr(device, "status", None) or {}
+        updated_dps: dict[str, Any] = {}
+        for code in updated_status_properties:
+            dp_id = code_to_dp.get(code)
+            if dp_id is None:
+                # Unknown code (no local_strategy entry); silently skip
+                continue
+            updated_dps[str(dp_id)] = device_status.get(code)
+
+        if not updated_dps:
+            return
+
+        # Bounce to HA loop before touching coordinator-bound callbacks
+        self._client.hass.loop.call_soon_threadsafe(
+            self._client._dispatch_push,
+            device.id,
+            updated_dps,
+            "report",
+        )
+
+    def add_device(self, device: Any) -> None:
+        """Handle device-added events from the SDK (no-op for push dispatcher)."""
+
+    def remove_device(self, device_id: str) -> None:
+        """Handle device-removed events from the SDK (no-op for push dispatcher)."""

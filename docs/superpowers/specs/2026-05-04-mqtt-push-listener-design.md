@@ -160,10 +160,15 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
         self.last_push_report_type: str = ""
         self._push_callback_registered: bool = False
 
-    async def async_added_to_hass(self) -> None:
-        # Hook called by HA after construction. Register MQTT push listener
-        # if a SmartLife client is available.
-        await super().async_added_to_hass() if hasattr(super(), "async_added_to_hass") else None
+    async def async_register_push(self) -> None:
+        # Called from __init__.py during entry setup, after the coordinator
+        # is constructed and the SmartLife client is wired in.
+        #
+        # We deliberately do NOT use async_added_to_hass here:
+        # DataUpdateCoordinator (unlike Entity) has no such lifecycle hook,
+        # so HA would never invoke it in production. The bug went unnoticed
+        # because tests called the method directly. See "Lessons learned"
+        # below.
         if self.smartlife_client and not self._push_callback_registered:
             self.smartlife_client.register_push_callback(
                 self.device_id, self._handle_push_update
@@ -230,7 +235,7 @@ The "value matches" check stays the same as today's auto-release. The difference
 | Multiple coordinators on same device_id | Should not happen; entry uniqueness enforces single coord per device | List allows graceful degradation if it ever does |
 | Out-of-order pushes | Last-write-wins for v4.7. `dp_timestamps` ignored | Future enhancement |
 | Push fires before coord registered | Push dropped (no callback registered yet). Next 30 s poll picks it up | Acceptable startup-window race |
-| Coord re-created (entry reload) | Old coord's `async_shutdown` deregisters; new coord re-registers in `async_added_to_hass` | Memory-leak risk if shutdown skipped — assert in tests |
+| Coord re-created (entry reload) | Old coord's `async_shutdown` deregisters; new coord re-registers via `async_register_push` invoked from `_async_background_connect` | Memory-leak risk if shutdown skipped — assert in tests |
 
 ## Test Strategy
 
@@ -243,7 +248,7 @@ New tests in `tests/test_tuya_sharing_client.py`:
 - `test_dispatch_push_only_callbacks_for_target_device`
 
 New tests in `tests/test_coordinator.py` (or new `test_hybrid_coordinator_push.py`):
-- `test_hybrid_coord_registers_push_callback_on_added_to_hass`
+- `test_hybrid_coord_registers_push_callback_via_async_register_push`
 - `test_hybrid_coord_unregisters_on_shutdown`
 - `test_handle_push_update_merges_into_dps_cache`
 - `test_handle_push_update_calls_async_set_updated_data`
@@ -264,10 +269,41 @@ Extension to `tests/test_switch.py` (and select, number):
 
 None required. Pure additive change. Roll back by reverting the commit.
 
-## Open Questions for Implementation
+## Resolved Open Questions
 
 1. Does `tuya-device-sharing-sdk>=0.2.8` actually expose `report_type` on the `update_device` callback path, or only inside `Manager.on_message` before it dispatches? Spike first.
+
+   **Resolved:** No — the listener signature is `update_device(device, updated_status_properties, dp_timestamps)`; `Manager.on_message` filters by `PROTOCOL_DEVICE_REPORT` internally and never forwards report_type, so Task 1's listener must treat every callback as a device-status report (use the `updated_status_properties` list to scope which DPs changed) and ignore report-type-based branching.
+
 2. Is `Manager.add_device_listener` thread-safe? SDK callbacks may fire from MQTT thread, not HA event loop. We need `hass.loop.call_soon_threadsafe` to bounce into the loop before calling `async_set_updated_data`.
+
+   **Resolved:** Not safe — `SharingMQ` extends `threading.Thread` (`tuya_sharing/mq.py` line 33), so `on_message` and the chained listener callback execute on the MQTT background thread; Task 1's `update_device` implementation must use `hass.loop.call_soon_threadsafe(coordinator.async_set_updated_data, ...)` to hop into the HA event loop before touching coordinator state or entities.
+
 3. What does `device.status` look like after an MQTT update — keyed by string DP IDs as the coordinator expects, or by `code` strings (e.g. `"switch_1"`)? Need to confirm with a small live test or by reading SDK source.
 
-These are pinned for the implementation plan to address as the first three steps (probe SDK behavior before writing the bridge code).
+   **Resolved:** Keyed by `code` strings — `Manager._on_device_report` runs `strategy.convert()` against `device.local_strategy[dpId]` to produce `(code, value)` and writes `device.status[code] = value` (raw DP-id integers are never exposed); Task 1's listener must read `device.status` by status_code and the coordinator's update path needs to map those codes back to DP-id keys (via the existing `local_strategy` reverse lookup) before merging into the coordinator's DP-id-keyed snapshot.
+
+These were pinned for the implementation plan to address as the first three steps (probe SDK behavior before writing the bridge code) and were resolved by Task 0's spike.
+
+## Lessons learned during implementation
+
+### Critical bug: `async_added_to_hass` is not a Coordinator hook
+
+The original Task 2 implementation used `async def async_added_to_hass(self)` on
+`KKTKolbeHybridCoordinator` (which extends `DataUpdateCoordinator`). That hook
+exists on `Entity` and `CoordinatorEntity`, **not** on `DataUpdateCoordinator` —
+production HA never invoked it, so `register_push_callback` never fired and the
+v4.7 feature was inert end-to-end. Tests passed because they called the method
+directly (`await coord.async_added_to_hass()`), masking the issue.
+
+**Fix:** Renamed to `async_register_push` and wired explicitly from
+`_async_background_connect` in `__init__.py`, after `mark_initial_connect_done()`
+so the SmartLife client is fully online when registration happens. A regression
+test now drives `_async_background_connect` end-to-end and asserts
+`async_register_push` is invoked.
+
+**Takeaway:** When mixing in lifecycle-style methods on non-Entity HA classes,
+verify the parent class actually has the hook before relying on it. Entity-only
+hooks include `async_added_to_hass`, `async_will_remove_from_hass`, and
+`async_remove`. `DataUpdateCoordinator` exposes only `async_shutdown` and the
+`async_setup` / `_async_update_data` callbacks.

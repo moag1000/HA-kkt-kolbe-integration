@@ -721,3 +721,280 @@ class TestTuyaSharingAuthResult:
         assert result.success is False
         assert result.error_message == "Authentication denied"
         assert result.access_token is None
+
+
+# === PUSH DISPATCHER TESTS (Task 1: v4.7 MQTT push listener) ===
+
+
+class TestPushDispatcher:
+    """Tests for the MQTT push dispatcher in TuyaSharingClient.
+
+    Verifies that:
+    - register_push_callback lazily creates an SDK listener and adds it once.
+    - unregister_push_callback drops listeners when callbacks are gone.
+    - _dispatch_push fans out to all callbacks for a device, isolates exceptions,
+      and only invokes callbacks for the matching device.
+    - The internal _KKTSharingDeviceListener correctly bridges code-keyed
+      device.status into DP-id-keyed updates and bounces to the HA event loop
+      via call_soon_threadsafe.
+    """
+
+    @pytest.mark.asyncio
+    async def test_register_push_callback_creates_listener_on_first_register(
+        self, hass: HomeAssistant
+    ):
+        """First register_push_callback should add the SDK listener exactly once."""
+        client = TuyaSharingClient(hass, "EU12345678")
+        client._manager = MagicMock()
+
+        callback = MagicMock()
+        client.register_push_callback("device_1", callback)
+
+        assert client._manager.add_device_listener.call_count == 1
+        assert client._sdk_listener is not None
+        assert callback in client._push_callbacks["device_1"]
+
+    @pytest.mark.asyncio
+    async def test_register_push_callback_reuses_listener_on_second_register(
+        self, hass: HomeAssistant
+    ):
+        """Second register_push_callback must not call add_device_listener again."""
+        client = TuyaSharingClient(hass, "EU12345678")
+        client._manager = MagicMock()
+
+        callback_a = MagicMock()
+        callback_b = MagicMock()
+        client.register_push_callback("device_1", callback_a)
+        client.register_push_callback("device_2", callback_b)
+
+        assert client._manager.add_device_listener.call_count == 1
+        assert callback_a in client._push_callbacks["device_1"]
+        assert callback_b in client._push_callbacks["device_2"]
+
+    @pytest.mark.asyncio
+    async def test_unregister_push_callback_removes_listener_when_last_callback_gone(
+        self, hass: HomeAssistant
+    ):
+        """After unregistering the last callback, the SDK listener should be removed."""
+        client = TuyaSharingClient(hass, "EU12345678")
+        client._manager = MagicMock()
+
+        callback = MagicMock()
+        client.register_push_callback("device_1", callback)
+        listener_ref = client._sdk_listener
+
+        client.unregister_push_callback("device_1", callback)
+
+        client._manager.remove_device_listener.assert_called_once_with(listener_ref)
+        assert client._sdk_listener is None
+        assert "device_1" not in client._push_callbacks
+
+    @pytest.mark.asyncio
+    async def test_unregister_keeps_listener_when_other_callbacks_remain(
+        self, hass: HomeAssistant
+    ):
+        """Unregistering one callback while others remain should not remove SDK listener."""
+        client = TuyaSharingClient(hass, "EU12345678")
+        client._manager = MagicMock()
+
+        callback_a = MagicMock()
+        callback_b = MagicMock()
+        client.register_push_callback("device_1", callback_a)
+        client.register_push_callback("device_2", callback_b)
+
+        client.unregister_push_callback("device_1", callback_a)
+
+        client._manager.remove_device_listener.assert_not_called()
+        assert client._sdk_listener is not None
+        assert "device_1" not in client._push_callbacks
+        assert callback_b in client._push_callbacks["device_2"]
+
+    @pytest.mark.asyncio
+    async def test_dispatch_push_calls_all_callbacks_for_device(
+        self, hass: HomeAssistant
+    ):
+        """All callbacks for the target device receive the push."""
+        client = TuyaSharingClient(hass, "EU12345678")
+        client._manager = MagicMock()
+
+        cb_a = MagicMock()
+        cb_b = MagicMock()
+        client.register_push_callback("device_1", cb_a)
+        client.register_push_callback("device_1", cb_b)
+
+        updated_dps = {"1": True, "4": False}
+        client._dispatch_push("device_1", updated_dps, "report")
+
+        cb_a.assert_called_once_with(updated_dps, "report")
+        cb_b.assert_called_once_with(updated_dps, "report")
+
+    @pytest.mark.asyncio
+    async def test_dispatch_push_only_callbacks_for_target_device(
+        self, hass: HomeAssistant
+    ):
+        """Pushes to one device must not invoke callbacks registered for another."""
+        client = TuyaSharingClient(hass, "EU12345678")
+        client._manager = MagicMock()
+
+        cb_a = MagicMock()
+        cb_b = MagicMock()
+        client.register_push_callback("device_1", cb_a)
+        client.register_push_callback("device_2", cb_b)
+
+        client._dispatch_push("device_1", {"1": True}, "report")
+
+        cb_a.assert_called_once_with({"1": True}, "report")
+        cb_b.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_dispatch_push_isolates_callback_exceptions(
+        self, hass: HomeAssistant
+    ):
+        """A callback that raises must not break delivery to other callbacks."""
+        client = TuyaSharingClient(hass, "EU12345678")
+        client._manager = MagicMock()
+
+        bad_cb = MagicMock(side_effect=RuntimeError("boom"))
+        good_cb = MagicMock()
+        client.register_push_callback("device_1", bad_cb)
+        client.register_push_callback("device_1", good_cb)
+
+        # Should not raise
+        client._dispatch_push("device_1", {"1": True}, "report")
+
+        bad_cb.assert_called_once()
+        good_cb.assert_called_once_with({"1": True}, "report")
+
+    @pytest.mark.asyncio
+    async def test_sdk_listener_translates_update_device_to_dispatch(
+        self, hass: HomeAssistant
+    ):
+        """_KKTSharingDeviceListener converts code-keyed status to DP-id-keyed dict
+        and schedules the dispatch on the HA event loop via call_soon_threadsafe.
+        """
+        from custom_components.kkt_kolbe.clients.tuya_sharing_client import (
+            _KKTSharingDeviceListener,
+        )
+
+        client = TuyaSharingClient(hass, "EU12345678")
+        client._manager = MagicMock()
+        client._dispatch_push = MagicMock()
+
+        # local_strategy is dict[int, dict[str, Any]] with "status_code" key
+        device = MagicMock()
+        device.id = "device_1"
+        device.local_strategy = {
+            1: {"status_code": "switch_1"},
+            4: {"status_code": "light"},
+            10: {"status_code": "fan_speed"},
+        }
+        device.status = {"switch_1": True, "light": False, "fan_speed": "low"}
+
+        # Capture call_soon_threadsafe to invoke its callback synchronously
+        with patch.object(hass.loop, "call_soon_threadsafe") as mock_cst:
+            listener = _KKTSharingDeviceListener(client)
+            listener.update_device(
+                device,
+                updated_status_properties=["switch_1", "light"],
+            )
+
+            assert mock_cst.call_count == 1
+            scheduled_fn, *args = mock_cst.call_args.args
+            # Manually invoke what was scheduled to validate correct args
+            scheduled_fn(*args)
+
+        client._dispatch_push.assert_called_once_with(
+            "device_1",
+            {"1": True, "4": False},
+            "report",
+        )
+
+    @pytest.mark.asyncio
+    async def test_sdk_listener_noop_when_no_updated_properties(
+        self, hass: HomeAssistant
+    ):
+        """When updated_status_properties is None or empty, listener does nothing."""
+        from custom_components.kkt_kolbe.clients.tuya_sharing_client import (
+            _KKTSharingDeviceListener,
+        )
+
+        client = TuyaSharingClient(hass, "EU12345678")
+        client._manager = MagicMock()
+        client._dispatch_push = MagicMock()
+
+        device = MagicMock()
+        device.id = "device_1"
+        device.local_strategy = {1: {"status_code": "switch_1"}}
+        device.status = {"switch_1": True}
+
+        with patch.object(hass.loop, "call_soon_threadsafe") as mock_cst:
+            listener = _KKTSharingDeviceListener(client)
+            listener.update_device(device, updated_status_properties=None)
+            listener.update_device(device, updated_status_properties=[])
+
+            mock_cst.assert_not_called()
+
+        client._dispatch_push.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_register_push_callback_warns_when_manager_not_initialized(
+        self, hass: HomeAssistant, caplog
+    ):
+        """Pre-init register_push_callback must warn (not silently no-op).
+
+        Guards against the silent-no-attach failure mode where a listener is
+        created but never attached to the SDK Manager because the Manager has
+        not been initialized yet.
+        """
+        client = TuyaSharingClient(
+            hass=hass, user_code="EU12345678", app_schema=SMARTLIFE_SCHEMA
+        )
+        client._manager = None  # Simulate pre-init state
+
+        cb = MagicMock()
+        with caplog.at_level("WARNING"):
+            client.register_push_callback("device_pre_init", cb)
+
+        assert any(
+            "Manager not yet initialized" in record.message
+            for record in caplog.records
+            if record.levelname == "WARNING"
+        )
+        # device_id is logged truncated to 8 chars
+        assert "device_p" in caplog.text
+        # Listener was created but never attached
+        assert client._sdk_listener is not None
+        assert cb in client._push_callbacks["device_pre_init"]
+
+    @pytest.mark.asyncio
+    async def test_sdk_listener_skips_unknown_codes(self, hass: HomeAssistant):
+        """Codes that aren't in local_strategy must be silently skipped."""
+        from custom_components.kkt_kolbe.clients.tuya_sharing_client import (
+            _KKTSharingDeviceListener,
+        )
+
+        client = TuyaSharingClient(hass, "EU12345678")
+        client._manager = MagicMock()
+        client._dispatch_push = MagicMock()
+
+        device = MagicMock()
+        device.id = "device_1"
+        device.local_strategy = {1: {"status_code": "switch_1"}}
+        device.status = {"switch_1": True, "ghost_code": 42}
+
+        with patch.object(hass.loop, "call_soon_threadsafe") as mock_cst:
+            listener = _KKTSharingDeviceListener(client)
+            # Mix of known + unknown codes
+            listener.update_device(
+                device, updated_status_properties=["switch_1", "ghost_code"]
+            )
+
+            assert mock_cst.call_count == 1
+            scheduled_fn, *args = mock_cst.call_args.args
+            scheduled_fn(*args)
+
+        client._dispatch_push.assert_called_once_with(
+            "device_1",
+            {"1": True},
+            "report",
+        )

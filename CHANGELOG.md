@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [4.7.0] - 2026-05-04
+
+### Added
+
+- **MQTT Push Updates für SmartLife-Modus**: Coordinator nutzt jetzt den `SharingDeviceListener` aus `tuya-device-sharing-sdk`. State-Changes vom Gerät (physischer Knopfdruck, Programmwechsel, Scheduler) erscheinen in HA innerhalb ~500 ms statt bis zu 30 Sekunden. 30s-Polling bleibt aktiv als Fallback bei MQTT-Disconnect — additiv, nicht ersetzend.
+- **Optimistic-Lock Hard-Release auf bestätigten Push**: Wenn ein MQTT-Push den geschriebenen Wert bestätigt, wird der Lock sofort gelöst — vor dem nächsten Read-Path. UI fühlt sich responsiver an.
+
+### Architecture
+
+- **Push Dispatcher** in `clients/tuya_sharing_client.py`: Single `_KKTSharingDeviceListener` registriert sich einmal pro SmartLife-Account am SDK-Manager und dispatcht per `device_id` an Coordinator-Callbacks. Translation von code-keyed `device.status` (z.B. `"switch_1"`) zu DP-id-keyed Dict via `device.local_strategy`. Thread-safe via `hass.loop.call_soon_threadsafe` (SDK MQTT läuft in eigenem Thread).
+- **Coordinator Push-Handler** in `hybrid_coordinator.py`: `_handle_push_update` (callback-decorated synchronous) merged DPs, ruft `async_set_updated_data` mit `last_update_was_push=True`. Sauberer Lifecycle: `async_register_push` (aufgerufen aus `_async_background_connect` nach `mark_initial_connect_done`) + `async_shutdown` deregistriert.
+- **Entity Hard-Release** in `base_entity.py`: `_handle_coordinator_update` prüft `coordinator.last_update_was_push` + `last_push_report_type == "report"` für aggressive Optimistic-Lock-Releases. Forward-compatibel falls SDK künftig push vs query unterscheidet.
+
+### Notes
+
+- Lokal-Modus (`integration_mode == "manual"`) unbeeinflusst — kein SDK, kein MQTT, weiter reines Polling.
+- Tests: 12 neue Tests (10 Push-Dispatcher, 7 Coordinator-Lifecycle inkl. End-to-End, 3 Hard-Release). Suite 238/238 grün.
+- Zukunft (v4.8): Push-primär mit reduziertem Polling-Intervall, sobald v4.7 in Production stabil läuft.
+
+---
+
 ## [4.6.6] - 2026-05-03
 
 ### Added
