@@ -46,3 +46,6 @@ test_env/
 *_device_id*
 *_credentials*
 *_private*
+
+# Git worktrees (isolated dev workspaces)
+.worktrees/
