@@ -205,4 +205,15 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: KKTKolb
     # Add device info from runtime_data
     diagnostics_data["device_info"] = runtime_data.device_info
 
+    # Add SmartLife device dump if available — exposes the cloud's view of the
+    # device (function codes, status_range, local_strategy). Critical for
+    # diagnosing error 2008 ("command not supported") where the device's
+    # actual code list differs from our hardcoded mappings. Mirrors what
+    # HA-Core's official Tuya integration includes in its diagnostics.
+    smartlife_client = getattr(coordinator, "smartlife_client", None) if coordinator else None
+    if smartlife_client and hasattr(smartlife_client, "get_device_diagnostics"):
+        device_id = entry.data.get("device_id", "")
+        if device_id:
+            diagnostics_data["smartlife_device"] = smartlife_client.get_device_diagnostics(device_id)
+
     return diagnostics_data

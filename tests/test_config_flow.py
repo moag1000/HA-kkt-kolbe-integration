@@ -290,6 +290,35 @@ async def test_reconfigure_flow(
     assert result["step_id"] == "reconfigure_menu"
 
 
+@pytest.mark.asyncio
+async def test_reconfigure_account_routes_to_smartlife_reauth(
+    hass: HomeAssistant,
+    mock_smartlife_account_entry,
+) -> None:
+    """Account entries (entry_type=account) MUST NOT show the device-reconfigure
+    menu. They have no IP / device_type / API settings — only SmartLife tokens.
+
+    Regression: pre-4.7.1 the dispatcher in async_step_reconfigure didn't check
+    entry_type, so account entries got the device menu and Connection /
+    Device Type / API steps which would error or corrupt the entry.
+    Fix: route account entries directly to the smartlife_reauth flow.
+    """
+    mock_smartlife_account_entry.add_to_hass(hass)
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={
+            "source": config_entries.SOURCE_RECONFIGURE,
+            "entry_id": mock_smartlife_account_entry.entry_id,
+        },
+        data=mock_smartlife_account_entry.data,
+    )
+
+    # Must land on smartlife_reauth, NOT reconfigure_menu
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "smartlife_reauth"
+
+
 # === SMARTLIFE CONFIG FLOW TESTS ===
 
 

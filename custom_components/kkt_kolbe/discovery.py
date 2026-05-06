@@ -6,6 +6,7 @@ import asyncio
 import contextlib
 import json
 import logging
+import socket
 import time
 from collections.abc import Callable
 from hashlib import md5
@@ -918,7 +919,19 @@ def get_discovered_devices() -> dict[str, dict[str, Any]]:
 
 
 async def simple_tuya_discover(timeout: int = 6) -> dict[str, dict[str, Any]]:
-    """Simple Tuya device discovery like LocalTuya."""
+    """Active Tuya device discovery — listens AND actively probes 3.5 devices.
+
+    - Listens on UDP 6666 (3.1) / 6667 (3.3) / 7000 (3.5) for self-broadcasts
+    - Periodically sends a discovery-request packet to broadcast on port 7000
+      so 3.5 devices (which don't broadcast unprompted) reveal themselves
+
+    Device-on-3.3 broadcast unprompted every few seconds; for them this is just
+    listening. Device-on-3.5 only respond to active probes; we send those on
+    a 2-second cycle for the duration of the discovery window.
+
+    Returns a dict keyed by device_id (gwId), each entry has at least
+    ``{"ip": ..., "gwId": ..., "version": ..., "productKey": ...}``.
+    """
     discovered = {}
 
     def device_found(device_info: dict[str, Any]) -> None:
@@ -926,33 +939,88 @@ async def simple_tuya_discover(timeout: int = 6) -> dict[str, dict[str, Any]]:
         if device_id:
             discovered[device_id] = device_info
 
-    # Create UDP listeners
     loop = asyncio.get_running_loop()
-    listeners = []
+    listeners: list[tuple[Any, Any]] = []
+    probe_task: asyncio.Task | None = None
 
     try:
-        for port in [6666, 6667]:
+        for port in UDP_PORTS:
             try:
                 transport, protocol = await loop.create_datagram_endpoint(
                     lambda: TuyaUDPDiscovery(device_found), local_addr=("0.0.0.0", port)
                 )
                 listeners.append((transport, protocol))
-                # UDP listener started successfully
             except Exception as e:
                 _LOGGER.warning(f"Failed to start UDP listener on port {port}: {e}")
 
         if listeners:
+            probe_task = asyncio.create_task(_active_probe_3_5_devices(loop, interval=2.0, runtime=timeout))
             await asyncio.sleep(timeout)
-
-        # Close listeners
-        for transport, _protocol in listeners:
-            transport.close()
 
         return discovered
 
     except Exception as e:
         _LOGGER.error(f"Discovery failed: {e}")
         return {}
+    finally:
+        if probe_task is not None:
+            probe_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError, Exception):
+                await probe_task
+        for transport, _protocol in listeners:
+            with contextlib.suppress(Exception):
+                transport.close()
+
+
+async def _active_probe_3_5_devices(loop: asyncio.AbstractEventLoop, interval: float, runtime: float) -> None:
+    """Periodically broadcast a Tuya discovery-request packet on UDP 7000.
+
+    Tuya 3.5 devices do NOT broadcast their presence unprompted. They only
+    respond to a discovery-request packet sent to UDP 7000. tinytuya does the
+    same thing every ~6 seconds; we do it every ``interval`` seconds for
+    ``runtime`` seconds so a setup-time scan reliably surfaces 3.5 hardware.
+
+    The packet is built using tinytuya's own helpers so we stay
+    forward-compatible if the protocol changes.
+    """
+    try:
+        import tinytuya
+    except ImportError:
+        _LOGGER.debug("tinytuya not available — skipping active 3.5 discovery probe")
+        return
+
+    payload = b""
+    try:
+        bcast_json = json.dumps({"from": "app", "ip": "0.0.0.0"}).encode()
+        bcast_msg = tinytuya.TuyaMessage(
+            0, tinytuya.REQ_DEVINFO, None, bcast_json, 0, True, tinytuya.PREFIX_6699_VALUE, True
+        )
+        payload = tinytuya.pack_message(bcast_msg, hmac_key=tinytuya.udpkey)
+    except Exception as err:
+        _LOGGER.debug("Failed to build 3.5 probe packet (skipping): %s", err)
+        return
+
+    deadline = loop.time() + runtime
+
+    transport: Any = None
+    try:
+        transport, _proto = await loop.create_datagram_endpoint(
+            lambda: asyncio.DatagramProtocol(),
+            family=socket.AF_INET,
+            allow_broadcast=True,
+        )
+        while loop.time() < deadline:
+            with contextlib.suppress(Exception):
+                transport.sendto(payload, ("255.255.255.255", 7000))
+            await asyncio.sleep(interval)
+    except asyncio.CancelledError:
+        raise
+    except Exception as err:
+        _LOGGER.debug("Active 3.5 probe failed: %s", err)
+    finally:
+        if transport is not None:
+            with contextlib.suppress(Exception):
+                transport.close()
 
 
 def add_test_device(host: str | None = None, device_id: str | None = None) -> None:

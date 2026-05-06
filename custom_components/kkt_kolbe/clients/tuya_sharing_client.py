@@ -933,22 +933,30 @@ class TuyaSharingClient:
         if not self._manager:
             await self.async_get_devices()  # This initializes the manager
 
-        def _send_commands() -> bool:
-            """Send commands in executor thread."""
+        def _send_commands() -> tuple[bool, str | None]:
+            """Send commands in executor thread.
+
+            Returns (success, error_message). On failure, error_message contains
+            the underlying SDK exception so the caller can surface it to users
+            instead of a generic "command returned failure" message.
+            """
             device = self._manager.device_map.get(device_id)
             if not device:
+                msg = f"device {device_id[:8]} not found in manager cache"
                 _LOGGER.warning("Device %s not found in manager cache", device_id[:8])
-                return False
+                return False, msg
 
-            methods_tried = []
+            methods_tried: list[str] = []
+            errors: list[str] = []
 
             # The tuya_sharing library's device might have a send_commands method
             if hasattr(device, "send_commands"):
                 methods_tried.append("device.send_commands")
                 try:
                     device.send_commands(commands)
-                    return True
+                    return True, None
                 except Exception as err:
+                    errors.append(f"device.send_commands: {err}")
                     _LOGGER.warning("device.send_commands failed for %s: %s", device_id[:8], err)
 
             # Alternative: Use manager's device control method if available
@@ -956,28 +964,123 @@ class TuyaSharingClient:
                 methods_tried.append("manager.send_commands")
                 try:
                     self._manager.send_commands(device_id, commands)
-                    return True
+                    return True, None
                 except Exception as err:
+                    errors.append(f"manager.send_commands: {err}")
                     _LOGGER.warning("manager.send_commands failed for %s: %s", device_id[:8], err)
 
             if methods_tried:
+                msg = "; ".join(errors) if errors else f"all methods failed (tried: {', '.join(methods_tried)})"
                 _LOGGER.warning(
-                    "All SmartLife command methods failed for device %s (tried: %s)",
+                    "All SmartLife command methods failed for device %s: %s",
                     device_id[:8],
-                    ", ".join(methods_tried),
+                    msg,
                 )
-            else:
-                _LOGGER.warning("No command sending method available for device %s", device_id[:8])
-            return False
+                return False, msg
+
+            msg = "no send_commands method available on SDK device or manager"
+            _LOGGER.warning("No command sending method available for device %s", device_id[:8])
+            return False, msg
 
         try:
-            success = await self.hass.async_add_executor_job(_send_commands)
+            success, error_msg = await self.hass.async_add_executor_job(_send_commands)
             if success:
                 _LOGGER.info("Commands sent successfully to device %s via SmartLife", device_id[:8])
-            return success
+                return True
+            # Raise so the HybridCoordinator's try/except path captures the actual reason
+            # instead of a generic "command returned failure" message.
+            raise KKTConnectionError(
+                operation="smartlife_send_commands",
+                device_id=device_id[:8],
+                reason=error_msg or "unknown SDK failure",
+            )
+        except KKTConnectionError:
+            raise
         except Exception as err:
             _LOGGER.error("Failed to send commands: %s", err)
+            raise
+
+    def get_device_diagnostics(self, device_id: str) -> dict[str, Any]:
+        """Return comprehensive SmartLife device data for diagnostics.
+
+        Exposes ``device.function`` (the codes the device actually accepts),
+        ``device.status`` (current state, code-keyed), ``device.status_range``
+        (types + allowed values), ``device.local_strategy`` (DP→code map), and
+        ``device.online`` (connectivity per Tuya cloud).
+
+        Used by ``diagnostics.async_get_config_entry_diagnostics`` to give
+        users a one-click dump that exposes Tuya cloud's view of the device.
+        Critical for debugging error 2008 ("command not supported") where
+        the device's actual code list differs from our hardcoded mapping.
+        """
+        if not self._manager or not hasattr(self._manager, "device_map"):
+            return {"available": False, "reason": "manager not initialized"}
+        device = self._manager.device_map.get(device_id)
+        if not device:
+            return {"available": False, "reason": "device not in manager cache"}
+
+        def _serialize(value: Any) -> Any:
+            """Convert SDK objects (DeviceFunction, DeviceStatusRange) to dicts."""
+            if hasattr(value, "__dict__"):
+                return {k: v for k, v in vars(value).items() if not k.startswith("_")}
+            return value
+
+        return {
+            "available": True,
+            "online": getattr(device, "online", None),
+            "product_id": getattr(device, "product_id", None),
+            "product_name": getattr(device, "product_name", None),
+            "category": getattr(device, "category", None),
+            "function": {code: _serialize(fn) for code, fn in getattr(device, "function", {}).items()},
+            "status": dict(getattr(device, "status", {})),
+            "status_range": {code: _serialize(sr) for code, sr in getattr(device, "status_range", {}).items()},
+            "local_strategy": {str(dp): _serialize(s) for dp, s in getattr(device, "local_strategy", {}).items()},
+        }
+
+    async def async_refresh_device_cache(self) -> bool:
+        """Force-refresh the SDK's device cache (function/status_range/local_strategy).
+
+        Calls ``Manager.update_device_cache()`` in an executor thread (it makes
+        blocking HTTP calls). Use this when the cached spec might be stale —
+        e.g. after a firmware update that changed codes or before retrying a
+        failed command on the assumption the cached spec is wrong.
+
+        Returns True on success, False otherwise.
+        """
+        if not self._manager:
             return False
+        try:
+            await self.hass.async_add_executor_job(self._manager.update_device_cache)
+            _LOGGER.info("SmartLife device cache refreshed")
+            return True
+        except Exception as err:
+            _LOGGER.warning("Failed to refresh device cache: %s", err)
+            return False
+
+    def get_device_codes(self, device_id: str) -> dict[int, str]:
+        """Return live ``{dp_id: status_code}`` mapping for a device.
+
+        Tuya Sharing API rejects commands whose ``code`` is not in the device's
+        ``function`` definition (error 2008 — "command not supported"). Hardcoded
+        codes in ``device_types.py`` may drift from a specific device's actual
+        spec (firmware variant, region, vendor customisation). This method
+        returns the ground-truth mapping built from ``device.local_strategy``,
+        which is what the SDK itself uses.
+
+        Returns an empty dict if the manager is not initialised or the device
+        is unknown — caller should fall back to the hardcoded mapping.
+        """
+        if not self._manager:
+            return {}
+        device = self._manager.device_map.get(device_id) if hasattr(self._manager, "device_map") else None
+        if not device or not getattr(device, "local_strategy", None):
+            return {}
+        result: dict[int, str] = {}
+        for dp_id, entry in device.local_strategy.items():
+            code = entry.get("status_code") if isinstance(entry, dict) else getattr(entry, "status_code", None)
+            if code:
+                result[int(dp_id)] = code
+        return result
 
     async def async_send_dp_commands(self, device_id: str, dps: dict[str, Any]) -> bool:
         """Send DP (Data Point) commands to a device via SmartLife cloud.

@@ -111,6 +111,34 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
         """Return the timestamp of the last successful update."""
         return self._last_update_success_time
 
+    @property
+    def smartlife_device_online(self) -> bool | None:
+        """Return ``device.online`` from the SmartLife SDK cache.
+
+        This is Tuya cloud's authoritative view of whether the device is
+        currently reachable via MQTT (mirrors what the Tuya app shows). In
+        SmartLife mode this is more reliable than our internal
+        ``connection_state`` state machine, which only tracks our own send/poll
+        attempts. HA-Core's official Tuya integration uses ``device.online``
+        directly for entity availability — adopting the same pattern is on
+        the v4.8 roadmap.
+
+        Returns:
+            ``True`` / ``False`` if the SmartLife client knows the device,
+            ``None`` if SmartLife is not configured or the device is not in
+            the cache yet (caller should fall back to other availability
+            signals).
+        """
+        if not self.smartlife_client or not hasattr(self.smartlife_client, "_manager"):
+            return None
+        manager = self.smartlife_client._manager
+        if not manager or not hasattr(manager, "device_map"):
+            return None
+        device = manager.device_map.get(self.device_id)
+        if device is None:
+            return None
+        return bool(getattr(device, "online", False))
+
     def mark_initial_connect_done(self) -> None:
         """Mark that the background connection attempt has completed."""
         self._initial_connect_done = True
@@ -539,86 +567,131 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
 
     async def async_set_data_point(self, dp: int, value: Any) -> None:
         """Set a data point on the device (compatibility wrapper for async_send_command)."""
-        success = await self.async_send_command(dp, value)
+        success, reason = await self._async_send_command_with_reason(dp, value)
         if not success:
-            raise HomeAssistantError(
-                f"Failed to set DP {dp} to {value} — all communication methods (local/API/SmartLife) failed"
-            )
+            raise HomeAssistantError(f"Failed to set DP {dp} to {value} — {reason}")
+
+    async def _async_send_command_with_reason(self, dp_id: int, value: Any) -> tuple[bool, str]:
+        """Send command and return (success, reason). Wrapper around async_send_command
+        that captures the underlying failure reason for error messages."""
+        # We re-implement the dispatch here so we can capture the actual error message.
+        # See async_send_command for the original behavior.
+        _LOGGER.debug(f"Sending command to DP {dp_id}: {value}")
+        last_error: str = "no communication method available"
+
+        if self.local_available and self.local_device and (self.prefer_local or self.current_mode == "local"):
+            try:
+                result = await self.local_device.async_set_dp(dp_id, value)
+                if result:
+                    await self.async_request_refresh()
+                    return True, "local"
+                last_error = "local: device returned failure"
+            except Exception as err:
+                last_error = f"local: {err}"
+                _LOGGER.warning("Local command failed for DP %d: %s", dp_id, err)
+
+        if self.api_available and self.api_client:
+            try:
+                dp_mapping = await self._get_dp_mapping()
+                property_code = dp_mapping.get(dp_id)
+                if property_code:
+                    commands = [{"code": property_code, "value": value}]
+                    result = await self.api_client.send_commands(self.device_id, commands)
+                else:
+                    result = await self.api_client.send_dp_commands(self.device_id, {str(dp_id): value})
+                if result:
+                    await self.async_request_refresh()
+                    return True, "api"
+                last_error = f"api: command returned failure for DP {dp_id}"
+                _LOGGER.warning(last_error)
+            except Exception as err:
+                last_error = f"api: {err}"
+                _LOGGER.warning("API command failed for DP %d: %s", dp_id, err)
+
+        if self.smartlife_available and self.smartlife_client:
+            success, smartlife_error = await self._async_send_via_smartlife(dp_id, value)
+            if success:
+                await self.async_request_refresh()
+                return True, "smartlife"
+            last_error = smartlife_error
+
+        _LOGGER.error("All command sending methods failed for DP %d = %s (%s)", dp_id, value, last_error)
+        return False, last_error
 
     async def async_send_command(self, dp_id: int, value: Any) -> bool:
         """Send command using available communication method.
 
         Tries local → API → SmartLife in order. Returns True on first success.
-        Collects errors from all attempts for better diagnostics.
+        Backward-compatible wrapper around ``_async_send_command_with_reason``.
         """
-        _LOGGER.debug(f"Sending command to DP {dp_id}: {value}")
-        last_error: str | None = None
+        success, _ = await self._async_send_command_with_reason(dp_id, value)
+        return success
 
-        # Try local first if available and preferred
-        if self.local_available and self.local_device and (self.prefer_local or self.current_mode == "local"):
+    async def _async_send_via_smartlife(self, dp_id: int, value: Any) -> tuple[bool, str]:
+        """Send a command via SmartLife with auto-retry on stale-spec failures.
+
+        Strategy:
+        1. Build commands using live ``device.local_strategy[dp].status_code``
+           if available (cloud's ground truth), else fall back to the hardcoded
+           mapping in ``device_types.py``.
+        2. Send. On success → return.
+        3. On Tuya error 2008 ("command not supported") or any failure → assume
+           the cached spec is stale, refresh it via ``Manager.update_device_cache()``,
+           rebuild commands from the refreshed mapping, and retry once.
+        4. If still failing, return the original error.
+
+        Returns ``(success, error_reason)``.
+        """
+        attempt_label = "first attempt"
+        last_error = ""
+        for attempt in range(2):
             try:
-                result = await self.local_device.async_set_dp(dp_id, value)
-                if result:
-                    _LOGGER.debug("Command sent successfully via local communication")
-                    await self.async_request_refresh()
-                    return True
-                last_error = "local: device returned failure"
-            except Exception as err:
-                last_error = f"local: {err}"
-                _LOGGER.warning(f"Local command failed for DP {dp_id}: {err}")
-
-        # Try API if local failed or not preferred
-        if self.api_available and self.api_client:
-            try:
-                dp_mapping = await self._get_dp_mapping()
-                property_code = dp_mapping.get(dp_id)
-
+                live_codes = (
+                    self.smartlife_client.get_device_codes(self.device_id)
+                    if hasattr(self.smartlife_client, "get_device_codes")
+                    else {}
+                )
+                property_code = live_codes.get(dp_id)
+                if not property_code:
+                    dp_mapping = await self._get_dp_mapping()
+                    property_code = dp_mapping.get(dp_id)
+                    if property_code:
+                        _LOGGER.debug(
+                            "Falling back to hardcoded code %s for DP %d (live mapping missing)",
+                            property_code,
+                            dp_id,
+                        )
                 if property_code:
-                    _LOGGER.debug(f"Attempting API command for DP {dp_id} (code: {property_code}): {value}")
-                    commands = [{"code": property_code, "value": value}]
-                    result = await self.api_client.send_commands(self.device_id, commands)
-                else:
-                    _LOGGER.debug(f"No property code for DP {dp_id}, trying DP ID directly")
-                    result = await self.api_client.send_dp_commands(self.device_id, {str(dp_id): value})
-
-                if result:
-                    _LOGGER.info(f"Command sent successfully via API for DP {dp_id}")
-                    await self.async_request_refresh()
-                    return True
-                else:
-                    last_error = f"api: command returned failure for DP {dp_id}"
-                    _LOGGER.warning(last_error)
-            except Exception as err:
-                last_error = f"api: {err}"
-                _LOGGER.warning(f"API command failed for DP {dp_id}: {err}")
-
-        # Try SmartLife if local and API failed
-        if self.smartlife_available and self.smartlife_client:
-            try:
-                dp_mapping = await self._get_dp_mapping()
-                property_code = dp_mapping.get(dp_id)
-
-                if property_code:
-                    _LOGGER.debug(f"Attempting SmartLife command for DP {dp_id} (code: {property_code}): {value}")
                     commands = [{"code": property_code, "value": value}]
                     result = await self.smartlife_client.async_send_commands(self.device_id, commands)
                 else:
-                    _LOGGER.debug(f"No property code for DP {dp_id}, trying DP ID directly via SmartLife")
                     result = await self.smartlife_client.async_send_dp_commands(self.device_id, {str(dp_id): value})
-
                 if result:
-                    _LOGGER.info(f"Command sent successfully via SmartLife for DP {dp_id}")
-                    await self.async_request_refresh()
-                    return True
-                else:
-                    last_error = f"smartlife: command returned failure for DP {dp_id}"
-                    _LOGGER.warning(last_error)
+                    return True, "smartlife"
+                last_error = f"smartlife: command returned failure for DP {dp_id} ({attempt_label})"
+                _LOGGER.warning(last_error)
             except Exception as err:
-                last_error = f"smartlife: {err}"
-                _LOGGER.warning(f"SmartLife command failed for DP {dp_id}: {err}")
+                last_error = f"smartlife: {err} ({attempt_label})"
+                _LOGGER.warning("SmartLife command failed for DP %d (%s): %s", dp_id, attempt_label, err)
 
-        _LOGGER.error("All command sending methods failed for DP %d = %s (last error: %s)", dp_id, value, last_error)
-        return False
+            # Retry once after refreshing the device cache. Tuya error 2008 most
+            # often means our cached function/local_strategy is stale (firmware
+            # changed codes, device re-paired with new spec). A cache refresh
+            # may surface the correct codes.
+            if attempt == 0 and hasattr(self.smartlife_client, "async_refresh_device_cache"):
+                _LOGGER.info(
+                    "Refreshing SmartLife device cache for %s before retry (DP %d)",
+                    self.device_id[:8],
+                    dp_id,
+                )
+                refreshed = await self.smartlife_client.async_refresh_device_cache()
+                if not refreshed:
+                    return False, last_error
+                attempt_label = "after cache refresh"
+                continue
+            break
+
+        return False, last_error
 
     def set_local_device(self, device: KKTKolbeTuyaDevice) -> None:
         """Set or update the local device."""

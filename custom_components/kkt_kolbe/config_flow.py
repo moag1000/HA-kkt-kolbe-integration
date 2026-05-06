@@ -1994,24 +1994,62 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             "icon_url": getattr(device, "icon", None),  # Tuya device icon URL
         }
 
-        # Try to get LOCAL IP from UDP discovery (SmartLife API returns PUBLIC IP)
+        # Try to get LOCAL IP from UDP discovery (SmartLife API returns PUBLIC IP).
+        # Two paths, in order of cost:
+        # 1. Read the persistent listener cache (instant) — populated whenever
+        #    the device broadcasted itself since HA boot
+        # 2. If the persistent cache misses, run an active 8-second scan
+        #    (listens AND probes 7000 for 3.5 devices). Most devices will
+        #    surface within that window even if they were quiet earlier.
         local_ip = None
         discovered_devices = get_discovered_devices()
         if discovered_devices and device.device_id in discovered_devices:
             discovered = discovered_devices[device.device_id]
             local_ip = discovered.get("ip")
             _LOGGER.info(
-                "Using discovered local IP %s for device %s (API had %s)", local_ip, device.device_id[:8], device.ip
+                "Using discovered local IP %s for device %s (API had %s)",
+                local_ip,
+                device.device_id[:8],
+                device.ip,
             )
+        else:
+            _LOGGER.info(
+                "Device %s not in passive discovery cache — running active scan (8s)",
+                device.device_id[:8],
+            )
+            from .discovery import simple_tuya_discover
+
+            try:
+                fresh = await simple_tuya_discover(timeout=8)
+            except Exception as err:
+                _LOGGER.debug("Active discovery scan failed: %s", err)
+                fresh = {}
+            if device.device_id in fresh:
+                local_ip = fresh[device.device_id].get("ip")
+                _LOGGER.info(
+                    "Active scan found local IP %s for device %s",
+                    local_ip,
+                    device.device_id[:8],
+                )
 
         # Use local IP if found, otherwise fall back to API IP (might be public)
         if local_ip:
             device_data[CONF_IP_ADDRESS] = local_ip
         elif device.ip and _is_private_ip(device.ip):
-            # Only use API IP if it's actually a private IP
+            # API returned a usable private IP (rare — usually it's the WAN side)
             device_data[CONF_IP_ADDRESS] = device.ip
         else:
-            _LOGGER.warning("No local IP found for device %s - local communication may not work", device.device_id[:8])
+            # No usable local IP. Local communication will be unavailable until
+            # the user enters one manually via Reconfigure → Connection.
+            # SmartLife (cloud + push) keeps working without it.
+            _LOGGER.warning(
+                "No local IP found for device %s — local communication unavailable. "
+                "SmartLife/cloud control still works. To enable local mode, set the "
+                "device's LAN IP under: Settings → Devices & Services → KKT Kolbe → "
+                "device → Reconfigure → Connection. Find the IP in your router's "
+                "DHCP/client list (e.g. FritzBox → Heimnetz).",
+                device.device_id[:8],
+            )
 
         # Note: Tokens are stored in Account Entry only (not duplicated in device)
         # Device Entry references parent_entry_id to get tokens when needed
@@ -2277,14 +2315,27 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
         )
 
     async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """Handle reconfiguration of an existing entry."""
+        """Handle reconfiguration of an existing entry.
+
+        Account entries (SmartLife auth) and device entries are routed to
+        completely different reconfigure flows:
+        - account: re-run QR-code login to refresh tokens / change account
+        - device:  show menu for connection / device_type / api / all
+        """
         reconfigure_entry = self._get_reconfigure_entry()
 
         if not reconfigure_entry:
             return self.async_abort(reason="reconfigure_failed")
 
-        # Store entry for use in subsequent steps
         self._reconfigure_entry = reconfigure_entry
+
+        # Account entries don't expose IP / local key / API settings — they only
+        # carry SmartLife tokens. Re-running the auth flow is the only sensible
+        # reconfiguration. Route to the existing smartlife_reauth flow.
+        if reconfigure_entry.data.get("entry_type") == ENTRY_TYPE_ACCOUNT:
+            self._reauth_entry = reconfigure_entry
+            self._smartlife_reauth_mode = True
+            return await self.async_step_smartlife_reauth()
 
         return await self.async_step_reconfigure_menu()
 

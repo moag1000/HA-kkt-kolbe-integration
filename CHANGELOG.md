@@ -6,6 +6,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [4.7.1] - 2026-05-06
+
+### Fixed
+
+- **Tuya Error 2008 bei RGB/Brightness/Programmwechsel**: SmartLife-Cloud lehnte Commands mit "command not supported" ab, obwohl die Tuya-App parallel funktionierte. Root cause: hardcoded property-codes in `device_types.py` (z.B. `"RGB"`, `"light_brightness"`) stimmten nicht mit der echten Cloud-Spec des Geräts überein (Firmware/Region-Drift).
+- **HomeAssistantError-Message zeigt jetzt echte Ursache**: vorher "command returned failure", jetzt z.B. `smartlife: network error:(2008) 2008` — User sieht direkt warum's scheiterte.
+
+### Changed
+
+- **Live property-codes aus `device.local_strategy[dp].status_code`** (HA-Core Tuya-Pattern): SmartLife-Send-Pfad nutzt jetzt die echte Cloud-Spec des Geräts statt hardcoded mappings, fallback auf `device_types.py` falls live nicht verfügbar.
+- **Auto-Cache-Refresh-Retry bei SmartLife-Failures**: Wenn ein Send-Command scheitert (vermutlich stale spec), refresht `Manager.update_device_cache()` einmalig und retried — fängt Spec-Drifts nach Firmware-Updates ab.
+- **Diagnostics-Dump erweitert**: enthält jetzt für SmartLife-Mode `device.function`, `device.status`, `device.status_range`, `device.local_strategy`, `device.online`. Spiegelt was die offizielle HA-Tuya-Integration ausgibt — kritisch für Debugging von Cloud-Send-Failures.
+- **tinytuya minimum bump**: `>=1.17.0` → `>=1.18.0` (latest stable, Apr 2026).
+- **tuya-device-sharing-sdk minimum bump**: `>=0.2.8` → `>=0.2.9` (Type-Hint-Fixes, Jan 2026).
+
+### New API
+
+- `TuyaSharingClient.get_device_diagnostics(device_id)` — komprimierter Dump aller relevanten Cloud-Felder
+- `TuyaSharingClient.async_refresh_device_cache()` — manueller Cache-Refresh für Debugging
+- `TuyaSharingClient.get_device_codes(device_id)` — live `dpId → status_code` Mapping
+- `KKTKolbeHybridCoordinator.smartlife_device_online` — exposes `device.online` aus SDK für Availability-Checks (v4.8 wird das in Entity-Availability nutzen)
+
+### Fixed (Config Flow)
+
+- **SmartLife-Account Reconfigure ging in Device-Menu**: Reconfigure auf einen SmartLife-Account-Entry (entry_type=account) zeigte fälschlich das Device-Menu (Connection / Device Type / API). Account-Entries haben aber weder IP noch Device-Type — Steps hätten Entry-Daten beschädigt. Fix: routet jetzt direkt zum `smartlife_reauth` Flow (QR-Code-Reauth). Regression-Test ergänzt.
+
+### Fixed (Discovery)
+
+- **Auto-IP-Erkennung schlug oft beim Setup fehl** ("No local IP found"): Tuya Cloud liefert die WAN-IP des Routers, keine LAN-IP. Wir hatten bisher nur passive UDP-Listener — wenn das Gerät im Setup-Moment keinen Broadcast sendete, fanden wir's nicht. Fix:
+  - **Active 3.5-Discovery-Probe** auf UDP 7000 (kopiert von tinytuya): sendet alle 2s ein `REQ_DEVINFO` Broadcast-Packet. 3.5-Geräte (PLOOM, neuere KKT-Modelle) antworten sofort statt auf passive Broadcasts zu warten.
+  - **Setup-Flow wartet jetzt aktiv 8s** auf Broadcast wenn Gerät nicht im Cache. Vorher gab's sofort "no IP found".
+  - **`simple_tuya_discover` Bugfix**: nutzte hardcoded `[6666, 6667]` ohne 7000 (Discovery-Service nutzte schon `UDP_PORTS = [6666, 6667, 7000]` seit 4.6.6). Jetzt konsistent.
+  - **Bessere User-Hilfe** im Log: konkrete Anleitung wie man IP manuell setzt (Reconfigure → Connection → IP aus FritzBox/DHCP).
+
+---
+
 ## [4.7.0] - 2026-05-04
 
 ### Added
