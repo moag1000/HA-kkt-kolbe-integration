@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [4.7.3] - 2026-05-06
+
+### Fixed (Cloud-Local Routing)
+
+- **RGB / brightness / scene_data scheitern auch ohne local IP nicht mehr stumm mit 2008**: KKT-Kolbe-Hauben (HERMES, EASY, SOLO, PLOOM) exposen RGB-Codes NICHT in der Tuya-Cloud-Function-Spec. SmartLife-`send_commands` lieferte daher immer `error 2008` für DP 101 / 5 / 102. Verifiziert durch Issue #5, Issue #2, APK-Reverse-Engineering — die KKT.Control App selbst kann RGB nur lokal.
+
+### Added
+
+- **Cloud-Spec-aware Send-Routing**: Der HybridCoordinator inspiziert jetzt `device.local_strategy` und prüft pro DP ob er cloud-kompatibel ist. Cloud-incompatible DPs überspringen den SmartLife-Pfad komplett — keine sinnlosen 2008-Roundtrips mehr.
+- **Setup-Time Cloud-Spec-Audit**: Beim Coordinator-Start wird die hardcoded `device_types.py` Mapping mit der echten Cloud-Spec verglichen. Local-only DPs werden ins Log geschrieben, mit klarer Ansage.
+- **Repair-Issue für fehlende lokale IP**: Wenn local-only DPs erkannt werden ABER kein lokaler Pfad konfiguriert ist, erscheint im HA UI ein **Repair-Karte** mit konkreter Anleitung zum IP-Setzen (Settings → Devices & Services → KKT Kolbe → Reconfigure → Connection). Übersetzt DE + EN.
+- **Klarere Error-Message** bei lokal-only DPs ohne local-Pfad: nennt direkt die Lösung (IP eintragen, FritzBox-Hinweis, Local-Key-Status).
+
+### Notes
+
+- Wenn deine Haube RGB / Helligkeit nicht steuert, war/ist das nie ein Bug der Integration — Tuya Cloud kennt diese Codes für KKT-Geräte nicht. Lokale IP setzen löst alles.
+
+---
+
 ## [4.7.2] - 2026-05-06
 
 ### Fixed

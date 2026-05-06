@@ -711,6 +711,10 @@
       "title": "LocalTuya Conflict Detected",
       "description": "The **LocalTuya** integration is active and may block UDP ports 6666/6667 needed for KKT Kolbe device discovery.\n\nIf your devices are not found locally, try **disabling LocalTuya** and restarting Home Assistant.\n\nAlternatively, you can enter the device IP manually via **Reconfigure → Connection**."
     },
+    "local_only_dp_no_ip": {
+      "title": "Local IP needed for full functionality",
+      "description": "Device **{device_id_short}** has features that only work over the local Tuya protocol. Tuya cloud does not expose these codes — typical for KKT-Kolbe RGB / brightness / scene_data on hood and oven models.\n\nThe following DPs are affected:\n\n`{missing_dps}`\n\n**To fix:** set the device's LAN IP under **Settings → Devices & Services → KKT Kolbe → device → ⋮ Reconfigure → Connection**. The Local Key is already populated from your SmartLife setup.\n\nFind the IP in your router's DHCP/client list (e.g. FritzBox → Heimnetz)."
+    },
     "local_key_expired": {
       "title": "Local Key Expired",
       "fix_flow": {

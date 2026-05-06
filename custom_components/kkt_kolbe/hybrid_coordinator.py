@@ -215,6 +215,11 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
         call when smartlife_client is None — silently skips registration for
         local-only setups.
 
+        Also runs the cloud-spec audit: compares our hardcoded device-type
+        DP mapping against what Tuya cloud actually exposes for this device,
+        logs the mismatch, and creates a repair issue if any DPs are
+        local-only AND no local_device is configured.
+
         Note: We deliberately do NOT use async_added_to_hass here.
         DataUpdateCoordinator (unlike Entity) has no such lifecycle hook,
         so HA would never invoke it in production — see commit history for
@@ -224,6 +229,62 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
             return
         self.smartlife_client.register_push_callback(self.device_id, self._handle_push_update)
         self._push_callback_registered = True
+        await self._audit_cloud_spec_coverage()
+
+    async def _audit_cloud_spec_coverage(self) -> None:
+        """Audit which device DPs are local-only vs cloud-supported.
+
+        Loads the live ``device.local_strategy`` from the SDK and compares
+        against our hardcoded ``device_types.py`` data_points mapping.
+        Logs every DP that the cloud does NOT know about, and — if no
+        local_device is configured — raises a repair issue so the user
+        sees a fix-it card in the HA UI.
+        """
+        if not hasattr(self.smartlife_client, "get_device_codes"):
+            return
+        live_codes = self.smartlife_client.get_device_codes(self.device_id)
+        if not live_codes:
+            return
+
+        expected_dps = await self._get_dp_mapping()
+        if not expected_dps:
+            return
+
+        local_only_dps = [dp for dp in expected_dps if dp not in live_codes]
+        if not local_only_dps:
+            _LOGGER.debug("Device %s: cloud-spec covers all expected DPs", self.device_id[:8])
+            return
+
+        _LOGGER.info(
+            "Device %s: %d DP(s) are local-only (cloud-spec missing): %s. "
+            "These features will only work over the local Tuya protocol — "
+            "ensure a LAN IP is configured.",
+            self.device_id[:8],
+            len(local_only_dps),
+            ", ".join(f"DP{dp}={expected_dps[dp]}" for dp in sorted(local_only_dps)),
+        )
+
+        if not self.local_available:
+            try:
+                from homeassistant.helpers import issue_registry as ir
+
+                from .const import DOMAIN
+
+                ir.async_create_issue(
+                    self.hass,
+                    DOMAIN,
+                    f"local_only_dp_no_ip_{self.device_id}",
+                    is_fixable=False,
+                    severity=ir.IssueSeverity.WARNING,
+                    translation_key="local_only_dp_no_ip",
+                    translation_placeholders={
+                        "device_id_short": self.device_id[:8],
+                        "missing_dps": ", ".join(f"DP{dp}={expected_dps[dp]}" for dp in sorted(local_only_dps)),
+                    },
+                    learn_more_url="https://github.com/moag1000/HA-kkt-kolbe-integration#local-only-features",
+                )
+            except Exception as err:
+                _LOGGER.debug("Failed to create local-only-dp repair issue: %s", err)
 
     async def async_shutdown(self) -> None:
         """Unregister the push callback before tearing down the coordinator."""
@@ -644,14 +705,60 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
                 _LOGGER.warning("API command failed for DP %d: %s", dp_id, err)
 
         if self.smartlife_available and self.smartlife_client:
-            success, smartlife_error = await self._async_send_via_smartlife(dp_id, value)
-            if success:
-                await self.async_request_refresh()
-                return True, "smartlife"
-            last_error = smartlife_error
+            # Cloud-spec gate: KKT hoods expose RGB / brightness / scene_data
+            # only via the local Tuya protocol. Tuya cloud's function-spec
+            # doesn't include those codes, so SmartLife send_commands always
+            # fails with error 2008. Don't even try the round-trip — surface
+            # a clear "set local IP" message instead. (Confirmed pattern from
+            # Issue #5 + Issue #2 + APK reverse engineering. See memory file
+            # project_kkt_rgb_local_only.md for the full history.)
+            if self._is_dp_local_only(dp_id):
+                last_error = self._format_local_only_dp_message(dp_id)
+                _LOGGER.warning(
+                    "DP %d is local-only on this device — skipping SmartLife (would fail with 2008)",
+                    dp_id,
+                )
+            else:
+                success, smartlife_error = await self._async_send_via_smartlife(dp_id, value)
+                if success:
+                    await self.async_request_refresh()
+                    return True, "smartlife"
+                last_error = smartlife_error
 
         _LOGGER.error("All command sending methods failed for DP %d = %s (%s)", dp_id, value, last_error)
         return False, last_error
+
+    def _is_dp_local_only(self, dp_id: int) -> bool:
+        """Return True if DP is known to be missing from Tuya cloud's spec.
+
+        Decided by inspecting live ``device.local_strategy`` from the SDK:
+        if the DP is not present, the cloud cannot accept commands for it
+        and SmartLife send_commands will always return error 2008. Returns
+        False (allow cloud attempt) when we can't make the determination —
+        e.g. SDK manager not yet initialised.
+        """
+        if not self.smartlife_client or not hasattr(self.smartlife_client, "get_device_codes"):
+            return False
+        live_codes = self.smartlife_client.get_device_codes(self.device_id)
+        if not live_codes:
+            # Cache empty — could be transient (manager still loading).
+            # Don't gate; fall through to the normal cloud send.
+            return False
+        return dp_id not in live_codes
+
+    def _format_local_only_dp_message(self, dp_id: int) -> str:
+        """Build a one-line error for a local-only DP that can't be sent via cloud."""
+        if self.local_available:
+            # Should not happen — if local was available we'd have used it above.
+            return f"DP {dp_id} is local-only and the local send already failed"
+        return (
+            f"DP {dp_id} is local-only on this device — Tuya cloud does not expose "
+            f"its code (typical for KKT RGB / brightness / scene_data). "
+            f"Set the device's LAN IP under: Settings → Devices & Services → "
+            f"KKT Kolbe → device → ⋮ Reconfigure → Connection. Local Key is already "
+            f"populated from your SmartLife setup. Find the IP in your router's "
+            f"DHCP/client list (e.g. FritzBox → Heimnetz)."
+        )
 
     async def async_send_command(self, dp_id: int, value: Any) -> bool:
         """Send command using available communication method.

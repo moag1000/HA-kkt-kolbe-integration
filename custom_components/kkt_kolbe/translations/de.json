@@ -711,6 +711,10 @@
       "title": "LocalTuya Konflikt erkannt",
       "description": "Die **LocalTuya** Integration ist aktiv und blockiert möglicherweise die UDP-Ports 6666/6667, die für die KKT Kolbe Geräteerkennung benötigt werden.\n\nFalls Ihre Geräte nicht lokal gefunden werden, versuchen Sie **LocalTuya zu deaktivieren** und Home Assistant neu zu starten.\n\nAlternativ können Sie die Geräte-IP manuell eingeben über **Neu konfigurieren → Verbindung**."
     },
+    "local_only_dp_no_ip": {
+      "title": "Lokale IP für volle Funktionalität erforderlich",
+      "description": "Gerät **{device_id_short}** hat Funktionen die nur über das lokale Tuya-Protokoll funktionieren. Die Tuya-Cloud kennt diese Codes nicht — typisch für KKT-Kolbe RGB / Helligkeit / Scene-Daten bei Dunstabzugshauben und Backöfen.\n\nBetroffene DPs:\n\n`{missing_dps}`\n\n**Lösung:** Lokale IP des Geräts eintragen unter **Einstellungen → Geräte & Dienste → KKT Kolbe → Gerät → ⋮ Neu konfigurieren → Verbindung**. Der Local Key ist bereits aus deinem SmartLife-Setup vorhanden.\n\nDie IP findest du in der Client-Liste deines Routers (z.B. FritzBox → Heimnetz)."
+    },
     "local_key_expired": {
       "title": "Local Key abgelaufen",
       "fix_flow": {
