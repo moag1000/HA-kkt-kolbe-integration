@@ -31,6 +31,41 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
+# Common Tuya cloud error codes seen in send_commands responses. Tuya's docs
+# are notoriously incomplete — these mappings are based on field observation
+# and the public Tuya OpenAPI documentation. Used to give users actionable
+# error messages instead of raw integers.
+_TUYA_ERROR_CODES: dict[str, str] = {
+    "1004": "request signature invalid (token expired or wrong client)",
+    "1010": "token invalid (re-authenticate via Reconfigure)",
+    "1100": "param missing or malformed",
+    "1106": "permission denied (token lacks scope or device not bound to user)",
+    "1109": "param value invalid (value out of range or wrong type for the code)",
+    "2001": "device not found in cloud (device removed or wrong device_id)",
+    "2008": "device offline OR command code not in device.function (most common: stale spec)",
+    "2009": "device hardware error (device firmware / hardware reported failure)",
+    "28841105": "no permission for this device (device unbound from user)",
+}
+
+
+def _decode_tuya_error_code(raw_error: str) -> str | None:
+    """Extract a Tuya error code from a raw exception string and decode it.
+
+    The SDK surfaces errors like ``"network error:(2008) 2008"`` — a parenthesised
+    code plus repeated number. We extract the integer and look it up in our
+    known-codes table. Returns a human-readable explanation or ``None`` if no
+    known code is found.
+    """
+    import re
+
+    match = re.search(r"\((\d{4,8})\)", raw_error)
+    if not match:
+        # Fallback: standalone integer at the end of the string
+        match = re.search(r"\b(\d{4,8})\b", raw_error)
+    if not match:
+        return None
+    return _TUYA_ERROR_CODES.get(match.group(1))
+
 
 class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
     """Hybrid coordinator supporting both local and API communication."""
@@ -628,70 +663,96 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
         return success
 
     async def _async_send_via_smartlife(self, dp_id: int, value: Any) -> tuple[bool, str]:
-        """Send a command via SmartLife with auto-retry on stale-spec failures.
+        """Send a command via SmartLife.
 
-        Strategy:
-        1. Build commands using live ``device.local_strategy[dp].status_code``
-           if available (cloud's ground truth), else fall back to the hardcoded
-           mapping in ``device_types.py``.
-        2. Send. On success → return.
-        3. On Tuya error 2008 ("command not supported") or any failure → assume
-           the cached spec is stale, refresh it via ``Manager.update_device_cache()``,
-           rebuild commands from the refreshed mapping, and retry once.
-        4. If still failing, return the original error.
+        Builds commands using live ``device.local_strategy[dp].status_code``
+        (cloud's ground truth), falling back to the hardcoded mapping in
+        ``device_types.py`` if the live spec is unavailable.
+
+        We do NOT auto-refresh the SDK device cache on failure: the SDK's
+        ``Manager.update_device_cache()`` clears ``device_map`` before
+        re-fetching homes from cloud — if the re-fetch fails (network /
+        auth / rate-limit) the cache stays empty and breaks ALL subsequent
+        operations including the MQTT push listener. Cache refresh is
+        exposed as a manual diagnostic action via the
+        ``kkt_kolbe.refresh_smartlife_cache`` service instead.
+
+        On failure, the error context includes which code/DP was attempted,
+        what codes the device actually advertises, and a human-readable
+        decode of common Tuya error codes — so the user (and us) doesn't
+        have to dig through diagnostics to understand a single failure.
 
         Returns ``(success, error_reason)``.
         """
-        attempt_label = "first attempt"
-        last_error = ""
-        for attempt in range(2):
-            try:
-                live_codes = (
-                    self.smartlife_client.get_device_codes(self.device_id)
-                    if hasattr(self.smartlife_client, "get_device_codes")
-                    else {}
-                )
-                property_code = live_codes.get(dp_id)
-                if not property_code:
-                    dp_mapping = await self._get_dp_mapping()
-                    property_code = dp_mapping.get(dp_id)
-                    if property_code:
-                        _LOGGER.debug(
-                            "Falling back to hardcoded code %s for DP %d (live mapping missing)",
-                            property_code,
-                            dp_id,
-                        )
+        live_codes: dict[int, str] = {}
+        property_code: str | None = None
+        try:
+            if hasattr(self.smartlife_client, "get_device_codes"):
+                live_codes = self.smartlife_client.get_device_codes(self.device_id)
+            property_code = live_codes.get(dp_id)
+            if not property_code:
+                dp_mapping = await self._get_dp_mapping()
+                property_code = dp_mapping.get(dp_id)
                 if property_code:
-                    commands = [{"code": property_code, "value": value}]
-                    result = await self.smartlife_client.async_send_commands(self.device_id, commands)
-                else:
-                    result = await self.smartlife_client.async_send_dp_commands(self.device_id, {str(dp_id): value})
-                if result:
-                    return True, "smartlife"
-                last_error = f"smartlife: command returned failure for DP {dp_id} ({attempt_label})"
-                _LOGGER.warning(last_error)
-            except Exception as err:
-                last_error = f"smartlife: {err} ({attempt_label})"
-                _LOGGER.warning("SmartLife command failed for DP %d (%s): %s", dp_id, attempt_label, err)
+                    _LOGGER.debug(
+                        "Falling back to hardcoded code %s for DP %d (live mapping missing)",
+                        property_code,
+                        dp_id,
+                    )
+            if property_code:
+                commands = [{"code": property_code, "value": value}]
+                result = await self.smartlife_client.async_send_commands(self.device_id, commands)
+            else:
+                result = await self.smartlife_client.async_send_dp_commands(self.device_id, {str(dp_id): value})
+            if result:
+                return True, "smartlife"
+            last_error = f"smartlife: command returned failure for DP {dp_id}"
+            _LOGGER.warning(last_error)
+            return False, last_error
+        except Exception as err:
+            last_error = self._format_smartlife_error(err, dp_id, property_code, live_codes)
+            _LOGGER.warning("SmartLife command failed for DP %d: %s", dp_id, last_error)
+            return False, last_error
 
-            # Retry once after refreshing the device cache. Tuya error 2008 most
-            # often means our cached function/local_strategy is stale (firmware
-            # changed codes, device re-paired with new spec). A cache refresh
-            # may surface the correct codes.
-            if attempt == 0 and hasattr(self.smartlife_client, "async_refresh_device_cache"):
-                _LOGGER.info(
-                    "Refreshing SmartLife device cache for %s before retry (DP %d)",
-                    self.device_id[:8],
-                    dp_id,
+    @staticmethod
+    def _format_smartlife_error(
+        err: Exception, dp_id: int, attempted_code: str | None, live_codes: dict[int, str]
+    ) -> str:
+        """Format a SmartLife send-failure with all context the user needs.
+
+        Includes:
+        - The raw SDK exception
+        - What code we tried to send (so the user knows the request)
+        - A decode of the Tuya error code (1106, 2008, etc.) since the SDK
+          only surfaces the number
+        - The codes the device actually advertises in ``local_strategy`` —
+          if none of them match what we sent, we point that out
+
+        Goal: a one-line warning that tells the user what to do next, without
+        having to download diagnostics and cross-reference codes.
+        """
+        err_str = str(err)
+        parts: list[str] = [f"smartlife: {err_str}"]
+
+        decoded = _decode_tuya_error_code(err_str)
+        if decoded:
+            parts.append(f"meaning: {decoded}")
+
+        if attempted_code:
+            parts.append(f"attempted code='{attempted_code}' for DP {dp_id}")
+        else:
+            parts.append(f"attempted raw DP {dp_id} (no code mapping found)")
+
+        if live_codes:
+            known = sorted(live_codes.values())
+            if attempted_code and attempted_code not in known:
+                parts.append(
+                    f"WARNING: '{attempted_code}' not in device's known codes — device accepts: {', '.join(known)}"
                 )
-                refreshed = await self.smartlife_client.async_refresh_device_cache()
-                if not refreshed:
-                    return False, last_error
-                attempt_label = "after cache refresh"
-                continue
-            break
+            else:
+                parts.append(f"device's known codes: {', '.join(known)}")
 
-        return False, last_error
+        return " | ".join(parts)
 
     def set_local_device(self, device: KKTKolbeTuyaDevice) -> None:
         """Set or update the local device."""

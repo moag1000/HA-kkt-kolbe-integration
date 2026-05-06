@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [4.7.2] - 2026-05-06
+
+### Fixed
+
+- **Auto-Cache-Refresh-Retry rausgenommen** (war Bug in 4.7.1): `Manager.update_device_cache()` macht intern `device_map.clear()` VOR dem re-fetch. Wenn re-fetch fehlschlägt (Network/Auth/Rate-Limit), bleibt cache leer und alle anderen Operations brechen — inkl. MQTT-Push-Listener und nachfolgende `send_commands`. Cache-Refresh ist jetzt nur noch manueller Service.
+
+### Improved
+
+- **Tuya-Error-Code-Decode**: Send-Failures enthalten jetzt eine Klartext-Erklärung statt nacktem `(2008) 2008`. Decoded codes: 1004, 1010, 1100, 1106, 1109, 2001, 2008, 2009, 28841105.
+- **Reicher Error-Context**: SmartLife-Send-Failures zeigen jetzt: welcher Code für welche DP versucht wurde, was die echten `device.local_strategy`-Codes sind, ob unser Code überhaupt in der Cloud-Spec auftaucht. 1-Klick-Diagnose direkt im Log.
+
+### New Services
+
+- **`kkt_kolbe.refresh_smartlife_cache`**: manueller SmartLife-SDK-Cache-Refresh (z.B. nach Firmware-Update). Fired `kkt_kolbe_smartlife_cache_refreshed` Event.
+- **`kkt_kolbe.get_firmware_info`**: Firmware-Version + Update-Verfügbarkeit via Tuya-Cloud abfragen. SmartLife-Token hat oft keinen IoT-Platform-Scope → fallback zu SmartLife-App-Hinweis. Fired `kkt_kolbe_firmware_info` Event.
+
+---
+
 ## [4.7.1] - 2026-05-06
 
 ### Fixed
@@ -39,6 +57,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Setup-Flow wartet jetzt aktiv 8s** auf Broadcast wenn Gerät nicht im Cache. Vorher gab's sofort "no IP found".
   - **`simple_tuya_discover` Bugfix**: nutzte hardcoded `[6666, 6667]` ohne 7000 (Discovery-Service nutzte schon `UDP_PORTS = [6666, 6667, 7000]` seit 4.6.6). Jetzt konsistent.
   - **Bessere User-Hilfe** im Log: konkrete Anleitung wie man IP manuell setzt (Reconfigure → Connection → IP aus FritzBox/DHCP).
+
+### Improved (Error Diagnostics)
+
+- **Tuya-Error-Code-Decode**: Fehlermeldungen enthalten jetzt eine Klartext-Erklärung der Tuya-Error-Codes (1004, 1010, 1106, 1109, 2001, 2008, 2009 ...). Statt nackt `(2008) 2008` jetzt z.B. `meaning: device offline OR command code not in device.function (most common: stale spec)`.
+- **Reicher Send-Fail-Context**: Bei SmartLife-Send-Failures zeigen WARNINGs jetzt: welcher Code für welche DP versucht wurde, was die echten `device.local_strategy` Codes sind, ob unser versuchter Code überhaupt in der Cloud-Spec auftaucht. 1-Klick-Diagnose ohne extra Tools.
+- **Auto-Cache-Refresh entfernt**: Die in 4.7.1-draft eingebaute Auto-Refresh-Logik wurde wieder rausgenommen. `Manager.update_device_cache()` macht intern `device_map.clear()` BEVOR es neu fetcht — wenn re-fetch fehlschlägt (Network/Auth/Rate-Limit), bleibt der Cache leer und alle anderen Operations (inkl. MQTT-Push) brechen. Cache-Refresh ist jetzt manueller Service.
+
+### New Services
+
+- **`kkt_kolbe.refresh_smartlife_cache`**: manuell den SmartLife-SDK-Cache refreshen (z.B. nach Firmware-Update). Fired `kkt_kolbe_smartlife_cache_refreshed` Event.
+- **`kkt_kolbe.get_firmware_info`**: Firmware-Version + Update-Verfügbarkeit beim Tuya-Cloud-Endpoint abfragen. SmartLife-Token hat oft keinen IoT-Platform-Scope → dann fällt's auf SmartLife-App-Hinweis zurück. Fired `kkt_kolbe_firmware_info` Event.
 
 ---
 

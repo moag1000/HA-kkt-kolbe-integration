@@ -289,3 +289,19 @@ download_device_icons:
       default: false
       selector:
         boolean:
+
+# Diagnostics & Maintenance
+refresh_smartlife_cache:
+  name: Refresh SmartLife Cache
+  description: Manually refresh the SmartLife SDK device cache (function/local_strategy). Use when commands fail with Tuya error 2008 (command not supported) -- refreshes cached spec to pick up new codes after firmware updates. Fires kkt_kolbe_smartlife_cache_refreshed event with result. WARNING destructive -- Manager.update_device_cache clears device_map then re-fetches; if Tuya cloud rejects the re-fetch, cache stays empty until next call.
+
+get_firmware_info:
+  name: Get Firmware Info (SmartLife)
+  description: Query Tuya cloud for the device firmware version and update availability. Fires kkt_kolbe_firmware_info event with the result. Note -- SmartLife tokens often lack the IoT-platform scope required for this endpoint; if so the event reports available false. In that case check firmware via the SmartLife/Tuya app -- device -> menu -> Firmware Update.
+  fields:
+    device_id:
+      name: Device ID
+      description: Optional Tuya device_id. If omitted, queries firmware info for all configured KKT devices.
+      required: false
+      selector:
+        text:

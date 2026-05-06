@@ -36,6 +36,8 @@ SERVICE_UPDATE_LOCAL_KEY = "update_local_key"
 SERVICE_GET_CONNECTION_STATUS = "get_connection_status"
 SERVICE_RESCAN_DEVICES = "rescan_devices"
 SERVICE_DOWNLOAD_DEVICE_ICONS = "download_device_icons"
+SERVICE_REFRESH_SMARTLIFE_CACHE = "refresh_smartlife_cache"
+SERVICE_GET_FIRMWARE_INFO = "get_firmware_info"
 
 
 async def async_setup_services(hass: HomeAssistant) -> None:
@@ -631,6 +633,97 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             hass.bus.async_fire(f"{DOMAIN}_devices_discovered", {"error": str(err), "count": 0, "devices": []})
 
     hass.services.async_register(DOMAIN, SERVICE_RESCAN_DEVICES, handle_rescan_devices)
+
+    async def handle_refresh_smartlife_cache(service: ServiceCall) -> None:
+        """Manually refresh the SmartLife SDK device cache.
+
+        Calls ``Manager.update_device_cache()`` which re-fetches all devices
+        + their function/local_strategy from Tuya cloud. Use when commands
+        fail with error 2008 ("command not supported") or after a firmware
+        update — refreshes the cached spec to pick up new codes.
+
+        Fires ``kkt_kolbe_smartlife_cache_refreshed`` event with the result.
+        """
+        try:
+            for entry_id, entry_data in hass.data.get(DOMAIN, {}).items():
+                if entry_data.get("entry_type") == "account":
+                    continue
+                config_entry = hass.config_entries.async_get_entry(entry_id)
+                if not config_entry or not hasattr(config_entry, "runtime_data"):
+                    continue
+                coordinator = getattr(config_entry.runtime_data, "coordinator", None)
+                client = getattr(coordinator, "smartlife_client", None) if coordinator else None
+                if client and hasattr(client, "async_refresh_device_cache"):
+                    refreshed = await client.async_refresh_device_cache()
+                    hass.bus.async_fire(
+                        f"{DOMAIN}_smartlife_cache_refreshed",
+                        {"entry_id": entry_id, "success": refreshed},
+                    )
+                    _LOGGER.info("SmartLife cache refresh for %s: %s", entry_id[:8], refreshed)
+        except Exception as err:
+            _LOGGER.error("Failed to refresh SmartLife cache: %s", err)
+            hass.bus.async_fire(f"{DOMAIN}_smartlife_cache_refreshed", {"error": str(err), "success": False})
+
+    hass.services.async_register(DOMAIN, SERVICE_REFRESH_SMARTLIFE_CACHE, handle_refresh_smartlife_cache)
+
+    async def handle_get_firmware_info(service: ServiceCall) -> None:
+        """Query Tuya cloud for the device's firmware information.
+
+        Fires ``kkt_kolbe_firmware_info`` event with the result. Note that
+        SmartLife tokens often lack the IoT-platform scope required for
+        ``/v1.0/iot-03/devices/{id}/upgrade-infos`` — in that case the event
+        carries ``"available": false`` and a hint to check the SmartLife app
+        instead.
+        """
+        device_filter = service.data.get("device_id", "")
+
+        try:
+            for entry_id, entry_data in hass.data.get(DOMAIN, {}).items():
+                if entry_data.get("entry_type") == "account":
+                    continue
+                config_entry = hass.config_entries.async_get_entry(entry_id)
+                if not config_entry or not hasattr(config_entry, "runtime_data"):
+                    continue
+                device_id = config_entry.data.get("device_id", "")
+                if device_filter and device_filter != device_id:
+                    continue
+
+                coordinator = getattr(config_entry.runtime_data, "coordinator", None)
+                client = getattr(coordinator, "smartlife_client", None) if coordinator else None
+                if not client or not hasattr(client, "async_get_firmware_info"):
+                    hass.bus.async_fire(
+                        f"{DOMAIN}_firmware_info",
+                        {
+                            "entry_id": entry_id,
+                            "device_id": device_id,
+                            "available": False,
+                            "reason": "SmartLife client not configured for this entry",
+                        },
+                    )
+                    continue
+
+                info = await client.async_get_firmware_info(device_id)
+                hass.bus.async_fire(
+                    f"{DOMAIN}_firmware_info",
+                    {
+                        "entry_id": entry_id,
+                        "device_id": device_id,
+                        "available": info is not None,
+                        "modules": info or [],
+                        "reason": (
+                            None
+                            if info is not None
+                            else "Tuya API rejected request — SmartLife token lacks IoT-platform "
+                            "scope. Check firmware via Tuya/SmartLife app: device → ⋮ → Firmware Update"
+                        ),
+                    },
+                )
+                _LOGGER.info("Firmware info for %s: %s modules", device_id[:8], len(info) if info else 0)
+        except Exception as err:
+            _LOGGER.error("Failed to get firmware info: %s", err)
+            hass.bus.async_fire(f"{DOMAIN}_firmware_info", {"error": str(err), "available": False})
+
+    hass.services.async_register(DOMAIN, SERVICE_GET_FIRMWARE_INFO, handle_get_firmware_info)
 
     async def handle_download_device_icons(service: ServiceCall) -> None:
         """Download device icons from Tuya Cloud for all configured devices.
