@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [4.7.4] - 2026-05-22
+
+### Fixed (Self-Healing Local Key)
+
+- **Error 914 (stale local_key) heilt sich jetzt selbst**: Wenn ein Gerät in der SmartLife-App neu gekoppelt wurde, rotiert die Tuya-Cloud den local_key. Bisher landeten betroffene Geräte (häufig HERMES & STYLE / andere Hauben) nach 3 Fehlversuchen permanent im Cloud-Modus, bis ein manueller Reload der Integration den frischen Key aus der SmartLife-SDK nachzog. Jetzt erkennt der hybrid coordinator den `KKTAuthenticationError` aus dem lokalen Pfad, ruft einmalig `smartlife_client.async_refresh_device(device_id)` auf, vergleicht den Schlüssel, schreibt den frischen Key in den Config-Entry und re-keyed das `KKTKolbeTuyaDevice` direkt — der nächste Poll-Cycle läuft wieder lokal. Throttle: max. 1 Resync alle 10 Minuten pro Coordinator, um die SmartLife-API nicht zu hämmern, wenn der eigentliche Fehler Wi-Fi/Firmware ist.
+- **`tuya_device.py` unterscheidet jetzt Auth- von Connection-Fehlern**: Wenn `auto_detect` über alle Protokoll-Versionen 3.1–3.5 nur Error 914 sieht (oder ein Single-Version-Versuch alle Key-Varianten verbrennt), wird `KKTAuthenticationError` statt `KKTConnectionError` geworfen. Damit kann der Coordinator gezielt entscheiden, ob ein Key-Resync helfen würde.
+
 ## [4.7.3] - 2026-05-06
 
 ### Fixed (Cloud-Local Routing)

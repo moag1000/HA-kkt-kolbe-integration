@@ -437,17 +437,25 @@ class KKTKolbeTuyaDevice:
                     f"  - Try using tinytuya wizard to get fresh key\n"
                     f"Key variants tried: {[desc for _, desc in key_variants]}"
                 )
-            else:
-                _LOGGER.error(
-                    f"Protocol auto-detection failed for device at {self.ip_address}\n"
-                    f"Tested versions: 3.3, 3.4, 3.5, 3.1, 3.2\n"
-                    f"Common causes:\n"
-                    f"  1. Device is offline or unreachable\n"
-                    f"  2. Incorrect local key (check Tuya IoT Platform)\n"
-                    f"  3. Device uses unsupported protocol version\n"
-                    f"  4. Firewall blocking connection on port 6668\n"
-                    f"Recommendation: Verify device is online and local key is correct"
+                raise KKTAuthenticationError(
+                    device_id=self.device_id,
+                    message=(
+                        f"Device at {self.ip_address} rejected all key variants with Error 914 "
+                        f"({error_914_count}x) across protocol versions 3.1-3.5 — local_key is stale "
+                        f"or device was re-paired."
+                    ),
                 )
+
+            _LOGGER.error(
+                f"Protocol auto-detection failed for device at {self.ip_address}\n"
+                f"Tested versions: 3.3, 3.4, 3.5, 3.1, 3.2\n"
+                f"Common causes:\n"
+                f"  1. Device is offline or unreachable\n"
+                f"  2. Incorrect local key (check Tuya IoT Platform)\n"
+                f"  3. Device uses unsupported protocol version\n"
+                f"  4. Firewall blocking connection on port 6668\n"
+                f"Recommendation: Verify device is online and local key is correct"
+            )
             raise KKTConnectionError(
                 operation="auto_detect",
                 device_id=self.device_id[:8],
@@ -510,11 +518,12 @@ class KKTKolbeTuyaDevice:
 
         # All key variants failed
         if error_914_seen:
-            raise KKTConnectionError(
-                operation="validate_connection",
-                device_id=self.device_id[:8],
-                reason=f"Error 914: Device rejected all key variants for version {version_float}. "
-                f"Key may be incorrect or have unsupported encoding.",
+            raise KKTAuthenticationError(
+                device_id=self.device_id,
+                message=(
+                    f"Error 914 on version {version_float}: device rejected all key variants — "
+                    f"local_key is stale, has encoding issues, or device was re-paired."
+                ),
             )
         raise KKTConnectionError(
             operation="validate_connection",
@@ -527,7 +536,7 @@ class KKTKolbeTuyaDevice:
         if not self._connected:
             try:
                 await self.async_connect()
-            except (KKTConnectionError, KKTTimeoutError):
+            except (KKTAuthenticationError, KKTConnectionError, KKTTimeoutError):
                 # Re-raise our custom exceptions
                 raise
             except Exception as e:

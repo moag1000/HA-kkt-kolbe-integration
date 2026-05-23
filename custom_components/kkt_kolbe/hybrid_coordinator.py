@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_ACCESS_TOKEN
+from homeassistant.const import CONF_IP_ADDRESS
 from homeassistant.core import HomeAssistant
 from homeassistant.core import callback
 from homeassistant.exceptions import ConfigEntryAuthFailed
@@ -21,6 +23,7 @@ from .api import TuyaAPIError
 from .api import TuyaCloudClient
 from .api import TuyaDeviceNotFoundError
 from .api import TuyaRateLimitError
+from .exceptions import KKTAuthenticationError
 from .exceptions import KKTConnectionError
 from .exceptions import KKTRateLimitError
 from .exceptions import KKTTimeoutError
@@ -113,6 +116,11 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
         self.local_consecutive_errors = 0
         self.api_consecutive_errors = 0
         self.max_consecutive_errors = 3
+
+        # Self-healing local_key resync (Error 914 recovery). Throttle to avoid
+        # spamming SmartLife API when key really is correct but Wi-Fi is flaky.
+        self._last_key_resync_attempt: datetime | None = None
+        self._key_resync_min_interval = timedelta(minutes=10)
 
         # Timestamp tracking for last successful update
         self._last_update_success_time: datetime | None = None
@@ -309,6 +317,38 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
                 self.local_consecutive_errors = 0
                 self._last_update_success_time = datetime.now()
                 return data
+            except KKTAuthenticationError as err:
+                # Error 914 / decrypt failures = stale local_key. Try to pull a
+                # fresh key from SmartLife and retry once before giving up to cloud.
+                _LOGGER.warning(
+                    "Local auth failed for device %s (likely stale local_key): %s",
+                    self.device_id[:8],
+                    err,
+                )
+                if await self._async_try_resync_local_key():
+                    try:
+                        data = await self.async_update_local()
+                        self.local_consecutive_errors = 0
+                        self._last_update_success_time = datetime.now()
+                        _LOGGER.info(
+                            "Self-heal succeeded: local_key resynced from SmartLife for device %s",
+                            self.device_id[:8],
+                        )
+                        return data
+                    except (KKTAuthenticationError, KKTConnectionError, KKTTimeoutError) as retry_err:
+                        _LOGGER.warning(
+                            "Retry after key resync still failed for device %s: %s",
+                            self.device_id[:8],
+                            retry_err,
+                        )
+                self.local_consecutive_errors += 1
+                if self.local_consecutive_errors >= self.max_consecutive_errors:
+                    if self.api_available:
+                        _LOGGER.info("Switching to API mode after failed key resync")
+                        self.current_mode = "api"
+                    elif self.smartlife_available:
+                        _LOGGER.info("Switching to SmartLife mode after failed key resync")
+                        self.current_mode = "smartlife"
             except (KKTConnectionError, KKTTimeoutError) as err:
                 self.local_consecutive_errors += 1
                 _LOGGER.warning(f"Local communication failed (attempt {self.local_consecutive_errors}): {err}")
@@ -424,6 +464,9 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
                 "available": True,
             }
 
+        except KKTAuthenticationError:
+            # Preserve auth-error type so the coordinator can trigger key resync.
+            raise
         except Exception as err:
             raise KKTConnectionError(f"Local communication failed: {err}") from err
 
@@ -860,6 +903,109 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
                 parts.append(f"device's known codes: {', '.join(known)}")
 
         return " | ".join(parts)
+
+    async def _async_try_resync_local_key(self) -> bool:
+        """Pull a fresh local_key from SmartLife and apply it to the local device.
+
+        Triggered when the local connection raises KKTAuthenticationError
+        (Error 914 across all protocol versions and key variants). Most common
+        cause: the device was re-paired in the SmartLife app, rotating the key
+        on the cloud side while the integration kept caching the old one.
+
+        Returns:
+            True if a new key was retrieved and applied (caller should retry the
+            local update). False if no SmartLife client is configured, the
+            throttle window is still active, the device wasn't found in the
+            cloud, or the cloud key matches what we already have.
+        """
+        if not self.smartlife_client or not self.local_device or not self.config_entry:
+            return False
+
+        now = datetime.now()
+        if (
+            self._last_key_resync_attempt is not None
+            and now - self._last_key_resync_attempt < self._key_resync_min_interval
+        ):
+            _LOGGER.debug(
+                "Skipping local_key resync for device %s: throttle window active (last attempt %s)",
+                self.device_id[:8],
+                self._last_key_resync_attempt.isoformat(timespec="seconds"),
+            )
+            return False
+
+        self._last_key_resync_attempt = now
+
+        try:
+            sl_device = await self.smartlife_client.async_refresh_device(self.device_id)
+        except Exception as err:
+            _LOGGER.warning(
+                "local_key resync failed for device %s: cloud refresh raised %s: %s",
+                self.device_id[:8],
+                type(err).__name__,
+                err,
+            )
+            return False
+
+        if sl_device is None:
+            _LOGGER.warning(
+                "local_key resync: device %s not found in SmartLife device list",
+                self.device_id[:8],
+            )
+            return False
+
+        fresh_key = sl_device.local_key
+        if not fresh_key:
+            _LOGGER.warning(
+                "local_key resync: SmartLife returned empty local_key for device %s",
+                self.device_id[:8],
+            )
+            return False
+
+        if fresh_key == self.local_device.local_key:
+            _LOGGER.info(
+                "local_key resync: SmartLife key matches stored key for device %s — "
+                "Error 914 is not a key-rotation issue (check device state / firmware)",
+                self.device_id[:8],
+            )
+            return False
+
+        _LOGGER.warning(
+            "local_key resync: applying rotated key for device %s "
+            "(stored length=%d, fresh length=%d)",
+            self.device_id[:8],
+            len(self.local_device.local_key),
+            len(fresh_key),
+        )
+
+        # Persist the fresh key in the config entry so it survives restarts.
+        new_data = dict(self.config_entry.data)
+        new_data["local_key"] = fresh_key
+        new_data[CONF_ACCESS_TOKEN] = fresh_key
+        # Pick up any IP refresh from the same SmartLife response while we have it.
+        fresh_ip = getattr(sl_device, "ip", None)
+        if fresh_ip:
+            import ipaddress
+
+            try:
+                if ipaddress.ip_address(fresh_ip).is_private and fresh_ip != self.local_device.ip_address:
+                    new_data[CONF_IP_ADDRESS] = fresh_ip
+                    new_data["ip_address"] = fresh_ip
+                    self.local_device.ip_address = fresh_ip
+                    _LOGGER.info(
+                        "local_key resync: IP also refreshed for device %s: %s",
+                        self.device_id[:8],
+                        fresh_ip,
+                    )
+            except ValueError:
+                pass
+        self.hass.config_entries.async_update_entry(self.config_entry, data=new_data)
+
+        # Force a clean reconnect with the new key on the next status call.
+        await self.local_device.async_disconnect()
+        self.local_device.local_key = fresh_key
+        self.local_device._local_key_bytes = None
+
+        return True
 
     def set_local_device(self, device: KKTKolbeTuyaDevice) -> None:
         """Set or update the local device."""
