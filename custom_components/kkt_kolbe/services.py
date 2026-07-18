@@ -794,7 +794,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             )
 
             # Also list all downloaded icons
-            all_icons = list_downloaded_icons(hass)
+            all_icons = await hass.async_add_executor_job(list_downloaded_icons, hass)
             if all_icons:
                 _LOGGER.info(
                     "Available device icons in /config/www/kkt_kolbe/icons/: %s",

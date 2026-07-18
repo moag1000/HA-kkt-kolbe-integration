@@ -213,7 +213,7 @@ class KKTKolbeConnectionSensor(CoordinatorEntity, BinarySensorEntity):
 
         # Set unique ID
         self._attr_unique_id = f"{self._device_id}_connection_status"
-        self._attr_name = "Device Connected"
+        # Name comes from translation_key (entity.binary_sensor.device_connected)
 
         # Device info for device registry
         self._attr_device_info = {
@@ -292,7 +292,7 @@ class KKTKolbeAPIStatusSensor(CoordinatorEntity, BinarySensorEntity):
 
         # Set unique ID
         self._attr_unique_id = f"{self._device_id}_api_status"
-        self._attr_name = "Cloud API Connected"
+        # Name comes from translation_key (entity.binary_sensor.api_connected)
 
         # Device info for device registry
         self._attr_device_info = {

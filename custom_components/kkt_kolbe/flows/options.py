@@ -11,7 +11,7 @@ from homeassistant.const import CONF_ACCESS_TOKEN
 from homeassistant.const import CONF_DEVICE_ID
 from homeassistant.const import CONF_IP_ADDRESS
 from homeassistant.const import CONF_SCAN_INTERVAL
-from homeassistant.data_entry_flow import FlowResult
+from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.helpers import selector
 
 from ..const import DOCUMENTATION_URL
@@ -34,7 +34,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
         # No longer store config_entry manually - use self.config_entry property
         # This property is automatically provided by the OptionsFlow parent class
 
-    async def async_step_init(self, user_input: dict[str, Any | None] | None = None) -> FlowResult:
+    async def async_step_init(self, user_input: dict[str, Any | None] | None = None) -> ConfigFlowResult:
         """Manage the options - routes to appropriate step based on entry type."""
         # Determine entry type
         entry_type = self.config_entry.data.get("entry_type")
@@ -51,7 +51,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
         # Manual/IoT Platform Device Entry - full options
         return await self.async_step_device(user_input)
 
-    async def async_step_smartlife_account(self, user_input: dict[str, Any | None] | None = None) -> FlowResult:
+    async def async_step_smartlife_account(self, user_input: dict[str, Any | None] | None = None) -> ConfigFlowResult:
         """Options for SmartLife Account entries - menu based."""
         if user_input is not None:
             # Handle menu selection
@@ -69,7 +69,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
             },
         )
 
-    async def async_step_account_settings(self, user_input: dict[str, Any | None] | None = None) -> FlowResult:
+    async def async_step_account_settings(self, user_input: dict[str, Any | None] | None = None) -> ConfigFlowResult:
         """Settings for SmartLife Account entries."""
         errors: dict[str, str] = {}
 
@@ -93,7 +93,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
             },
         )
 
-    async def async_step_renew_token(self, user_input: dict[str, Any | None] | None = None) -> FlowResult:
+    async def async_step_renew_token(self, user_input: dict[str, Any | None] | None = None) -> ConfigFlowResult:
         """Renew SmartLife token via QR code scan."""
         errors: dict[str, str] = {}
 
@@ -194,7 +194,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
             },
         )
 
-    async def async_step_smartlife_device(self, user_input: dict[str, Any | None] | None = None) -> FlowResult:
+    async def async_step_smartlife_device(self, user_input: dict[str, Any | None] | None = None) -> ConfigFlowResult:
         """Options for SmartLife Device entries (no IoT Platform API options)."""
         errors: dict[str, str] = {}
 
@@ -246,7 +246,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
             },
         )
 
-    async def async_step_device(self, user_input: dict[str, Any | None] | None = None) -> FlowResult:
+    async def async_step_device(self, user_input: dict[str, Any | None] | None = None) -> ConfigFlowResult:
         """Options for Manual/IoT Platform Device entries (full options)."""
         errors: dict[str, str] = {}
 

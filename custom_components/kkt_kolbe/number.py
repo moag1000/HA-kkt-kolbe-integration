@@ -228,16 +228,38 @@ class KKTKolbeZoneNumber(KKTZoneBaseEntity, NumberEntity):
             self._log_entity_state("Set Zone Value (Bitfield)", f"Zone {self._zone}, DP {self._dp} set to {int_value}")
             return
 
-        # Fallback to legacy integer bitfield handling
+        # Fallback to legacy integer bitfield handling. Read the current DP
+        # first (needed to compute the new bitfield), then paint optimistically.
         current_data = self._get_data_point_value()
-        if self._zone is not None and current_data is not None and isinstance(current_data, int) and current_data > 255:
-            # Update the specific zone in the bitfield
-            zone_offset = (self._zone - 1) * 8
-            zone_mask = 0xFF << zone_offset
-            new_value = (current_data & ~zone_mask) | ((int_value & 0xFF) << zone_offset)
-            await self._async_set_data_point(self._dp, new_value)
-        else:
-            # Simple value
-            await self._async_set_data_point(self._dp, int_value)
+
+        # Optimistic paint: show the target immediately so a stale cloud poll
+        # can't snap the slider back before the device confirms (Issue #6).
+        previous_cached = self._cached_value
+        self._cached_value = float(int_value)
+        if self.hass:
+            self.async_write_ha_state()
+
+        try:
+            if (
+                self._zone is not None
+                and current_data is not None
+                and isinstance(current_data, int)
+                and current_data > 255
+            ):
+                # Update the specific zone in the bitfield
+                zone_offset = (self._zone - 1) * 8
+                zone_mask = 0xFF << zone_offset
+                new_value = (current_data & ~zone_mask) | ((int_value & 0xFF) << zone_offset)
+                await self._async_set_data_point(self._dp, new_value)
+            else:
+                # Simple value
+                await self._async_set_data_point(self._dp, int_value)
+        except Exception:
+            # Write failed — roll the UI back to the last known value.
+            self._cached_value = previous_cached
+            self._update_cached_state()
+            if self.hass:
+                self.async_write_ha_state()
+            raise
 
         self._log_entity_state("Set Zone Value", f"Zone {self._zone}, DP {self._dp} set to {int_value}")

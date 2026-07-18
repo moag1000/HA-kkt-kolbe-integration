@@ -7,6 +7,7 @@ for use as device pictures in Home Assistant.
 from __future__ import annotations
 
 import logging
+from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -93,7 +94,7 @@ async def download_icon(
     # Create storage directory
     storage_path = get_icon_storage_path(hass)
     try:
-        storage_path.mkdir(parents=True, exist_ok=True)
+        await hass.async_add_executor_job(partial(storage_path.mkdir, parents=True, exist_ok=True))
     except OSError as err:
         _LOGGER.error("Failed to create icon storage directory: %s", err)
         return None
@@ -102,7 +103,7 @@ async def download_icon(
     target_file = storage_path / f"{device_id}.png"
 
     # Check if already exists
-    if target_file.exists() and not force:
+    if await hass.async_add_executor_job(target_file.exists) and not force:
         _LOGGER.debug("Icon for device %s already exists", device_id[:8])
         return get_icon_url_for_device(device_id)
 

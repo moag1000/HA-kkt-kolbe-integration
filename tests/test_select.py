@@ -180,7 +180,10 @@ async def test_select_icon(
         config_mode,
     )
 
-    assert "mode" in select_mode.name.lower() or "form-select" in select_mode.icon
+    # Note: entity.name now resolves via translation_key, which requires the
+    # entity to be attached to a platform. Read the config name directly here
+    # (this test only ever used the name as a proxy for the config anyway).
+    assert "mode" in config_mode["name"].lower() or "form-select" in select_mode.icon
 
 
 @pytest.mark.asyncio

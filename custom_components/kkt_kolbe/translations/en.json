@@ -128,20 +128,6 @@
           "back_to_discovery": "Return to automatic device discovery"
         }
       },
-      "manual_config": {
-        "title": "Manual Configuration",
-        "description": "Enter device details manually.\n\n**How to get the Local Key:**\nYou need to set up the Tuya IoT Platform to retrieve the Local Key.\n\n[Setup Guide]({setup_guide_url}) | [Tuya IoT Platform]({tuya_iot_url})",
-        "data": {
-          "device_id": "Device ID",
-          "host": "IP Address",
-          "local_key": "Local Key"
-        },
-        "data_description": {
-          "device_id": "20-character device ID from Tuya/Smart Life app",
-          "host": "IP address of the device on your network",
-          "local_key": "16-character local encryption key from Tuya IoT Platform"
-        }
-      },
       "authentication": {
         "title": "Device Authentication",
         "description": "Enter the Local Key for your device.\n\n**Device:** {device_name}\n**Device ID:** {device_id}\n**IP Address:** {ip_address}\n\n**How to get the Local Key:**\nThe Local Key is retrieved from the Tuya IoT Platform. Follow our setup guide to configure API access.\n\n[Setup Guide]({setup_guide_url}) | [Tuya IoT Platform]({tuya_iot_url})",
@@ -231,27 +217,6 @@
           "api_endpoint": "Select your regional API endpoint"
         }
       },
-      "api_config": {
-        "title": "API Configuration",
-        "description": "Configure TinyTuya Cloud API credentials.\n\n[Setup Guide]({setup_guide_url}) | [Tuya IoT Platform]({tuya_iot_url})",
-        "data": {
-          "api_client_id": "Client ID",
-          "api_client_secret": "Client Secret",
-          "api_endpoint": "API Endpoint"
-        },
-        "data_description": {
-          "api_client_id": "Access ID from Tuya IoT Platform project",
-          "api_client_secret": "Access Secret from Tuya IoT Platform project",
-          "api_endpoint": "API endpoint (EU: openapi.tuyaeu.com, US: openapi.tuyaus.com)"
-        }
-      },
-      "api_discovery": {
-        "title": "Device Discovery",
-        "description": "Select your KKT Kolbe device from discovered devices.",
-        "data": {
-          "selected_device": "Device"
-        }
-      },
       "api_device_selection": {
         "title": "Select Your Device",
         "description": "Choose your KKT Kolbe device from the API discovery.\n\nFound {device_count} device(s).",
@@ -288,18 +253,6 @@
           "api_client_id": "Access ID from your Tuya IoT Platform Cloud Project",
           "api_client_secret": "Access Secret from your Tuya IoT Platform Cloud Project",
           "api_endpoint": "Select your regional API endpoint"
-        }
-      },
-      "hybrid_manual_details": {
-        "title": "Local Connection Details",
-        "description": "Enter local connection details for hybrid mode.\n\n**How to get the Local Key:**\n[Setup Guide]({setup_guide_url}) | [Tuya IoT Platform]({tuya_iot_url})",
-        "data": {
-          "host": "IP Address",
-          "local_key": "Local Key"
-        },
-        "data_description": {
-          "host": "IP address for local communication",
-          "local_key": "16-character local encryption key from Tuya IoT Platform"
         }
       },
       "smartlife_reauth": {
@@ -397,34 +350,6 @@
           "api_client_secret": "Tuya API Secret (leave empty to keep current)",
           "api_endpoint": "API Region",
           "test_connection": "Test connection before saving"
-        }
-      },
-      "init": {
-        "title": "KKT Kolbe Options",
-        "description": "Configure options for your KKT Kolbe device.\n\n[Documentation]({documentation_url})",
-        "data": {
-          "scan_interval": "Update Interval",
-          "new_local_key": "New Local Key",
-          "api_enabled": "Enable TinyTuya Cloud API",
-          "api_client_id": "API Client ID",
-          "api_client_secret": "API Client Secret",
-          "api_endpoint": "API Endpoint Region",
-          "enable_debug_logging": "Enable Debug Logging",
-          "enable_advanced_entities": "Enable Advanced Entities",
-          "zone_naming_scheme": "Zone Naming Scheme",
-          "test_connection": "Test Connection"
-        },
-        "data_description": {
-          "scan_interval": "How often to update device status (10-300 seconds)",
-          "new_local_key": "Enter new local key if device was reset (16 characters)",
-          "api_enabled": "Enable TinyTuya Cloud API for hybrid mode and device discovery",
-          "api_client_id": "Access ID from Tuya IoT Platform project",
-          "api_client_secret": "Access Secret from Tuya IoT Platform project",
-          "api_endpoint": "Select your regional API endpoint",
-          "enable_debug_logging": "Enable detailed logging for troubleshooting",
-          "enable_advanced_entities": "Show all entities (Fan Speed, RGB Mode, Filter Status, etc.)",
-          "zone_naming_scheme": "How to name multi-zone entities",
-          "test_connection": "Test device connection after changes"
         }
       }
     },
@@ -642,6 +567,42 @@
       },
       "pause": {
         "name": "Pause"
+      },
+      "confirm": {
+        "name": "Confirm"
+      },
+      "confirm_action": {
+        "name": "Confirm Action"
+      },
+      "delayed_shutdown": {
+        "name": "Delayed Shutdown"
+      },
+      "eco_mode": {
+        "name": "Eco Mode"
+      },
+      "filter_cleaning_reminder": {
+        "name": "Filter Cleaning Reminder"
+      },
+      "filter_reset": {
+        "name": "Filter Reset"
+      },
+      "led_light": {
+        "name": "LED Light"
+      },
+      "rgb_light": {
+        "name": "RGB Light"
+      },
+      "senior_mode": {
+        "name": "Senior Mode"
+      },
+      "side_light": {
+        "name": "Side Light"
+      },
+      "start": {
+        "name": "Start"
+      },
+      "wash_mode": {
+        "name": "Wash Mode"
       }
     },
     "fan": {
@@ -661,6 +622,48 @@
       },
       "smartlife_device_info": {
         "name": "SmartLife Device Info"
+      },
+      "active_zones": {
+        "name": "Active Zones"
+      },
+      "bbq_timer_left": {
+        "name": "BBQ Timer Left"
+      },
+      "bbq_timer_right": {
+        "name": "BBQ Timer Right"
+      },
+      "core_probe_temperature": {
+        "name": "Core Probe: Temperature"
+      },
+      "estimated_power": {
+        "name": "Estimated Power"
+      },
+      "filter_hours": {
+        "name": "Filter Hours"
+      },
+      "rgb_color_data": {
+        "name": "RGB Color Data"
+      },
+      "time_remaining": {
+        "name": "Time Remaining"
+      },
+      "total_power_level": {
+        "name": "Total Power Level"
+      },
+      "zone_1_chef_level": {
+        "name": "Zone 1: Chef Level"
+      },
+      "zone_2_chef_level": {
+        "name": "Zone 2: Chef Level"
+      },
+      "zone_3_chef_level": {
+        "name": "Zone 3: Chef Level"
+      },
+      "zone_4_chef_level": {
+        "name": "Zone 4: Chef Level"
+      },
+      "zone_5_chef_level": {
+        "name": "Zone 5: Chef Level"
       }
     },
     "binary_sensor": {
@@ -672,6 +675,87 @@
       },
       "error": {
         "name": "Error"
+      },
+      "device_connected": {
+        "name": "Device Connected"
+      },
+      "api_connected": {
+        "name": "Cloud API Connected"
+      },
+      "bbq_mode_left": {
+        "name": "BBQ Mode Left"
+      },
+      "bbq_mode_right": {
+        "name": "BBQ Mode Right"
+      },
+      "door": {
+        "name": "Door"
+      },
+      "flex_zone_left": {
+        "name": "Flex Zone Left"
+      },
+      "flex_zone_right": {
+        "name": "Flex Zone Right"
+      },
+      "zone_1_boost_active": {
+        "name": "Zone 1: Boost Active"
+      },
+      "zone_1_error": {
+        "name": "Zone 1: Error"
+      },
+      "zone_1_keep_warm": {
+        "name": "Zone 1: Keep Warm"
+      },
+      "zone_1_selected": {
+        "name": "Zone 1: Selected"
+      },
+      "zone_2_boost_active": {
+        "name": "Zone 2: Boost Active"
+      },
+      "zone_2_error": {
+        "name": "Zone 2: Error"
+      },
+      "zone_2_keep_warm": {
+        "name": "Zone 2: Keep Warm"
+      },
+      "zone_2_selected": {
+        "name": "Zone 2: Selected"
+      },
+      "zone_3_boost_active": {
+        "name": "Zone 3: Boost Active"
+      },
+      "zone_3_error": {
+        "name": "Zone 3: Error"
+      },
+      "zone_3_keep_warm": {
+        "name": "Zone 3: Keep Warm"
+      },
+      "zone_3_selected": {
+        "name": "Zone 3: Selected"
+      },
+      "zone_4_boost_active": {
+        "name": "Zone 4: Boost Active"
+      },
+      "zone_4_error": {
+        "name": "Zone 4: Error"
+      },
+      "zone_4_keep_warm": {
+        "name": "Zone 4: Keep Warm"
+      },
+      "zone_4_selected": {
+        "name": "Zone 4: Selected"
+      },
+      "zone_5_boost_active": {
+        "name": "Zone 5: Boost Active"
+      },
+      "zone_5_error": {
+        "name": "Zone 5: Error"
+      },
+      "zone_5_keep_warm": {
+        "name": "Zone 5: Keep Warm"
+      },
+      "zone_5_selected": {
+        "name": "Zone 5: Selected"
       }
     },
     "number": {
@@ -683,6 +767,63 @@
       },
       "rgb_mode": {
         "name": "RGB Mode"
+      },
+      "carbon_filter_remaining": {
+        "name": "Carbon Filter Remaining"
+      },
+      "core_probe_target_temp": {
+        "name": "Core Probe: Target Temp"
+      },
+      "fan_speed": {
+        "name": "Fan Speed"
+      },
+      "general_timer": {
+        "name": "General Timer"
+      },
+      "light_brightness": {
+        "name": "Light Brightness"
+      },
+      "max_power_level": {
+        "name": "Max Power Level"
+      },
+      "metal_filter_remaining": {
+        "name": "Metal Filter Remaining"
+      },
+      "rgb_brightness": {
+        "name": "RGB Brightness"
+      },
+      "temperature": {
+        "name": "Temperature"
+      },
+      "zone_1_power_level": {
+        "name": "Zone 1: Power Level"
+      },
+      "zone_1_timer": {
+        "name": "Zone 1: Timer"
+      },
+      "zone_2_power_level": {
+        "name": "Zone 2: Power Level"
+      },
+      "zone_2_timer": {
+        "name": "Zone 2: Timer"
+      },
+      "zone_3_power_level": {
+        "name": "Zone 3: Power Level"
+      },
+      "zone_3_timer": {
+        "name": "Zone 3: Timer"
+      },
+      "zone_4_power_level": {
+        "name": "Zone 4: Power Level"
+      },
+      "zone_4_timer": {
+        "name": "Zone 4: Timer"
+      },
+      "zone_5_power_level": {
+        "name": "Zone 5: Power Level"
+      },
+      "zone_5_timer": {
+        "name": "Zone 5: Timer"
       }
     },
     "select": {
@@ -695,6 +836,47 @@
           "high": "High",
           "strong": "Strong"
         }
+      },
+      "color_temperature": {
+        "name": "Color Temperature"
+      },
+      "power_limit": {
+        "name": "Power Limit"
+      },
+      "program": {
+        "name": "Program"
+      },
+      "rgb_mode": {
+        "name": "RGB Mode"
+      },
+      "save_zone_level": {
+        "name": "Save Zone Level"
+      },
+      "set_zone_level": {
+        "name": "Set Zone Level"
+      },
+      "zone_1_quick_level": {
+        "name": "Zone 1: Quick Level"
+      },
+      "zone_2_quick_level": {
+        "name": "Zone 2: Quick Level"
+      },
+      "zone_3_quick_level": {
+        "name": "Zone 3: Quick Level"
+      },
+      "zone_4_quick_level": {
+        "name": "Zone 4: Quick Level"
+      },
+      "zone_5_quick_level": {
+        "name": "Zone 5: Quick Level"
+      }
+    },
+    "light": {
+      "led_light": {
+        "name": "LED Light"
+      },
+      "light": {
+        "name": "Light"
       }
     }
   },

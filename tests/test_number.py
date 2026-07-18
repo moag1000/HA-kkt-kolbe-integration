@@ -304,3 +304,88 @@ async def test_number_optimistic_released_when_write_fails(
     assert number._is_optimistic_active() is False
     number._handle_coordinator_update()
     assert number.native_value == 30.0
+
+
+# =============== ZONE NUMBER OPTIMISTIC WRITE TESTS ===============
+
+
+@pytest.mark.asyncio
+async def test_zone_number_set_native_value_optimistic_immediate(
+    hass: HomeAssistant,
+    mock_config_entry,
+) -> None:
+    """KKTKolbeZoneNumber must paint native_value to the target immediately
+    (non-bitfield path), before any coordinator poll confirms the write.
+
+    DP 200 is deliberately NOT in bitfield_utils.BITFIELD_CONFIG so
+    async_set_native_value takes the legacy/simple-value fallback path
+    (number.py ~line 231-263), not the Base64 bitfield path.
+    """
+    from custom_components.kkt_kolbe.number import KKTKolbeZoneNumber
+
+    coordinator = MagicMock()
+    coordinator.data = {200: 1, "200": 1}
+    coordinator.last_update_success = True
+    coordinator.async_set_data_point = AsyncMock()
+
+    mock_config_entry.add_to_hass(hass)
+
+    config = {
+        "dp": 200,
+        "name": "Zone Power Level",
+        "zone": 1,
+        "min_value": 0,
+        "max_value": 9,
+    }
+
+    number = KKTKolbeZoneNumber(coordinator, mock_config_entry, config)
+    number.hass = hass
+    number.entity_id = "number.test_zone_optimistic"
+    number.async_write_ha_state = MagicMock()
+
+    await number.async_set_native_value(7)
+
+    assert number.native_value == 7.0, (
+        "KKTKolbeZoneNumber.async_set_native_value must paint native_value to "
+        "the target immediately, without waiting for a coordinator poll."
+    )
+    coordinator.async_set_data_point.assert_called_once_with(200, 7)
+
+
+@pytest.mark.asyncio
+async def test_zone_number_set_native_value_rolls_back_on_write_failure(
+    hass: HomeAssistant,
+    mock_config_entry,
+) -> None:
+    """A failed device write must roll the zone number back to its prior value."""
+    from custom_components.kkt_kolbe.number import KKTKolbeZoneNumber
+
+    coordinator = MagicMock()
+    coordinator.data = {200: 1, "200": 1}
+    coordinator.last_update_success = True
+    coordinator.async_set_data_point = AsyncMock(side_effect=RuntimeError("device offline"))
+
+    mock_config_entry.add_to_hass(hass)
+
+    config = {
+        "dp": 200,
+        "name": "Zone Power Level",
+        "zone": 1,
+        "min_value": 0,
+        "max_value": 9,
+    }
+
+    number = KKTKolbeZoneNumber(coordinator, mock_config_entry, config)
+    number.hass = hass
+    number.entity_id = "number.test_zone_rollback"
+    number.async_write_ha_state = MagicMock()
+
+    previous_value = number.native_value
+
+    with pytest.raises(RuntimeError):
+        await number.async_set_native_value(7)
+
+    assert number.native_value == previous_value, (
+        "After a failed write, KKTKolbeZoneNumber native_value must roll back to "
+        "the prior value instead of sticking at the optimistic target."
+    )

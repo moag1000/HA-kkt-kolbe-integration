@@ -381,3 +381,141 @@ async def test_light_turn_on_fan_suppress_not_when_hood_already_on(
     assert call(4, True) in calls, f"Expected light-on call, got: {calls}"
     assert call(1, True) not in calls, f"Should NOT power-on (already on), got: {calls}"
     assert call(10, "off") not in calls, f"Should NOT send fan-off (hood was already on), got: {calls}"
+
+
+# =============== OPTIMISTIC WRITE / NO SNAP-BACK TESTS ===============
+
+
+@pytest.mark.asyncio
+async def test_light_turn_on_optimistic_immediate(
+    hass: HomeAssistant,
+) -> None:
+    """is_on must reflect the new state immediately after turn_on, before any poll.
+
+    The device write is mocked as pending (never resolved coordinator data
+    change) to prove the optimistic lock -- not a real coordinator update --
+    is what makes is_on report True.
+    """
+    from custom_components.kkt_kolbe.light import KKTKolbeLight
+
+    coordinator = MagicMock()
+    # Hood already on, light DP still False (coordinator data never changes
+    # in this test -- it must NOT be what flips is_on to True).
+    coordinator.data = {1: True, "1": True, 4: False, "4": False}
+    coordinator.last_update_success = True
+    coordinator.async_set_data_point = AsyncMock()
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Test Hood",
+        data={
+            "device_id": "bf735dfe2ad64fba7cpyhn",
+            "ip_address": "192.168.1.100",
+            "local_key": "1234567890abcdef",
+            "product_name": "hermes_style_hood",
+            "device_type": "hermes_style_hood",
+        },
+        unique_id="bf735dfe2ad64fba7cpyhn_optimistic",
+    )
+    entry.add_to_hass(hass)
+
+    config = {"dp": 4, "name": "Light"}
+    light = KKTKolbeLight(coordinator, entry, config)
+    light.hass = hass
+    light.entity_id = "light.test_optimistic"
+    light.async_write_ha_state = MagicMock()
+
+    assert light.is_on is False
+
+    await light.async_turn_on()
+
+    assert light.is_on is True, (
+        "Light must report is_on=True immediately after turn_on via the "
+        "optimistic lock, without waiting for a coordinator poll."
+    )
+
+
+@pytest.mark.asyncio
+async def test_light_turn_off_optimistic_immediate(
+    hass: HomeAssistant,
+) -> None:
+    """is_on must reflect off immediately after turn_off, before any poll."""
+    from custom_components.kkt_kolbe.light import KKTKolbeLight
+
+    coordinator = MagicMock()
+    coordinator.data = {1: True, "1": True, 4: True, "4": True}
+    coordinator.last_update_success = True
+    coordinator.async_set_data_point = AsyncMock()
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Test Hood",
+        data={
+            "device_id": "bf735dfe2ad64fba7cpyhn",
+            "ip_address": "192.168.1.100",
+            "local_key": "1234567890abcdef",
+            "product_name": "hermes_style_hood",
+            "device_type": "hermes_style_hood",
+        },
+        unique_id="bf735dfe2ad64fba7cpyhn_optimistic_off",
+    )
+    entry.add_to_hass(hass)
+
+    config = {"dp": 4, "name": "Light"}
+    light = KKTKolbeLight(coordinator, entry, config)
+    light.hass = hass
+    light.entity_id = "light.test_optimistic_off"
+    light.async_write_ha_state = MagicMock()
+
+    assert light.is_on is True
+
+    await light.async_turn_off()
+
+    assert light.is_on is False, (
+        "Light must report is_on=False immediately after turn_off via the "
+        "optimistic lock, without waiting for a coordinator poll."
+    )
+
+
+@pytest.mark.asyncio
+async def test_light_turn_on_rolls_back_on_write_failure(
+    hass: HomeAssistant,
+) -> None:
+    """A failed device write must roll the optimistic is_on back to prior state."""
+    from custom_components.kkt_kolbe.light import KKTKolbeLight
+
+    coordinator = MagicMock()
+    coordinator.data = {1: True, "1": True, 4: False, "4": False}
+    coordinator.last_update_success = True
+    coordinator.async_set_data_point = AsyncMock(side_effect=RuntimeError("device offline"))
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Test Hood",
+        data={
+            "device_id": "bf735dfe2ad64fba7cpyhn",
+            "ip_address": "192.168.1.100",
+            "local_key": "1234567890abcdef",
+            "product_name": "hermes_style_hood",
+            "device_type": "hermes_style_hood",
+        },
+        unique_id="bf735dfe2ad64fba7cpyhn_rollback",
+    )
+    entry.add_to_hass(hass)
+
+    config = {"dp": 4, "name": "Light"}
+    light = KKTKolbeLight(coordinator, entry, config)
+    light.hass = hass
+    light.entity_id = "light.test_rollback"
+    light.async_write_ha_state = MagicMock()
+
+    assert light.is_on is False
+
+    with pytest.raises(RuntimeError):
+        await light.async_turn_on()
+
+    assert light._is_optimistic_active() is False
+    assert light.is_on is False, (
+        "After a failed write, is_on must roll back to the prior (coordinator) "
+        "value instead of sticking at the optimistic target."
+    )

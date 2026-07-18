@@ -150,7 +150,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return await _async_setup_device_entry(hass, entry)
 
 
-async def _async_setup_account_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def _async_setup_account_entry(hass: HomeAssistant, entry: KKTKolbeAccountConfigEntry) -> bool:
     """Set up a SmartLife account entry (Parent Entry).
 
     Account entries:
@@ -799,7 +799,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return await _async_unload_device_entry(hass, entry)
 
 
-async def _async_unload_account_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def _async_unload_account_entry(hass: HomeAssistant, entry: KKTKolbeAccountConfigEntry) -> bool:
     """Unload a SmartLife account entry (Parent Entry).
 
     Note: Child device entries should be unloaded separately by Home Assistant

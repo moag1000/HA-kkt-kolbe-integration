@@ -128,20 +128,6 @@
           "back_to_discovery": "Zurück zur automatischen Geräteerkennung"
         }
       },
-      "manual_config": {
-        "title": "Manuelle Konfiguration",
-        "description": "Gerätedaten manuell eingeben.\n\n**So erhalten Sie den Local Key:**\nSie müssen die Tuya IoT Platform einrichten, um den Local Key abzurufen.\n\n[Einrichtungsanleitung]({setup_guide_url}) | [Tuya IoT Platform]({tuya_iot_url})",
-        "data": {
-          "device_id": "Geräte-ID",
-          "host": "IP-Adresse",
-          "local_key": "Local Key"
-        },
-        "data_description": {
-          "device_id": "20-stellige Geräte-ID aus der Tuya/Smart Life App",
-          "host": "IP-Adresse des Geräts in Ihrem Netzwerk",
-          "local_key": "16-stelliger lokaler Verschlüsselungsschlüssel von der Tuya IoT Platform"
-        }
-      },
       "authentication": {
         "title": "Geräte-Authentifizierung",
         "description": "Geben Sie den Local Key für Ihr Gerät ein.\n\n**Gerät:** {device_name}\n**Geräte-ID:** {device_id}\n**IP-Adresse:** {ip_address}\n\n**So erhalten Sie den Local Key:**\nDer Local Key wird von der Tuya IoT Platform abgerufen. Folgen Sie unserer Einrichtungsanleitung für den API-Zugang.\n\n[Einrichtungsanleitung]({setup_guide_url}) | [Tuya IoT Platform]({tuya_iot_url})",
@@ -231,27 +217,6 @@
           "api_endpoint": "Wählen Sie Ihren regionalen API-Endpunkt"
         }
       },
-      "api_config": {
-        "title": "API-Konfiguration",
-        "description": "TinyTuya Cloud API-Zugangsdaten konfigurieren.\n\n[Einrichtungsanleitung]({setup_guide_url}) | [Tuya IoT Platform]({tuya_iot_url})",
-        "data": {
-          "api_client_id": "Client ID",
-          "api_client_secret": "Client Secret",
-          "api_endpoint": "API-Endpunkt"
-        },
-        "data_description": {
-          "api_client_id": "Access ID aus dem Tuya IoT Platform Projekt",
-          "api_client_secret": "Access Secret aus dem Tuya IoT Platform Projekt",
-          "api_endpoint": "API-Endpunkt (EU: openapi.tuyaeu.com, US: openapi.tuyaus.com)"
-        }
-      },
-      "api_discovery": {
-        "title": "Geräteerkennung",
-        "description": "Wählen Sie Ihr KKT Kolbe Gerät aus den erkannten Geräten.",
-        "data": {
-          "selected_device": "Gerät"
-        }
-      },
       "api_device_selection": {
         "title": "Gerät auswählen",
         "description": "Wählen Sie Ihr KKT Kolbe Gerät aus der API-Erkennung.\n\n{device_count} Gerät(e) gefunden.",
@@ -288,18 +253,6 @@
           "api_client_id": "Access ID aus Ihrem Tuya IoT Platform Cloud-Projekt",
           "api_client_secret": "Access Secret aus Ihrem Tuya IoT Platform Cloud-Projekt",
           "api_endpoint": "Wählen Sie Ihren regionalen API-Endpunkt"
-        }
-      },
-      "hybrid_manual_details": {
-        "title": "Lokale Verbindungsdetails",
-        "description": "Geben Sie lokale Verbindungsdetails für den Hybrid-Modus ein.\n\n**So erhalten Sie den Local Key:**\n[Einrichtungsanleitung]({setup_guide_url}) | [Tuya IoT Platform]({tuya_iot_url})",
-        "data": {
-          "host": "IP-Adresse",
-          "local_key": "Local Key"
-        },
-        "data_description": {
-          "host": "IP-Adresse für lokale Kommunikation",
-          "local_key": "16-stelliger lokaler Verschlüsselungsschlüssel von der Tuya IoT Platform"
         }
       },
       "smartlife_reauth": {
@@ -397,34 +350,6 @@
           "api_client_secret": "Tuya API Secret (leer lassen um aktuelles zu behalten)",
           "api_endpoint": "API-Region",
           "test_connection": "Verbindung vor dem Speichern testen"
-        }
-      },
-      "init": {
-        "title": "KKT Kolbe Optionen",
-        "description": "Konfigurieren Sie Optionen für Ihr KKT Kolbe Gerät.\n\n[Dokumentation]({documentation_url})",
-        "data": {
-          "scan_interval": "Aktualisierungsintervall",
-          "new_local_key": "Neuer Local Key",
-          "api_enabled": "TinyTuya Cloud API aktivieren",
-          "api_client_id": "API Client ID",
-          "api_client_secret": "API Client Secret",
-          "api_endpoint": "API-Endpunkt Region",
-          "enable_debug_logging": "Debug-Protokollierung aktivieren",
-          "enable_advanced_entities": "Erweiterte Entitäten aktivieren",
-          "zone_naming_scheme": "Zonenbenennung",
-          "test_connection": "Verbindung testen"
-        },
-        "data_description": {
-          "scan_interval": "Wie oft der Gerätestatus aktualisiert wird (10-300 Sekunden)",
-          "new_local_key": "Neuen Local Key eingeben, wenn das Gerät zurückgesetzt wurde (16 Zeichen)",
-          "api_enabled": "TinyTuya Cloud API für Hybrid-Modus und Geräteerkennung aktivieren",
-          "api_client_id": "Access ID aus dem Tuya IoT Platform Projekt",
-          "api_client_secret": "Access Secret aus dem Tuya IoT Platform Projekt",
-          "api_endpoint": "Wählen Sie Ihren regionalen API-Endpunkt",
-          "enable_debug_logging": "Detaillierte Protokollierung zur Fehlerbehebung aktivieren",
-          "enable_advanced_entities": "Alle Entitäten anzeigen (Lüftergeschwindigkeit, RGB-Modus, Filterstatus, etc.)",
-          "zone_naming_scheme": "Benennung von Multi-Zonen-Entitäten",
-          "test_connection": "Geräteverbindung nach Änderungen testen"
         }
       }
     },
@@ -628,7 +553,7 @@
   "entity": {
     "switch": {
       "power": {
-        "name": "Strom",
+        "name": "Betrieb",
         "state": {
           "on": "An",
           "off": "Aus"
@@ -642,6 +567,42 @@
       },
       "pause": {
         "name": "Pause"
+      },
+      "confirm": {
+        "name": "Bestätigen"
+      },
+      "confirm_action": {
+        "name": "Aktion bestätigen"
+      },
+      "delayed_shutdown": {
+        "name": "Abschaltverzögerung"
+      },
+      "eco_mode": {
+        "name": "Eco-Modus"
+      },
+      "filter_cleaning_reminder": {
+        "name": "Filterreinigungserinnerung"
+      },
+      "filter_reset": {
+        "name": "Filter zurücksetzen"
+      },
+      "led_light": {
+        "name": "LED-Licht"
+      },
+      "rgb_light": {
+        "name": "RGB-Licht"
+      },
+      "senior_mode": {
+        "name": "Seniorenmodus"
+      },
+      "side_light": {
+        "name": "Seitenlicht"
+      },
+      "start": {
+        "name": "Start"
+      },
+      "wash_mode": {
+        "name": "Reinigungsmodus"
       }
     },
     "fan": {
@@ -660,7 +621,49 @@
         "name": "Verbindungsmodus"
       },
       "smartlife_device_info": {
-        "name": "SmartLife Geräteinformationen"
+        "name": "SmartLife-Geräteinfo"
+      },
+      "active_zones": {
+        "name": "Aktive Zonen"
+      },
+      "bbq_timer_left": {
+        "name": "BBQ-Timer links"
+      },
+      "bbq_timer_right": {
+        "name": "BBQ-Timer rechts"
+      },
+      "core_probe_temperature": {
+        "name": "Kerntemperaturfühler: Temperatur"
+      },
+      "estimated_power": {
+        "name": "Geschätzte Leistung"
+      },
+      "filter_hours": {
+        "name": "Filter-Stunden"
+      },
+      "rgb_color_data": {
+        "name": "RGB-Farbdaten"
+      },
+      "time_remaining": {
+        "name": "Restzeit"
+      },
+      "total_power_level": {
+        "name": "Gesamtleistungsstufe"
+      },
+      "zone_1_chef_level": {
+        "name": "Zone 1: Chef-Stufe"
+      },
+      "zone_2_chef_level": {
+        "name": "Zone 2: Chef-Stufe"
+      },
+      "zone_3_chef_level": {
+        "name": "Zone 3: Chef-Stufe"
+      },
+      "zone_4_chef_level": {
+        "name": "Zone 4: Chef-Stufe"
+      },
+      "zone_5_chef_level": {
+        "name": "Zone 5: Chef-Stufe"
       }
     },
     "binary_sensor": {
@@ -672,6 +675,87 @@
       },
       "error": {
         "name": "Fehler"
+      },
+      "device_connected": {
+        "name": "Gerät verbunden"
+      },
+      "api_connected": {
+        "name": "Cloud-API verbunden"
+      },
+      "bbq_mode_left": {
+        "name": "BBQ-Modus links"
+      },
+      "bbq_mode_right": {
+        "name": "BBQ-Modus rechts"
+      },
+      "door": {
+        "name": "Tür"
+      },
+      "flex_zone_left": {
+        "name": "Flex-Zone links"
+      },
+      "flex_zone_right": {
+        "name": "Flex-Zone rechts"
+      },
+      "zone_1_boost_active": {
+        "name": "Zone 1: Boost aktiv"
+      },
+      "zone_1_error": {
+        "name": "Zone 1: Fehler"
+      },
+      "zone_1_keep_warm": {
+        "name": "Zone 1: Warmhalten"
+      },
+      "zone_1_selected": {
+        "name": "Zone 1: Ausgewählt"
+      },
+      "zone_2_boost_active": {
+        "name": "Zone 2: Boost aktiv"
+      },
+      "zone_2_error": {
+        "name": "Zone 2: Fehler"
+      },
+      "zone_2_keep_warm": {
+        "name": "Zone 2: Warmhalten"
+      },
+      "zone_2_selected": {
+        "name": "Zone 2: Ausgewählt"
+      },
+      "zone_3_boost_active": {
+        "name": "Zone 3: Boost aktiv"
+      },
+      "zone_3_error": {
+        "name": "Zone 3: Fehler"
+      },
+      "zone_3_keep_warm": {
+        "name": "Zone 3: Warmhalten"
+      },
+      "zone_3_selected": {
+        "name": "Zone 3: Ausgewählt"
+      },
+      "zone_4_boost_active": {
+        "name": "Zone 4: Boost aktiv"
+      },
+      "zone_4_error": {
+        "name": "Zone 4: Fehler"
+      },
+      "zone_4_keep_warm": {
+        "name": "Zone 4: Warmhalten"
+      },
+      "zone_4_selected": {
+        "name": "Zone 4: Ausgewählt"
+      },
+      "zone_5_boost_active": {
+        "name": "Zone 5: Boost aktiv"
+      },
+      "zone_5_error": {
+        "name": "Zone 5: Fehler"
+      },
+      "zone_5_keep_warm": {
+        "name": "Zone 5: Warmhalten"
+      },
+      "zone_5_selected": {
+        "name": "Zone 5: Ausgewählt"
       }
     },
     "number": {
@@ -683,6 +767,63 @@
       },
       "rgb_mode": {
         "name": "RGB-Modus"
+      },
+      "carbon_filter_remaining": {
+        "name": "Kohlefilter-Restzeit"
+      },
+      "core_probe_target_temp": {
+        "name": "Kerntemperaturfühler: Zieltemperatur"
+      },
+      "fan_speed": {
+        "name": "Lüftergeschwindigkeit"
+      },
+      "general_timer": {
+        "name": "Allgemeiner Timer"
+      },
+      "light_brightness": {
+        "name": "Helligkeit"
+      },
+      "max_power_level": {
+        "name": "Maximale Leistungsstufe"
+      },
+      "metal_filter_remaining": {
+        "name": "Metallfilter-Restzeit"
+      },
+      "rgb_brightness": {
+        "name": "RGB-Helligkeit"
+      },
+      "temperature": {
+        "name": "Temperatur"
+      },
+      "zone_1_power_level": {
+        "name": "Zone 1: Leistungsstufe"
+      },
+      "zone_1_timer": {
+        "name": "Zone 1: Timer"
+      },
+      "zone_2_power_level": {
+        "name": "Zone 2: Leistungsstufe"
+      },
+      "zone_2_timer": {
+        "name": "Zone 2: Timer"
+      },
+      "zone_3_power_level": {
+        "name": "Zone 3: Leistungsstufe"
+      },
+      "zone_3_timer": {
+        "name": "Zone 3: Timer"
+      },
+      "zone_4_power_level": {
+        "name": "Zone 4: Leistungsstufe"
+      },
+      "zone_4_timer": {
+        "name": "Zone 4: Timer"
+      },
+      "zone_5_power_level": {
+        "name": "Zone 5: Leistungsstufe"
+      },
+      "zone_5_timer": {
+        "name": "Zone 5: Timer"
       }
     },
     "select": {
@@ -695,6 +836,47 @@
           "high": "Hoch",
           "strong": "Stark"
         }
+      },
+      "color_temperature": {
+        "name": "Farbtemperatur"
+      },
+      "power_limit": {
+        "name": "Leistungsbegrenzung"
+      },
+      "program": {
+        "name": "Programm"
+      },
+      "rgb_mode": {
+        "name": "RGB-Modus"
+      },
+      "save_zone_level": {
+        "name": "Zonenstufe speichern"
+      },
+      "set_zone_level": {
+        "name": "Zonenstufe einstellen"
+      },
+      "zone_1_quick_level": {
+        "name": "Zone 1: Schnellstufe"
+      },
+      "zone_2_quick_level": {
+        "name": "Zone 2: Schnellstufe"
+      },
+      "zone_3_quick_level": {
+        "name": "Zone 3: Schnellstufe"
+      },
+      "zone_4_quick_level": {
+        "name": "Zone 4: Schnellstufe"
+      },
+      "zone_5_quick_level": {
+        "name": "Zone 5: Schnellstufe"
+      }
+    },
+    "light": {
+      "led_light": {
+        "name": "LED-Licht"
+      },
+      "light": {
+        "name": "Licht"
       }
     }
   },
