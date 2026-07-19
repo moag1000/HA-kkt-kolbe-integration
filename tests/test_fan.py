@@ -1,14 +1,15 @@
 """Test the KKT Kolbe fan platform."""
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
 
 import pytest
-from homeassistant.core import HomeAssistant
 from homeassistant.components.fan import FanEntityFeature
+from homeassistant.core import HomeAssistant
 
-from custom_components.kkt_kolbe.const import DOMAIN
 from custom_components.kkt_kolbe import KKTKolbeRuntimeData
+from custom_components.kkt_kolbe.const import DOMAIN
 
 
 @pytest.fixture

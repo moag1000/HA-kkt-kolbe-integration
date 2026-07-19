@@ -19,7 +19,7 @@ from .const import DOMAIN
 from .const import ENTRY_TYPE_ACCOUNT
 from .const import ENTRY_TYPE_DEVICE
 from .const import PLATFORMS  # noqa: F401
-from .data import KKTKolbeAccountConfigEntry  # noqa: F401
+from .data import KKTKolbeAccountConfigEntry
 from .data import KKTKolbeAccountRuntimeData
 from .data import KKTKolbeConfigEntry
 from .data import KKTKolbeRuntimeData

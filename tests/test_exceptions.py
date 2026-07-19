@@ -1,20 +1,16 @@
 """Test the KKT Kolbe exceptions."""
 from __future__ import annotations
 
-import pytest
-
-from custom_components.kkt_kolbe.exceptions import (
-    KKTKolbeError,
-    KKTConnectionError,
-    KKTAuthenticationError,
-    KKTTimeoutError,
-    KKTDeviceError,
-    KKTConfigurationError,
-    KKTDiscoveryError,
-    KKTServiceError,
-    KKTDataPointError,
-    KKTRateLimitError,
-)
+from custom_components.kkt_kolbe.exceptions import KKTAuthenticationError
+from custom_components.kkt_kolbe.exceptions import KKTConfigurationError
+from custom_components.kkt_kolbe.exceptions import KKTConnectionError
+from custom_components.kkt_kolbe.exceptions import KKTDataPointError
+from custom_components.kkt_kolbe.exceptions import KKTDeviceError
+from custom_components.kkt_kolbe.exceptions import KKTDiscoveryError
+from custom_components.kkt_kolbe.exceptions import KKTKolbeError
+from custom_components.kkt_kolbe.exceptions import KKTRateLimitError
+from custom_components.kkt_kolbe.exceptions import KKTServiceError
+from custom_components.kkt_kolbe.exceptions import KKTTimeoutError
 
 
 class TestKKTKolbeError:

@@ -11,12 +11,11 @@ during short blips).
 """
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
 
 import pytest
 from homeassistant.core import HomeAssistant
-
-from custom_components.kkt_kolbe.const import DOMAIN
 
 
 @pytest.fixture
@@ -49,10 +48,8 @@ async def test_available_false_when_circuit_breaker_unreachable(
     mock_config_entry,
 ) -> None:
     """UNREACHABLE (circuit breaker tripped) must be unavailable even with cache."""
-    from custom_components.kkt_kolbe.coordinator import (
-        KKTKolbeUpdateCoordinator,
-        DeviceState,
-    )
+    from custom_components.kkt_kolbe.coordinator import DeviceState
+    from custom_components.kkt_kolbe.coordinator import KKTKolbeUpdateCoordinator
     from custom_components.kkt_kolbe.exceptions import KKTConnectionError
 
     mock_device.async_get_status.side_effect = KKTConnectionError("Connection failed")
@@ -93,10 +90,8 @@ async def test_available_true_transient_reconnecting_with_cache(
     mock_config_entry,
 ) -> None:
     """A single post-startup failure (state -> RECONNECTING) with cached data stays available."""
-    from custom_components.kkt_kolbe.coordinator import (
-        KKTKolbeUpdateCoordinator,
-        DeviceState,
-    )
+    from custom_components.kkt_kolbe.coordinator import DeviceState
+    from custom_components.kkt_kolbe.coordinator import KKTKolbeUpdateCoordinator
     from custom_components.kkt_kolbe.exceptions import KKTConnectionError
 
     mock_config_entry.add_to_hass(hass)
@@ -144,10 +139,8 @@ async def test_available_true_offline_with_cache(
     mock_config_entry,
 ) -> None:
     """Sustained failures reaching OFFLINE (not UNREACHABLE) with cached data stays available."""
-    from custom_components.kkt_kolbe.coordinator import (
-        KKTKolbeUpdateCoordinator,
-        DeviceState,
-    )
+    from custom_components.kkt_kolbe.coordinator import DeviceState
+    from custom_components.kkt_kolbe.coordinator import KKTKolbeUpdateCoordinator
     from custom_components.kkt_kolbe.exceptions import KKTConnectionError
 
     mock_config_entry.add_to_hass(hass)

@@ -1,13 +1,14 @@
 """Test the KKT Kolbe config flow."""
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
-from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.kkt_kolbe.const import DOMAIN
 from custom_components.kkt_kolbe.const import GLOBAL_API_STORAGE_KEY
@@ -476,7 +477,7 @@ async def test_is_kkt_device_by_category_and_keywords() -> None:
     mock_device.category = "yyj"
     mock_device.name = "HERMES Kitchen Hood"
 
-    is_kkt, device_type = _is_kkt_device(mock_device)
+    is_kkt, _device_type = _is_kkt_device(mock_device)
 
     assert is_kkt is True
 

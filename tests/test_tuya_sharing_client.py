@@ -1,30 +1,21 @@
 """Test the TuyaSharingClient for SmartLife/Tuya Smart integration."""
 from __future__ import annotations
 
-import asyncio
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest
 from homeassistant.core import HomeAssistant
 
-from custom_components.kkt_kolbe.clients.tuya_sharing_client import (
-    TuyaSharingAuthResult,
-    TuyaSharingClient,
-    TuyaSharingDevice,
-)
-from custom_components.kkt_kolbe.const import (
-    QR_CODE_FORMAT,
-    SMARTLIFE_CLIENT_ID,
-    SMARTLIFE_SCHEMA,
-    TUYA_SMART_SCHEMA,
-)
-from custom_components.kkt_kolbe.exceptions import (
-    KKTAuthenticationError,
-    KKTConnectionError,
-    KKTTimeoutError,
-)
-
+from custom_components.kkt_kolbe.clients.tuya_sharing_client import TuyaSharingAuthResult
+from custom_components.kkt_kolbe.clients.tuya_sharing_client import TuyaSharingClient
+from custom_components.kkt_kolbe.clients.tuya_sharing_client import TuyaSharingDevice
+from custom_components.kkt_kolbe.const import SMARTLIFE_SCHEMA
+from custom_components.kkt_kolbe.const import TUYA_SMART_SCHEMA
+from custom_components.kkt_kolbe.exceptions import KKTAuthenticationError
+from custom_components.kkt_kolbe.exceptions import KKTConnectionError
+from custom_components.kkt_kolbe.exceptions import KKTTimeoutError
 
 # === FIXTURES ===
 
@@ -872,9 +863,7 @@ class TestPushDispatcher:
         """_KKTSharingDeviceListener converts code-keyed status to DP-id-keyed dict
         and schedules the dispatch on the HA event loop via call_soon_threadsafe.
         """
-        from custom_components.kkt_kolbe.clients.tuya_sharing_client import (
-            _KKTSharingDeviceListener,
-        )
+        from custom_components.kkt_kolbe.clients.tuya_sharing_client import _KKTSharingDeviceListener
 
         client = TuyaSharingClient(hass, "EU12345678")
         client._manager = MagicMock()
@@ -914,9 +903,7 @@ class TestPushDispatcher:
         self, hass: HomeAssistant
     ):
         """When updated_status_properties is None or empty, listener does nothing."""
-        from custom_components.kkt_kolbe.clients.tuya_sharing_client import (
-            _KKTSharingDeviceListener,
-        )
+        from custom_components.kkt_kolbe.clients.tuya_sharing_client import _KKTSharingDeviceListener
 
         client = TuyaSharingClient(hass, "EU12345678")
         client._manager = MagicMock()
@@ -969,9 +956,7 @@ class TestPushDispatcher:
     @pytest.mark.asyncio
     async def test_sdk_listener_skips_unknown_codes(self, hass: HomeAssistant):
         """Codes that aren't in local_strategy must be silently skipped."""
-        from custom_components.kkt_kolbe.clients.tuya_sharing_client import (
-            _KKTSharingDeviceListener,
-        )
+        from custom_components.kkt_kolbe.clients.tuya_sharing_client import _KKTSharingDeviceListener
 
         client = TuyaSharingClient(hass, "EU12345678")
         client._manager = MagicMock()

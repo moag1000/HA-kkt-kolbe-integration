@@ -1,15 +1,16 @@
 """Test the KKT Kolbe light platform."""
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, call
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
+from unittest.mock import call
 
 import pytest
 from homeassistant.core import HomeAssistant
-from homeassistant.components.light import ATTR_BRIGHTNESS, ATTR_EFFECT
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.kkt_kolbe.const import DOMAIN
 from custom_components.kkt_kolbe import KKTKolbeRuntimeData
+from custom_components.kkt_kolbe.const import DOMAIN
 
 
 @pytest.fixture
