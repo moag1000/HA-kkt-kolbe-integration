@@ -970,8 +970,7 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
             return False
 
         _LOGGER.warning(
-            "local_key resync: applying rotated key for device %s "
-            "(stored length=%d, fresh length=%d)",
+            "local_key resync: applying rotated key for device %s (stored length=%d, fresh length=%d)",
             self.device_id[:8],
             len(self.local_device.local_key),
             len(fresh_key),
