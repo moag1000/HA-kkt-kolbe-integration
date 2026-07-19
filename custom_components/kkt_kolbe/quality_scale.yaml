@@ -159,9 +159,10 @@ rules:
   inject-websession:
     status: todo
     comment: >-
-      Coordinator and cloud API use async_get_clientsession. icon_downloader
-      and some config-flow steps still create ad-hoc aiohttp.ClientSessions —
-      route these through the shared session to complete this rule.
+      Coordinator, cloud API and icon_downloader use async_get_clientsession.
+      Only the transient config-flow TuyaCloudClient instances still open a
+      scoped, self-closing session (created and closed within `async with`) —
+      acceptable but not the injected shared session the rule prefers.
   strict-typing:
     status: todo
     comment: >-
