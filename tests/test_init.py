@@ -1,10 +1,11 @@
 """Test the KKT Kolbe integration initialization."""
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest
-from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 
 from custom_components.kkt_kolbe.const import DOMAIN
@@ -117,7 +118,7 @@ async def test_async_unload_entry(
         hass.config_entries,
         "async_unload_platforms",
         return_value=True,
-    ) as mock_unload:
+    ):
         with patch(
             "custom_components.kkt_kolbe.services.async_unload_services",
             new_callable=AsyncMock,

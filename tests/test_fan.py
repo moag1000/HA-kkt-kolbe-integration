@@ -1,14 +1,15 @@
 """Test the KKT Kolbe fan platform."""
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
 
 import pytest
-from homeassistant.core import HomeAssistant
 from homeassistant.components.fan import FanEntityFeature
+from homeassistant.core import HomeAssistant
 
-from custom_components.kkt_kolbe.const import DOMAIN
 from custom_components.kkt_kolbe import KKTKolbeRuntimeData
+from custom_components.kkt_kolbe.const import DOMAIN
 
 
 @pytest.fixture
@@ -293,3 +294,121 @@ async def test_fan_unique_id(
     assert fan.unique_id is not None
     assert mock_config_entry.entry_id in fan.unique_id
     assert "fan" in fan.unique_id
+
+
+# =============== OPTIMISTIC WRITE / NO SNAP-BACK TESTS ===============
+
+
+@pytest.mark.asyncio
+async def test_fan_set_percentage_optimistic_immediate(
+    hass: HomeAssistant,
+    mock_config_entry,
+) -> None:
+    """percentage/is_on must reflect the target immediately, before any poll."""
+    from custom_components.kkt_kolbe.fan import KKTKolbeFan
+
+    coordinator = MagicMock()
+    # Hood on, fan off. Coordinator data never changes in this test -- it
+    # must NOT be what flips is_on/percentage.
+    coordinator.data = {1: True, "1": True, 10: "off", "10": "off"}
+    coordinator.last_update_success = True
+    coordinator.async_set_data_point = AsyncMock()
+
+    mock_config_entry.add_to_hass(hass)
+
+    config = {
+        "name": "Range Hood Fan",
+        "dp": 10,
+        "speeds": ["off", "1", "2", "3", "4"],
+    }
+
+    fan = KKTKolbeFan(coordinator, mock_config_entry, config)
+    fan.hass = hass
+    fan.entity_id = "fan.test_optimistic"
+    fan.async_write_ha_state = MagicMock()
+
+    assert fan.is_on is False
+    assert fan.percentage == 0
+
+    await fan.async_set_percentage(75)
+
+    assert fan.is_on is True, "Fan must report is_on=True immediately via the optimistic lock."
+    assert fan.percentage is not None and fan.percentage > 0, (
+        "Fan percentage must reflect the target immediately via the optimistic lock, "
+        "without waiting for a coordinator poll."
+    )
+
+
+@pytest.mark.asyncio
+async def test_fan_turn_off_optimistic_immediate(
+    hass: HomeAssistant,
+    mock_config_entry,
+) -> None:
+    """is_on/percentage must reflect off immediately after turn_off, before any poll."""
+    from custom_components.kkt_kolbe.fan import KKTKolbeFan
+
+    coordinator = MagicMock()
+    coordinator.data = {1: True, "1": True, 10: "3", "10": "3"}
+    coordinator.last_update_success = True
+    coordinator.async_set_data_point = AsyncMock()
+
+    mock_config_entry.add_to_hass(hass)
+
+    config = {
+        "name": "Range Hood Fan",
+        "dp": 10,
+        "speeds": ["off", "1", "2", "3", "4"],
+    }
+
+    fan = KKTKolbeFan(coordinator, mock_config_entry, config)
+    fan.hass = hass
+    fan.entity_id = "fan.test_optimistic_off"
+    fan.async_write_ha_state = MagicMock()
+
+    assert fan.is_on is True
+
+    await fan.async_turn_off()
+
+    assert fan.is_on is False, "Fan must report is_on=False immediately after turn_off."
+    assert fan.percentage == 0, "Fan percentage must be 0 immediately after turn_off."
+
+
+@pytest.mark.asyncio
+async def test_fan_set_percentage_rolls_back_on_write_failure(
+    hass: HomeAssistant,
+    mock_config_entry,
+) -> None:
+    """A failed device write must roll the optimistic fan speed back to prior state."""
+    from custom_components.kkt_kolbe.fan import KKTKolbeFan
+
+    coordinator = MagicMock()
+    coordinator.data = {1: True, "1": True, 10: "off", "10": "off"}
+    coordinator.last_update_success = True
+    coordinator.async_set_data_point = AsyncMock(side_effect=RuntimeError("device offline"))
+
+    mock_config_entry.add_to_hass(hass)
+
+    config = {
+        "name": "Range Hood Fan",
+        "dp": 10,
+        "speeds": ["off", "1", "2", "3", "4"],
+    }
+
+    fan = KKTKolbeFan(coordinator, mock_config_entry, config)
+    fan.hass = hass
+    fan.entity_id = "fan.test_rollback"
+    fan.async_write_ha_state = MagicMock()
+
+    assert fan.is_on is False
+
+    with pytest.raises(RuntimeError):
+        await fan.async_set_percentage(75)
+
+    assert fan._is_optimistic_active() is False
+    assert fan.is_on is False, (
+        "After a failed write, fan is_on must roll back to the prior (coordinator) "
+        "value instead of sticking at the optimistic target."
+    )
+    assert fan.percentage == 0, (
+        "After a failed write, fan percentage must roll back to the prior value."
+    )

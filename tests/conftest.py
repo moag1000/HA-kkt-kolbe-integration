@@ -3,19 +3,16 @@
 from __future__ import annotations
 
 from collections.abc import Generator
-from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
-from datetime import datetime
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest
-from homeassistant.core import HomeAssistant
-from homeassistant.config_entries import ConfigEntry
 from pytest_homeassistant_custom_component.common import MockConfigEntry
-
-from custom_components.kkt_kolbe.const import DOMAIN
 
 # Import config_flow to ensure it's registered
 import custom_components.kkt_kolbe.config_flow  # noqa: F401
+from custom_components.kkt_kolbe.const import DOMAIN
 
 
 @pytest.fixture(autouse=True)

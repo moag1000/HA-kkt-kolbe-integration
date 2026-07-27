@@ -283,7 +283,9 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        self.async_write_ha_state()
+        # Delegate to the base implementation so the optimistic lock is
+        # hard-released on a confirmed device push (Issue #6 snap-back fix).
+        super()._handle_coordinator_update()
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the light.
@@ -315,8 +317,19 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
         # Ensure work_mode is set (Auto-Work-Mode feature for SOLO HCM etc.)
         await self._async_ensure_work_mode()
 
-        # Turn on the light FIRST (required before setting effect/brightness)
-        await self._async_set_data_point(self._dp_id, True)
+        # Turn on the light FIRST (required before setting effect/brightness).
+        # Optimistic write: lock the DP at True and paint the UI immediately so
+        # a stale Tuya cloud poll can't snap the toggle back (Issue #6).
+        self._set_optimistic(True)
+        if self.hass:
+            self.async_write_ha_state()
+        try:
+            await self._async_set_data_point(self._dp_id, True)
+        except Exception:
+            self._clear_optimistic()
+            if self.hass:
+                self.async_write_ha_state()
+            raise
         self._log_entity_state("Turn On", f"DP {self._dp_id} set to True")
 
         # Handle effect AFTER light is on
@@ -334,7 +347,16 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the light."""
-        await self._async_set_data_point(self._dp_id, False)
+        self._set_optimistic(False)
+        if self.hass:
+            self.async_write_ha_state()
+        try:
+            await self._async_set_data_point(self._dp_id, False)
+        except Exception:
+            self._clear_optimistic()
+            if self.hass:
+                self.async_write_ha_state()
+            raise
         self._log_entity_state("Turn Off", f"DP {self._dp_id} set to False")
 
     async def _set_effect(self, effect: str) -> None:

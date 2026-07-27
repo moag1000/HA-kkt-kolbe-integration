@@ -14,6 +14,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfPower
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .base_entity import KKTBaseEntity
@@ -387,7 +388,7 @@ class KKTKolbeActiveZonesSensor(KKTBaseEntity, SensorEntity):
         return self._cached_value
 
 
-class KKTKolbeConnectionSensor(SensorEntity):
+class KKTKolbeConnectionSensor(CoordinatorEntity, SensorEntity):
     """Sensor that shows the current connection mode (local/api/smartlife)."""
 
     # Attributes that change frequently - don't record in database
@@ -408,7 +409,7 @@ class KKTKolbeConnectionSensor(SensorEntity):
         """Initialize the connection sensor."""
         from homeassistant.helpers.entity import EntityCategory
 
-        self.coordinator = coordinator
+        super().__init__(coordinator)
         self._entry = entry
         self._attr_has_entity_name = True
         self._attr_translation_key = "connection_mode"
@@ -532,7 +533,7 @@ class KKTKolbeConnectionSensor(SensorEntity):
         return self.coordinator.last_update_success
 
 
-class KKTKolbeSmartLifeInfoSensor(SensorEntity):
+class KKTKolbeSmartLifeInfoSensor(CoordinatorEntity, SensorEntity):
     """Sensor that exposes extended SmartLife device information.
 
     Shows device info like UUID, creation time, active time, update time,
@@ -559,7 +560,7 @@ class KKTKolbeSmartLifeInfoSensor(SensorEntity):
         """Initialize the SmartLife info sensor."""
         from homeassistant.helpers.entity import EntityCategory
 
-        self.coordinator = coordinator
+        super().__init__(coordinator)
         self._entry = entry
         self._extended_info = extended_info
         self._attr_has_entity_name = True

@@ -1,21 +1,22 @@
 """Test the KKT Kolbe device tracker (stale device cleanup)."""
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
-from datetime import datetime, timedelta
+from datetime import datetime
+from datetime import timedelta
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest
 from homeassistant.core import HomeAssistant
 
 from custom_components.kkt_kolbe.const import DOMAIN
-from custom_components.kkt_kolbe.device_tracker import (
-    StaleDeviceTracker,
-    async_start_tracker,
-    async_stop_tracker,
-    track_device_activity,
-    STALE_DEVICE_THRESHOLD,
-    CLEANUP_INTERVAL,
-)
+from custom_components.kkt_kolbe.device_tracker import CLEANUP_INTERVAL
+from custom_components.kkt_kolbe.device_tracker import STALE_DEVICE_THRESHOLD
+from custom_components.kkt_kolbe.device_tracker import StaleDeviceTracker
+from custom_components.kkt_kolbe.device_tracker import async_start_tracker
+from custom_components.kkt_kolbe.device_tracker import async_stop_tracker
+from custom_components.kkt_kolbe.device_tracker import track_device_activity
 
 
 @pytest.fixture
@@ -96,7 +97,7 @@ async def test_is_device_stale_available_entity(
     mock_entity_registry,
 ) -> None:
     """Test device is not stale when entity is available."""
-    device_reg, device = mock_device_registry
+    _device_reg, device = mock_device_registry
     entity_reg, entity = mock_entity_registry
 
     # Set up a real state through Home Assistant
@@ -119,7 +120,7 @@ async def test_is_device_stale_unavailable_entity(
     mock_entity_registry,
 ) -> None:
     """Test device is stale when entity is unavailable for too long."""
-    device_reg, device = mock_device_registry
+    _device_reg, device = mock_device_registry
     entity_reg, entity = mock_entity_registry
 
     # Set up state as unavailable
@@ -146,7 +147,7 @@ async def test_is_device_stale_no_entities(
     mock_device_registry,
 ) -> None:
     """Test device staleness check with no entities."""
-    device_reg, device = mock_device_registry
+    _device_reg, device = mock_device_registry
 
     entity_reg = MagicMock()
     entity_reg.async_entries_for_device = MagicMock(return_value=[])
@@ -170,7 +171,7 @@ async def test_is_device_stale_new_device(
     mock_device_registry,
 ) -> None:
     """Test new device without entities is not stale."""
-    device_reg, device = mock_device_registry
+    _device_reg, device = mock_device_registry
 
     entity_reg = MagicMock()
     entity_reg.async_entries_for_device = MagicMock(return_value=[])
@@ -207,7 +208,7 @@ async def test_cleanup_stale_devices(
 ) -> None:
     """Test cleanup of stale devices."""
     device_reg, device = mock_device_registry
-    entity_reg, entity = mock_entity_registry
+    entity_reg, _entity = mock_entity_registry
 
     hass.data = {DOMAIN: {}}
 
@@ -228,9 +229,9 @@ async def test_cleanup_stale_devices(
 
 def test_stale_device_threshold() -> None:
     """Test stale device threshold is 30 days."""
-    assert STALE_DEVICE_THRESHOLD == timedelta(days=30)
+    assert timedelta(days=30) == STALE_DEVICE_THRESHOLD
 
 
 def test_cleanup_interval() -> None:
     """Test cleanup interval is 24 hours."""
-    assert CLEANUP_INTERVAL == timedelta(hours=24)
+    assert timedelta(hours=24) == CLEANUP_INTERVAL

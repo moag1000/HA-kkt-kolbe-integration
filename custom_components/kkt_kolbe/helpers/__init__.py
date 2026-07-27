@@ -5,13 +5,6 @@ from .device_detection import detect_device_type_from_device_id
 from .device_detection import detect_device_type_from_product_key
 from .device_detection import enrich_device_info
 from .device_detection import get_device_type_options
-from .entity_factory import async_setup_platform_entities
-from .entity_factory import create_entities_from_config
-from .entity_factory import create_single_entity_from_config
-from .entity_factory import get_coordinator_from_entry
-from .entity_factory import get_device_info_from_entry
-from .entity_factory import get_entity_lookup_key
-from .entity_factory import is_advanced_entities_enabled
 from .icon_downloader import build_full_icon_url
 from .icon_downloader import download_all_icons
 from .icon_downloader import download_icon
@@ -50,10 +43,7 @@ __all__ = [
     "API_ENDPOINTS",
     "API_ENDPOINT_OPTIONS",
     "DEFAULT_API_ENDPOINT",
-    "async_setup_platform_entities",
     "build_full_icon_url",
-    "create_entities_from_config",
-    "create_single_entity_from_config",
     # Device Detection
     "detect_device_type_from_api",
     "detect_device_type_from_device_id",
@@ -65,13 +55,9 @@ __all__ = [
     "get_api_credentials_schema",
     "get_authentication_schema",
     "get_confirmation_schema",
-    "get_coordinator_from_entry",
-    "get_device_info_from_entry",
     "get_device_selection_schema",
     "get_device_type_options",
     "get_downloaded_icon_path",
-    # Entity Factory
-    "get_entity_lookup_key",
     "get_icon_storage_path",
     "get_icon_url_for_device",
     # Schema Generators
@@ -86,7 +72,6 @@ __all__ = [
     "get_settings_schema",
     "get_smart_discovery_schema",
     "get_zeroconf_authenticate_schema",
-    "is_advanced_entities_enabled",
     "is_private_ip",
     "is_valid_device_id",
     # Validation

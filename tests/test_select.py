@@ -1,13 +1,14 @@
 """Test the KKT Kolbe select platform."""
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
 
 import pytest
 from homeassistant.core import HomeAssistant
 
-from custom_components.kkt_kolbe.const import DOMAIN
 from custom_components.kkt_kolbe import KKTKolbeRuntimeData
+from custom_components.kkt_kolbe.const import DOMAIN
 
 
 @pytest.fixture
@@ -180,7 +181,10 @@ async def test_select_icon(
         config_mode,
     )
 
-    assert "mode" in select_mode.name.lower() or "form-select" in select_mode.icon
+    # Note: entity.name now resolves via translation_key, which requires the
+    # entity to be attached to a platform. Read the config name directly here
+    # (this test only ever used the name as a proxy for the config anyway).
+    assert "mode" in config_mode["name"].lower() or "form-select" in select_mode.icon
 
 
 @pytest.mark.asyncio
