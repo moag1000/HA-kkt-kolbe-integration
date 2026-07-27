@@ -176,3 +176,35 @@ async def test_available_true_offline_with_cache(
         "UNREACHABLE) as long as a cached value exists. "
         "See base_entity.py available property, ~line 299-302."
     )
+
+
+@pytest.mark.asyncio
+async def test_hybrid_coordinator_device_state_and_availability(
+    hass: HomeAssistant,
+) -> None:
+    """Hybrid coordinator must expose device_state/is_device_available so entities
+    can go unavailable on a sustained outage (previously only the local-only
+    coordinator had these, so hybrid-mode devices froze on a stale cache).
+    """
+    from unittest.mock import MagicMock
+
+    from custom_components.kkt_kolbe.coordinator import DeviceState
+    from custom_components.kkt_kolbe.hybrid_coordinator import KKTKolbeHybridCoordinator
+
+    coord = KKTKolbeHybridCoordinator(hass, "dev1234567890", local_device=MagicMock())
+
+    # Success -> ONLINE / available
+    coord.last_update_success = True
+    assert coord.device_state == DeviceState.ONLINE
+    assert coord.is_device_available is True
+
+    # Transient failure (budget not yet exhausted) -> RECONNECTING, still available
+    coord.last_update_success = False
+    coord.local_consecutive_errors = 1
+    assert coord.device_state == DeviceState.RECONNECTING
+    assert coord.is_device_available is True
+
+    # Local channel exhausted, no api channel -> UNREACHABLE / unavailable
+    coord.local_consecutive_errors = coord.max_consecutive_errors
+    assert coord.device_state == DeviceState.UNREACHABLE
+    assert coord.is_device_available is False
