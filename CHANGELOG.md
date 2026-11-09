@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [4.8.0] - 2026-11-10
+
+Letzte Version für Home Assistant 2025.12 – 2026.8. Ab 4.9.0 ist Home Assistant 2026.9.0 nötig.
+
+### Fixed
+
+- **Verfügbarkeit**: Entities melden *nicht verfügbar*, wenn das Gerät unerreichbar ist (Circuit-Breaker), statt dauerhaft den letzten zwischengespeicherten Wert zu zeigen. Im Hybrid-Modus zählt die Verfügbarkeit beider Wege.
+- **Doppelte Einträge**: Dasselbe Gerät lässt sich über den Tuya-IoT-Weg nicht mehr zweimal hinzufügen (`unique_id` wird gesetzt und geprüft).
+- **Zurückspringende Schalter im UI**: Licht, Lüfter und Kochzonen-Leistung zeigen die Änderung sofort an und nehmen sie zurück, wenn der Befehl scheitert; Push-Updates des Geräts kommen direkt an.
+- **Langzeitstatistik**: 12 Messwert-Sensoren (Temperatur, Filterstunden, Timer, Stufen) haben `state_class: measurement`; Timer-Sensoren korrigiert.
+- **Cloud-Spec-Routing** auch beim Einrichten mit gespeicherten Zugangsdaten (`product_id` wird mitgegeben).
+- Icon-Download nutzt die gemeinsame HA-Websession; Entladen der Integration ist robuster.
+
+### Changed
+
+- **Übersetzungen**: `translation_key` wird zentral gesetzt (`unique_id` unverändert, kein Verlust der Historie); 83 neue deutsche Entity-Namen.
+- **Aufräumen**: ungenutzte Module entfernt (`config_flow_v2`, `reconnect_coordinator`, `entity_factory`, `tuya_category_specs`, `tuya_api_manager`), blockierende Dateizugriffe laufen im Executor, der Reconfigure-Dialog zeigt den gespeicherten Local Key nicht mehr an.
+- **manifest.json**: `aiohttp` aus den Requirements entfernt (kommt aus Home Assistant selbst; Hassfest verlangt das).
+- 26 neue Tests (270 gesamt).
+
 ## [4.7.4] - 2026-05-22
 
 ### Fixed (Self-Healing Local Key)
