@@ -38,3 +38,22 @@ jobs:
 
       - name: Format
         run: ruff format custom_components/ --check
+
+  mypy:
+    name: Mypy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.14"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: python3 -m pip install -r requirements_test.txt "mypy>=2.4"
+
+      - name: Type check (strict, see pyproject.toml)
+        run: mypy custom_components/kkt_kolbe
