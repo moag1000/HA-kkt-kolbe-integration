@@ -13,6 +13,7 @@ from homeassistant.const import CONF_DEVICE_ID
 from homeassistant.const import CONF_IP_ADDRESS
 from homeassistant.const import CONF_SCAN_INTERVAL
 from homeassistant.helpers import selector
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from ..const import DOCUMENTATION_URL
 from ..const import DOMAIN
@@ -430,6 +431,7 @@ class KKTKolbeOptionsFlow(OptionsFlowWithReload):
                 client_id=client_id,
                 client_secret=client_secret,
                 endpoint=options.get("api_endpoint", "https://openapi.tuyaeu.com"),
+                session=async_get_clientsession(self.hass),
             )
 
             async with api_client:

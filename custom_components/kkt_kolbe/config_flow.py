@@ -944,6 +944,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                         client_id=client_id,
                         client_secret=client_secret,
                         endpoint=endpoint,
+                        session=async_get_clientsession(self.hass),
                     )
                     async with api_client:
                         if await api_client.test_connection():
@@ -2548,6 +2549,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                             client_id=client_id,
                             client_secret=client_secret,
                             endpoint=endpoint,
+                            session=async_get_clientsession(self.hass),
                         )
                         async with api_client:
                             if await api_client.test_connection():
@@ -2668,6 +2670,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                                 client_id=client_id,
                                 client_secret=client_secret,
                                 endpoint=endpoint,
+                                session=async_get_clientsession(self.hass),
                             )
                             async with api_client:
                                 if await api_client.test_connection():
@@ -2898,7 +2901,12 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                 try:
                     from .api import TuyaCloudClient
 
-                    api_client = TuyaCloudClient(client_id=client_id, client_secret=client_secret, endpoint=endpoint)
+                    api_client = TuyaCloudClient(
+                        client_id=client_id,
+                        client_secret=client_secret,
+                        endpoint=endpoint,
+                        session=async_get_clientsession(self.hass),
+                    )
 
                     # Test connection and get device list with full details (local_key, product_id)
                     async with api_client:
@@ -3156,7 +3164,12 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                 try:
                     from .api import TuyaCloudClient
 
-                    api_client = TuyaCloudClient(client_id=client_id, client_secret=client_secret, endpoint=endpoint)
+                    api_client = TuyaCloudClient(
+                        client_id=client_id,
+                        client_secret=client_secret,
+                        endpoint=endpoint,
+                        session=async_get_clientsession(self.hass),
+                    )
 
                     # Test connection and get device list with full details (including local_key)
                     async with api_client:

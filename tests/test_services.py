@@ -255,3 +255,50 @@ async def test_get_firmware_info_response_without_client(
             }
         ]
     }
+
+
+@pytest.mark.asyncio
+async def test_entity_action_validates_range(hass: HomeAssistant) -> None:
+    """Entity actions validate their fields before touching any entity."""
+    import voluptuous as vol
+
+    from custom_components.kkt_kolbe.services import SERVICE_SET_HOOD_FAN_SPEED
+
+    await async_setup_services(hass)
+
+    with pytest.raises(vol.Invalid):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_SET_HOOD_FAN_SPEED,
+            {"entity_id": "number.kkt_fan_level", "fan_speed": 9},
+            blocking=True,
+        )
+
+
+@pytest.mark.asyncio
+async def test_reconnect_by_registry_device_id(hass: HomeAssistant, mock_coordinator) -> None:
+    """The device selector passes a registry device id; it must match the entry."""
+    from homeassistant.helpers import device_registry as dr
+
+    await async_setup_services(hass)
+    mock_coordinator.async_request_reconnect = AsyncMock(return_value=True)
+    mock_coordinator.device_state = MagicMock(value="online")
+    entry = _add_loaded_entry(hass, mock_coordinator)
+
+    other = MagicMock()
+    other.async_request_reconnect = AsyncMock(return_value=True)
+    _add_loaded_entry(hass, other, entry_id="entry_2")
+
+    device = dr.async_get(hass).async_get_or_create(
+        config_entry_id=entry.entry_id, identifiers={(DOMAIN, "test_device_123")}
+    )
+
+    await hass.services.async_call(
+        DOMAIN,
+        SERVICE_RECONNECT_DEVICE,
+        {"device_id": device.id},
+        blocking=True,
+    )
+
+    mock_coordinator.async_request_reconnect.assert_awaited_once()
+    other.async_request_reconnect.assert_not_called()

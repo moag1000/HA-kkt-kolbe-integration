@@ -98,16 +98,11 @@ get_connection_status:
 set_cooking_timer:
   name: Set Cooking Timer
   description: Set a cooking timer for a specific cooktop zone
+  target:
+    entity:
+      integration: kkt_kolbe
+      domain: number
   fields:
-    entity_id:
-      name: Zone Entity
-      description: Cooktop zone timer entity (number domain)
-      required: true
-      selector:
-        entity:
-          filter:
-            integration: kkt_kolbe
-            domain: number
     timer_minutes:
       name: Timer Duration
       description: Timer duration in minutes (1-255)
@@ -122,16 +117,11 @@ set_cooking_timer:
 set_zone_power:
   name: Set Zone Power Level
   description: Set power level for a specific cooktop zone
+  target:
+    entity:
+      integration: kkt_kolbe
+      domain: number
   fields:
-    entity_id:
-      name: Zone Entity
-      description: Cooktop zone power entity (number domain)
-      required: true
-      selector:
-        entity:
-          filter:
-            integration: kkt_kolbe
-            domain: number
     power_level:
       name: Power Level
       description: Power level (0-25, 0 = off)
@@ -193,16 +183,11 @@ sync_all_devices:
 set_hood_fan_speed:
   name: Set Hood Fan Speed
   description: Set fan speed for KKT Kolbe range hood
+  target:
+    entity:
+      integration: kkt_kolbe
+      domain: number
   fields:
-    entity_id:
-      name: Hood Entity
-      description: Range hood fan speed entity
-      required: true
-      selector:
-        entity:
-          filter:
-            integration: kkt_kolbe
-            domain: number
     fan_speed:
       name: Fan Speed
       description: Fan speed level (0-5, 0 = off)
@@ -217,16 +202,11 @@ set_hood_fan_speed:
 set_hood_lighting:
   name: Set Hood Lighting
   description: Control range hood lighting
+  target:
+    entity:
+      integration: kkt_kolbe
+      domain: switch
   fields:
-    entity_id:
-      name: Hood Entity
-      description: Range hood lighting entity
-      required: true
-      selector:
-        entity:
-          filter:
-            integration: kkt_kolbe
-            domain: switch
     brightness:
       name: Brightness
       description: Light brightness level (1-5), omit to toggle

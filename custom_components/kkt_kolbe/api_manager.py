@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.storage import Store
 
 from .const import DEFAULT_API_ENDPOINT
@@ -126,7 +127,10 @@ class GlobalAPIManager:
             from .api import TuyaCloudClient
 
             api_client = TuyaCloudClient(
-                client_id=creds["client_id"], client_secret=creds["client_secret"], endpoint=creds["endpoint"]
+                client_id=creds["client_id"],
+                client_secret=creds["client_secret"],
+                endpoint=creds["endpoint"],
+                session=async_get_clientsession(self.hass),
             )
 
             async with api_client:
@@ -146,7 +150,10 @@ class GlobalAPIManager:
             from .api import TuyaCloudClient
 
             api_client = TuyaCloudClient(
-                client_id=creds["client_id"], client_secret=creds["client_secret"], endpoint=creds["endpoint"]
+                client_id=creds["client_id"],
+                client_secret=creds["client_secret"],
+                endpoint=creds["endpoint"],
+                session=async_get_clientsession(self.hass),
             )
 
             async with api_client:

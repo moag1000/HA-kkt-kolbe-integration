@@ -13,6 +13,7 @@ from homeassistant.const import CONF_DEVICE_ID
 from homeassistant.const import CONF_IP_ADDRESS
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import CONF_SMARTLIFE_TOKEN_INFO
 from .const import DOMAIN
@@ -400,6 +401,7 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
                 client_id=client_id,
                 client_secret=client_secret,
                 endpoint=endpoint,
+                session=async_get_clientsession(hass),
             )
             _LOGGER.info("API client initialized for TinyTuya Cloud API")
 
