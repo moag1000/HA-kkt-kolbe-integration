@@ -16,6 +16,7 @@ PLATFORMS: Final[list[Platform]] = [
     Platform.NUMBER,
     Platform.BINARY_SENSOR,
     Platform.SCENE,
+    Platform.EVENT,
 ]
 
 # === VERSION ===

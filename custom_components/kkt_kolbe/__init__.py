@@ -35,6 +35,11 @@ _LOGGER = logging.getLogger(__name__)
 # Re-exported here for backward compatibility: KKTKolbeConfigEntry, KKTKolbeRuntimeData
 
 
+def _with_event_platform(platforms: list[str]) -> list[str]:
+    """Every device gets the event platform (connection/timer/filter events)."""
+    return platforms if "event" in platforms else [*platforms, "event"]
+
+
 async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Migrate config entry to a new version.
 
@@ -638,7 +643,7 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
             effective_device_type = "default_hood"
             _LOGGER.warning("Could not detect device type, using default_hood")
 
-    platforms = get_device_platforms(device_info["category"])
+    platforms = _with_event_platform(get_device_platforms(device_info["category"]))
 
     # Store runtime data using modern pattern (HA 2024.6+)
     entry.runtime_data = KKTKolbeRuntimeData(
@@ -794,7 +799,7 @@ async def _async_unload_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigE
         product_name = entry.data.get("product_name", "unknown")
         device_info = get_device_info_by_product_name(product_name)
 
-    platforms = get_device_platforms(device_info.get("category", "unknown"))
+    platforms = _with_event_platform(get_device_platforms(device_info.get("category", "unknown")))
 
     unload_ok: bool = await hass.config_entries.async_unload_platforms(entry, platforms)
     if unload_ok:

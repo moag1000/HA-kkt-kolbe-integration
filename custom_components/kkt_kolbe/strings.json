@@ -951,6 +951,61 @@
       "light": {
         "name": "Light"
       }
+    },
+    "event": {
+      "device_event": {
+        "name": "Device events",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "connection_lost": "Connection lost",
+              "connection_restored": "Connection restored",
+              "connection_mode_changed": "Connection mode changed",
+              "timer_finished": "Timer finished",
+              "filter_cleaning_due": "Filter cleaning due",
+              "zone_error": "Cooking zone error"
+            }
+          },
+          "mode": {
+            "name": "Mode"
+          },
+          "previous_mode": {
+            "name": "Previous mode"
+          },
+          "zone": {
+            "name": "Zone"
+          },
+          "data_point": {
+            "name": "Data point"
+          }
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "no_matching_devices": {
+      "message": "No matching KKT Kolbe device is loaded."
+    },
+    "config_entry_not_found": {
+      "message": "Config entry {entry_id} was not found."
+    },
+    "entity_not_found": {
+      "message": "Entity {entity_id} was not found."
+    },
+    "entity_not_kkt_kolbe": {
+      "message": "Entity {entity_id} does not belong to the KKT Kolbe integration."
+    },
+    "entity_wrong_domain": {
+      "message": "Entity {entity_id} must be a {domain} entity."
+    },
+    "entity_unavailable": {
+      "message": "Entity {entity_id} is currently unavailable."
+    },
+    "confirm_required": {
+      "message": "The action {action} needs to be confirmed (set confirm: true)."
+    },
+    "coordinator_not_found": {
+      "message": "No running device connection found for entity {entity_id}."
     }
   }
 }

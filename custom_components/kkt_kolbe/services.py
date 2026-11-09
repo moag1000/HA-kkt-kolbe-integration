@@ -28,6 +28,15 @@ from .exceptions import KKTServiceError
 _LOGGER = logging.getLogger(__name__)
 
 
+def _validation_error(key: str, **placeholders: str) -> ServiceValidationError:
+    """Build a translated ServiceValidationError (quality scale: exception-translations)."""
+    return ServiceValidationError(
+        translation_domain=DOMAIN,
+        translation_key=key,
+        translation_placeholders=placeholders,
+    )
+
+
 def _loaded_device_entries(hass: HomeAssistant) -> list[ConfigEntry]:
     """Return loaded KKT Kolbe device entries (account entries excluded).
 
@@ -71,7 +80,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         coordinators = _get_coordinators(hass, device_id, entry_id)
 
         if not coordinators:
-            raise ServiceValidationError("No matching devices found")
+            raise _validation_error("no_matching_devices")
 
         results = {}
         for coord_entry_id, coordinator in coordinators:
@@ -122,14 +131,14 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         coordinators = _get_coordinators(hass, device_id, entry_id)
 
         if not coordinators:
-            raise ServiceValidationError("No matching devices found")
+            raise _validation_error("no_matching_devices")
 
         results = {}
         for coord_entry_id, coordinator in coordinators:
             try:
                 entry = hass.config_entries.async_get_entry(coord_entry_id)
                 if not entry:
-                    raise ServiceValidationError(f"Config entry {coord_entry_id} not found")
+                    raise _validation_error("config_entry_not_found", entry_id=coord_entry_id)
 
                 device_id = entry.data.get("device_id")
                 ip_address = entry.data.get("ip_address")
@@ -286,6 +295,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         """Get coordinators matching the criteria."""
         coordinators: list[tuple[str, Any]] = []
 
+        registry_entry_ids: set[str] | None = None
+        if device_id and (device_entry := dr.async_get(hass).async_get(device_id)) is not None:
+            registry_entry_ids = {device_entry.config_entry_id}
+
         for config_entry in _loaded_device_entries(hass):
             coord_entry_id = config_entry.entry_id
 
@@ -295,8 +308,12 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
             coordinator = config_entry.runtime_data.coordinator
 
-            # Filter by device_id if specified
-            if device_id:
+            # The "device" selector in services.yaml hands us a Home Assistant
+            # device registry id; older automations may pass the Tuya device id.
+            if device_id and registry_entry_ids is not None:
+                if coord_entry_id not in registry_entry_ids:
+                    continue
+            elif device_id:
                 # Handle case where coordinator.device may be None (API-only mode)
                 coord_device_id = None
                 if hasattr(coordinator, "device_id"):
@@ -319,18 +336,18 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         entity_entry = entity_registry.async_get(entity_id)
 
         if not entity_entry:
-            raise ServiceValidationError(f"Entity {entity_id} not found")
+            raise _validation_error("entity_not_found", entity_id=entity_id)
 
         if entity_entry.platform != DOMAIN:
-            raise ServiceValidationError(f"Entity {entity_id} is not a KKT Kolbe entity")
+            raise _validation_error("entity_not_kkt_kolbe", entity_id=entity_id)
 
         if required_domain and not entity_id.startswith(f"{required_domain}."):
-            raise ServiceValidationError(f"Entity {entity_id} must be in {required_domain} domain")
+            raise _validation_error("entity_wrong_domain", entity_id=entity_id, domain=required_domain)
 
         # Check if entity is available
         state = hass.states.get(entity_id)
         if not state or state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
-            raise ServiceValidationError(f"Entity {entity_id} is not available")
+            raise _validation_error("entity_unavailable", entity_id=entity_id)
 
     async def async_set_cooking_timer(call: ServiceCall) -> None:
         """Set cooking timer for a specific zone."""
@@ -350,6 +367,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
             _LOGGER.info("Set cooking timer for %s to %d minutes", entity_id, timer_minutes)
 
+        except ServiceValidationError:
+            raise
         except Exception as exc:
             _LOGGER.error("Failed to set cooking timer: %s", exc)
             raise KKTServiceError(service_name=SERVICE_SET_COOKING_TIMER, reason=str(exc)) from exc
@@ -372,6 +391,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
             _LOGGER.info("Set zone power for %s to level %d", entity_id, power_level)
 
+        except ServiceValidationError:
+            raise
         except Exception as exc:
             _LOGGER.error("Failed to set zone power: %s", exc)
             raise KKTServiceError(service_name=SERVICE_SET_ZONE_POWER, reason=str(exc)) from exc
@@ -382,7 +403,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         confirm = call.data.get("confirm", False)
 
         if not confirm:
-            raise ServiceValidationError("Must confirm bulk power off operation")
+            raise _validation_error("confirm_required", action="bulk_power_off")
 
         try:
             affected_entities = []
@@ -438,6 +459,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             else:
                 _LOGGER.warning("No entities found for bulk power off with filter %s", device_types)
 
+        except ServiceValidationError:
+            raise
         except Exception as exc:
             _LOGGER.error("Failed to execute bulk power off: %s", exc)
             raise KKTServiceError(service_name=SERVICE_BULK_POWER_OFF, reason=str(exc)) from exc
@@ -467,6 +490,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
             _LOGGER.info("Synchronized %d KKT Kolbe devices with filter '%s'", coordinators_refreshed, device_filter)
 
+        except ServiceValidationError:
+            raise
         except Exception as exc:
             _LOGGER.error("Failed to sync devices: %s", exc)
             raise KKTServiceError(service_name=SERVICE_SYNC_ALL_DEVICES, reason=str(exc)) from exc
@@ -488,6 +513,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
             _LOGGER.info("Set hood fan speed for %s to level %d", entity_id, fan_speed)
 
+        except ServiceValidationError:
+            raise
         except Exception as exc:
             _LOGGER.error("Failed to set hood fan speed: %s", exc)
             raise KKTServiceError(service_name=SERVICE_SET_HOOD_FAN_SPEED, reason=str(exc)) from exc
@@ -510,6 +537,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 await hass.services.async_call("switch", "toggle", {ATTR_ENTITY_ID: entity_id}, blocking=True)
                 _LOGGER.info("Toggled hood lighting for %s", entity_id)
 
+        except ServiceValidationError:
+            raise
         except Exception as exc:
             _LOGGER.error("Failed to set hood lighting: %s", exc)
             raise KKTServiceError(service_name=SERVICE_SET_HOOD_LIGHTING, reason=str(exc)) from exc
@@ -520,7 +549,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         send_notification = call.data.get("notification", True)
 
         if not confirm:
-            raise ServiceValidationError("Must confirm emergency stop operation")
+            raise _validation_error("confirm_required", action="emergency_stop")
 
         try:
             entity_registry = er.async_get(hass)
@@ -561,6 +590,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     },
                 )
 
+        except ServiceValidationError:
+            raise
         except Exception as exc:
             _LOGGER.error("Failed to execute emergency stop: %s", exc)
             raise KKTServiceError(service_name=SERVICE_EMERGENCY_STOP, reason=str(exc)) from exc
@@ -571,7 +602,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         confirm = call.data.get("confirm", False)
 
         if not confirm:
-            raise ServiceValidationError("Must confirm filter timer reset")
+            raise _validation_error("confirm_required", action="reset_filter_timer")
 
         try:
             validate_entity_id(entity_id)
@@ -581,7 +612,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             entity_entry = entity_registry.async_get(entity_id)
 
             if not entity_entry:
-                raise ServiceValidationError(f"Entity {entity_id} not found")
+                raise _validation_error("entity_not_found", entity_id=entity_id)
 
             # Find the coordinator for this entity's config entry
             config_entry_id = entity_entry.config_entry_id
@@ -593,8 +624,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
                 _LOGGER.info("Filter timer reset completed for %s", entity_id)
             else:
-                raise ServiceValidationError(f"Coordinator not found for entity {entity_id}")
+                raise _validation_error("coordinator_not_found", entity_id=entity_id)
 
+        except ServiceValidationError:
+            raise
         except Exception as exc:
             _LOGGER.error("Failed to reset filter timer: %s", exc)
             raise KKTServiceError(service_name=SERVICE_RESET_FILTER_TIMER, reason=str(exc)) from exc

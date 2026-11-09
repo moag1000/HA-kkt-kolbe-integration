@@ -878,6 +878,35 @@
       "light": {
         "name": "Licht"
       }
+    },
+    "event": {
+      "device_event": {
+        "name": "Geräte-Ereignisse",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "connection_lost": "Verbindung verloren",
+              "connection_restored": "Verbindung wiederhergestellt",
+              "connection_mode_changed": "Verbindungsmodus gewechselt",
+              "timer_finished": "Timer abgelaufen",
+              "filter_cleaning_due": "Filterreinigung fällig",
+              "zone_error": "Fehler an Kochzone"
+            }
+          },
+          "mode": {
+            "name": "Modus"
+          },
+          "previous_mode": {
+            "name": "Vorheriger Modus"
+          },
+          "zone": {
+            "name": "Zone"
+          },
+          "data_point": {
+            "name": "Datenpunkt"
+          }
+        }
+      }
     }
   },
   "issues": {
@@ -974,6 +1003,32 @@
           "cloud_fetch_failed": "Local Key konnte nicht aus der Cloud abgerufen werden. Bitte manuell eingeben oder SmartLife-Konto prüfen."
         }
       }
+    }
+  },
+  "exceptions": {
+    "no_matching_devices": {
+      "message": "Es ist kein passendes KKT-Kolbe-Gerät geladen."
+    },
+    "config_entry_not_found": {
+      "message": "Konfigurationseintrag {entry_id} wurde nicht gefunden."
+    },
+    "entity_not_found": {
+      "message": "Entität {entity_id} wurde nicht gefunden."
+    },
+    "entity_not_kkt_kolbe": {
+      "message": "Entität {entity_id} gehört nicht zur KKT-Kolbe-Integration."
+    },
+    "entity_wrong_domain": {
+      "message": "Entität {entity_id} muss eine {domain}-Entität sein."
+    },
+    "entity_unavailable": {
+      "message": "Entität {entity_id} ist gerade nicht verfügbar."
+    },
+    "confirm_required": {
+      "message": "Die Aktion {action} muss bestätigt werden (confirm: true setzen)."
+    },
+    "coordinator_not_found": {
+      "message": "Für Entität {entity_id} wurde keine aktive Geräteverbindung gefunden."
     }
   }
 }
