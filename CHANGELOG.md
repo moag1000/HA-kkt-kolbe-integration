@@ -22,11 +22,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Action-Responses**: `kkt_kolbe.get_connection_status` und `kkt_kolbe.get_firmware_info` liefern ihr Ergebnis jetzt direkt zurück (`response_variable` in Skripten/Automationen). Die bisherigen Events werden weiterhin gefeuert.
+- **Event-Entity „Geräte-Ereignisse“ pro Gerät**: `connection_lost`, `connection_restored`, `connection_mode_changed` (Hybrid), `timer_finished`, `filter_cleaning_due`, `zone_error`. Automationen triggern direkt darauf, ohne Bus-Events oder Zustandsvergleiche.
+- **Entity-Actions**: `set_cooking_timer`, `set_zone_power`, `set_hood_fan_speed` und `set_hood_lighting` akzeptieren jetzt Entities als Ziel (`target: entity_id`), mit Wertebereichsprüfung schon beim Aufruf.
+- **Übersetzte Fehlermeldungen** (DE/EN) für alle Actions statt englischer Freitexte.
+- **HACS-ZIP-Release**: Ein GitHub-Actions-Workflow baut bei jedem veröffentlichten Release `kkt_kolbe.zip` (inkl. SHA256) und hängt es ans Release; `hacs.json` nutzt `zip_release`. Der Workflow prüft, dass Tag und `manifest.json`-Version übereinstimmen.
+- **mypy** ist sauber (nicht-strikt); viele fehlende Typen ergänzt.
 
 ### Fixed
 
 - **Stale-Device-Tracker** verglich naive mit zeitzonenbehafteten Zeitstempeln und brach deshalb jede Prüfung mit `TypeError` ab. Nutzt jetzt `dt_util.utcnow()`; der Initial-Cleanup läuft über `async_call_later`.
 - **Token-Erneuerung im Options-Flow** löschte die Account-Optionen (`data={}`); die bestehenden Optionen bleiben jetzt erhalten.
+- **Zeroconf-Discovery** stürzte ab (`ZeroconfServiceInfo` hat kein `.get()`), IP-Updates bereits eingerichteter Geräte per mDNS funktionieren wieder.
+- **Diagnose-Download** brach bei Geräten im manuellen Modus mit `AttributeError` ab (`last_update_success_time` fehlte).
+- **Geräteauswahl in Actions**: HA-Geräte-IDs aus dem Device-Selector wurden nicht aufgelöst; jetzt werden HA-Geräte-ID und Tuya-Geräte-ID akzeptiert.
+- Tuya-Cloud-Client nutzt die gemeinsame HA-`aiohttp`-Session (`inject-websession`).
 
 ## [4.7.4] - 2026-05-22
 

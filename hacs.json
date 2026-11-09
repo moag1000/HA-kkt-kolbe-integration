@@ -1,7 +1,20 @@
 {
   "name": "KKT Kolbe Integration",
   "content_in_root": false,
-  "country": ["DE", "AT", "CH", "PL", "FR", "IT", "ES", "NL", "BE", "GB"],
+  "country": [
+    "DE",
+    "AT",
+    "CH",
+    "PL",
+    "FR",
+    "IT",
+    "ES",
+    "NL",
+    "BE",
+    "GB"
+  ],
   "homeassistant": "2026.9.0",
-  "render_readme": true
+  "render_readme": true,
+  "zip_release": true,
+  "filename": "kkt_kolbe.zip"
 }
