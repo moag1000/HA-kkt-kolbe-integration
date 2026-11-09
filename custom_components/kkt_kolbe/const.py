@@ -64,6 +64,11 @@ TCP_KEEPALIVE_IDLE: Final = 60  # seconds before sending keepalive probes
 TCP_KEEPALIVE_INTERVAL: Final = 10  # seconds between keepalive probes
 TCP_KEEPALIVE_COUNT: Final = 5  # number of failed probes before declaring dead
 
+# === LOCAL CONNECTION KEEP-ALIVE ===
+HEARTBEAT_INTERVAL: Final = 10  # seconds idle before a Tuya HEART_BEAT is sent
+RUNTIME_SOCKET_TIMEOUT: Final = 5  # socket timeout once connected (detection uses 3 s)
+RUNTIME_SOCKET_RETRIES: Final = 2  # tinytuya retries once connected (detection uses 1)
+
 # === GLOBAL STORAGE ===
 GLOBAL_API_STORAGE_KEY: Final = f"{DOMAIN}_global_api"
 

@@ -40,6 +40,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Diagnose-Download** brach bei Geräten im manuellen Modus mit `AttributeError` ab (`last_update_success_time` fehlte).
 - **Geräteauswahl in Actions**: HA-Geräte-IDs aus dem Device-Selector wurden nicht aufgelöst; jetzt werden HA-Geräte-ID und Tuya-Geräte-ID akzeptiert.
 - Tuya-Cloud-Client nutzt die gemeinsame HA-`aiohttp`-Session (`inject-websession`).
+- **Lokale Verbindung bleibt stabil offen (Keep-Alive)**: Geräte wirkten so, als würden sie ständig aus dem WLAN fallen. Ursachen und Fixes:
+  - **Tuya-Heartbeat**: Viele Firmwares schließen eine untätige lokale Verbindung nach ~30 s; bei 30 s Abfrageintervall war der Socket beim Poll oft schon weg und jeder Poll musste neu verbinden (bei 3.4/3.5 inkl. Schlüsselaushandlung). Jetzt geht nach 10 s Leerlauf ein `HEART_BEAT` raus.
+  - **TCP-Keep-Alive wirkte nie**: Der Code suchte `device._socket`, tinytuya nennt es `device.socket`. Wird jetzt auf jeden neuen Socket gesetzt.
+  - **Verwaiste Verbindungen**: Bei Timeouts/Fehlern und beim Neuladen der Integration wurde der Socket nicht geschlossen. Tuya-Geräte erlauben nur wenige lokale Verbindungen; halb offene Sockets blockierten den nächsten Verbindungsversuch. Jetzt wird immer geschlossen, auch beim Entladen.
+  - **Gleichzeitige Zugriffe**: Abfrage und Schaltbefehl liefen parallel über denselben Socket, Antworten konnten sich vermischen (und als Schlüsselfehler erscheinen). Zugriffe sind jetzt serialisiert.
+  - Nach erfolgreichem Verbinden 5 s Socket-Timeout und 2 Versuche statt 3 s / 1 Versuch, damit ein verlorenes Paket keinen kompletten Neuaufbau auslöst.
 - **Setup wartet nicht mehr auf den Icon-Download**: Das Geräte-Icon aus der SmartLife-Cloud wird im Hintergrund geladen, ein langsames Tuya-CDN verzögert den Start nicht mehr.
 - **Toter Link „Besuchen“ auf der Geräteseite entfernt**: Tuya-Geräte haben keine Weboberfläche; der Link zeigte auf `http://<IP>` bzw. `http://unknown`.
 - **Kein automatisch angelegter Bereich „Kitchen“** mehr für neue Geräte (war fest auf Englisch hinterlegt).

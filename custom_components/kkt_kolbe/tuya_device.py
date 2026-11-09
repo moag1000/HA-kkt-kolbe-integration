@@ -7,6 +7,7 @@ import contextlib
 import logging
 import random
 import socket
+import time
 from collections.abc import Callable
 from collections.abc import Coroutine
 from typing import Any
@@ -15,6 +16,9 @@ import tinytuya
 from homeassistant.core import HomeAssistant
 
 from .const import DEFAULT_CONNECTION_TIMEOUT
+from .const import HEARTBEAT_INTERVAL
+from .const import RUNTIME_SOCKET_RETRIES
+from .const import RUNTIME_SOCKET_TIMEOUT
 from .const import TCP_KEEPALIVE_COUNT
 from .const import TCP_KEEPALIVE_IDLE
 from .const import TCP_KEEPALIVE_INTERVAL
@@ -53,6 +57,13 @@ class KKTKolbeTuyaDevice:
         self._status: dict[str, Any] = {}
         self._connected = False
         self._hass = hass
+        # tinytuya devices are not thread-safe: status polls, writes and
+        # heartbeats must never share the socket at the same time, or replies
+        # get mixed up (and look like decryption/auth errors).
+        self._io_lock = asyncio.Lock()
+        self._keepalive_socket_id: int | None = None
+        self._heartbeat_task: asyncio.Task[None] | None = None
+        self._last_io: float = 0.0
 
         # Connection statistics for diagnostics
         self._connection_stats: dict[str, Any] = {
@@ -146,6 +157,76 @@ class KKTKolbeTuyaDevice:
         task.add_done_callback(self._handle_task_result)
         return task
 
+    def _drop_device(self) -> None:
+        """Forget the device connection and close its socket.
+
+        Tuya devices accept only very few local TCP connections. A socket that
+        is dropped without close() stays half-open on the device until it
+        times out and can block the next connection attempt.
+        """
+        device = self._device
+        self._device = None
+        self._connected = False
+        self._keepalive_socket_id = None
+        if device is not None:
+            with contextlib.suppress(Exception):
+                device.close()
+
+    async def _async_device_call(self, func: Callable[..., Any], *args: Any, timeout: float) -> Any:
+        """Run one tinytuya call on the shared socket, serialized and with timeout."""
+        async with self._io_lock:
+            device = self._device
+            if device is None:
+                raise KKTConnectionError(
+                    operation="device_call", device_id=self.device_id[:8], reason="Device not connected"
+                )
+            result = await asyncio.wait_for(self._run_executor_job(func, *args), timeout=timeout)
+            self._last_io = time.monotonic()
+            # tinytuya opens a new socket after every reconnect
+            self._configure_socket_keepalive(device)
+            return result
+
+    def _start_heartbeat(self) -> None:
+        """Keep the persistent socket alive between polls."""
+        if self._heartbeat_task is not None and not self._heartbeat_task.done():
+            return
+        if self._hass is not None:
+            self._heartbeat_task = self._hass.async_create_background_task(
+                self._async_heartbeat_loop(), name=f"kkt_kolbe_heartbeat_{self.device_id[:8]}"
+            )
+        else:
+            self._heartbeat_task = asyncio.get_running_loop().create_task(self._async_heartbeat_loop())
+
+    def _stop_heartbeat(self) -> None:
+        if self._heartbeat_task is not None:
+            self._heartbeat_task.cancel()
+            self._heartbeat_task = None
+
+    async def _async_heartbeat_loop(self) -> None:
+        """Send a Tuya HEART_BEAT when the socket has been idle.
+
+        Many Tuya firmwares close an idle local connection after ~30 s. With a
+        30 s poll interval the socket was regularly gone at poll time and every
+        poll had to reconnect (incl. session key negotiation on 3.4/3.5), which
+        is what makes devices look like they keep dropping off Wi-Fi.
+        """
+        while True:
+            await asyncio.sleep(HEARTBEAT_INTERVAL)
+            if not self.is_connected or self._io_lock.locked():
+                continue
+            if time.monotonic() - self._last_io < HEARTBEAT_INTERVAL:
+                continue
+            device = self._device
+            if device is None:
+                continue
+            try:
+                await self._async_device_call(device.heartbeat, True, timeout=5.0)
+            except asyncio.CancelledError:
+                raise
+            except Exception as err:
+                _LOGGER.debug("Heartbeat failed for %s, reconnecting on next poll: %s", self.device_id[:8], err)
+                self._drop_device()
+
     async def async_connect(self) -> None:
         """Establish async connection to the device with timeout protection and retry mechanism."""
         from datetime import datetime
@@ -189,23 +270,27 @@ class KKTKolbeTuyaDevice:
                 if attempt > 0:
                     self._connection_stats["total_reconnects"] += 1
 
-                # Configure TCP Keep-Alive on successful connection
+                # Runtime socket settings: detection uses short timeouts and a
+                # single try; a working connection should survive a lost packet
                 if self._device:
+                    with contextlib.suppress(Exception):
+                        self._device.set_socketTimeout(RUNTIME_SOCKET_TIMEOUT)
+                        self._device.set_socketRetryLimit(RUNTIME_SOCKET_RETRIES)
                     self._configure_socket_keepalive(self._device)
+                    self._last_io = time.monotonic()
+                    self._start_heartbeat()
 
                 _LOGGER.info(f"Successfully connected to device {self.device_id[:8]}... at {self.ip_address}")
                 return
 
             except asyncio.CancelledError:
                 # Handle cancellation gracefully
-                self._connected = False
-                self._device = None
+                self._drop_device()
                 _LOGGER.warning(f"Connection attempt cancelled for device at {self.ip_address}")
                 raise  # Always re-raise CancelledError
 
             except TimeoutError as timeout_err:
-                self._connected = False
-                self._device = None
+                self._drop_device()
                 self._connection_stats["total_timeouts"] += 1
                 if attempt == max_retries - 1:
                     _LOGGER.error(
@@ -220,15 +305,13 @@ class KKTKolbeTuyaDevice:
 
             except KKTAuthenticationError as e:
                 # Authentication errors should not be retried - re-raise immediately
-                self._connected = False
-                self._device = None
+                self._drop_device()
                 _LOGGER.error(f"Authentication failed for device at {self.ip_address}: {e}")
                 raise
 
             except (KKTConnectionError, KKTTimeoutError) as e:
                 # Re-raise our custom exceptions immediately without retry
-                self._connected = False
-                self._device = None
+                self._drop_device()
                 _LOGGER.error(
                     f"Connection failed for device at {self.ip_address}: {e}\n"
                     f"This error typically indicates:\n"
@@ -240,8 +323,7 @@ class KKTKolbeTuyaDevice:
                 raise
 
             except Exception as e:
-                self._connected = False
-                self._device = None
+                self._drop_device()
                 if attempt == max_retries - 1:
                     _LOGGER.error(
                         f"Failed to connect to device at {self.ip_address} after {max_retries} attempts.\n"
@@ -566,16 +648,8 @@ class KKTKolbeTuyaDevice:
 
         _LOGGER.debug(f"Disconnecting from device {self.device_id[:8]}...")
 
-        if self._device:
-            try:
-                # Close the socket connection
-                self._device.close()
-            except Exception as e:
-                _LOGGER.debug(f"Error closing device socket: {e}")
-            finally:
-                self._device = None
-
-        self._connected = False
+        self._stop_heartbeat()
+        self._drop_device()
         self._connection_stats["total_disconnects"] += 1
         self._connection_stats["last_disconnect_time"] = datetime.now().isoformat()
 
@@ -632,9 +706,11 @@ class KKTKolbeTuyaDevice:
     def _configure_socket_keepalive(self, device: Any) -> None:
         """Configure TCP Keep-Alive on the device socket."""
         try:
-            # Get the underlying socket if available
-            if hasattr(device, "_socket") and device._socket:
-                sock = device._socket
+            # tinytuya keeps the TCP socket in ``device.socket`` (recreated on
+            # every reconnect), configure each new socket once
+            sock = getattr(device, "socket", None)
+            if sock is not None and id(sock) != self._keepalive_socket_id:
+                self._keepalive_socket_id = id(sock)
                 # Enable TCP Keep-Alive
                 sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
 
@@ -684,7 +760,7 @@ class KKTKolbeTuyaDevice:
             # Explicit status() call with timeout protection
             # This triggers a status request and tinytuya internally merges
             # the response with any cached data
-            status = await asyncio.wait_for(self._run_executor_job(self._device.status), timeout=10.0)
+            status = await self._async_device_call(self._device.status, timeout=10.0)
 
             # Enhanced validation and error handling
             if not status:
@@ -745,22 +821,19 @@ class KKTKolbeTuyaDevice:
 
         except asyncio.CancelledError:
             # Handle cancellation - cleanup but re-raise
-            self._connected = False
-            self._device = None
+            self._drop_device()
             _LOGGER.debug(f"get_status cancelled for device at {self.ip_address}")
             raise
 
         except TimeoutError as timeout_err:
-            self._connected = False
-            self._device = None
+            self._drop_device()
             raise KKTTimeoutError(operation="get_status", device_id=self.device_id[:8], timeout=10.0) from timeout_err
         except KKTDataPointError, KKTTimeoutError:
             # Re-raise our custom exceptions
             raise
         except Exception as e:
             _LOGGER.error(f"Failed to get device status: {e}")
-            self._connected = False  # Mark as disconnected on error - LocalTuya pattern
-            self._device = None  # Clear device reference like LocalTuya
+            self._drop_device()
             raise KKTConnectionError(operation="get_status", device_id=self.device_id[:8], reason=str(e)) from e
 
     async def async_update_status(self) -> None:
@@ -774,7 +847,7 @@ class KKTKolbeTuyaDevice:
 
         try:
             # Explicit status() call with timeout protection
-            status = await asyncio.wait_for(self._run_executor_job(self._device.status), timeout=10.0)
+            status = await self._async_device_call(self._device.status, timeout=10.0)
 
             if status and isinstance(status, dict):
                 self._status = status
@@ -784,27 +857,18 @@ class KKTKolbeTuyaDevice:
 
         except asyncio.CancelledError:
             # Handle cancellation - cleanup but re-raise
-            self._connected = False
-            self._device = None
+            self._drop_device()
             _LOGGER.debug(f"update_status cancelled for device at {self.ip_address}")
             raise
 
         except TimeoutError as timeout_err:
-            self._connected = False
-            self._device = None
+            self._drop_device()
             raise KKTTimeoutError(
                 operation="update_status", device_id=self.device_id[:8], timeout=10.0
             ) from timeout_err
         except Exception as e:
             _LOGGER.error(f"Failed to update device status: {e}")
-            # Properly close connection on error like LocalTuya
-            if self._device:
-                try:
-                    self._device.close()
-                except Exception:
-                    pass  # Ignore errors during cleanup
-            self._connected = False
-            self._device = None
+            self._drop_device()
             raise KKTConnectionError(operation="update_status", device_id=self.device_id[:8], reason=str(e)) from e
 
     async def async_set_dp(self, dp: int, value: Any) -> bool:
@@ -816,7 +880,7 @@ class KKTKolbeTuyaDevice:
 
         try:
             # Explicit set_value() call with timeout protection
-            result = await asyncio.wait_for(self._run_executor_job(self._device.set_value, dp, value), timeout=8.0)
+            result = await self._async_device_call(self._device.set_value, dp, value, timeout=8.0)
 
             # Validate the result
             if result is None:
@@ -827,27 +891,18 @@ class KKTKolbeTuyaDevice:
 
         except asyncio.CancelledError:
             # Handle cancellation - cleanup but re-raise
-            self._connected = False
-            self._device = None
+            self._drop_device()
             _LOGGER.debug(f"set_dp cancelled for DP {dp} on device at {self.ip_address}")
             raise
 
         except TimeoutError as timeout_err:
-            self._connected = False
-            self._device = None
+            self._drop_device()
             raise KKTTimeoutError(
                 operation="set_dp", device_id=self.device_id[:8], data_point=dp, timeout=8.0
             ) from timeout_err
         except Exception as e:
             _LOGGER.error(f"Failed to set DP {dp} to {value}: {e}")
-            # Properly close connection on error like LocalTuya
-            if self._device:
-                try:
-                    self._device.close()
-                except Exception:
-                    pass  # Ignore errors during cleanup
-            self._connected = False
-            self._device = None
+            self._drop_device()
             raise KKTDataPointError(
                 operation="set_dp", device_id=self.device_id[:8], data_point=dp, reason=str(e)
             ) from e

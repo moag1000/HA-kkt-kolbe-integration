@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import logging
 from typing import TYPE_CHECKING
 from typing import Any
@@ -831,6 +832,14 @@ async def _async_unload_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigE
                     _SHUTDOWN_TIMEOUT,
                     entry.title,
                 )
+
+            # Close the persistent local socket and stop its heartbeat. Tuya
+            # devices allow only a few local connections; a socket left open
+            # by a reload can block the new connection until it times out.
+            device = getattr(entry.runtime_data, "device", None)
+            if device is not None:
+                with contextlib.suppress(Exception):
+                    await device.async_disconnect()
 
         # Stop discovery when the last loaded device entry goes away.
         # Actions stay registered (they are set up in async_setup).
