@@ -20,7 +20,7 @@
 
 ## Highlights v4.9
 
-- **Home Assistant 2026.x** - modernisiert für HA 2026.8+ (Python 3.14), bereit für die Änderungen in HA 2026.12
+- **Home Assistant 2026.x** - modernisiert für HA 2026.9+ (Python 3.14), bereit für die Änderungen in HA 2026.12
 - **Geräte-Ereignisse** - eigene Event-Entity pro Gerät: Verbindung verloren/wieder da, Wechsel lokal ↔ Cloud, Timer abgelaufen, Filterreinigung fällig, Fehler an Kochzone
 - **Actions mit Antwort** - `get_connection_status` und `get_firmware_info` liefern ihr Ergebnis per `response_variable` direkt an Skripte
 - **Lokal + Cloud** - lokale Tuya-Steuerung, SmartLife-Cloud als Fallback inkl. MQTT-Push (~500 ms statt 30 s Polling)
@@ -122,7 +122,7 @@ Hast du ein KKT Kolbe Gerät mit WiFi das hier nicht aufgeführt ist?
 
 | Komponente | Version |
 |------------|---------|
-| Home Assistant | ≥ 2026.8.0 |
+| Home Assistant | ≥ 2026.9.0 |
 | Python | ≥ 3.14 (bringt Home Assistant 2026.x mit) |
 
 ---

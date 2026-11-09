@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-import voluptuous as vol
+import probatio as vol
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.config_entries import OptionsFlowWithReload
 from homeassistant.const import CONF_ACCESS_TOKEN

@@ -10,10 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed (Home Assistant 2026.x Upgrade)
 
-- **Mindestversion jetzt Home Assistant 2026.8.0** (Python 3.14). Getestet gegen HA 2026.10 via `pytest-homeassistant-custom-component` 0.13.375; CI läuft auf Python 3.14.
+- **Mindestversion jetzt Home Assistant 2026.9.0** (Python 3.14). Getestet gegen HA 2026.10 via `pytest-homeassistant-custom-component` 0.13.375; CI läuft auf Python 3.14.
 - **Kein Config-Entry-Update-Listener mehr**: HA 2026.12 macht die Kombination aus Update-Listener und `async_update_reload_and_abort` / `_abort_if_unique_id_configured(updates=...)` zum Fehler. Der Options-Flow erbt jetzt von `OptionsFlowWithReload` und lädt nur neu, wenn sich die Optionen wirklich ändern; Reconfigure/Reauth laden wie bisher über den Config-Flow neu. Doppelte Reloads entfallen.
 - **`hass.data[DOMAIN]` entfernt**: Alle Laufzeitdaten (Coordinator, Gerät, SmartLife-Zusatzinfos) liegen nur noch in `entry.runtime_data`. Actions, Entities, Options-Flow und Stale-Device-Tracker lesen von dort.
 - **Actions werden in `async_setup` registriert** (Quality-Scale-Regel `action-setup`) und bleiben registriert, auch wenn kein Gerät geladen ist. Behebt nebenbei, dass `refresh_smartlife_cache` und `get_firmware_info` beim Entladen nicht entfernt wurden.
+- **probatio statt voluptuous**: HA 2026.9 hat die Schema-Validierung auf [probatio](https://developers.home-assistant.io/blog/2026/09/30/probatio-validation-engine) umgestellt; die Integration importiert jetzt direkt `probatio`.
 - **Device-Registry-API von HA 2026.8**: `DeviceEntry.config_entry_id` statt `config_entries`, `async_get_device_by_identifier()` statt des veralteten `async_get_device()`.
 - **Brand-Bilder** liegen jetzt in `custom_components/kkt_kolbe/brand/` (HA 2026.3+ zeigt lokale Icons/Logos direkt an, HACS verlangt den Ordner). `ignore: brands` in der HACS-Validierung entfällt.
 - **manifest.json**: `aiohttp` entfernt (kommt aus HA Core), `tinytuya>=1.20.0`, `tuya-device-sharing-sdk>=0.2.15` (gleiche Version wie die Core-Tuya-Integration).

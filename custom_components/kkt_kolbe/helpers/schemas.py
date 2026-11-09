@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import voluptuous as vol
+import probatio as vol
 from homeassistant.const import CONF_IP_ADDRESS
 from homeassistant.const import CONF_SCAN_INTERVAL
 from homeassistant.helpers import selector

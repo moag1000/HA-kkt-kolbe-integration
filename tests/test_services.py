@@ -260,7 +260,7 @@ async def test_get_firmware_info_response_without_client(
 @pytest.mark.asyncio
 async def test_entity_action_validates_range(hass: HomeAssistant) -> None:
     """Entity actions validate their fields before touching any entity."""
-    import voluptuous as vol
+    import probatio as vol
 
     from custom_components.kkt_kolbe.services import SERVICE_SET_HOOD_FAN_SPEED
 
