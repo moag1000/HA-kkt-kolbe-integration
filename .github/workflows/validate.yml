@@ -10,6 +10,12 @@ on:
 
 permissions: {}
 
+# Only the newest push of a branch/PR needs checking; older queued runs
+# are cancelled instead of piling up behind each other.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate-json:
     name: JSON/YAML Validation
