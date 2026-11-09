@@ -1338,32 +1338,37 @@ async def test_options_device_step_saves_settings(
     with patch(
         "custom_components.kkt_kolbe.async_setup_entry",
         return_value=True,
-    ):
+    ) as mock_setup_entry:
         await hass.config_entries.async_setup(mock_config_entry.entry_id)
         await hass.async_block_till_done()
 
-    result = await hass.config_entries.options.async_init(mock_config_entry.entry_id)
-    assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "device"
-    assert "api_client_id" in result["data_schema"].schema  # full options incl. IoT Platform API
+        result = await hass.config_entries.options.async_init(mock_config_entry.entry_id)
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == "device"
+        assert "api_client_id" in result["data_schema"].schema  # full options incl. IoT Platform API
 
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"],
-        user_input={
-            "scan_interval": 60,
-            "new_local_key": "",
-            "api_enabled": False,
-            "api_client_id": "",
-            "api_client_secret": "",
-            "api_endpoint": "https://openapi.tuyaeu.com",
-            "enable_debug_logging": True,
-            "enable_advanced_entities": True,
-            "zone_naming_scheme": "zone",
-            "disable_fan_auto_start": True,
-            "test_connection": False,
-        },
-    )
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            user_input={
+                "scan_interval": 60,
+                "new_local_key": "",
+                "api_enabled": False,
+                "api_client_id": "",
+                "api_client_secret": "",
+                "api_endpoint": "https://openapi.tuyaeu.com",
+                "enable_debug_logging": True,
+                "enable_advanced_entities": True,
+                "zone_naming_scheme": "zone",
+                "disable_fan_auto_start": True,
+                "test_connection": False,
+            },
+        )
 
-    assert result["type"] == FlowResultType.CREATE_ENTRY
-    assert result["data"]["scan_interval"] == 60
-    assert result["data"]["enable_debug_logging"] is True
+        assert result["type"] == FlowResultType.CREATE_ENTRY
+        assert result["data"]["scan_interval"] == 60
+        assert result["data"]["enable_debug_logging"] is True
+
+        # OptionsFlowWithReload reloads the entry because the options changed
+        await hass.async_block_till_done()
+        assert mock_setup_entry.call_count == 2
+        assert mock_config_entry.options["scan_interval"] == 60

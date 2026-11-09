@@ -437,11 +437,11 @@ class TuyaSharingClient:
                 self._user_code,
             )
 
-        start_time = asyncio.get_event_loop().time()
+        start_time = asyncio.get_running_loop().time()
         poll_count = 0
 
         while True:
-            elapsed = asyncio.get_event_loop().time() - start_time
+            elapsed = asyncio.get_running_loop().time() - start_time
             if elapsed >= timeout:
                 _LOGGER.warning(
                     "QR code login timed out after %.1fs (%d polls)",

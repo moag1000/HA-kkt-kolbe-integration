@@ -122,7 +122,7 @@ Hast du ein KKT Kolbe Gerät mit WiFi das hier nicht aufgeführt ist?
 
 | Komponente | Version |
 |------------|---------|
-| Home Assistant | ≥ 2025.12.0 |
+| Home Assistant | ≥ 2026.8.0 (Python 3.14) |
 | Python | ≥ 3.12 |
 
 ---

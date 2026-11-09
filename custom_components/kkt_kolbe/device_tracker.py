@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
 from datetime import timedelta
 
 from homeassistant.core import HomeAssistant
 from homeassistant.core import callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
 
@@ -40,16 +41,20 @@ class StaleDeviceTracker:
         _LOGGER.info("Stale device tracker started")
 
         # Run initial cleanup after 1 hour
-        self._initial_cleanup_handle = self.hass.loop.call_later(3600, self._schedule_initial_cleanup)
+        self._initial_cleanup_handle = async_call_later(self.hass, 3600, self._schedule_initial_cleanup)
 
-    def _schedule_initial_cleanup(self) -> None:
+    @callback
+    def _schedule_initial_cleanup(self, _now=None) -> None:
         """Schedule the initial cleanup."""
-        self.hass.async_create_task(self._async_cleanup_stale_devices(None))
+        self._initial_cleanup_handle = None
+        self.hass.async_create_background_task(
+            self._async_cleanup_stale_devices(None), "kkt_kolbe_initial_stale_device_cleanup"
+        )
 
     async def async_stop(self) -> None:
         """Stop the stale device tracker."""
         if self._initial_cleanup_handle:
-            self._initial_cleanup_handle.cancel()
+            self._initial_cleanup_handle()  # async_call_later returns a cancel callback
             self._initial_cleanup_handle = None
         if self._cleanup_task:
             self._cleanup_task()
@@ -105,12 +110,13 @@ class StaleDeviceTracker:
                 # No entities = device not properly initialized, could be stale
                 # But be conservative - only remove if old
                 if device.created_at:
-                    age = datetime.now() - device.created_at
+                    # Registry timestamps are timezone-aware (UTC)
+                    age = dt_util.utcnow() - device.created_at
                     return bool(age > STALE_DEVICE_THRESHOLD)
                 return False
 
             # Check if any entity has been updated recently
-            now = datetime.now()
+            now = dt_util.utcnow()
             for entity in entities:
                 # If entity is available, device is not stale
                 state = self.hass.states.get(entity.entity_id)
@@ -124,16 +130,14 @@ class StaleDeviceTracker:
                         return False
 
             # Check if device has active config entry
-            if device.config_entries:
-                for config_entry_id in device.config_entries:
-                    entry = self.hass.config_entries.async_get_entry(config_entry_id)
-                    if entry and not entry.disabled_by:
-                        # Config entry is active, check coordinator
-                        if DOMAIN in self.hass.data and config_entry_id in self.hass.data[DOMAIN]:
-                            coordinator = self.hass.data[DOMAIN][config_entry_id].get("coordinator")
-                            if coordinator and coordinator.last_update_success:
-                                # Coordinator is working, device is not stale
-                                return False
+            # HA 2026.8+: a device belongs to exactly one config entry
+            entry = self.hass.config_entries.async_get_entry(device.config_entry_id)
+            if entry and not entry.disabled_by:
+                # Config entry is active, check coordinator
+                coordinator = getattr(getattr(entry, "runtime_data", None), "coordinator", None)
+                if coordinator and coordinator.last_update_success:
+                    # Coordinator is working, device is not stale
+                    return False
 
             # All checks failed - device appears stale
             _LOGGER.debug(

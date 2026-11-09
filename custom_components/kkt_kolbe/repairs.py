@@ -267,7 +267,9 @@ class DeviceIdChangedRepairFlow(KKTRepairFlow):
                                 from homeassistant.helpers import device_registry as dr
 
                                 dev_reg = dr.async_get(self.hass)
-                                old_device = dev_reg.async_get_device(identifiers={(DOMAIN, old_device_id)})
+                                old_device = dev_reg.async_get_device_by_identifier(
+                                    (DOMAIN, old_device_id), config_entry_id=entry.entry_id
+                                )
                                 if old_device:
                                     _LOGGER.info(f"Removing old device registry entry for {old_device_id}")
                                     dev_reg.async_remove_device(old_device.id)

@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [4.9.0] - 2026-11-09
+
+### Changed (Home Assistant 2026.x Upgrade)
+
+- **Mindestversion jetzt Home Assistant 2026.8.0** (Python 3.14). Getestet gegen HA 2026.10 via `pytest-homeassistant-custom-component` 0.13.375; CI läuft auf Python 3.14.
+- **Kein Config-Entry-Update-Listener mehr**: HA 2026.12 macht die Kombination aus Update-Listener und `async_update_reload_and_abort` / `_abort_if_unique_id_configured(updates=...)` zum Fehler. Der Options-Flow erbt jetzt von `OptionsFlowWithReload` und lädt nur neu, wenn sich die Optionen wirklich ändern; Reconfigure/Reauth laden wie bisher über den Config-Flow neu. Doppelte Reloads entfallen.
+- **`hass.data[DOMAIN]` entfernt**: Alle Laufzeitdaten (Coordinator, Gerät, SmartLife-Zusatzinfos) liegen nur noch in `entry.runtime_data`. Actions, Entities, Options-Flow und Stale-Device-Tracker lesen von dort.
+- **Actions werden in `async_setup` registriert** (Quality-Scale-Regel `action-setup`) und bleiben registriert, auch wenn kein Gerät geladen ist. Behebt nebenbei, dass `refresh_smartlife_cache` und `get_firmware_info` beim Entladen nicht entfernt wurden.
+- **Device-Registry-API von HA 2026.8**: `DeviceEntry.config_entry_id` statt `config_entries`, `async_get_device_by_identifier()` statt des veralteten `async_get_device()`.
+- **Brand-Bilder** liegen jetzt in `custom_components/kkt_kolbe/brand/` (HA 2026.3+ zeigt lokale Icons/Logos direkt an, HACS verlangt den Ordner). `ignore: brands` in der HACS-Validierung entfällt.
+- **manifest.json**: `aiohttp` entfernt (kommt aus HA Core), `tinytuya>=1.20.0`, `tuya-device-sharing-sdk>=0.2.15` (gleiche Version wie die Core-Tuya-Integration).
+
+### Added
+
+- **Action-Responses**: `kkt_kolbe.get_connection_status` und `kkt_kolbe.get_firmware_info` liefern ihr Ergebnis jetzt direkt zurück (`response_variable` in Skripten/Automationen). Die bisherigen Events werden weiterhin gefeuert.
+
+### Fixed
+
+- **Stale-Device-Tracker** verglich naive mit zeitzonenbehafteten Zeitstempeln und brach deshalb jede Prüfung mit `TypeError` ab. Nutzt jetzt `dt_util.utcnow()`; der Initial-Cleanup läuft über `async_call_later`.
+- **Token-Erneuerung im Options-Flow** löschte die Account-Optionen (`data={}`); die bestehenden Optionen bleiben jetzt erhalten.
+
 ## [4.7.4] - 2026-05-22
 
 ### Fixed (Self-Healing Local Key)

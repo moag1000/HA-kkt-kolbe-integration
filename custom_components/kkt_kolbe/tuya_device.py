@@ -282,7 +282,7 @@ class KKTKolbeTuyaDevice:
                 latin1_fixed = self.local_key.encode("latin1").decode("utf-8")
                 if latin1_fixed != self.local_key:
                     variants.append((latin1_fixed, "latin1->utf8"))
-            except (UnicodeDecodeError, UnicodeEncodeError):
+            except UnicodeDecodeError, UnicodeEncodeError:
                 pass
 
             try:
@@ -290,7 +290,7 @@ class KKTKolbeTuyaDevice:
                 utf8_fixed = self.local_key.encode("utf-8").decode("latin1")
                 if utf8_fixed != self.local_key:
                     variants.append((utf8_fixed, "utf8->latin1"))
-            except (UnicodeDecodeError, UnicodeEncodeError):
+            except UnicodeDecodeError, UnicodeEncodeError:
                 pass
 
         return variants
@@ -536,7 +536,7 @@ class KKTKolbeTuyaDevice:
         if not self._connected:
             try:
                 await self.async_connect()
-            except (KKTAuthenticationError, KKTConnectionError, KKTTimeoutError):
+            except KKTAuthenticationError, KKTConnectionError, KKTTimeoutError:
                 # Re-raise our custom exceptions
                 raise
             except Exception as e:
@@ -555,7 +555,7 @@ class KKTKolbeTuyaDevice:
         try:
             await self.async_get_status()
             return True
-        except (KKTConnectionError, KKTTimeoutError, KKTDataPointError):
+        except KKTConnectionError, KKTTimeoutError, KKTDataPointError:
             return False
         except Exception:
             return False
@@ -598,7 +598,7 @@ class KKTKolbeTuyaDevice:
                 try:
                     result = sock.connect_ex((self.ip_address, 6668))
                     return result == 0
-                except (TimeoutError, OSError):
+                except TimeoutError, OSError:
                     return False
                 finally:
                     sock.close()
@@ -754,7 +754,7 @@ class KKTKolbeTuyaDevice:
             self._connected = False
             self._device = None
             raise KKTTimeoutError(operation="get_status", device_id=self.device_id[:8], timeout=10.0) from timeout_err
-        except (KKTDataPointError, KKTTimeoutError):
+        except KKTDataPointError, KKTTimeoutError:
             # Re-raise our custom exceptions
             raise
         except Exception as e:

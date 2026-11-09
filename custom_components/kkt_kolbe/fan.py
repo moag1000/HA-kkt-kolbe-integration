@@ -201,7 +201,7 @@ class KKTKolbeFan(KKTBaseEntity, FanEntity):
                     # Map 1-9 to roughly 11-100%
                     self._cached_percentage = int((speed_int / self._max_speed) * 100)
                     self._last_non_off_speed = speed_int
-            except (ValueError, TypeError):
+            except ValueError, TypeError:
                 self._cached_state = None
                 self._cached_percentage = 0
         else:

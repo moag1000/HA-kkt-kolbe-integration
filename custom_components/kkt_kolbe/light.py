@@ -272,7 +272,7 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
                         idx = int(effect_value) - self._effect_offset
                         if 0 <= idx < len(self._effect_list):
                             return self._effect_list[idx]
-                    except (ValueError, TypeError):
+                    except ValueError, TypeError:
                         pass
                 else:
                     # String mode: value is effect name

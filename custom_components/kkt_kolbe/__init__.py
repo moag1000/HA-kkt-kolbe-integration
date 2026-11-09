@@ -128,6 +128,13 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
     await async_start_tracker(hass)
 
+    # Register integration-wide actions once, independent of config entries
+    # (quality scale rule ``action-setup``). Handlers resolve their target
+    # entries at call time and raise ServiceValidationError when none match.
+    from .services import async_setup_services
+
+    await async_setup_services(hass)
+
     return True
 
 
@@ -138,9 +145,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     - account: SmartLife account entry (Parent) - manages tokens
     - device: Device entry (Child or standalone) - manages device connection
     """
-    # Keep hass.data for backward compatibility with services
-    hass.data.setdefault(DOMAIN, {})
-
     # Determine entry type - default to "device" for backward compatibility
     entry_type = entry.data.get("entry_type", ENTRY_TYPE_DEVICE)
 
@@ -181,16 +185,6 @@ async def _async_setup_account_entry(hass: HomeAssistant, entry: KKTKolbeAccount
         app_schema=app_schema,
         child_entry_ids=child_entry_ids,
     )
-
-    # Store in hass.data for access by child entries
-    hass.data[DOMAIN][entry.entry_id] = {
-        "entry_type": ENTRY_TYPE_ACCOUNT,
-        "token_info": token_info,
-        "user_code": user_code,
-        "app_schema": app_schema,
-        "child_entry_ids": child_entry_ids,
-        "_previous_options": dict(entry.options),  # For update listener comparison
-    }
 
     _LOGGER.info(
         "SmartLife account entry setup complete: %s (children: %d)",
@@ -655,21 +649,8 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
         product_name=product_name,
         device_type=effective_device_type,
         integration_mode=integration_mode,
+        smartlife_extended_info=smartlife_extended_info,
     )
-
-    # Also store in hass.data for backward compatibility with services
-    hass.data[DOMAIN][entry.entry_id] = {
-        "coordinator": coordinator,
-        "device": device,
-        "api_client": api_client,
-        "config": entry.data,
-        "device_info": device_info,
-        "product_name": product_name,
-        "device_type": effective_device_type,
-        "integration_mode": integration_mode,
-        "smartlife_extended_info": smartlife_extended_info,
-        "_previous_options": dict(entry.options),  # For update listener comparison
-    }
 
     # Register device in device registry with version info
     from homeassistant.helpers import device_registry as dr
@@ -745,45 +726,11 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
     # Load only the platforms needed for this specific device
     await hass.config_entries.async_forward_entry_setups(entry, platforms)
 
-    # Register listener for options updates - triggers reload when options change
-    entry.async_on_unload(entry.add_update_listener(async_options_update_listener))
-
-    # Set up services when the first device is added
-    if len(hass.data[DOMAIN]) == 1:
-        from .services import async_setup_services
-
-        await async_setup_services(hass)
-        _LOGGER.info("KKT Kolbe services initialized")
+    # Options changes are reloaded by OptionsFlowWithReload and reconfigure /
+    # reauth flows reload via async_update_reload_and_abort, so no config entry
+    # update listener is registered (combining both is an error from HA 2026.12).
 
     return True
-
-
-async def async_options_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Handle options update - reload the integration when options change.
-
-    Note: This listener is called for ANY config entry update (data or options).
-    We only want to reload when OPTIONS change, not when data changes (like IP updates).
-    """
-    # Get the stored previous options to compare
-    domain_data = hass.data.get(DOMAIN, {})
-    entry_data = domain_data.get(entry.entry_id, {})
-    previous_options = entry_data.get("_previous_options")
-    current_options = dict(entry.options)
-
-    # Store current options for next comparison
-    if entry.entry_id in domain_data and isinstance(domain_data[entry.entry_id], dict):
-        domain_data[entry.entry_id]["_previous_options"] = current_options
-
-    # Only reload if options actually changed
-    if previous_options is not None and previous_options != current_options:
-        _LOGGER.info(f"Options updated for {entry.title}, reloading integration")
-        await hass.config_entries.async_reload(entry.entry_id)
-    elif previous_options is None:
-        # First call after setup - just store options, don't reload
-        _LOGGER.debug(f"Options listener initialized for {entry.title}")
-    else:
-        # Data changed but options are the same - no reload needed
-        _LOGGER.debug(f"Config entry data updated for {entry.title} (no reload needed)")
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -827,9 +774,6 @@ async def _async_unload_account_entry(hass: HomeAssistant, entry: KKTKolbeAccoun
             len(child_entry_ids),
         )
 
-    # Remove from hass.data (guard DOMAIN: setup may not have populated it)
-    hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
-
     # Account entries don't have platforms to unload
     _LOGGER.info("SmartLife account entry unloaded: %s", entry.title)
     return True
@@ -872,23 +816,15 @@ async def _async_unload_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigE
                     entry.title,
                 )
 
-        # Remove from hass.data (backward compatibility). Guard the DOMAIN key:
-        # setup may have been skipped/failed, so it isn't guaranteed to exist.
-        domain_data = hass.data.get(DOMAIN, {})
-        domain_data.pop(entry.entry_id, None)
-
-        # Count remaining device entries (exclude account entries)
-        device_entries = [
-            e for e in domain_data.values() if isinstance(e, dict) and e.get("entry_type") != ENTRY_TYPE_ACCOUNT
+        # Stop discovery when the last loaded device entry goes away.
+        # Actions stay registered (they are set up in async_setup).
+        other_loaded_devices = [
+            e
+            for e in hass.config_entries.async_loaded_entries(DOMAIN)
+            if e.entry_id != entry.entry_id and e.data.get("entry_type", ENTRY_TYPE_DEVICE) != ENTRY_TYPE_ACCOUNT
         ]
 
-        # Unload services when the last device is removed
-        if not device_entries:
-            from .services import async_unload_services
-
-            await async_unload_services(hass)
-            _LOGGER.info("KKT Kolbe services unloaded")
-
+        if not other_loaded_devices:
             from .discovery import async_stop_discovery
 
             await async_stop_discovery()

@@ -138,19 +138,19 @@ class KKTBaseEntity(CoordinatorEntity["KKTKolbeUpdateCoordinator"]):
         if self._config.get("advanced", False) or entity_category == "diagnostic":
             self._attr_entity_registry_enabled_default = False
 
+    def _runtime_attr(self, name: str) -> str:
+        """Return a string attribute from entry.runtime_data ("" if unavailable)."""
+        value = getattr(getattr(self._entry, "runtime_data", None), name, None)
+        return value if isinstance(value, str) else ""
+
     def _build_device_info(self) -> DeviceInfo:
         """Build standardized device info using KNOWN_DEVICES."""
         from .device_types import CATEGORY_COOKTOP
         from .device_types import CATEGORY_HOOD
         from .device_types import KNOWN_DEVICES
 
-        # Get device data from hass.data (now available via property access)
-        if not self.hass:
-            device_data = {}
-            device_type_key = "auto"
-        else:
-            device_data = self.hass.data.get(DOMAIN, {}).get(self._entry.entry_id, {})
-            device_type_key = device_data.get("device_type", "auto")
+        # Device type resolved during setup lives on entry.runtime_data
+        device_type_key = self._runtime_attr("device_type") or "auto"
 
         # Extract device information
         device_id = self._entry.data.get("device_id", "unknown")
@@ -216,10 +216,8 @@ class KKTBaseEntity(CoordinatorEntity["KKTKolbeUpdateCoordinator"]):
         device_type = None
         product_name = None
 
-        if self.hass:
-            runtime_data = self.hass.data.get(DOMAIN, {}).get(self._entry.entry_id, {})
-            device_type = runtime_data.get("device_type", "")
-            product_name = runtime_data.get("product_name", "")
+        device_type = self._runtime_attr("device_type")
+        product_name = self._runtime_attr("product_name")
 
         # Fallback to entry.data
         if not device_type or device_type in ("auto", "unknown", ""):
@@ -258,10 +256,7 @@ class KKTBaseEntity(CoordinatorEntity["KKTKolbeUpdateCoordinator"]):
 
     def _get_suggested_area(self) -> str:
         """Get suggested area for the device."""
-        if self.hass:
-            product_name = self.hass.data.get(DOMAIN, {}).get(self._entry.entry_id, {}).get("product_name", "")
-        else:
-            product_name = ""
+        product_name = self._runtime_attr("product_name")
 
         if "IND7705HC" in product_name or "HERMES" in product_name:
             return "Kitchen"

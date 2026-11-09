@@ -85,10 +85,8 @@ async def async_setup_entry(
         entities.append(KKTKolbeConnectionSensor(coordinator, entry))
 
     # Add SmartLife info sensor if extended info is available
-    from .const import DOMAIN
 
-    entry_data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
-    smartlife_extended_info = entry_data.get("smartlife_extended_info", {})
+    smartlife_extended_info = getattr(getattr(entry, "runtime_data", None), "smartlife_extended_info", None) or {}
     if smartlife_extended_info and smartlife_extended_info.get("uuid"):
         entities.append(KKTKolbeSmartLifeInfoSensor(coordinator, entry, smartlife_extended_info))
         _LOGGER.info(
@@ -611,7 +609,7 @@ class KKTKolbeSmartLifeInfoSensor(CoordinatorEntity, SensorEntity):
 
                 dt = datetime.fromtimestamp(create_time, tz=UTC)
                 attrs["create_time"] = dt.isoformat()
-            except (ValueError, TypeError):
+            except ValueError, TypeError:
                 attrs["create_time"] = create_time
 
         # Active time (last time device was active)
@@ -622,7 +620,7 @@ class KKTKolbeSmartLifeInfoSensor(CoordinatorEntity, SensorEntity):
 
                 dt = datetime.fromtimestamp(active_time, tz=UTC)
                 attrs["active_time"] = dt.isoformat()
-            except (ValueError, TypeError):
+            except ValueError, TypeError:
                 attrs["active_time"] = active_time
 
         # Update time (last status update)
@@ -633,7 +631,7 @@ class KKTKolbeSmartLifeInfoSensor(CoordinatorEntity, SensorEntity):
 
                 dt = datetime.fromtimestamp(update_time, tz=UTC)
                 attrs["update_time"] = dt.isoformat()
-            except (ValueError, TypeError):
+            except ValueError, TypeError:
                 attrs["update_time"] = update_time
 
         # Time zone

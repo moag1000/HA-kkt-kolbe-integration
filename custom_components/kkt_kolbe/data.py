@@ -6,6 +6,7 @@ Based on the data.py pattern from https://github.com/ludeeus/integration_bluepri
 from __future__ import annotations
 
 from dataclasses import dataclass
+from dataclasses import field
 from typing import TYPE_CHECKING
 from typing import Any
 
@@ -29,6 +30,7 @@ class KKTKolbeRuntimeData:
     product_name: str
     device_type: str
     integration_mode: str
+    smartlife_extended_info: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass

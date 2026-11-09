@@ -11,7 +11,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 
 from custom_components.kkt_kolbe import KKTKolbeRuntimeData
-from custom_components.kkt_kolbe.const import DOMAIN
 
 
 @pytest.fixture
@@ -55,11 +54,6 @@ async def test_binary_sensor_setup_entry(
     mock_config_entry.add_to_hass(hass)
     mock_config_entry.runtime_data = mock_runtime_data
 
-    hass.data.setdefault(DOMAIN, {})
-    hass.data[DOMAIN][mock_config_entry.entry_id] = {
-        "device_type": "hermes_style_hood",
-        "product_name": "hermes_style_hood",
-    }
 
     entities = []
 

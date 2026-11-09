@@ -1,7 +1,6 @@
 """Test the KKT Kolbe device tracker (stale device cleanup)."""
 from __future__ import annotations
 
-from datetime import datetime
 from datetime import timedelta
 from unittest.mock import AsyncMock
 from unittest.mock import MagicMock
@@ -9,6 +8,7 @@ from unittest.mock import patch
 
 import pytest
 from homeassistant.core import HomeAssistant
+from homeassistant.util import dt as dt_util
 
 from custom_components.kkt_kolbe.const import DOMAIN
 from custom_components.kkt_kolbe.device_tracker import CLEANUP_INTERVAL
@@ -26,7 +26,7 @@ def mock_device_registry():
     device.id = "device_123"
     device.name = "Test Hood"
     device.config_entries = {"entry_123"}
-    device.created_at = datetime.now() - timedelta(days=1)
+    device.created_at = dt_util.utcnow() - timedelta(days=1)
 
     registry = MagicMock()
     registry.async_entries_for_config_entry = MagicMock(return_value=[device])
@@ -153,7 +153,7 @@ async def test_is_device_stale_no_entities(
     entity_reg.async_entries_for_device = MagicMock(return_value=[])
 
     # Device is old
-    device.created_at = datetime.now() - timedelta(days=35)
+    device.created_at = dt_util.utcnow() - timedelta(days=35)
 
     tracker = StaleDeviceTracker(hass)
 
@@ -177,7 +177,7 @@ async def test_is_device_stale_new_device(
     entity_reg.async_entries_for_device = MagicMock(return_value=[])
 
     # Device is new
-    device.created_at = datetime.now() - timedelta(days=1)
+    device.created_at = dt_util.utcnow() - timedelta(days=1)
 
     tracker = StaleDeviceTracker(hass)
 

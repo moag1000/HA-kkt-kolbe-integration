@@ -23,7 +23,7 @@ rules:
     comment: Full config flow with discovery, manual setup, and API modes
   dependency-transparency:
     status: done
-    comment: All deps in manifest.json (tinytuya, pycryptodome, aiohttp, tuya-device-sharing-sdk)
+    comment: All deps in manifest.json (tinytuya, pycryptodome, tuya-device-sharing-sdk; aiohttp comes from HA core)
   docs-actions:
     status: done
     comment: All 12 services documented in services.yaml with full field descriptions

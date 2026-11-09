@@ -3431,7 +3431,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             if len(parts) != 4:
                 return False
             return all(0 <= int(part) <= 255 for part in parts)
-        except (ValueError, AttributeError):
+        except ValueError, AttributeError:
             return False
 
     def _is_valid_device_id(self, device_id: str) -> bool:

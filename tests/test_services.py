@@ -5,8 +5,10 @@ from unittest.mock import AsyncMock
 from unittest.mock import MagicMock
 
 import pytest
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.kkt_kolbe.const import DOMAIN
 from custom_components.kkt_kolbe.services import SERVICE_EMERGENCY_STOP
@@ -15,6 +17,19 @@ from custom_components.kkt_kolbe.services import SERVICE_SET_COOKING_TIMER
 from custom_components.kkt_kolbe.services import SERVICE_SYNC_ALL_DEVICES
 from custom_components.kkt_kolbe.services import async_setup_services
 from custom_components.kkt_kolbe.services import async_unload_services
+
+
+def _add_loaded_entry(hass: HomeAssistant, coordinator, entry_id: str = "entry_1") -> MockConfigEntry:
+    """Register a loaded device entry whose runtime_data carries the coordinator."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        entry_id=entry_id,
+        data={"device_id": "test_device_123"},
+        state=ConfigEntryState.LOADED,
+    )
+    entry.add_to_hass(hass)
+    entry.runtime_data = MagicMock(coordinator=coordinator)
+    return entry
 
 
 @pytest.fixture
@@ -64,9 +79,7 @@ async def test_sync_all_devices_service(
     await async_setup_services(hass)
 
     # Setup mock data
-    hass.data[DOMAIN] = {
-        "entry_1": {"coordinator": mock_coordinator},
-    }
+    _add_loaded_entry(hass, mock_coordinator)
 
     # Call the service
     await hass.services.async_call(
@@ -90,9 +103,7 @@ async def test_sync_all_devices_online_filter(
 
     # Setup mock data with online coordinator
     mock_coordinator.last_update_success = True
-    hass.data[DOMAIN] = {
-        "entry_1": {"coordinator": mock_coordinator},
-    }
+    _add_loaded_entry(hass, mock_coordinator)
 
     await hass.services.async_call(
         DOMAIN,
@@ -114,9 +125,7 @@ async def test_sync_all_devices_offline_filter(
 
     # Setup mock data with online coordinator
     mock_coordinator.last_update_success = True
-    hass.data[DOMAIN] = {
-        "entry_1": {"coordinator": mock_coordinator},
-    }
+    _add_loaded_entry(hass, mock_coordinator)
 
     await hass.services.async_call(
         DOMAIN,
@@ -148,8 +157,6 @@ async def test_reconnect_device_no_match(hass: HomeAssistant) -> None:
     """Test reconnect device with no matching device."""
     await async_setup_services(hass)
 
-    hass.data[DOMAIN] = {}
-
     with pytest.raises(ServiceValidationError):
         await hass.services.async_call(
             DOMAIN,
@@ -171,9 +178,7 @@ async def test_reconnect_device_success(
     mock_coordinator.device_state = MagicMock()
     mock_coordinator.device_state.value = "online"
 
-    hass.data[DOMAIN] = {
-        "entry_1": {"coordinator": mock_coordinator},
-    }
+    _add_loaded_entry(hass, mock_coordinator)
 
     # Capture events
     events = []
@@ -202,19 +207,51 @@ async def test_get_connection_status(
         "ip_address": "192.168.1.100",
     }
 
-    hass.data[DOMAIN] = {
-        "entry_1": {"coordinator": mock_coordinator},
-    }
+    _add_loaded_entry(hass, mock_coordinator)
 
     events = []
     hass.bus.async_listen(f"{DOMAIN}_connection_status", lambda e: events.append(e))
 
-    await hass.services.async_call(
+    response = await hass.services.async_call(
         DOMAIN,
         "get_connection_status",
         {},
         blocking=True,
+        return_response=True,
+    )
+    await hass.async_block_till_done()
+
+    # Action response (and the legacy event) carry the status per entry
+    assert response == {"statuses": {"entry_1": {"state": "online", "ip_address": "192.168.1.100"}}}
+    assert len(events) == 1
+
+
+@pytest.mark.asyncio
+async def test_get_firmware_info_response_without_client(
+    hass: HomeAssistant,
+    mock_coordinator,
+) -> None:
+    """get_firmware_info returns the per-device payload as action response."""
+    await async_setup_services(hass)
+
+    mock_coordinator.smartlife_client = None
+    _add_loaded_entry(hass, mock_coordinator)
+
+    response = await hass.services.async_call(
+        DOMAIN,
+        "get_firmware_info",
+        {},
+        blocking=True,
+        return_response=True,
     )
 
-    # Event should be fired with status info
-    assert len(events) >= 0  # Event fired asynchronously
+    assert response == {
+        "devices": [
+            {
+                "entry_id": "entry_1",
+                "device_id": "test_device_123",
+                "available": False,
+                "reason": "SmartLife client not configured for this entry",
+            }
+        ]
+    }

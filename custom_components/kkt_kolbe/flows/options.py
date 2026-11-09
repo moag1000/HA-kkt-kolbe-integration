@@ -7,7 +7,7 @@ from typing import Any
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
-from homeassistant.config_entries import OptionsFlow
+from homeassistant.config_entries import OptionsFlowWithReload
 from homeassistant.const import CONF_ACCESS_TOKEN
 from homeassistant.const import CONF_DEVICE_ID
 from homeassistant.const import CONF_IP_ADDRESS
@@ -26,8 +26,12 @@ from ..helpers import validate_api_credentials
 _LOGGER = logging.getLogger(__name__)
 
 
-class KKTKolbeOptionsFlow(OptionsFlow):
-    """Handle KKT Kolbe options flow."""
+class KKTKolbeOptionsFlow(OptionsFlowWithReload):
+    """Handle KKT Kolbe options flow.
+
+    OptionsFlowWithReload (HA 2025.8+) reloads the entry automatically when the
+    options actually change, replacing the former config entry update listener.
+    """
 
     def __init__(self):
         """Initialize options flow."""
@@ -168,7 +172,9 @@ class KKTKolbeOptionsFlow(OptionsFlow):
                             child_reload_count,
                         )
 
-                    return self.async_create_entry(title="", data={})
+                    # Keep existing options untouched: the entries were already
+                    # reloaded above, and data={} would wipe account settings.
+                    return self.async_create_entry(title="", data=dict(self.config_entry.options))
                 else:
                     errors["base"] = "auth_failed"
                     _LOGGER.error("Token renewal failed: %s", auth_result.error_message)
@@ -456,7 +462,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
         errors: dict[str, str] = {}
 
         try:
-            coordinator = self.hass.data[DOMAIN][self.config_entry.entry_id]["coordinator"]
+            coordinator = self.config_entry.runtime_data.coordinator
             await coordinator.async_refresh()
 
             if not coordinator.last_update_success:

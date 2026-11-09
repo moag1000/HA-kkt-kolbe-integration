@@ -47,9 +47,6 @@ async def test_async_setup_entry_success(
     """Test successful setup of a config entry."""
     mock_config_entry.add_to_hass(hass)
 
-    # Initialize hass.data for the domain
-    hass.data.setdefault(DOMAIN, {})
-
     with patch(
         "custom_components.kkt_kolbe.discovery.async_start_discovery",
         new_callable=AsyncMock,
@@ -91,7 +88,9 @@ async def test_async_setup_entry_success(
                             result = await async_setup_entry(hass, mock_config_entry)
 
                             assert result is True
-                            assert mock_config_entry.entry_id in hass.data[DOMAIN]
+                            # State lives on runtime_data, not hass.data
+                            assert mock_config_entry.runtime_data.coordinator is mock_coord
+                            assert DOMAIN not in hass.data or mock_config_entry.entry_id not in hass.data[DOMAIN]
 
 
 @pytest.mark.asyncio
@@ -101,13 +100,6 @@ async def test_async_unload_entry(
 ) -> None:
     """Test successful unload of a config entry."""
     mock_config_entry.add_to_hass(hass)
-
-    # Initialize hass.data with mock data
-    hass.data.setdefault(DOMAIN, {})
-    hass.data[DOMAIN][mock_config_entry.entry_id] = {
-        "coordinator": MagicMock(),
-        "device": MagicMock(),
-    }
 
     # Mock runtime_data
     mock_config_entry.runtime_data = MagicMock()
@@ -120,19 +112,17 @@ async def test_async_unload_entry(
         return_value=True,
     ):
         with patch(
-            "custom_components.kkt_kolbe.services.async_unload_services",
+            "custom_components.kkt_kolbe.discovery.async_stop_discovery",
             new_callable=AsyncMock,
-        ):
-            with patch(
-                "custom_components.kkt_kolbe.discovery.async_stop_discovery",
-                new_callable=AsyncMock,
-            ):
-                from custom_components.kkt_kolbe import async_unload_entry
+        ) as mock_stop_discovery:
+            from custom_components.kkt_kolbe import async_unload_entry
 
-                result = await async_unload_entry(hass, mock_config_entry)
+            result = await async_unload_entry(hass, mock_config_entry)
 
-                assert result is True
-                assert mock_config_entry.entry_id not in hass.data[DOMAIN]
+            assert result is True
+            mock_config_entry.runtime_data.coordinator.async_shutdown.assert_awaited_once()
+            # Last device entry gone -> discovery stops; actions stay registered
+            mock_stop_discovery.assert_awaited_once()
 
 
 @pytest.mark.asyncio

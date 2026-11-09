@@ -28,7 +28,7 @@ def is_valid_ip(ip_address: str) -> bool:
             if not 0 <= num <= 255:
                 return False
         return True
-    except (ValueError, AttributeError):
+    except ValueError, AttributeError:
         return False
 
 

@@ -530,7 +530,7 @@ class KKTKolbeDiscovery(ServiceListener):
                     if key_str in ["id", "devid", "device_id"]:
                         device_id = value_str
                         break
-                except (UnicodeDecodeError, AttributeError):
+                except UnicodeDecodeError, AttributeError:
                     continue
 
         # Check if device ID matches Tuya pattern
@@ -557,7 +557,7 @@ class KKTKolbeDiscovery(ServiceListener):
                     key_str = key.decode("utf-8").lower()
                     value_str = value.decode("utf-8").lower()
                     txt_data[key_str] = value_str
-                except (UnicodeDecodeError, AttributeError):
+                except UnicodeDecodeError, AttributeError:
                     continue
 
             # Look for KKT/Kolbe in TXT records
@@ -594,7 +594,7 @@ class KKTKolbeDiscovery(ServiceListener):
                 key_str = key.decode("utf-8").lower()
                 value_str = value.decode("utf-8")
                 txt_data[key_str] = value_str
-            except (UnicodeDecodeError, AttributeError):
+            except UnicodeDecodeError, AttributeError:
                 continue
 
         # Check for known model IDs in TXT records
@@ -653,7 +653,7 @@ class KKTKolbeDiscovery(ServiceListener):
                     elif key_str.lower() in ["manufacturer", "mfg"]:
                         device_info["manufacturer"] = value_str
 
-                except (UnicodeDecodeError, AttributeError):
+                except UnicodeDecodeError, AttributeError:
                     continue
 
         # Determine device type from model
@@ -826,7 +826,7 @@ class KKTKolbeDiscovery(ServiceListener):
                         if key_str in ["id", "devid", "device_id"]:
                             device_id = value_str
                             break
-                    except (UnicodeDecodeError, AttributeError):
+                    except UnicodeDecodeError, AttributeError:
                         continue
 
             if not device_id:
