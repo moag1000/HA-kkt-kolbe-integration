@@ -907,6 +907,11 @@
           }
         }
       }
+    },
+    "button": {
+      "reconnect": {
+        "name": "Neu verbinden"
+      }
     }
   },
   "issues": {
@@ -1029,6 +1034,9 @@
     },
     "coordinator_not_found": {
       "message": "Für Entität {entity_id} wurde keine aktive Geräteverbindung gefunden."
+    },
+    "reconnect_failed": {
+      "message": "Neu verbinden fehlgeschlagen: {error}"
     }
   }
 }

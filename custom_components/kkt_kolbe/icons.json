@@ -185,6 +185,11 @@
           }
         }
       }
+    },
+    "button": {
+      "reconnect": {
+        "default": "mdi:connection"
+      }
     }
   },
   "services": {

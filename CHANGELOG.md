@@ -25,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Event-Entity „Geräte-Ereignisse“ pro Gerät**: `connection_lost`, `connection_restored`, `connection_mode_changed` (Hybrid), `timer_finished`, `filter_cleaning_due`, `zone_error`. Automationen triggern direkt darauf, ohne Bus-Events oder Zustandsvergleiche.
 - **Entity-Actions**: `set_cooking_timer`, `set_zone_power`, `set_hood_fan_speed` und `set_hood_lighting` akzeptieren jetzt Entities als Ziel (`target: entity_id`), mit Wertebereichsprüfung schon beim Aufruf.
 - **Übersetzte Fehlermeldungen** (DE/EN) für alle Actions statt englischer Freitexte.
+- **Button „Neu verbinden“** pro Gerät mit lokaler Verbindung (Geräteseite → Konfiguration). Fehler werden als übersetzte Meldung im UI angezeigt.
+- **Neuer Blueprint „Geräte-Ereignisse melden“**: Push-Benachrichtigung bei Timer abgelaufen, Filterreinigung, Kochzonen-Fehler und optional Verbindungsereignissen.
+- **Blueprints modernisiert** (`triggers:`/`actions:`-Syntax) und per Test gegen Home Assistant validiert.
 - **HACS-ZIP-Release**: Ein GitHub-Actions-Workflow baut bei jedem veröffentlichten Release `kkt_kolbe.zip` (inkl. SHA256) und hängt es ans Release; `hacs.json` nutzt `zip_release`. Der Workflow prüft, dass Tag und `manifest.json`-Version übereinstimmen.
 - **mypy** ist sauber (nicht-strikt); viele fehlende Typen ergänzt.
 

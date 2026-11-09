@@ -1,0 +1,98 @@
+blueprint:
+  name: KKT Kolbe Geräte-Ereignisse melden
+  description: >-
+    Schickt eine Benachrichtigung, wenn die Event-Entity „Geräte-Ereignisse“
+    eines KKT Kolbe Geräts auslöst: Timer abgelaufen, Filterreinigung fällig,
+    Kochzonen-Fehler, Verbindung verloren/wiederhergestellt oder Wechsel des
+    Verbindungswegs (lokal/Cloud). Welche Ereignisse gemeldet werden, ist
+    wählbar. Benötigt KKT Kolbe Integration 4.9.0 oder neuer.
+  domain: automation
+  homeassistant:
+    min_version: "2026.9.0"
+  source_url: https://github.com/moag1000/HA-kkt-kolbe-integration/blob/main/blueprints/automation/device_event_notify.yaml
+  input:
+    event_entity:
+      name: Geräte-Ereignisse
+      description: Die Event-Entity „Geräte-Ereignisse“ des Geräts
+      selector:
+        entity:
+          filter:
+            - integration: kkt_kolbe
+              domain: event
+
+    event_types:
+      name: Ereignisse
+      description: Bei welchen Ereignissen soll benachrichtigt werden?
+      default:
+        - timer_finished
+        - filter_cleaning_due
+        - zone_error
+      selector:
+        select:
+          multiple: true
+          options:
+            - label: Timer abgelaufen
+              value: timer_finished
+            - label: Filterreinigung fällig
+              value: filter_cleaning_due
+            - label: Kochzonen-Fehler
+              value: zone_error
+            - label: Verbindung verloren
+              value: connection_lost
+            - label: Verbindung wiederhergestellt
+              value: connection_restored
+            - label: Verbindungsweg gewechselt
+              value: connection_mode_changed
+
+    notification_service:
+      name: Benachrichtigungs-Aktion
+      description: Die Aktion für Benachrichtigungen (z.B. notify.mobile_app_iphone)
+      default: notify.notify
+      selector:
+        text:
+
+    title:
+      name: Titel
+      default: Küche
+      selector:
+        text:
+
+variables:
+  wanted: !input event_types
+  messages:
+    timer_finished: "Timer abgelaufen"
+    filter_cleaning_due: "Filterreinigung fällig"
+    zone_error: "Kochzonen-Fehler"
+    connection_lost: "Verbindung verloren"
+    connection_restored: "Verbindung wiederhergestellt"
+    connection_mode_changed: "Verbindungsweg gewechselt"
+
+triggers:
+  - trigger: state
+    entity_id: !input event_entity
+    not_from:
+      - unavailable
+    not_to:
+      - unavailable
+      - unknown
+
+conditions:
+  - condition: template
+    value_template: >-
+      {{ trigger.to_state is not none
+         and trigger.to_state.attributes.event_type in wanted }}
+
+actions:
+  - variables:
+      event_type: "{{ trigger.to_state.attributes.event_type }}"
+      device: "{{ device_attr(device_id(trigger.entity_id), 'name_by_user') or device_attr(device_id(trigger.entity_id), 'name') or 'KKT Kolbe' }}"
+      detail: >-
+        {% set a = trigger.to_state.attributes %}
+        {% if a.zone is defined %} (Zone {{ a.zone }}){% elif a.mode is defined %}: {{ a.previous_mode }} → {{ a.mode }}{% endif %}
+  - action: !input notification_service
+    data:
+      title: !input title
+      message: "{{ device }}: {{ messages[event_type] }}{{ detail }}"
+
+mode: queued
+max: 10

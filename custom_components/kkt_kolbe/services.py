@@ -114,6 +114,32 @@ def _register_entity_actions(hass: HomeAssistant) -> None:
     )
 
 
+async def async_reconnect_coordinator(coordinator: Any) -> dict[str, Any]:
+    """Reconnect the local connection of one coordinator.
+
+    Shared by the ``reconnect_device`` action and the reconnect button.
+    """
+    if hasattr(coordinator, "async_request_reconnect"):
+        success = await coordinator.async_request_reconnect()
+        return {
+            "success": success,
+            "state": coordinator.device_state.value if hasattr(coordinator, "device_state") else "unknown",
+        }
+    if coordinator.device is None:
+        return {
+            "success": False,
+            "error": "No local device available (API-only mode)",
+            "state": "api_only",
+        }
+    await coordinator.device.async_disconnect()
+    await coordinator.device.async_connect()
+    await coordinator.async_request_refresh()
+    return {
+        "success": coordinator.device.is_connected,
+        "state": "online" if coordinator.device.is_connected else "offline",
+    }
+
+
 async def async_setup_services(hass: HomeAssistant) -> None:
     """Set up services for KKT Kolbe integration."""
 
@@ -131,30 +157,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         results = {}
         for coord_entry_id, coordinator in coordinators:
             try:
-                # Use ReconnectCoordinator if available
-                if hasattr(coordinator, "async_request_reconnect"):
-                    success = await coordinator.async_request_reconnect()
-                    results[coord_entry_id] = {
-                        "success": success,
-                        "state": coordinator.device_state.value if hasattr(coordinator, "device_state") else "unknown",
-                    }
-                else:
-                    # Fallback for standard coordinator
-                    if coordinator.device is None:
-                        results[coord_entry_id] = {
-                            "success": False,
-                            "error": "No local device available (API-only mode)",
-                            "state": "api_only",
-                        }
-                        continue
-
-                    await coordinator.device.async_disconnect()
-                    await coordinator.device.async_connect()
-                    await coordinator.async_request_refresh()
-                    results[coord_entry_id] = {
-                        "success": coordinator.device.is_connected,
-                        "state": "online" if coordinator.device.is_connected else "offline",
-                    }
+                results[coord_entry_id] = await async_reconnect_coordinator(coordinator)
+                if results[coord_entry_id].get("state") == "api_only":
+                    continue
 
                 device_id_str = coordinator.device.device_id[:8] if coordinator.device else coord_entry_id[:8]
                 _LOGGER.info(f"Reconnected device {device_id_str}: {results[coord_entry_id]}")

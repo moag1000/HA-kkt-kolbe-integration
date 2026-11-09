@@ -7,6 +7,8 @@ blueprint:
     automatisch an die Kochintensität an. Optional: Temperatur-basierter Nachlauf -
     die Haube läuft so lange bis das Kochfeld abgekühlt ist!
   domain: automation
+  homeassistant:
+    min_version: "2024.10.0"
   source_url: https://github.com/moag1000/HA-kkt-kolbe-integration/blob/main/blueprints/automation/hood_with_ind_cooktop.yaml
   input:
     # === KOCHFELD SENSOREN ===
@@ -425,41 +427,41 @@ variables:
     {% endif %}
   is_cooking: "{{ current_value >= threshold_start | float }}"
 
-trigger:
+triggers:
   # Kochen gestartet (Power/Level basiert)
-  - platform: template
+  - trigger: template
     value_template: "{{ states(sensor) | float(0) >= threshold_start | float }}"
     for:
       seconds: 5
     id: cooking_started
 
   # Kochen gestartet (Temperatur basiert - optional)
-  - platform: template
+  - trigger: template
     value_template: "{{ is_hot_start }}"
     for:
       seconds: 10
     id: temp_cooking_started
 
   # Kochen beendet
-  - platform: template
+  - trigger: template
     value_template: "{{ states(sensor) | float(0) < threshold_start | float }}"
     for:
       seconds: 30
     id: cooking_stopped
 
   # Periodische Aktualisierung
-  - platform: time_pattern
+  - trigger: time_pattern
     seconds: /30
     id: periodic_update
 
   # Schnelle Reaktion bei Erhöhung
-  - platform: state
+  - trigger: state
     entity_id: !input cooktop_sensor
     id: value_changed
 
-condition: []
+conditions: []
 
-action:
+actions:
   - choose:
       # === KOCHEN GESTARTET (Power/Level) ===
       - conditions:
@@ -469,12 +471,12 @@ action:
             entity_id: !input hood_power
             state: "off"
         sequence:
-          - service: switch.turn_on
+          - action: switch.turn_on
             target:
               entity_id: !input hood_power
           - delay:
               milliseconds: 500
-          - service: fan.set_percentage
+          - action: fan.set_percentage
             target:
               entity_id: !input hood_fan
             data:
@@ -483,7 +485,7 @@ action:
               - condition: template
                 value_template: "{{ light_enabled and hood_light_entity }}"
             then:
-              - service: light.turn_on
+              - action: light.turn_on
                 target:
                   entity_id: !input hood_light
 
@@ -496,13 +498,13 @@ action:
             entity_id: !input hood_power
             state: "off"
         sequence:
-          - service: switch.turn_on
+          - action: switch.turn_on
             target:
               entity_id: !input hood_power
           - delay:
               milliseconds: 500
           # Starte mit niedriger Geschwindigkeit (Temperatur = nachträglich erkannt)
-          - service: fan.set_percentage
+          - action: fan.set_percentage
             target:
               entity_id: !input hood_fan
             data:
@@ -511,7 +513,7 @@ action:
               - condition: template
                 value_template: "{{ light_enabled and hood_light_entity }}"
             then:
-              - service: light.turn_on
+              - action: light.turn_on
                 target:
                   entity_id: !input hood_light
 
@@ -525,7 +527,7 @@ action:
           - condition: template
             value_template: "{{ is_cooking }}"
         sequence:
-          - service: fan.set_percentage
+          - action: fan.set_percentage
             target:
               entity_id: !input hood_fan
             data:
@@ -541,7 +543,7 @@ action:
           - condition: template
             value_template: "{{ is_cooking }}"
         sequence:
-          - service: fan.set_percentage
+          - action: fan.set_percentage
             target:
               entity_id: !input hood_fan
             data:
@@ -556,7 +558,7 @@ action:
             state: "on"
         sequence:
           # Gestufter Nachlauf
-          - service: fan.set_percentage
+          - action: fan.set_percentage
             target:
               entity_id: !input hood_fan
             data:
@@ -582,7 +584,7 @@ action:
           # Prüfen ob Kochfeld noch aus
           - condition: template
             value_template: "{{ states(sensor) | float(0) < threshold_start | float }}"
-          - service: fan.set_percentage
+          - action: fan.set_percentage
             target:
               entity_id: !input hood_fan
             data:
@@ -591,7 +593,7 @@ action:
               minutes: "{{ (afterrun / 3) | int }}"
           - condition: template
             value_template: "{{ states(sensor) | float(0) < threshold_start | float }}"
-          - service: fan.set_percentage
+          - action: fan.set_percentage
             target:
               entity_id: !input hood_fan
             data:
@@ -606,19 +608,19 @@ action:
                  (not use_temp or not is_still_hot) }}
 
           # Ausschalten
-          - service: fan.turn_off
+          - action: fan.turn_off
             target:
               entity_id: !input hood_fan
           - delay:
               milliseconds: 500
-          - service: switch.turn_off
+          - action: switch.turn_off
             target:
               entity_id: !input hood_power
           - if:
               - condition: template
                 value_template: "{{ light_enabled and hood_light_entity }}"
             then:
-              - service: light.turn_off
+              - action: light.turn_off
                 target:
                   entity_id: !input hood_light
 

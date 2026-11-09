@@ -5,6 +5,8 @@ blueprint:
     des Kochfelds. Die Lüftergeschwindigkeit passt sich automatisch an die
     Kochintensität an. Mit Hysterese, gestuftem Nachlauf und Benachrichtigungen.
   domain: automation
+  homeassistant:
+    min_version: "2024.10.0"
   source_url: https://github.com/moag1000/HA-kkt-kolbe-integration/blob/main/blueprints/automation/hood_with_cooktop.yaml
   input:
     # === KOCHFELD KONFIGURATION ===
@@ -321,9 +323,9 @@ variables:
     {% endif %}
   speed_changed: "{{ target_speed | int != current_speed }}"
 
-trigger:
+triggers:
   # Trigger bei Stromverbrauch über Startschwelle
-  - platform: numeric_state
+  - trigger: numeric_state
     entity_id: !input cooktop_power_sensor
     above: !input power_threshold_start
     for:
@@ -331,7 +333,7 @@ trigger:
     id: cooking_started
 
   # Trigger bei Stromverbrauch unter Startschwelle (Kochen beendet)
-  - platform: numeric_state
+  - trigger: numeric_state
     entity_id: !input cooktop_power_sensor
     below: !input power_threshold_start
     for:
@@ -339,45 +341,45 @@ trigger:
     id: cooking_stopped
 
   # Regelmäßige Aktualisierung während des Kochens (alle 30 Sekunden)
-  - platform: time_pattern
+  - trigger: time_pattern
     seconds: /30
     id: periodic_update
 
   # Trigger bei schnellen Schwellenwert-Überschreitungen
-  - platform: numeric_state
+  - trigger: numeric_state
     entity_id: !input cooktop_power_sensor
     above: !input power_threshold_medium
     id: power_increased
 
-  - platform: numeric_state
+  - trigger: numeric_state
     entity_id: !input cooktop_power_sensor
     above: !input power_threshold_high
     id: power_increased
 
-  - platform: numeric_state
+  - trigger: numeric_state
     entity_id: !input cooktop_power_sensor
     above: !input power_threshold_boost
     id: power_increased
 
   # Trigger bei Power-Reduzierung
-  - platform: numeric_state
+  - trigger: numeric_state
     entity_id: !input cooktop_power_sensor
     below: !input power_threshold_boost
     id: power_decreased
 
-  - platform: numeric_state
+  - trigger: numeric_state
     entity_id: !input cooktop_power_sensor
     below: !input power_threshold_high
     id: power_decreased
 
-  - platform: numeric_state
+  - trigger: numeric_state
     entity_id: !input cooktop_power_sensor
     below: !input power_threshold_medium
     id: power_decreased
 
-condition: []
+conditions: []
 
-action:
+actions:
   - choose:
       # === KOCHEN GESTARTET ===
       - conditions:
@@ -392,7 +394,7 @@ action:
               - condition: template
                 value_template: "{{ notify_enabled }}"
             then:
-              - service: !input notification_service
+              - action: !input notification_service
                 data:
                   title: "🍳 Kochfeld aktiv"
                   message: "Dunstabzugshaube wird automatisch eingeschaltet ({{ current_power | round(0) }}W)"
@@ -400,14 +402,14 @@ action:
                     tag: "hood_cooktop"
 
           # Haube einschalten
-          - service: switch.turn_on
+          - action: switch.turn_on
             target:
               entity_id: !input hood_power
           - delay:
               milliseconds: 500
 
           # Lüfter auf berechnete Geschwindigkeit
-          - service: fan.set_percentage
+          - action: fan.set_percentage
             target:
               entity_id: !input hood_fan
             data:
@@ -418,7 +420,7 @@ action:
               - condition: template
                 value_template: "{{ light_enabled and hood_light_entity }}"
             then:
-              - service: light.turn_on
+              - action: light.turn_on
                 target:
                   entity_id: !input hood_light
 
@@ -437,7 +439,7 @@ action:
           # Nochmal prüfen ob Änderung noch nötig
           - condition: template
             value_template: "{{ states(cooktop_sensor) | float(0) >= threshold_start }}"
-          - service: fan.set_percentage
+          - action: fan.set_percentage
             target:
               entity_id: !input hood_fan
             data:
@@ -458,7 +460,7 @@ action:
           # Nochmal prüfen ob Änderung noch nötig
           - condition: template
             value_template: "{{ states(cooktop_sensor) | float(0) >= threshold_start }}"
-          - service: fan.set_percentage
+          - action: fan.set_percentage
             target:
               entity_id: !input hood_fan
             data:
@@ -476,7 +478,7 @@ action:
           - condition: template
             value_template: "{{ speed_changed }}"
         sequence:
-          - service: fan.set_percentage
+          - action: fan.set_percentage
             target:
               entity_id: !input hood_fan
             data:
@@ -495,7 +497,7 @@ action:
               - condition: template
                 value_template: "{{ notify_enabled }}"
             then:
-              - service: !input notification_service
+              - action: !input notification_service
                 data:
                   title: "🍳 Kochen beendet"
                   message: >-
@@ -514,7 +516,7 @@ action:
                       - condition: template
                         value_template: "{{ afterrun_high > 0 }}"
                     then:
-                      - service: fan.set_percentage
+                      - action: fan.set_percentage
                         target:
                           entity_id: !input hood_fan
                         data:
@@ -530,7 +532,7 @@ action:
                       - condition: template
                         value_template: "{{ afterrun_medium > 0 }}"
                     then:
-                      - service: fan.set_percentage
+                      - action: fan.set_percentage
                         target:
                           entity_id: !input hood_fan
                         data:
@@ -545,12 +547,12 @@ action:
                       - condition: template
                         value_template: "{{ light_enabled and hood_light_entity and not light_during_afterrun }}"
                     then:
-                      - service: light.turn_off
+                      - action: light.turn_off
                         target:
                           entity_id: !input hood_light
 
                   # Stufe 3: Minimale Geschwindigkeit
-                  - service: fan.set_percentage
+                  - action: fan.set_percentage
                     target:
                       entity_id: !input hood_fan
                     data:
@@ -561,19 +563,19 @@ action:
                     value_template: "{{ states(cooktop_sensor) | float(0) < threshold_start }}"
 
                   # Alles ausschalten
-                  - service: fan.turn_off
+                  - action: fan.turn_off
                     target:
                       entity_id: !input hood_fan
                   - delay:
                       milliseconds: 500
-                  - service: switch.turn_off
+                  - action: switch.turn_off
                     target:
                       entity_id: !input hood_power
                   - if:
                       - condition: template
                         value_template: "{{ light_enabled and hood_light_entity }}"
                     then:
-                      - service: light.turn_off
+                      - action: light.turn_off
                         target:
                           entity_id: !input hood_light
 
@@ -582,7 +584,7 @@ action:
                       - condition: template
                         value_template: "{{ notify_enabled }}"
                     then:
-                      - service: !input notification_service
+                      - action: !input notification_service
                         data:
                           title: "🌀 Dunstabzugshaube"
                           message: "Nachlauf beendet - Haube ausgeschaltet"
@@ -591,7 +593,7 @@ action:
 
             # Ohne Nachlauf: Einfacher Nachlauf mit afterrun_low
             default:
-              - service: fan.set_percentage
+              - action: fan.set_percentage
                 target:
                   entity_id: !input hood_fan
                 data:
@@ -600,17 +602,17 @@ action:
                   minutes: !input afterrun_time_low
               - condition: template
                 value_template: "{{ states(cooktop_sensor) | float(0) < threshold_start }}"
-              - service: fan.turn_off
+              - action: fan.turn_off
                 target:
                   entity_id: !input hood_fan
-              - service: switch.turn_off
+              - action: switch.turn_off
                 target:
                   entity_id: !input hood_power
               - if:
                   - condition: template
                     value_template: "{{ light_enabled and hood_light_entity }}"
                 then:
-                  - service: light.turn_off
+                  - action: light.turn_off
                     target:
                       entity_id: !input hood_light
 

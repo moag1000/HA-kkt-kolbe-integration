@@ -21,7 +21,7 @@
 ## Highlights v4.9
 
 - **Home Assistant 2026.x** - modernisiert für HA 2026.9+ (Python 3.14), bereit für die Änderungen in HA 2026.12
-- **Geräte-Ereignisse** - eigene Event-Entity pro Gerät: Verbindung verloren/wieder da, Wechsel lokal ↔ Cloud, Timer abgelaufen, Filterreinigung fällig, Fehler an Kochzone
+- **Geräte-Ereignisse** - eigene Event-Entity pro Gerät: Verbindung verloren/wieder da, Wechsel lokal ↔ Cloud, Timer abgelaufen, Filterreinigung fällig, Fehler an Kochzone, plus Blueprint für Push-Benachrichtigungen
 - **Actions mit Antwort** - `get_connection_status` und `get_firmware_info` liefern ihr Ergebnis per `response_variable` direkt an Skripte
 - **Lokal + Cloud** - lokale Tuya-Steuerung, SmartLife-Cloud als Fallback inkl. MQTT-Push (~500 ms statt 30 s Polling)
 - **Kein Developer Account nötig** - Setup via SmartLife/Tuya Smart App
@@ -129,7 +129,8 @@ Hast du ein KKT Kolbe Gerät mit WiFi das hier nicht aufgeführt ist?
 
 ## Automationen, Sprachsteuerung & KI
 
-- **Geräte-Ereignisse:** Jedes Gerät hat eine Entity „Geräte-Ereignisse“ (`event.*`). In Automationen als Auslöser „Entität → Ereignis“ wählen, z. B. `timer_finished` für eine Benachrichtigung, wenn der Haubentimer abläuft.
+- **Geräte-Ereignisse:** Jedes Gerät hat eine Entity „Geräte-Ereignisse“ (`event.*`). In Automationen als Auslöser „Entität → Ereignis“ wählen, z. B. `timer_finished` für eine Benachrichtigung, wenn der Haubentimer abläuft. Fertig zum Import: Blueprint [Geräte-Ereignisse melden](blueprints/README.md).
+- **Neu verbinden per Knopf:** Geräte mit lokaler Verbindung haben einen Button „Neu verbinden“ auf der Geräteseite, statt die Action `kkt_kolbe.reconnect_device` aufzurufen.
 - **Actions mit Antwort:** `kkt_kolbe.get_connection_status` und `kkt_kolbe.get_firmware_info` geben ihr Ergebnis zurück:
   ```yaml
   - action: kkt_kolbe.get_connection_status

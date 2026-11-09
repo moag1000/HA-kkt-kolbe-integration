@@ -44,8 +44,8 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def _with_event_platform(platforms: list[str]) -> list[str]:
-    """Every device gets the event platform (connection/timer/filter events)."""
-    return platforms if "event" in platforms else [*platforms, "event"]
+    """Every device gets the event and button platforms (events, reconnect)."""
+    return [*platforms, *(p for p in ("button", "event") if p not in platforms)]
 
 
 async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:

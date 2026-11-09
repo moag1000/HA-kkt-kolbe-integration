@@ -980,6 +980,11 @@
           }
         }
       }
+    },
+    "button": {
+      "reconnect": {
+        "name": "Reconnect"
+      }
     }
   },
   "exceptions": {
@@ -1006,6 +1011,9 @@
     },
     "coordinator_not_found": {
       "message": "No running device connection found for entity {entity_id}."
+    },
+    "reconnect_failed": {
+      "message": "Reconnect failed: {error}"
     }
   }
 }
