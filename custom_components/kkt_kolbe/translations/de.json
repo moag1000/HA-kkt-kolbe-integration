@@ -95,7 +95,8 @@
         },
         "data_description": {
           "selected_device": "Wählen Sie Ihr KKT Kolbe Gerät",
-          "retry_discovery": "Erneut nach Geräten im Netzwerk suchen"
+          "retry_discovery": "Erneut nach Geräten im Netzwerk suchen",
+          "back_to_user": "Zurück zur Auswahl der Einrichtungsmethode"
         }
       },
       "discovery": {
@@ -144,9 +145,7 @@
       },
       "zeroconf_confirm": {
         "title": "Gerät erkannt",
-        "description": "Ein KKT Kolbe Gerät wurde automatisch in Ihrem Netzwerk erkannt.\n\n**Gerät:** {device_name}\n**Geräte-ID:** {device_id}\n**IP-Adresse:** {ip_address}\n**Typ:** {product_name}\n\nKlicken Sie auf Absenden, um dieses Gerät hinzuzufügen.",
-        "data": {},
-        "data_description": {}
+        "description": "Ein KKT Kolbe Gerät wurde automatisch in Ihrem Netzwerk erkannt.\n\n**Gerät:** {device_name}\n**Geräte-ID:** {device_id}\n**IP-Adresse:** {ip_address}\n**Typ:** {product_name}\n\nKlicken Sie auf Absenden, um dieses Gerät hinzuzufügen."
       },
       "zeroconf_authenticate": {
         "title": "Geräte-Authentifizierung erforderlich",
@@ -473,7 +472,8 @@
           "enable_advanced_entities": "Alle Entitäten anzeigen (Lüftergeschwindigkeit, RGB-Modus, Filterstatus)",
           "zone_naming_scheme": "Benennung von Multi-Zonen-Entitäten",
           "disable_fan_auto_start": "Beim Einschalten des Lichts oder der Stromversorgung wird der automatische Lüfterstart verhindert (nur Dunstabzugshauben)",
-          "test_connection": "Geräteverbindung nach Änderungen testen"
+          "test_connection": "Geräteverbindung nach Änderungen testen",
+          "scan_interval": "Wie oft der Gerätestatus abgefragt wird (10–300 Sekunden)"
         }
       },
       "device": {
@@ -502,7 +502,8 @@
           "enable_advanced_entities": "Alle Entitäten anzeigen (Lüftergeschwindigkeit, RGB-Modus, Filterstatus)",
           "zone_naming_scheme": "Benennung von Multi-Zonen-Entitäten",
           "disable_fan_auto_start": "Beim Einschalten des Lichts oder der Stromversorgung wird der automatische Lüfterstart verhindert (nur Dunstabzugshauben)",
-          "test_connection": "Geräteverbindung nach Änderungen testen"
+          "test_connection": "Geräteverbindung nach Änderungen testen",
+          "scan_interval": "Wie oft der Gerätestatus abgefragt wird (10–300 Sekunden)"
         }
       }
     },

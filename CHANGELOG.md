@@ -42,6 +42,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Setup wartet nicht mehr auf den Icon-Download**: Das Geräte-Icon aus der SmartLife-Cloud wird im Hintergrund geladen, ein langsames Tuya-CDN verzögert den Start nicht mehr.
 - **Toter Link „Besuchen“ auf der Geräteseite entfernt**: Tuya-Geräte haben keine Weboberfläche; der Link zeigte auf `http://<IP>` bzw. `http://unknown`.
 - **Kein automatisch angelegter Bereich „Kitchen“** mehr für neue Geräte (war fest auf Englisch hinterlegt).
+- **Optionen bei Geräten mit IoT-API**: Das API-Secret musste bei jedem Speichern neu eingegeben werden; ein leeres Feld behält jetzt das gespeicherte Secret. Das Abwählen von „API aktivieren“ hatte keine Wirkung und schaltet die API jetzt ab. API-Secret, neuer Local Key & Co. landen nicht mehr zusätzlich im Klartext in den Optionen. Änderungen, die nur Verbindungsdaten betreffen, laden das Gerät jetzt auch neu.
+- **Optionen eines Geräts, das nicht starten konnte**, ließen sich nicht speichern („Verbindungstest fehlgeschlagen“), obwohl man genau dort Einstellungen korrigieren will. Der Test wird dann übersprungen; das Neuladen prüft die neuen Werte.
+- **SmartLife-Reauth mit zwei gleichen Geräten** im Konto konnte Geräte-ID und Local Key des falschen Geräts übernehmen (Abgleich lief zuerst über die Modell-ID). Jetzt zuerst über die Geräte-ID; über das Modell nur, wenn es eindeutig ist. Ändert sich die Geräte-ID, wird auch die Unique-ID des Eintrags nachgezogen.
+- Reauth lädt über `async_update_reload_and_abort` neu, statt im Flow auf das Neuladen zu warten.
+- Fehlende Übersetzungen in Config- und Options-Flow ergänzt (strings.json war hinter en/de zurück).
 
 ## [4.7.4] - 2026-05-22
 

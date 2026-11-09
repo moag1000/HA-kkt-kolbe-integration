@@ -95,7 +95,8 @@
         },
         "data_description": {
           "selected_device": "Select your KKT Kolbe device",
-          "retry_discovery": "Search again for devices on the network"
+          "retry_discovery": "Search again for devices on the network",
+          "back_to_user": "Go back to choose a different setup method"
         }
       },
       "discovery": {
@@ -144,9 +145,7 @@
       },
       "zeroconf_confirm": {
         "title": "Device Discovered",
-        "description": "A KKT Kolbe device was automatically discovered on your network.\n\n**Device:** {device_name}\n**Device ID:** {device_id}\n**IP Address:** {ip_address}\n**Type:** {product_name}\n\nClick Submit to add this device.",
-        "data": {},
-        "data_description": {}
+        "description": "A KKT Kolbe device was automatically discovered on your network.\n\n**Device:** {device_name}\n**Device ID:** {device_id}\n**IP Address:** {ip_address}\n**Type:** {product_name}\n\nClick Submit to add this device."
       },
       "zeroconf_authenticate": {
         "title": "Device Authentication Required",
@@ -473,7 +472,8 @@
           "enable_advanced_entities": "Show all entities (Fan Speed, RGB Mode, Filter Status)",
           "zone_naming_scheme": "How to name multi-zone entities",
           "disable_fan_auto_start": "When turning on the light or power, prevent the fan from starting automatically (hood devices only)",
-          "test_connection": "Test device connection after changes"
+          "test_connection": "Test device connection after changes",
+          "scan_interval": "How often to update device status (10-300 seconds)"
         }
       },
       "device": {
@@ -502,7 +502,8 @@
           "enable_advanced_entities": "Show all entities (Fan Speed, RGB Mode, Filter Status)",
           "zone_naming_scheme": "How to name multi-zone entities",
           "disable_fan_auto_start": "When turning on the light or power, prevent the fan from starting automatically (hood devices only)",
-          "test_connection": "Test device connection after changes"
+          "test_connection": "Test device connection after changes",
+          "scan_interval": "How often to update device status (10-300 seconds)"
         }
       }
     },

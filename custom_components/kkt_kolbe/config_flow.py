@@ -2122,18 +2122,15 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                     async with client:
                         if await client.test_connection():
                             # Update config entry with new API credentials
-                            self.hass.config_entries.async_update_entry(
+                            return self.async_update_reload_and_abort(
                                 reauth_entry,
-                                data={
-                                    **reauth_entry.data,
+                                data_updates={
                                     "api_client_id": user_input["api_client_id"],
                                     "api_client_secret": user_input["api_client_secret"],
                                     "api_endpoint": user_input.get("api_endpoint", "https://openapi.tuyaeu.com"),
                                     "api_enabled": True,
                                 },
                             )
-                            await self.hass.config_entries.async_reload(reauth_entry.entry_id)
-                            return self.async_abort(reason="reauth_successful")
                         else:
                             errors["base"] = "invalid_auth"
 
@@ -2151,15 +2148,10 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                 local_key_val = str(user_input["local_key"]) if user_input.get("local_key") else ""
                 if await self._test_device_connection(ip_addr, dev_id, local_key_val):
                     # Update config entry with new local key
-                    self.hass.config_entries.async_update_entry(
+                    return self.async_update_reload_and_abort(
                         reauth_entry,
-                        data={
-                            **reauth_entry.data,
-                            "local_key": user_input["local_key"],
-                        },
+                        data_updates={"local_key": user_input["local_key"]},
                     )
-                    await self.hass.config_entries.async_reload(reauth_entry.entry_id)
-                    return self.async_abort(reason="reauth_successful")
                 else:
                     errors["base"] = "cannot_connect"
 
@@ -2230,15 +2222,24 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             old_device_id = self._reauth_entry.data.get("device_id")
             old_product_id = self._reauth_entry.data.get("product_id")
 
-            # Match device by product_id (stable) or device_id (may have changed)
-            matched_device = None
-            for device in devices:
-                if old_product_id and hasattr(device, "product_id") and device.product_id == old_product_id:
-                    matched_device = device
-                    break
-                if old_device_id and device.device_id == old_device_id:
-                    matched_device = device
-                    break
+            # Match by device_id first. product_id only identifies the model, so
+            # it is used only when exactly one device of that model exists;
+            # otherwise two identical hoods could swap ids / local keys.
+            matched_device = next(
+                (device for device in devices if old_device_id and device.device_id == old_device_id),
+                None,
+            )
+            if matched_device is None and old_product_id:
+                same_model = [device for device in devices if getattr(device, "product_id", None) == old_product_id]
+                if len(same_model) == 1:
+                    matched_device = same_model[0]
+                elif same_model:
+                    _LOGGER.warning(
+                        "SmartLife reauth: %d devices of model %s in account, not guessing which one is %s",
+                        len(same_model),
+                        old_product_id,
+                        self._reauth_entry.title,
+                    )
 
             if matched_device:
                 updates: list[str] = []
@@ -2285,11 +2286,16 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             _LOGGER.warning("SmartLife reauth: Token updated but device refresh failed: %s", err)
 
         # Update config entry
-        self.hass.config_entries.async_update_entry(self._reauth_entry, data=entry_data)
-
-        # Reload the integration
-        await self.hass.config_entries.async_reload(self._reauth_entry.entry_id)
-        return self.async_abort(reason="reauth_successful")
+        new_unique_id = None
+        if entry_data.get("device_id") and entry_data.get("device_id") != self._reauth_entry.data.get("device_id"):
+            # unique_id is the Tuya device id; keep it in sync so discovery and
+            # duplicate checks keep matching this entry
+            new_unique_id = entry_data["device_id"]
+        if new_unique_id and self._reauth_entry.unique_id == self._reauth_entry.data.get("device_id"):
+            return self.async_update_reload_and_abort(
+                self._reauth_entry, unique_id=new_unique_id, data=entry_data, reason="reauth_successful"
+            )
+        return self.async_update_reload_and_abort(self._reauth_entry, data=entry_data, reason="reauth_successful")
 
     async def async_step_smartlife_reauth(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle SmartLife token re-authentication via QR code.
