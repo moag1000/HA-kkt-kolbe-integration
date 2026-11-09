@@ -1009,6 +1009,10 @@
           "cloud_fetch_failed": "Local Key konnte nicht aus der Cloud abgerufen werden. Bitte manuell eingeben oder SmartLife-Konto prüfen."
         }
       }
+    },
+    "device_offline": {
+      "title": "Gerät {device_name} seit über 24 Stunden nicht erreichbar",
+      "description": "**{device_name}** antwortet seit {offline_since} nicht mehr.\n\nBitte prüfen:\n1. Hat das Gerät Strom und ist es im WLAN (funktioniert es in der SmartLife-App)?\n2. Hat sich die IP-Adresse geändert? Dann unter **Einstellungen → Geräte & Dienste → KKT Kolbe → Neu konfigurieren → Verbindung** anpassen (eine feste IP im Router verhindert das).\n3. Wurde das Gerät in der SmartLife-App neu hinzugefügt? Dann hat sich der Local Key geändert: Eintrag neu authentifizieren.\n4. Den Button **Neu verbinden** auf der Geräteseite probieren.\n\nDieser Hinweis verschwindet automatisch, sobald das Gerät wieder antwortet."
     }
   },
   "exceptions": {

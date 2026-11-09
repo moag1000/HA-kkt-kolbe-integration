@@ -718,6 +718,11 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
     # Load only the platforms needed for this specific device
     await hass.config_entries.async_forward_entry_setups(entry, platforms)
 
+    # Repair card if the device stays unreachable for a day
+    from .offline_monitor import OfflineMonitor
+
+    OfflineMonitor(hass, entry, coordinator).async_start()
+
     # Options changes are reloaded by OptionsFlowWithReload and reconfigure /
     # reauth flows reload via async_update_reload_and_abort, so no config entry
     # update listener is registered (combining both is an error from HA 2026.12).
@@ -735,6 +740,13 @@ async def _async_download_device_icon(hass: HomeAssistant, device_id: str, icon_
             _LOGGER.info("Device icon downloaded for %s: %s", device_id[:8], local_icon_path)
     except Exception as err:
         _LOGGER.warning("Failed to download device icon: %s", err)
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Clean up repair issues of a removed entry."""
+    from .offline_monitor import async_remove_issue
+
+    async_remove_issue(hass, entry)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

@@ -88,6 +88,8 @@ async def test_async_setup_entry_success(
                             result = await async_setup_entry(hass, mock_config_entry)
 
                             assert result is True
+                            # Timers registered via async_on_unload (offline monitor)
+                            await mock_config_entry._async_process_on_unload(hass)
                             # State lives on runtime_data, not hass.data
                             assert mock_config_entry.runtime_data.coordinator is mock_coord
                             assert DOMAIN not in hass.data or mock_config_entry.entry_id not in hass.data[DOMAIN]

@@ -1008,6 +1008,10 @@
           "cloud_fetch_failed": "Failed to fetch local key from cloud. Please enter manually or check your SmartLife account."
         }
       }
+    },
+    "device_offline": {
+      "title": "Device {device_name} unreachable for over 24 hours",
+      "description": "**{device_name}** has not answered since {offline_since}.\n\nPlease check:\n1. Does the device have power and is it connected to Wi-Fi (works in the SmartLife app)?\n2. Did its IP address change? Then update it via **Settings → Devices & services → KKT Kolbe → Reconfigure → Connection** (a DHCP reservation in the router prevents this).\n3. Was the device re-added in the SmartLife app? Then the local key changed: re-authenticate the entry.\n4. Try the **Reconnect** button on the device page.\n\nThis notice disappears automatically as soon as the device answers again."
     }
   },
   "exceptions": {
