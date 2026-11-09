@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from datetime import datetime
 from datetime import timedelta
 
 from homeassistant.core import HomeAssistant
@@ -45,7 +46,7 @@ class StaleDeviceTracker:
         self._initial_cleanup_handle = async_call_later(self.hass, 3600, self._schedule_initial_cleanup)
 
     @callback
-    def _schedule_initial_cleanup(self, _now=None) -> None:
+    def _schedule_initial_cleanup(self, _now: datetime | None = None) -> None:
         """Schedule the initial cleanup."""
         self._initial_cleanup_handle = None
         self.hass.async_create_background_task(
@@ -67,7 +68,7 @@ class StaleDeviceTracker:
         """Mark a device as active/seen."""
         self._tracked_devices.add(device_id)
 
-    async def _async_cleanup_stale_devices(self, now) -> None:
+    async def _async_cleanup_stale_devices(self, now: datetime | None) -> None:
         """Clean up stale devices."""
         try:
             device_reg = dr.async_get(self.hass)

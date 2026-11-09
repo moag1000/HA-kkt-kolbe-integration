@@ -141,7 +141,7 @@ class GlobalAPIManager:
             _LOGGER.error(f"Stored API credentials test failed: {err}")
             return False
 
-    async def get_kkt_devices_from_api(self) -> list:
+    async def get_kkt_devices_from_api(self) -> list[Any]:
         """Get KKT Kolbe devices using stored credentials."""
         creds = self.get_stored_api_credentials()
         if not creds:

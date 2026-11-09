@@ -302,7 +302,7 @@ class KKTKolbeTuyaDevice:
             return str(err_code) == "914"
         return False
 
-    async def _try_connect_with_key(self, local_key: str, version: float) -> tuple[Any, dict | None]:
+    async def _try_connect_with_key(self, local_key: str, version: float) -> tuple[Any, dict[str, Any] | None]:
         """Try to connect with a specific key and version.
 
         Returns (device, status) tuple. Device is None if connection failed.
@@ -592,7 +592,7 @@ class KKTKolbeTuyaDevice:
             # Try to open a socket connection to the Tuya port (6668)
             loop = asyncio.get_running_loop()
 
-            def _check_socket():
+            def _check_socket() -> bool:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.settimeout(timeout)
                 try:

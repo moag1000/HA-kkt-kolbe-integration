@@ -10,6 +10,7 @@ import logging
 from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING
+from typing import Any
 
 import aiohttp
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -171,7 +172,7 @@ def _write_file(path: Path, content: bytes) -> None:
 
 async def download_all_icons(
     hass: HomeAssistant,
-    devices: list[dict],
+    devices: list[dict[str, Any]],
     force: bool = False,
 ) -> dict[str, str | None]:
     """Download icons for multiple devices.
@@ -216,7 +217,7 @@ def get_downloaded_icon_path(hass: HomeAssistant, device_id: str) -> Path | None
     return None
 
 
-def list_downloaded_icons(hass: HomeAssistant) -> list[dict]:
+def list_downloaded_icons(hass: HomeAssistant) -> list[dict[str, Any]]:
     """List all downloaded icons.
 
     Returns list of dicts with device_id, file_path, and local_url.

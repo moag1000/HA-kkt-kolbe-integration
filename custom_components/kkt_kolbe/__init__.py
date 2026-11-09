@@ -8,11 +8,11 @@ from typing import Any
 
 import homeassistant.helpers.config_validation as cv
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.config_entries import ConfigEntryNotReady
 from homeassistant.const import CONF_ACCESS_TOKEN
 from homeassistant.const import CONF_DEVICE_ID
 from homeassistant.const import CONF_IP_ADDRESS
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -109,7 +109,7 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
     return True
 
 
-async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Set up the KKT Kolbe component from YAML configuration."""
     # Warn if LocalTuya is active — it blocks UDP ports 6666/6667 needed for device discovery
     if "localtuya" in hass.config.components:
@@ -367,7 +367,7 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
 
                     # Register token persistence callback to update parent entry
                     # when tokens are refreshed by the SDK
-                    async def update_parent_tokens(new_token_info: dict) -> None:
+                    async def update_parent_tokens(new_token_info: dict[str, Any]) -> None:
                         """Persist refreshed tokens to parent config entry."""
                         if parent_entry:
                             _LOGGER.info(

@@ -575,7 +575,7 @@ class TuyaSharingClient:
             from tuya_sharing import Manager
             from tuya_sharing import SharingTokenListener
 
-            class TokenListener(SharingTokenListener):
+            class TokenListener(SharingTokenListener):  # type: ignore[misc]
                 """Listener for token updates from the SDK."""
 
                 def __init__(self, client: TuyaSharingClient) -> None:
@@ -1398,7 +1398,7 @@ class _KKTSharingDeviceListener:
         self,
         device: Any,
         updated_status_properties: list[str] | None = None,
-        dp_timestamps: dict | None = None,
+        dp_timestamps: dict[str, Any] | None = None,
     ) -> None:
         """Translate a code-keyed device update into a DP-id-keyed dispatch.
 

@@ -47,10 +47,10 @@ known-first-party = ["custom_components.kkt_kolbe"]
 
 [tool.mypy]
 python_version = "3.14"
+strict = true
 warn_return_any = true
 warn_unused_ignores = true
 ignore_missing_imports = true
-check_untyped_defs = false
 strict_optional = true
 
 [[tool.mypy.overrides]]
@@ -59,6 +59,13 @@ module = [
     "zeroconf.*",
 ]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# Home Assistant re-exports entity features/constants from component
+# packages (e.g. homeassistant.components.light.ColorMode); that is the
+# public import path, so allow it under --strict as well.
+module = ["homeassistant.*"]
+implicit_reexport = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

@@ -1834,7 +1834,7 @@ KNOWN_DEVICES: dict[str, dict[str, Any]] = {
 }
 
 
-def find_device_by_product_name(product_name: str) -> dict | None:
+def find_device_by_product_name(product_name: str) -> dict[str, Any] | None:
     """Find device in central database by product name."""
     for _device_key, device_info in KNOWN_DEVICES.items():
         if product_name in device_info["product_names"]:
@@ -1842,7 +1842,7 @@ def find_device_by_product_name(product_name: str) -> dict | None:
     return None
 
 
-def find_device_by_device_id(device_id: str) -> dict | None:
+def find_device_by_device_id(device_id: str) -> dict[str, Any] | None:
     """Find device in central database by device ID."""
     for _device_key, device_info in KNOWN_DEVICES.items():
         # Exact match
@@ -1855,7 +1855,7 @@ def find_device_by_device_id(device_id: str) -> dict | None:
     return None
 
 
-def get_device_dps(category: str) -> dict:
+def get_device_dps(category: str) -> dict[int, str]:
     """Get data points for device category."""
     if category == CATEGORY_HOOD:
         return HOOD_DPS
@@ -1867,7 +1867,7 @@ def get_device_dps(category: str) -> dict:
         return {}
 
 
-def get_device_info_by_device_id(device_id: str) -> dict | None:
+def get_device_info_by_device_id(device_id: str) -> dict[str, Any] | None:
     """Get device information based on device ID (for manual setup)."""
     device_info = find_device_by_device_id(device_id)
     if device_info:
@@ -1891,7 +1891,9 @@ def get_product_name_by_device_id(device_id: str) -> str | None:
     return None
 
 
-def auto_detect_device_config(device_id: str | None = None, provided_product_name: str | None = None) -> dict | None:
+def auto_detect_device_config(
+    device_id: str | None = None, provided_product_name: str | None = None
+) -> dict[str, Any] | None:
     """Auto-detect device configuration from available information."""
     detected_product_name = None
 
@@ -1920,7 +1922,7 @@ def auto_detect_device_config(device_id: str | None = None, provided_product_nam
     return None
 
 
-def get_device_info_by_product_name(product_name: str) -> dict:
+def get_device_info_by_product_name(product_name: str) -> dict[str, Any]:
     """Get device information based on product name from discovery.
 
     Supports multiple lookup methods:
@@ -2007,7 +2009,7 @@ def get_device_platforms_by_product_name(product_name: str) -> list[str]:
     return get_device_platforms(str(category))
 
 
-def get_device_entities(product_name: str, platform: str) -> list:
+def get_device_entities(product_name: str, platform: str) -> list[Any]:
     """Get entity configurations for a specific product and platform.
 
     Supports:
@@ -2035,13 +2037,13 @@ def get_device_entities(product_name: str, platform: str) -> list:
     return []
 
 
-def get_device_entity_config(product_name: str, platform: str) -> dict:
+def get_device_entity_config(product_name: str, platform: str) -> dict[str, Any]:
     """Get the first entity config for a platform (for single-entity platforms like fan, light)."""
     entities = get_device_entities(product_name, platform)
     return entities[0] if entities else {}
 
 
-def get_known_device_choices() -> dict:
+def get_known_device_choices() -> dict[str, Any]:
     """Get user-friendly device choices for manual setup."""
     choices = {}
 

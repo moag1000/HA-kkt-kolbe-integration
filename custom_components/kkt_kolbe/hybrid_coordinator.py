@@ -651,7 +651,7 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
         else:
             raise UpdateFailed("Both local and cloud communication failed")
 
-    def _merge_hybrid_data(self, local_data: dict, api_data: dict) -> dict:
+    def _merge_hybrid_data(self, local_data: dict[str, Any], api_data: dict[str, Any]) -> dict[str, Any]:
         """Merge local and API data intelligently."""
         # Start with local data as base
         merged_data = local_data.copy()

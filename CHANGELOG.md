@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Neuer Blueprint „Geräte-Ereignisse melden“**: Push-Benachrichtigung bei Timer abgelaufen, Filterreinigung, Kochzonen-Fehler und optional Verbindungsereignissen.
 - **Blueprints modernisiert** (`triggers:`/`actions:`-Syntax) und per Test gegen Home Assistant validiert.
 - **HACS-ZIP-Release**: Ein GitHub-Actions-Workflow baut bei jedem veröffentlichten Release `kkt_kolbe.zip` (inkl. SHA256) und hängt es ans Release; `hacs.json` nutzt `zip_release`. Der Workflow prüft, dass Tag und `manifest.json`-Version übereinstimmen.
-- **mypy** ist sauber (nicht-strikt) und läuft jetzt in der CI; viele fehlende Typen ergänzt.
+- **Strict Typing**: `mypy --strict` ist sauber und läuft in der CI (Quality-Scale-Regel `strict-typing` erfüllt).
 
 ### Fixed
 

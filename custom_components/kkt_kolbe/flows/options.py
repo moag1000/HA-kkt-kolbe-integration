@@ -50,7 +50,7 @@ class KKTKolbeOptionsFlow(OptionsFlowWithReload):
     _data_changed: bool = False
     _smartlife_client: TuyaSharingClient | None = None
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize options flow."""
         # No longer store config_entry manually - use self.config_entry property
         # This property is automatically provided by the OptionsFlow parent class

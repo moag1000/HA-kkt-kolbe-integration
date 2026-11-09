@@ -24,6 +24,9 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 
 from .api_manager import GlobalAPIManager
+from .const import CATEGORY_COOKTOP
+from .const import CATEGORY_HOOD
+from .const import CATEGORY_OVEN
 from .const import CONF_SMARTLIFE_APP_SCHEMA
 from .const import CONF_SMARTLIFE_TOKEN_INFO
 from .const import CONF_SMARTLIFE_USER_CODE
@@ -38,9 +41,6 @@ from .const import SMARTLIFE_SCHEMA
 from .const import TUYA_HA_SCHEMA
 from .const import TUYA_IOT_URL
 from .const import TUYA_SMART_SCHEMA
-from .device_types import CATEGORY_COOKTOP
-from .device_types import CATEGORY_HOOD
-from .device_types import CATEGORY_OVEN
 from .device_types import KNOWN_DEVICES
 from .discovery import async_start_discovery
 from .discovery import get_discovered_devices
@@ -570,7 +570,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         """Get the options flow for this handler."""
         return KKTKolbeOptionsFlow()
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the config flow."""
         self._discovery_data: dict[str, dict[str, Any]] = {}
         self._device_info: dict[str, Any] = {}

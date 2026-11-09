@@ -135,7 +135,7 @@ class KKTKolbeSensor(KKTBaseEntity, SensorEntity):
         if device_class == SensorDeviceClass.TEMPERATURE:
             return 1
         # Duration sensors: whole numbers (minutes)
-        if device_class == "duration":
+        if device_class == SensorDeviceClass.DURATION:
             return 0
         # Timer, filter, level: whole numbers
         if any(
@@ -405,7 +405,7 @@ class KKTKolbeConnectionSensor(CoordinatorEntity["KKTCoordinator"], SensorEntity
         entry: ConfigEntry,
     ) -> None:
         """Initialize the connection sensor."""
-        from homeassistant.helpers.entity import EntityCategory
+        from homeassistant.const import EntityCategory
 
         super().__init__(coordinator)
         self._entry = entry
@@ -556,7 +556,7 @@ class KKTKolbeSmartLifeInfoSensor(CoordinatorEntity["KKTCoordinator"], SensorEnt
         extended_info: dict[str, Any],
     ) -> None:
         """Initialize the SmartLife info sensor."""
-        from homeassistant.helpers.entity import EntityCategory
+        from homeassistant.const import EntityCategory
 
         super().__init__(coordinator)
         self._entry = entry

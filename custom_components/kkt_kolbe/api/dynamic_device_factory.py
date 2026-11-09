@@ -20,7 +20,7 @@ class EntityConfig:
     name: str
     data_type: str  # bool, value, enum, string
     description: str = ""
-    range_data: dict | None = None  # For value/enum types
+    range_data: dict[str, Any] | None = None  # For value/enum types
     unit: str | None = None
     icon: str | None = None
 
@@ -84,7 +84,7 @@ class DynamicDeviceFactory:
         "RGB": "mdi:palette",
     }
 
-    async def analyze_device_properties(self, api_data: dict) -> DeviceConfig:
+    async def analyze_device_properties(self, api_data: dict[str, Any]) -> DeviceConfig:
         """Analyze API response and create device configuration."""
         _LOGGER.debug("Analyzing device properties from API data")
 
@@ -108,7 +108,7 @@ class DynamicDeviceFactory:
         _LOGGER.info(f"Created device config with {len(device_config.entities)} entities")
         return device_config
 
-    def _extract_device_info(self, api_data: dict) -> dict:
+    def _extract_device_info(self, api_data: dict[str, Any]) -> dict[str, Any]:
         """Extract basic device information from API response."""
         result = api_data.get("result", {})
 
@@ -129,7 +129,7 @@ class DynamicDeviceFactory:
             _LOGGER.warning(f"Failed to parse model data: {err}")
             return {}
 
-    async def detect_device_type(self, model_data: dict) -> str:
+    async def detect_device_type(self, model_data: dict[str, Any]) -> str:
         """Detect device type from model data."""
         model_id = model_data.get("modelId", "").lower()
 
@@ -176,7 +176,7 @@ class DynamicDeviceFactory:
         _LOGGER.debug(f"Created {len(entities)} entity configurations")
         return entities
 
-    async def _create_entity_from_property(self, property_data: dict) -> EntityConfig | None:
+    async def _create_entity_from_property(self, property_data: dict[str, Any]) -> EntityConfig | None:
         """Create entity configuration from a single property."""
         code = property_data.get("code")
         ability_id = property_data.get("abilityId")
@@ -224,9 +224,9 @@ class DynamicDeviceFactory:
         _LOGGER.debug(f"Created entity config: DP{ability_id} ({code}) -> {entity_type}")
         return entity_config
 
-    async def map_data_points_to_entities(self, device_config: DeviceConfig) -> dict:
+    async def map_data_points_to_entities(self, device_config: DeviceConfig) -> dict[int, str]:
         """Map data points to entity configurations for integration use."""
-        data_points = {}
+        data_points: dict[int, str] = {}
 
         for entity in device_config.entities:
             data_points[entity.dp_id] = entity.property_code
@@ -234,7 +234,7 @@ class DynamicDeviceFactory:
         _LOGGER.debug(f"Mapped {len(data_points)} data points for device")
         return data_points
 
-    async def get_device_types_config(self, device_config: DeviceConfig) -> dict:
+    async def get_device_types_config(self, device_config: DeviceConfig) -> dict[str, Any]:
         """Generate device_types.py compatible configuration."""
         config = {
             f"{device_config.model_id}_{device_config.device_type}": {

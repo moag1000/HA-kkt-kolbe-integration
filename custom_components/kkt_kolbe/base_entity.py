@@ -130,7 +130,7 @@ class KKTBaseEntity(CoordinatorEntity["KKTCoordinator"]):
         # Set entity category if provided
         entity_category = self._config.get("entity_category")
         if entity_category:
-            from homeassistant.helpers.entity import EntityCategory
+            from homeassistant.const import EntityCategory
 
             if hasattr(EntityCategory, entity_category.upper()):
                 self._attr_entity_category = getattr(EntityCategory, entity_category.upper())
@@ -146,8 +146,8 @@ class KKTBaseEntity(CoordinatorEntity["KKTCoordinator"]):
 
     def _build_device_info(self) -> DeviceInfo:
         """Build standardized device info using KNOWN_DEVICES."""
-        from .device_types import CATEGORY_COOKTOP
-        from .device_types import CATEGORY_HOOD
+        from .const import CATEGORY_COOKTOP
+        from .const import CATEGORY_HOOD
         from .device_types import KNOWN_DEVICES
 
         # Device type resolved during setup lives on entry.runtime_data
@@ -606,11 +606,11 @@ class KKTZoneBaseEntity(KKTBaseEntity):
 
     def __init__(
         self,
-        coordinator,
+        coordinator: KKTCoordinator,
         entry: ConfigEntry,
         config: dict[str, Any],
         platform: str,
-    ):
+    ) -> None:
         """Initialize the zone base entity."""
         zone = config.get("zone")
         if zone is None:
@@ -619,7 +619,7 @@ class KKTZoneBaseEntity(KKTBaseEntity):
         super().__init__(coordinator, entry, config, platform, zone)
 
         # Zone entities are typically diagnostic
-        from homeassistant.helpers.entity import EntityCategory
+        from homeassistant.const import EntityCategory
 
         if not hasattr(self, "_attr_entity_category"):
             self._attr_entity_category = EntityCategory.DIAGNOSTIC

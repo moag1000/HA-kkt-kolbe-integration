@@ -163,8 +163,7 @@ rules:
       icon downloader use Home Assistant's shared aiohttp session
       (async_get_clientsession).
   strict-typing:
-    status: todo
+    status: done
     comment: >-
-      mypy runs in CI (Lint workflow) and is clean in the default mode;
-      `mypy --strict` still reports missing generic parameters and untyped
-      helpers (mostly device_types / discovery), so strict stays todo.
+      mypy runs with `strict = true` (pyproject.toml) in the Lint workflow and
+      is clean; py.typed is shipped.
