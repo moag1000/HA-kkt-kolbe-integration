@@ -54,13 +54,13 @@ class TuyaCloudClient:
         self._rate_limit_until: float = 0
         self._request_lock = asyncio.Lock()
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> TuyaCloudClient:
         """Async context manager entry."""
         if self._own_session:
             self.session = aiohttp.ClientSession()
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type: object, exc_val: object, exc_tb: object) -> None:
         """Async context manager exit."""
         if self._own_session and self.session:
             await self.session.close()

@@ -208,8 +208,9 @@ class TuyaSharingClient:
         self.hass = hass
         self._user_code = user_code
         self._app_schema = app_schema
-        self._login_control: Any | None = None
-        self._manager: Any | None = None
+        # tuya_sharing SDK objects are untyped; None until initialised
+        self._login_control: Any = None
+        self._manager: Any = None
         self._qr_token: str | None = None
         self._token_info: dict[str, Any] = {}
         self._auth_result: TuyaSharingAuthResult | None = None
@@ -371,11 +372,12 @@ class TuyaSharingClient:
 
         def _generate() -> dict[str, Any]:
             self._login_control = LoginControl()
-            return self._login_control.qr_code(
+            result: dict[str, Any] = self._login_control.qr_code(
                 SMARTLIFE_CLIENT_ID,
                 self._app_schema,
                 self._user_code,
             )
+            return result
 
         try:
             response = await self.hass.async_add_executor_job(_generate)
@@ -431,17 +433,18 @@ class TuyaSharingClient:
             )
 
         def _poll() -> tuple[bool, dict[str, Any]]:
-            return self._login_control.login_result(
+            result: tuple[bool, dict[str, Any]] = self._login_control.login_result(
                 self._qr_token,
                 SMARTLIFE_CLIENT_ID,
                 self._user_code,
             )
+            return result
 
-        start_time = asyncio.get_event_loop().time()
+        start_time = asyncio.get_running_loop().time()
         poll_count = 0
 
         while True:
-            elapsed = asyncio.get_event_loop().time() - start_time
+            elapsed = asyncio.get_running_loop().time() - start_time
             if elapsed >= timeout:
                 _LOGGER.warning(
                     "QR code login timed out after %.1fs (%d polls)",
@@ -572,7 +575,7 @@ class TuyaSharingClient:
             from tuya_sharing import Manager
             from tuya_sharing import SharingTokenListener
 
-            class TokenListener(SharingTokenListener):
+            class TokenListener(SharingTokenListener):  # type: ignore[misc]
                 """Listener for token updates from the SDK."""
 
                 def __init__(self, client: TuyaSharingClient) -> None:
@@ -612,17 +615,20 @@ class TuyaSharingClient:
                         except Exception as err:
                             _LOGGER.warning("Failed to schedule token persistence: %s", err)
 
+            auth = client_ref._auth_result
+            if auth is None:
+                raise KKTAuthenticationError(message="SmartLife client is not authenticated")
             token_info = {
-                "access_token": client_ref._auth_result.access_token,
-                "refresh_token": client_ref._auth_result.refresh_token,
-                "expire_time": client_ref._auth_result.expire_time,
-                "uid": client_ref._auth_result.user_id,
+                "access_token": auth.access_token,
+                "refresh_token": auth.refresh_token,
+                "expire_time": auth.expire_time,
+                "uid": auth.user_id,
             }
             return Manager(
                 SMARTLIFE_CLIENT_ID,
                 client_ref._user_code,
-                client_ref._auth_result.terminal_id,
-                client_ref._auth_result.endpoint,
+                auth.terminal_id,
+                auth.endpoint,
                 token_info,
                 TokenListener(client_ref),
             )
@@ -1129,7 +1135,9 @@ class TuyaSharingClient:
 
             try:
                 # Try the standard Tuya firmware endpoint
-                response = self._manager.customer_api.get(f"/v1.0/iot-03/devices/{device_id}/upgrade-infos", None)
+                response: dict[str, Any] | None = self._manager.customer_api.get(
+                    f"/v1.0/iot-03/devices/{device_id}/upgrade-infos", None
+                )
                 _LOGGER.debug("Firmware API response for %s: %s", device_id[:8], response)
                 return response
             except Exception as err:
@@ -1192,7 +1200,9 @@ class TuyaSharingClient:
 
             try:
                 # SmartLife specifications endpoint
-                response = self._manager.customer_api.get(f"/v1.1/m/life/{device_id}/specifications", None)
+                response: dict[str, Any] | None = self._manager.customer_api.get(
+                    f"/v1.1/m/life/{device_id}/specifications", None
+                )
                 _LOGGER.info("SmartLife specifications for %s: %s", device_id[:8], response)
                 return response
             except Exception as err:
@@ -1246,7 +1256,9 @@ class TuyaSharingClient:
 
             try:
                 # SmartLife status endpoint
-                response = self._manager.customer_api.get(f"/v1.0/m/life/devices/{device_id}/status", None)
+                response: dict[str, Any] | None = self._manager.customer_api.get(
+                    f"/v1.0/m/life/devices/{device_id}/status", None
+                )
                 _LOGGER.info("SmartLife status details for %s: %s", device_id[:8], response)
                 return response
             except Exception as err:
@@ -1297,7 +1309,7 @@ class TuyaSharingClient:
                 return None
 
             try:
-                response = self._manager.customer_api.get(f"/v1.0/devices/{device_id}", None)
+                response: dict[str, Any] | None = self._manager.customer_api.get(f"/v1.0/devices/{device_id}", None)
                 _LOGGER.debug("Device info API response for %s: %s", device_id[:8], response)
                 return response
             except Exception as err:
@@ -1386,7 +1398,7 @@ class _KKTSharingDeviceListener:
         self,
         device: Any,
         updated_status_properties: list[str] | None = None,
-        dp_timestamps: dict | None = None,
+        dp_timestamps: dict[str, Any] | None = None,
     ) -> None:
         """Translate a code-keyed device update into a DP-id-keyed dispatch.
 

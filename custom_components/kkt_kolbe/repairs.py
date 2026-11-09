@@ -5,9 +5,9 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-import voluptuous as vol
-from homeassistant import data_entry_flow
+import probatio as vol
 from homeassistant.components.repairs import RepairsFlow
+from homeassistant.components.repairs import RepairsFlowResult
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
 
@@ -51,6 +51,11 @@ class KKTRepairFlow(RepairsFlow):
 
     issue_id: str = ""
 
+    @property
+    def issue_data(self) -> dict[str, str]:
+        """Issue data as strings (HA types it as optional scalar values)."""
+        return {key: str(value) for key, value in (self.data or {}).items() if value is not None}
+
     async def async_mark_resolved(self) -> None:
         """Delete the issue from the registry."""
         ir.async_delete_issue(self.hass, DOMAIN, self.issue_id)
@@ -59,29 +64,20 @@ class KKTRepairFlow(RepairsFlow):
 class TuyaAPIAuthRepairFlow(KKTRepairFlow):
     """Handler for Tuya API authentication repair flow."""
 
-    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> data_entry_flow.FlowResult:
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> RepairsFlowResult:
         """Handle the first step of the repair flow."""
         return await self.async_step_confirm()
 
-    async def async_step_confirm(self, user_input: dict[str, Any] | None = None) -> data_entry_flow.FlowResult:
+    async def async_step_confirm(self, user_input: dict[str, Any] | None = None) -> RepairsFlowResult:
         """Confirm the user wants to fix this issue."""
         if user_input is not None:
             # Trigger reauth flow for the config entry
-            entry_id = self.data.get("entry_id")
+            entry_id = self.issue_data.get("entry_id", "")
             if entry_id:
                 entry = self.hass.config_entries.async_get_entry(entry_id)
                 if entry:
-                    _LOGGER.info(f"Triggering reauth flow for entry {self.data.get('entry_id')}")
-                    self.hass.async_create_task(
-                        self.hass.config_entries.flow.async_init(
-                            DOMAIN,
-                            context={
-                                "source": "reauth",
-                                "entry_id": self.data.get("entry_id"),
-                            },
-                            data=entry.data,
-                        )
-                    )
+                    _LOGGER.info(f"Triggering reauth flow for entry {self.issue_data.get('entry_id')}")
+                    entry.async_start_reauth(self.hass)
 
             # Mark issue as resolved
             await self.async_mark_resolved()
@@ -90,7 +86,7 @@ class TuyaAPIAuthRepairFlow(KKTRepairFlow):
         return self.async_show_form(
             step_id="confirm",
             description_placeholders={
-                "entry_title": self.data.get("entry_title", "Unknown"),
+                "entry_title": self.issue_data.get("entry_title", "Unknown"),
             },
         )
 
@@ -107,11 +103,11 @@ class TuyaAPIRegionRepairFlow(KKTRepairFlow):
         "India": "https://openapi.tuyain.com",
     }
 
-    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> data_entry_flow.FlowResult:
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> RepairsFlowResult:
         """Handle the first step of the repair flow."""
         return await self.async_step_confirm_region()
 
-    async def async_step_confirm_region(self, user_input: dict[str, Any] | None = None) -> data_entry_flow.FlowResult:
+    async def async_step_confirm_region(self, user_input: dict[str, Any] | None = None) -> RepairsFlowResult:
         """Ask user to select correct region."""
         errors = {}
 
@@ -119,8 +115,8 @@ class TuyaAPIRegionRepairFlow(KKTRepairFlow):
             region = str(user_input.get("region", ""))
             new_endpoint = self.ENDPOINTS.get(region)
 
-            if new_endpoint and self.data.get("entry_id"):
-                entry = self.hass.config_entries.async_get_entry(self.data.get("entry_id"))
+            if new_endpoint and self.issue_data.get("entry_id", ""):
+                entry = self.hass.config_entries.async_get_entry(self.issue_data.get("entry_id", ""))
                 if entry:
                     # Update config entry with new endpoint
                     new_data = dict(entry.data)
@@ -129,7 +125,7 @@ class TuyaAPIRegionRepairFlow(KKTRepairFlow):
                     self.hass.config_entries.async_update_entry(entry, data=new_data)
 
                     # Reload the integration
-                    await self.hass.config_entries.async_reload(self.data.get("entry_id"))
+                    await self.hass.config_entries.async_reload(self.issue_data.get("entry_id", ""))
 
                     _LOGGER.info(f"Updated Tuya API endpoint to {region}: {new_endpoint}")
 
@@ -148,8 +144,8 @@ class TuyaAPIRegionRepairFlow(KKTRepairFlow):
             ),
             errors=errors,
             description_placeholders={
-                "entry_title": self.data.get("entry_title", "Unknown"),
-                "current_endpoint": self.data.get("current_endpoint", "Unknown"),
+                "entry_title": self.issue_data.get("entry_title", "Unknown"),
+                "current_endpoint": self.issue_data.get("current_endpoint", "Unknown"),
             },
         )
 
@@ -157,11 +153,11 @@ class TuyaAPIRegionRepairFlow(KKTRepairFlow):
 class LocalKeyExpiredRepairFlow(KKTRepairFlow):
     """Handler for expired local key repair flow."""
 
-    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> data_entry_flow.FlowResult:
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> RepairsFlowResult:
         """Handle the first step of the repair flow."""
         return await self.async_step_update_local_key()
 
-    async def async_step_update_local_key(self, user_input: dict[str, Any] | None = None) -> data_entry_flow.FlowResult:
+    async def async_step_update_local_key(self, user_input: dict[str, Any] | None = None) -> RepairsFlowResult:
         """Ask user to enter new local key."""
         errors = {}
 
@@ -171,8 +167,8 @@ class LocalKeyExpiredRepairFlow(KKTRepairFlow):
             if len(new_local_key) != 16:
                 errors[CONF_LOCAL_KEY] = "invalid_local_key"
             else:
-                if self.data.get("entry_id"):
-                    entry = self.hass.config_entries.async_get_entry(self.data.get("entry_id"))
+                if self.issue_data.get("entry_id", ""):
+                    entry = self.hass.config_entries.async_get_entry(self.issue_data.get("entry_id", ""))
                     if entry:
                         # Update config entry with new local key
                         new_data = dict(entry.data)
@@ -181,9 +177,9 @@ class LocalKeyExpiredRepairFlow(KKTRepairFlow):
                         self.hass.config_entries.async_update_entry(entry, data=new_data)
 
                         # Reload the integration
-                        await self.hass.config_entries.async_reload(self.data.get("entry_id"))
+                        await self.hass.config_entries.async_reload(self.issue_data.get("entry_id", ""))
 
-                        _LOGGER.info(f"Updated local key for entry {self.data.get('entry_id')}")
+                        _LOGGER.info(f"Updated local key for entry {self.issue_data.get('entry_id')}")
 
                         # Mark issue as resolved
                         await self.async_mark_resolved()
@@ -198,8 +194,8 @@ class LocalKeyExpiredRepairFlow(KKTRepairFlow):
             ),
             errors=errors,
             description_placeholders={
-                "entry_title": self.data.get("entry_title", "Unknown"),
-                "device_id": self.data.get("device_id", "Unknown"),
+                "entry_title": self.issue_data.get("entry_title", "Unknown"),
+                "device_id": self.issue_data.get("device_id", "Unknown"),
             },
         )
 
@@ -211,11 +207,11 @@ class DeviceIdChangedRepairFlow(KKTRepairFlow):
     and gets a new device_id. The local_key also changes in this case.
     """
 
-    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> data_entry_flow.FlowResult:
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> RepairsFlowResult:
         """Handle the first step of the repair flow."""
         return await self.async_step_update_device()
 
-    async def async_step_update_device(self, user_input: dict[str, Any] | None = None) -> data_entry_flow.FlowResult:
+    async def async_step_update_device(self, user_input: dict[str, Any] | None = None) -> RepairsFlowResult:
         """Ask user to confirm device ID and IP update, enter new local key."""
         errors = {}
 
@@ -240,8 +236,8 @@ class DeviceIdChangedRepairFlow(KKTRepairFlow):
                 errors[CONF_LOCAL_KEY] = "invalid_local_key"
 
             if not errors:
-                if self.data.get("entry_id"):
-                    entry = self.hass.config_entries.async_get_entry(self.data.get("entry_id"))
+                if self.issue_data.get("entry_id", ""):
+                    entry = self.hass.config_entries.async_get_entry(self.issue_data.get("entry_id", ""))
                     if entry:
                         # Try to fetch local_key from SmartLife if requested
                         if fetch_from_cloud:
@@ -267,16 +263,18 @@ class DeviceIdChangedRepairFlow(KKTRepairFlow):
                                 from homeassistant.helpers import device_registry as dr
 
                                 dev_reg = dr.async_get(self.hass)
-                                old_device = dev_reg.async_get_device(identifiers={(DOMAIN, old_device_id)})
+                                old_device = dev_reg.async_get_device_by_identifier(
+                                    (DOMAIN, old_device_id), config_entry_id=entry.entry_id
+                                )
                                 if old_device:
                                     _LOGGER.info(f"Removing old device registry entry for {old_device_id}")
                                     dev_reg.async_remove_device(old_device.id)
 
                             # Reload the integration
-                            await self.hass.config_entries.async_reload(self.data.get("entry_id"))
+                            await self.hass.config_entries.async_reload(self.issue_data.get("entry_id", ""))
 
                             _LOGGER.info(
-                                f"Updated device_id to {new_device_id}, IP to {new_ip} for entry {self.data.get('entry_id')}"
+                                f"Updated device_id to {new_device_id}, IP to {new_ip} for entry {self.issue_data.get('entry_id')}"
                             )
 
                             # Mark issue as resolved
@@ -284,8 +282,8 @@ class DeviceIdChangedRepairFlow(KKTRepairFlow):
                             return self.async_create_entry(data={})
 
         # Pre-fill with detected values if available
-        suggested_device_id = self.data.get("new_device_id") or self.data.get("old_device_id", "")
-        suggested_ip = self.data.get("new_ip") or self.data.get("old_ip", "")
+        suggested_device_id = self.issue_data.get("new_device_id") or self.issue_data.get("old_device_id", "")
+        suggested_ip = self.issue_data.get("new_ip") or self.issue_data.get("old_ip", "")
 
         return self.async_show_form(
             step_id="update_device",
@@ -299,11 +297,11 @@ class DeviceIdChangedRepairFlow(KKTRepairFlow):
             ),
             errors=errors,
             description_placeholders={
-                "entry_title": self.data.get("entry_title", "Unknown"),
-                "old_device_id": self.data.get("old_device_id", "Unknown"),
-                "new_device_id": self.data.get("new_device_id") or "Not detected",
-                "old_ip": self.data.get("old_ip", "Unknown"),
-                "new_ip": self.data.get("new_ip") or "Not detected",
+                "entry_title": self.issue_data.get("entry_title", "Unknown"),
+                "old_device_id": self.issue_data.get("old_device_id", "Unknown"),
+                "new_device_id": self.issue_data.get("new_device_id") or "Not detected",
+                "old_ip": self.issue_data.get("old_ip", "Unknown"),
+                "new_ip": self.issue_data.get("new_ip") or "Not detected",
             },
         )
 
@@ -311,18 +309,18 @@ class DeviceIdChangedRepairFlow(KKTRepairFlow):
         """Try to fetch local_key from SmartLife cloud."""
         try:
             # Find parent account entry
-            if not self.data.get("entry_id"):
+            if not self.issue_data.get("entry_id", ""):
                 _LOGGER.warning("No entry_id available for cloud fetch")
                 return None
 
-            entry = self.hass.config_entries.async_get_entry(self.data.get("entry_id"))
+            entry = self.hass.config_entries.async_get_entry(self.issue_data.get("entry_id", ""))
             if not entry:
-                _LOGGER.warning(f"Config entry {self.data.get('entry_id')} not found")
+                _LOGGER.warning(f"Config entry {self.issue_data.get('entry_id')} not found")
                 return None
 
             parent_entry_id = entry.data.get("parent_entry_id")
             if not parent_entry_id:
-                _LOGGER.warning(f"No parent_entry_id in config entry {self.data.get('entry_id')}")
+                _LOGGER.warning(f"No parent_entry_id in config entry {self.issue_data.get('entry_id')}")
                 return None
 
             parent_entry = self.hass.config_entries.async_get_entry(parent_entry_id)

@@ -18,14 +18,14 @@
 
 ---
 
-## Highlights v4.6
+## Highlights v4.9
 
-- **EB8313HC Backofen** - DPs 101-120 aus echtem Gerät ermittelt, Integration bereit zum Testen (Issue #6, @Lucky-ESA)
-- **Siri/HomeKit Szenen** - RGB-Farben und Licht per Sprachbefehl, Fan-Autostart wird unterdrückt
-- **EASY Hood verifiziert** - EASY9005SM/909SHCM/609SHCM mit korrekten DPs (Community Issue #5)
-- **7 Dunstabzugshauben + 1 Kochfeld + 1 Backofen** unterstützt
+- **Home Assistant 2026.x** - modernisiert für HA 2026.9+ (Python 3.14), bereit für die Änderungen in HA 2026.12
+- **Geräte-Ereignisse** - eigene Event-Entity pro Gerät: Verbindung verloren/wieder da, Wechsel lokal ↔ Cloud, Timer abgelaufen, Filterreinigung fällig, Fehler an Kochzone, plus Blueprint für Push-Benachrichtigungen
+- **Actions mit Antwort** - `get_connection_status` und `get_firmware_info` liefern ihr Ergebnis per `response_variable` direkt an Skripte
+- **Lokal + Cloud** - lokale Tuya-Steuerung, SmartLife-Cloud als Fallback inkl. MQTT-Push (~500 ms statt 30 s Polling)
 - **Kein Developer Account nötig** - Setup via SmartLife/Tuya Smart App
-- **Lokale Steuerung** - Tuya Protocol ohne Cloud-Abhängigkeit
+- **6 Hauben-Familien + 1 Kochfeld + 1 Backofen** unterstützt
 
 > **Hinweis:** Diese Integration wurde mit [Claude Code](https://claude.ai/code) entwickelt. Der Quellcode ist vollständig einsehbar. Verwendung auf eigene Verantwortung.
 
@@ -54,10 +54,10 @@
 | **HERMES** | 5 Stufen | Helligkeit | 10 Modi | ✅ | ✅ Verfügbar |
 | **ECCO HCM** | 9 Stufen | Multi | 4 Modi | ✅ | ✅ Verfügbar |
 | **SOLO HCM** | 9 Stufen | Multi | 4 Modi | ✅ | ✅ Verfügbar |
-| **EASY** | 10 Stufen | ✅ | 10 Modi | ✅ | ✅ Verifiziert (Issue #5) |
+| **EASY / PLOOM** | 10 Stufen | ✅ | 10 Modi | ✅ | ✅ Verifiziert (Issue #5, #8) |
 | **FLAT** | 5 Stufen | ✅ | - | ✅ | ✅ Verfügbar |
 
-EASY-Modelle: EASY9005SM (90cm), EASY909SHCM (90cm), EASY609SHCM (60cm) - HERMES-basiert mit 10 Lüfterstufen
+EASY-Modelle: EASY9005SM (90cm), EASY909SHCM (90cm), EASY609SHCM (60cm) - HERMES-basiert mit 10 Lüfterstufen. PLOOM6005 (G/M/S) nutzt dieselben DPs.
 
 ### Induktionskochfeld
 
@@ -100,9 +100,9 @@ Hast du ein KKT Kolbe Gerät mit WiFi das hier nicht aufgeführt ist?
 
 ### Manuell
 
-```bash
-# Download & Extract nach config/custom_components/kkt_kolbe/
-```
+1. Neuestes [Release](https://github.com/moag1000/HA-kkt-kolbe-integration/releases) herunterladen
+2. Ordner `custom_components/kkt_kolbe/` nach `config/custom_components/kkt_kolbe/` kopieren
+3. Home Assistant neu starten
 
 ---
 
@@ -122,8 +122,26 @@ Hast du ein KKT Kolbe Gerät mit WiFi das hier nicht aufgeführt ist?
 
 | Komponente | Version |
 |------------|---------|
-| Home Assistant | ≥ 2025.12.0 |
-| Python | ≥ 3.12 |
+| Home Assistant | ≥ 2026.9.0 |
+| Python | ≥ 3.14 (bringt Home Assistant 2026.x mit) |
+
+---
+
+## Automationen, Sprachsteuerung & KI
+
+- **Geräte-Ereignisse:** Jedes Gerät hat eine Entity „Geräte-Ereignisse“ (`event.*`). In Automationen als Auslöser „Entität → Ereignis“ wählen, z. B. `timer_finished` für eine Benachrichtigung, wenn der Haubentimer abläuft. Fertig zum Import: Blueprint [Geräte-Ereignisse melden](blueprints/README.md).
+- **Neu verbinden per Knopf:** Geräte mit lokaler Verbindung haben einen Button „Neu verbinden“ auf der Geräteseite, statt die Action `kkt_kolbe.reconnect_device` aufzurufen.
+- **Actions mit Antwort:** `kkt_kolbe.get_connection_status` und `kkt_kolbe.get_firmware_info` geben ihr Ergebnis zurück:
+  ```yaml
+  - action: kkt_kolbe.get_connection_status
+    response_variable: status
+  - action: notify.notify
+    data:
+      message: "{{ status.statuses }}"
+  ```
+- **Assist / KI-Agents:** Haube, Licht und Lüfter lassen sich per Assist oder einem LLM-Agent steuern („Stell die Dunstabzugshaube auf Stufe 3“), wenn die Entities unter *Einstellungen → Sprachassistenten → Entitäten freigeben* freigegeben sind.
+
+> ⚠️ **Sicherheit Kochfeld:** Gib Kochfeld-Entities (Zonen, Leistung, Timer, Hauptschalter) **nicht** für Sprachassistenten oder KI-Agents frei. Ein missverstandener Befehl darf keine Kochzone einschalten. Mehr dazu in [docs/COOKTOP_SAFETY.md](docs/COOKTOP_SAFETY.md).
 
 ---
 
@@ -136,6 +154,7 @@ Hast du ein KKT Kolbe Gerät mit WiFi das hier nicht aufgeführt ist?
 | Blueprints | [blueprints/README.md](blueprints/README.md) |
 | HomeKit Integration | [docs/HOMEKIT.md](docs/HOMEKIT.md) |
 | Automation Examples | [docs/AUTOMATION_EXAMPLES.md](docs/AUTOMATION_EXAMPLES.md) |
+| Kochfeld-Sicherheit | [docs/COOKTOP_SAFETY.md](docs/COOKTOP_SAFETY.md) |
 | Developer Guide | [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md) |
 | Changelog | [CHANGELOG.md](CHANGELOG.md) |
 
@@ -143,9 +162,9 @@ Hast du ein KKT Kolbe Gerät mit WiFi das hier nicht aufgeführt ist?
 
 ## Bekannte Limitationen
 
-- Funktioniert nur im lokalen Netzwerk (optional Cloud-Fallback)
-- Modell-spezifische Konfigurationen
-- Firmware-abhängige Data Points
+- Lokale Steuerung braucht das Gerät im selben Netz; ohne lokale IP läuft alles über die SmartLife-Cloud
+- RGB-, Helligkeits- und Szenen-DPs der Hauben gehen nur lokal (die Tuya-Cloud bietet sie nicht an)
+- Modell-spezifische Konfigurationen, Firmware-abhängige Data Points
 
 ---
 
@@ -164,7 +183,7 @@ Hast du ein KKT Kolbe Gerät mit WiFi das hier nicht aufgeführt ist?
 - [Home Assistant Developer Docs](https://developers.home-assistant.io/)
 - [Home Assistant Core Integrations](https://github.com/home-assistant/core/tree/dev/homeassistant/components)
 - [Tuya Official Integration](https://github.com/home-assistant/core/tree/dev/homeassistant/components/tuya)
-- [LocalTuya](https://github.com/rospogriern/localtuya) - Tuya Protocol Patterns
+- [LocalTuya](https://github.com/rospogrigio/localtuya) - Tuya Protocol Patterns
 - [TuyaLocal](https://github.com/make-all/tuya-local) - Device Configurations
 
 ### KI-Entwicklung

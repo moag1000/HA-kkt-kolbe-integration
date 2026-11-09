@@ -173,9 +173,9 @@ def get_device_type_options() -> list[dict[str, str]]:
     Returns:
         List of dicts with 'value' and 'label' keys for selector options.
     """
-    from ..device_types import CATEGORY_COOKTOP
-    from ..device_types import CATEGORY_HOOD
-    from ..device_types import CATEGORY_OVEN
+    from ..const import CATEGORY_COOKTOP
+    from ..const import CATEGORY_HOOD
+    from ..const import CATEGORY_OVEN
     from ..device_types import KNOWN_DEVICES
 
     options: list[dict[str, str]] = []

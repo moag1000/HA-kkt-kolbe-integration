@@ -20,6 +20,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
 from zeroconf import ServiceBrowser
 from zeroconf import ServiceListener
+from zeroconf import Zeroconf
 from zeroconf.asyncio import AsyncServiceInfo
 from zeroconf.asyncio import AsyncZeroconf
 
@@ -260,7 +261,7 @@ class KKTKolbeDiscovery(ServiceListener):
         self._browsers: list[ServiceBrowser] = []
         self._udp_listeners: list[tuple[asyncio.DatagramTransport, TuyaUDPDiscovery]] = []
         self._discovery_callback = self._schedule_discovery_trigger
-        self._cleanup_task: asyncio.Task | None = None
+        self._cleanup_task: asyncio.Task[None] | None = None
 
     async def async_discover_devices(self, timeout: int = 6) -> dict[str, dict[str, Any]]:
         """Discover devices and return discovered devices dict."""
@@ -470,7 +471,7 @@ class KKTKolbeDiscovery(ServiceListener):
 
         _LOGGER.info("Stopped KKT Kolbe discovery (mDNS and UDP)")
 
-    def add_service(self, zc, type_: str, name: str) -> None:
+    def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
         """Called when a service is discovered."""
         try:
             # Use call_soon_threadsafe since this is called from zeroconf thread
@@ -479,7 +480,7 @@ class KKTKolbeDiscovery(ServiceListener):
         except Exception as e:
             _LOGGER.error(f"Failed to schedule async service addition: {e}")
 
-    async def _async_add_service(self, zc, type_: str, name: str) -> None:
+    async def _async_add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
         """Handle discovered service asynchronously."""
         try:
             # Use AsyncServiceInfo for proper async context
@@ -511,7 +512,7 @@ class KKTKolbeDiscovery(ServiceListener):
         except Exception as e:
             _LOGGER.error(f"Error processing discovered service {name}: {e}")
 
-    def _is_kkt_device(self, info) -> bool:
+    def _is_kkt_device(self, info: AsyncServiceInfo) -> bool:
         """Check if the discovered device is a KKT Kolbe device."""
         if not info:
             return False
@@ -530,7 +531,7 @@ class KKTKolbeDiscovery(ServiceListener):
                     if key_str in ["id", "devid", "device_id"]:
                         device_id = value_str
                         break
-                except (UnicodeDecodeError, AttributeError):
+                except UnicodeDecodeError, AttributeError:
                     continue
 
         # Check if device ID matches Tuya pattern
@@ -557,14 +558,14 @@ class KKTKolbeDiscovery(ServiceListener):
                     key_str = key.decode("utf-8").lower()
                     value_str = value.decode("utf-8").lower()
                     txt_data[key_str] = value_str
-                except (UnicodeDecodeError, AttributeError):
+                except UnicodeDecodeError, AttributeError:
                     continue
 
             # Look for KKT/Kolbe in TXT records
-            for key, value in txt_data.items():
-                if any(pattern in value for pattern in KKT_PATTERNS):
+            for txt_key, txt_value in txt_data.items():
+                if any(pattern in txt_value for pattern in KKT_PATTERNS):
                     return True
-                if any(pattern in key for pattern in KKT_PATTERNS):
+                if any(pattern in txt_key for pattern in KKT_PATTERNS):
                     return True
 
             # Check for known model IDs
@@ -577,7 +578,7 @@ class KKTKolbeDiscovery(ServiceListener):
 
         return False
 
-    def _check_tuya_device_info(self, info) -> bool:
+    def _check_tuya_device_info(self, info: AsyncServiceInfo) -> bool:
         """Check if a Tuya device is a KKT Kolbe device by TXT records.
 
         IMPORTANT: Device IDs change when re-adding devices to Tuya/SmartLife,
@@ -594,7 +595,7 @@ class KKTKolbeDiscovery(ServiceListener):
                 key_str = key.decode("utf-8").lower()
                 value_str = value.decode("utf-8")
                 txt_data[key_str] = value_str
-            except (UnicodeDecodeError, AttributeError):
+            except UnicodeDecodeError, AttributeError:
                 continue
 
         # Check for known model IDs in TXT records
@@ -653,7 +654,7 @@ class KKTKolbeDiscovery(ServiceListener):
                     elif key_str.lower() in ["manufacturer", "mfg"]:
                         device_info["manufacturer"] = value_str
 
-                except (UnicodeDecodeError, AttributeError):
+                except UnicodeDecodeError, AttributeError:
                     continue
 
         # Determine device type from model
@@ -790,11 +791,11 @@ class KKTKolbeDiscovery(ServiceListener):
                 _LOGGER.error("Failed to create repair issue: %s", e)
             return
 
-    def remove_service(self, zc, type_: str, name: str) -> None:
+    def remove_service(self, zc: Zeroconf, type_: str, name: str) -> None:
         """Called when a service is removed."""
         # Could implement device removal logic here
 
-    def update_service(self, zc, type_: str, name: str) -> None:
+    def update_service(self, zc: Zeroconf, type_: str, name: str) -> None:
         """Called when a service is updated - Gold Tier: Update IP address if changed."""
         try:
             # Use call_soon_threadsafe since this is called from zeroconf thread
@@ -803,7 +804,7 @@ class KKTKolbeDiscovery(ServiceListener):
         except Exception as e:
             _LOGGER.error(f"Failed to schedule async service update: {e}")
 
-    async def _async_update_service(self, zc, type_: str, name: str) -> None:
+    async def _async_update_service(self, zc: Zeroconf, type_: str, name: str) -> None:
         """Handle service update - Update IP address in config entry if changed."""
         try:
             # Get updated service info
@@ -826,7 +827,7 @@ class KKTKolbeDiscovery(ServiceListener):
                         if key_str in ["id", "devid", "device_id"]:
                             device_id = value_str
                             break
-                    except (UnicodeDecodeError, AttributeError):
+                    except UnicodeDecodeError, AttributeError:
                         continue
 
             if not device_id:
@@ -941,7 +942,7 @@ async def simple_tuya_discover(timeout: int = 6) -> dict[str, dict[str, Any]]:
 
     loop = asyncio.get_running_loop()
     listeners: list[tuple[Any, Any]] = []
-    probe_task: asyncio.Task | None = None
+    probe_task: asyncio.Task[None] | None = None
 
     try:
         for port in UDP_PORTS:

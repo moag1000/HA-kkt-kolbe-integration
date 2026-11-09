@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.storage import Store
 
 from .const import DEFAULT_API_ENDPOINT
@@ -24,7 +26,7 @@ class GlobalAPIManager:
     def __init__(self, hass: HomeAssistant):
         """Initialize the global API manager."""
         self.hass = hass
-        self._store = Store(hass, STORAGE_VERSION, STORAGE_KEY)
+        self._store: Store[dict[str, Any]] = Store(hass, STORAGE_VERSION, STORAGE_KEY)
 
     async def async_load_stored_credentials(self) -> dict[str, str] | None:
         """Load credentials from persistent storage."""
@@ -126,7 +128,10 @@ class GlobalAPIManager:
             from .api import TuyaCloudClient
 
             api_client = TuyaCloudClient(
-                client_id=creds["client_id"], client_secret=creds["client_secret"], endpoint=creds["endpoint"]
+                client_id=creds["client_id"],
+                client_secret=creds["client_secret"],
+                endpoint=creds["endpoint"],
+                session=async_get_clientsession(self.hass),
             )
 
             async with api_client:
@@ -136,7 +141,7 @@ class GlobalAPIManager:
             _LOGGER.error(f"Stored API credentials test failed: {err}")
             return False
 
-    async def get_kkt_devices_from_api(self) -> list:
+    async def get_kkt_devices_from_api(self) -> list[Any]:
         """Get KKT Kolbe devices using stored credentials."""
         creds = self.get_stored_api_credentials()
         if not creds:
@@ -146,7 +151,10 @@ class GlobalAPIManager:
             from .api import TuyaCloudClient
 
             api_client = TuyaCloudClient(
-                client_id=creds["client_id"], client_secret=creds["client_secret"], endpoint=creds["endpoint"]
+                client_id=creds["client_id"],
+                client_secret=creds["client_secret"],
+                endpoint=creds["endpoint"],
+                session=async_get_clientsession(self.hass),
             )
 
             async with api_client:

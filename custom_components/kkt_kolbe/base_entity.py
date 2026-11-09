@@ -18,9 +18,10 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import slugify
 
 from .const import DOMAIN
+from .data import KKTCoordinator
 
 if TYPE_CHECKING:
-    from .coordinator import KKTKolbeUpdateCoordinator
+    pass
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -30,7 +31,7 @@ _LOGGER = logging.getLogger(__name__)
 OPTIMISTIC_TTL_SECONDS = 8.0
 
 
-class KKTBaseEntity(CoordinatorEntity["KKTKolbeUpdateCoordinator"]):
+class KKTBaseEntity(CoordinatorEntity["KKTCoordinator"]):
     """Base entity for all KKT Kolbe entities."""
 
     _attr_has_entity_name = True
@@ -50,7 +51,7 @@ class KKTBaseEntity(CoordinatorEntity["KKTKolbeUpdateCoordinator"]):
 
     def __init__(
         self,
-        coordinator: KKTKolbeUpdateCoordinator,
+        coordinator: KKTCoordinator,
         entry: ConfigEntry,
         config: dict[str, Any],
         platform: str,
@@ -129,7 +130,7 @@ class KKTBaseEntity(CoordinatorEntity["KKTKolbeUpdateCoordinator"]):
         # Set entity category if provided
         entity_category = self._config.get("entity_category")
         if entity_category:
-            from homeassistant.helpers.entity import EntityCategory
+            from homeassistant.const import EntityCategory
 
             if hasattr(EntityCategory, entity_category.upper()):
                 self._attr_entity_category = getattr(EntityCategory, entity_category.upper())
@@ -138,23 +139,22 @@ class KKTBaseEntity(CoordinatorEntity["KKTKolbeUpdateCoordinator"]):
         if self._config.get("advanced", False) or entity_category == "diagnostic":
             self._attr_entity_registry_enabled_default = False
 
+    def _runtime_attr(self, name: str) -> str:
+        """Return a string attribute from entry.runtime_data ("" if unavailable)."""
+        value = getattr(getattr(self._entry, "runtime_data", None), name, None)
+        return value if isinstance(value, str) else ""
+
     def _build_device_info(self) -> DeviceInfo:
         """Build standardized device info using KNOWN_DEVICES."""
-        from .device_types import CATEGORY_COOKTOP
-        from .device_types import CATEGORY_HOOD
+        from .const import CATEGORY_COOKTOP
+        from .const import CATEGORY_HOOD
         from .device_types import KNOWN_DEVICES
 
-        # Get device data from hass.data (now available via property access)
-        if not self.hass:
-            device_data = {}
-            device_type_key = "auto"
-        else:
-            device_data = self.hass.data.get(DOMAIN, {}).get(self._entry.entry_id, {})
-            device_type_key = device_data.get("device_type", "auto")
+        # Device type resolved during setup lives on entry.runtime_data
+        device_type_key = self._runtime_attr("device_type") or "auto"
 
         # Extract device information
         device_id = self._entry.data.get("device_id", "unknown")
-        ip_address = self._entry.data.get("ip_address", "unknown")
 
         # Get device info from KNOWN_DEVICES (HA 2024.6+ model ID support)
         if device_type_key in KNOWN_DEVICES:
@@ -179,8 +179,6 @@ class KKTBaseEntity(CoordinatorEntity["KKTKolbeUpdateCoordinator"]):
             model=model_id,  # Use model_id from KNOWN_DEVICES
             sw_version=self._get_software_version(),
             hw_version=self._get_hardware_version(),
-            configuration_url=f"http://{ip_address}",
-            suggested_area="Kitchen",
         )
 
     def _get_software_version(self) -> str:
@@ -216,10 +214,8 @@ class KKTBaseEntity(CoordinatorEntity["KKTKolbeUpdateCoordinator"]):
         device_type = None
         product_name = None
 
-        if self.hass:
-            runtime_data = self.hass.data.get(DOMAIN, {}).get(self._entry.entry_id, {})
-            device_type = runtime_data.get("device_type", "")
-            product_name = runtime_data.get("product_name", "")
+        device_type = self._runtime_attr("device_type")
+        product_name = self._runtime_attr("product_name")
 
         # Fallback to entry.data
         if not device_type or device_type in ("auto", "unknown", ""):
@@ -255,18 +251,6 @@ class KKTBaseEntity(CoordinatorEntity["KKTKolbeUpdateCoordinator"]):
             return str(device_id[:8]).upper()
 
         return "KKT Device"
-
-    def _get_suggested_area(self) -> str:
-        """Get suggested area for the device."""
-        if self.hass:
-            product_name = self.hass.data.get(DOMAIN, {}).get(self._entry.entry_id, {}).get("product_name", "")
-        else:
-            product_name = ""
-
-        if "IND7705HC" in product_name or "HERMES" in product_name:
-            return "Kitchen"
-
-        return "Kitchen"
 
     @property
     def available(self) -> bool:
@@ -598,10 +582,7 @@ class KKTBaseEntity(CoordinatorEntity["KKTKolbeUpdateCoordinator"]):
             return
 
         # Send fan-off: enum mode uses "off", numeric mode uses 0
-        if fan_config.get("numeric", False):
-            off_value = 0
-        else:
-            off_value = "off"
+        off_value: int | str = 0 if fan_config.get("numeric", False) else "off"
 
         _LOGGER.info("Suppressing fan auto-start: sending DP %d = %s for %s", fan_dp, off_value, self._attr_unique_id)
         await self._async_set_data_point(fan_dp, off_value)
@@ -625,11 +606,11 @@ class KKTZoneBaseEntity(KKTBaseEntity):
 
     def __init__(
         self,
-        coordinator,
+        coordinator: KKTCoordinator,
         entry: ConfigEntry,
         config: dict[str, Any],
         platform: str,
-    ):
+    ) -> None:
         """Initialize the zone base entity."""
         zone = config.get("zone")
         if zone is None:
@@ -638,7 +619,7 @@ class KKTZoneBaseEntity(KKTBaseEntity):
         super().__init__(coordinator, entry, config, platform, zone)
 
         # Zone entities are typically diagnostic
-        from homeassistant.helpers.entity import EntityCategory
+        from homeassistant.const import EntityCategory
 
         if not hasattr(self, "_attr_entity_category"):
             self._attr_entity_category = EntityCategory.DIAGNOSTIC

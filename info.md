@@ -33,4 +33,4 @@ Home Assistant Integration für KKT Kolbe Dunstabzugshauben, Induktionskochfelde
 
 ---
 
-**Version:** 4.6.0 | **HA:** ≥2025.12.0 | **Lizenz:** MIT
+**Version:** 4.9.0 | **HA:** ≥2026.9.0 | **Lizenz:** MIT

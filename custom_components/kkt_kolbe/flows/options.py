@@ -3,16 +3,19 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 from typing import Any
 
-import voluptuous as vol
+import probatio as vol
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.config_entries import ConfigFlowResult
-from homeassistant.config_entries import OptionsFlow
+from homeassistant.config_entries import OptionsFlowWithReload
 from homeassistant.const import CONF_ACCESS_TOKEN
 from homeassistant.const import CONF_DEVICE_ID
 from homeassistant.const import CONF_IP_ADDRESS
 from homeassistant.const import CONF_SCAN_INTERVAL
 from homeassistant.helpers import selector
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from ..const import DOCUMENTATION_URL
 from ..const import DOMAIN
@@ -23,13 +26,31 @@ from ..const import TUYA_IOT_URL
 from ..helpers import get_options_schema
 from ..helpers import validate_api_credentials
 
+if TYPE_CHECKING:
+    from ..clients.tuya_sharing_client import TuyaSharingClient
+
 _LOGGER = logging.getLogger(__name__)
 
 
-class KKTKolbeOptionsFlow(OptionsFlow):
-    """Handle KKT Kolbe options flow."""
+# Form fields that act on entry.data (or are one-shot actions) and must not be
+# persisted as options: secrets would otherwise sit in entry.options as well.
+TRANSIENT_OPTION_KEYS = frozenset(
+    {"new_local_key", "api_enabled", "api_client_id", "api_client_secret", "api_endpoint", "test_connection"}
+)
 
-    def __init__(self):
+
+class KKTKolbeOptionsFlow(OptionsFlowWithReload):
+    """Handle KKT Kolbe options flow.
+
+    OptionsFlowWithReload (HA 2025.8+) reloads the entry automatically when the
+    options actually change, replacing the former config entry update listener.
+    """
+
+    _qr_code_url: str | None = None
+    _data_changed: bool = False
+    _smartlife_client: TuyaSharingClient | None = None
+
+    def __init__(self) -> None:
         """Initialize options flow."""
         # No longer store config_entry manually - use self.config_entry property
         # This property is automatically provided by the OptionsFlow parent class
@@ -98,7 +119,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
         errors: dict[str, str] = {}
 
         # Initialize QR code generation
-        if not hasattr(self, "_qr_code_url") or self._qr_code_url is None:
+        if self._qr_code_url is None:
             try:
                 from ..clients.tuya_sharing_client import TuyaSharingClient
                 from ..const import SMARTLIFE_SCHEMA
@@ -110,13 +131,12 @@ class KKTKolbeOptionsFlow(OptionsFlow):
                     _LOGGER.error("No user_code found in config entry for token renewal")
                 else:
                     # Create new client for QR code generation
-                    self._smartlife_client = TuyaSharingClient(
-                        self.hass, user_code=user_code, app_schema=SMARTLIFE_SCHEMA
-                    )
+                    client = TuyaSharingClient(self.hass, user_code=user_code, app_schema=SMARTLIFE_SCHEMA)
+                    self._smartlife_client = client
                     # Generate QR code - returns string like "tuyaSmart--qrLogin?token=xxx"
                     from urllib.parse import quote
 
-                    qr_code_string = await self._smartlife_client.async_generate_qr_code()
+                    qr_code_string = await client.async_generate_qr_code()
                     # Convert to QR code image URL using qrserver.com API
                     encoded_qr = quote(qr_code_string, safe="")
                     self._qr_code_url = f"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={encoded_qr}"
@@ -126,15 +146,16 @@ class KKTKolbeOptionsFlow(OptionsFlow):
                 errors["base"] = "qr_code_failed"
                 _LOGGER.error("Failed to generate QR code: %s", err)
 
-        if user_input is not None:
+        if user_input is not None and self._smartlife_client is not None:
             # User clicked "I scanned the QR code"
+            client = self._smartlife_client
             try:
                 # Poll for authentication result
-                auth_result = await self._smartlife_client.async_poll_login_result()
+                auth_result = await client.async_poll_login_result()
 
                 if auth_result.success:
                     # Get new token info
-                    new_token_info = self._smartlife_client.get_token_info_for_storage()
+                    new_token_info = client.get_token_info_for_storage()
 
                     # Update config entry with new tokens
                     new_data = dict(self.config_entry.data)
@@ -168,7 +189,9 @@ class KKTKolbeOptionsFlow(OptionsFlow):
                             child_reload_count,
                         )
 
-                    return self.async_create_entry(title="", data={})
+                    # Keep existing options untouched: the entries were already
+                    # reloaded above, and data={} would wipe account settings.
+                    return self.async_create_entry(title="", data=dict(self.config_entry.options))
                 else:
                     errors["base"] = "auth_failed"
                     _LOGGER.error("Token renewal failed: %s", auth_result.error_message)
@@ -178,7 +201,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
                 _LOGGER.error("Token renewal failed: %s", err)
 
         # Show QR code form or error
-        qr_url = getattr(self, "_qr_code_url", None) or ""
+        qr_url = self._qr_code_url or ""
 
         if not qr_url and not errors:
             # QR generation failed but no specific error was set
@@ -201,7 +224,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
         if user_input is not None:
             validation_errors = await self._validate_options(user_input)
             if not validation_errors:
-                return self.async_create_entry(title="", data=user_input)
+                return self._async_finish(user_input)
             errors.update(validation_errors)
 
         current_interval = self.config_entry.options.get(CONF_SCAN_INTERVAL, 30)
@@ -253,7 +276,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
         if user_input is not None:
             validation_errors = await self._validate_options(user_input)
             if not validation_errors:
-                return self.async_create_entry(title="", data=user_input)
+                return self._async_finish(user_input)
             errors.update(validation_errors)
 
         # Get current settings from config_entry
@@ -293,6 +316,18 @@ class KKTKolbeOptionsFlow(OptionsFlow):
             },
         )
 
+    def _async_finish(self, user_input: dict[str, Any]) -> ConfigFlowResult:
+        """Store the real options; reload if only entry.data changed.
+
+        OptionsFlowWithReload reloads only when the options differ, but a new
+        local key or changed API settings live in entry.data and also need a
+        reload to take effect.
+        """
+        options = {key: value for key, value in user_input.items() if key not in TRANSIENT_OPTION_KEYS}
+        if self._data_changed and options == dict(self.config_entry.options):
+            self.hass.config_entries.async_schedule_reload(self.config_entry.entry_id)
+        return self.async_create_entry(title="", data=options)
+
     async def _validate_options(self, options: dict[str, Any]) -> dict[str, str]:
         """Validate options.
 
@@ -310,11 +345,26 @@ class KKTKolbeOptionsFlow(OptionsFlow):
             key_errors = await self._validate_and_update_local_key(new_local_key)
             errors.update(key_errors)
 
-        # Handle API settings update
-        api_enabled = options.get("api_enabled", False)
-        if api_enabled:
-            api_errors = await self._validate_and_update_api_settings(options)
-            errors.update(api_errors)
+        # Handle API settings update (only on devices whose form has the API fields)
+        if "api_enabled" in options:
+            data = self.config_entry.data
+            if options["api_enabled"]:
+                client_id = (options.get("api_client_id") or "").strip()
+                endpoint = options.get("api_endpoint") or data.get("api_endpoint")
+                unchanged = (
+                    data.get("api_enabled")
+                    and data.get("api_client_secret")
+                    and client_id == data.get("api_client_id")
+                    and endpoint == data.get("api_endpoint")
+                )
+                if not (options.get("api_client_secret") or "").strip() and unchanged:
+                    # Secret is never pre-filled: an empty field keeps the stored one
+                    pass
+                else:
+                    errors.update(await self._validate_and_update_api_settings(options))
+            elif data.get("api_enabled"):
+                self.hass.config_entries.async_update_entry(self.config_entry, data={**data, "api_enabled": False})
+                self._data_changed = True
 
         # Test connection if requested
         if options.get("test_connection", False) and not errors:
@@ -369,6 +419,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
                 new_data["local_key"] = new_local_key
 
                 self.hass.config_entries.async_update_entry(self.config_entry, data=new_data)
+                self._data_changed = True
 
                 # Trigger service to update coordinator
                 await self.hass.services.async_call(
@@ -424,6 +475,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
                 client_id=client_id,
                 client_secret=client_secret,
                 endpoint=options.get("api_endpoint", "https://openapi.tuyaeu.com"),
+                session=async_get_clientsession(self.hass),
             )
 
             async with api_client:
@@ -437,6 +489,7 @@ class KKTKolbeOptionsFlow(OptionsFlow):
                     new_data["api_endpoint"] = options.get("api_endpoint", "https://openapi.tuyaeu.com")
 
                     self.hass.config_entries.async_update_entry(self.config_entry, data=new_data)
+                    self._data_changed = True
                     _LOGGER.info(f"API credentials updated for device {device_id}")
                 else:
                     errors["api_client_secret"] = "api_test_failed"
@@ -455,8 +508,13 @@ class KKTKolbeOptionsFlow(OptionsFlow):
         """
         errors: dict[str, str] = {}
 
+        if self.config_entry.state is not ConfigEntryState.LOADED:
+            # A device that failed to set up is exactly the one whose options
+            # need fixing; the reload after saving tests the new settings.
+            return errors
+
         try:
-            coordinator = self.hass.data[DOMAIN][self.config_entry.entry_id]["coordinator"]
+            coordinator = self.config_entry.runtime_data.coordinator
             await coordinator.async_refresh()
 
             if not coordinator.last_update_success:

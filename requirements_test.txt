@@ -1,10 +1,9 @@
 # Testing requirements for KKT Kolbe integration
-pytest>=7.4.0
-pytest-asyncio>=0.21.0
-pytest-homeassistant-custom-component>=0.13.0
-pytest-cov>=4.1.0
-zeroconf>=0.131.0
+# pytest-homeassistant-custom-component pins homeassistant and the matching
+# pytest stack; bump it together with the minimum HA version in hacs.json.
+pytest-homeassistant-custom-component==0.13.375
+pytest-cov>=7.0.0
+zeroconf>=0.151.0
 pycryptodome>=3.19.0
-tinytuya>=1.18.0
-aiohttp>=3.9.0
-tuya-device-sharing-sdk>=0.2.9
+tinytuya>=1.20.0
+tuya-device-sharing-sdk>=0.2.15

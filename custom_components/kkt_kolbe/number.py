@@ -10,13 +10,13 @@ from homeassistant.components.number import NumberEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .base_entity import KKTBaseEntity
 from .base_entity import KKTZoneBaseEntity
 from .bitfield_utils import BITFIELD_CONFIG
 from .bitfield_utils import get_zone_value_from_coordinator
 from .bitfield_utils import set_zone_value_in_coordinator
+from .data import KKTCoordinator
 from .device_types import get_device_entities
 
 if TYPE_CHECKING:
@@ -45,7 +45,7 @@ async def async_setup_entry(
     # Prefer device_type (KNOWN_DEVICES key) over product_name (Tuya product ID)
     lookup_key = device_type if device_type not in ("auto", None, "") else product_name
 
-    entities = []
+    entities: list[NumberEntity] = []
     number_configs = get_device_entities(lookup_key, "number")
 
     for config in number_configs:
@@ -66,7 +66,7 @@ class KKTKolbeNumber(KKTBaseEntity, NumberEntity):
 
     def __init__(
         self,
-        coordinator: DataUpdateCoordinator[dict[str, Any]],
+        coordinator: KKTCoordinator,
         entry: ConfigEntry,
         config: dict[str, Any],
     ) -> None:
@@ -153,7 +153,7 @@ class KKTKolbeZoneNumber(KKTZoneBaseEntity, NumberEntity):
 
     def __init__(
         self,
-        coordinator: DataUpdateCoordinator[dict[str, Any]],
+        coordinator: KKTCoordinator,
         entry: ConfigEntry,
         config: dict[str, Any],
     ) -> None:
@@ -249,7 +249,7 @@ class KKTKolbeZoneNumber(KKTZoneBaseEntity, NumberEntity):
             self.async_write_ha_state()
 
         try:
-            if is_bitfield_value:
+            if is_bitfield_value and self._zone is not None:
                 # Base64 RAW bitfield — set_zone_value_in_coordinator re-raises on failure.
                 await set_zone_value_in_coordinator(self.coordinator, self._dp, self._zone, int_value)
                 self._log_entity_state(

@@ -95,7 +95,8 @@
         },
         "data_description": {
           "selected_device": "Select your KKT Kolbe device",
-          "retry_discovery": "Search again for devices on the network"
+          "retry_discovery": "Search again for devices on the network",
+          "back_to_user": "Go back to choose a different setup method"
         }
       },
       "discovery": {
@@ -144,9 +145,7 @@
       },
       "zeroconf_confirm": {
         "title": "Device Discovered",
-        "description": "A KKT Kolbe device was automatically discovered on your network.\n\n**Device:** {device_name}\n**Device ID:** {device_id}\n**IP Address:** {ip_address}\n**Type:** {product_name}\n\nClick Submit to add this device.",
-        "data": {},
-        "data_description": {}
+        "description": "A KKT Kolbe device was automatically discovered on your network.\n\n**Device:** {device_name}\n**Device ID:** {device_id}\n**IP Address:** {ip_address}\n**Type:** {product_name}\n\nClick Submit to add this device."
       },
       "zeroconf_authenticate": {
         "title": "Device Authentication Required",
@@ -473,7 +472,8 @@
           "enable_advanced_entities": "Show all entities (Fan Speed, RGB Mode, Filter Status)",
           "zone_naming_scheme": "How to name multi-zone entities",
           "disable_fan_auto_start": "When turning on the light or power, prevent the fan from starting automatically (hood devices only)",
-          "test_connection": "Test device connection after changes"
+          "test_connection": "Test device connection after changes",
+          "scan_interval": "How often to update device status (10-300 seconds)"
         }
       },
       "device": {
@@ -502,7 +502,8 @@
           "enable_advanced_entities": "Show all entities (Fan Speed, RGB Mode, Filter Status)",
           "zone_naming_scheme": "How to name multi-zone entities",
           "disable_fan_auto_start": "When turning on the light or power, prevent the fan from starting automatically (hood devices only)",
-          "test_connection": "Test device connection after changes"
+          "test_connection": "Test device connection after changes",
+          "scan_interval": "How often to update device status (10-300 seconds)"
         }
       }
     },
@@ -878,6 +879,40 @@
       "light": {
         "name": "Light"
       }
+    },
+    "event": {
+      "device_event": {
+        "name": "Device events",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "connection_lost": "Connection lost",
+              "connection_restored": "Connection restored",
+              "connection_mode_changed": "Connection mode changed",
+              "timer_finished": "Timer finished",
+              "filter_cleaning_due": "Filter cleaning due",
+              "zone_error": "Cooking zone error"
+            }
+          },
+          "mode": {
+            "name": "Mode"
+          },
+          "previous_mode": {
+            "name": "Previous mode"
+          },
+          "zone": {
+            "name": "Zone"
+          },
+          "data_point": {
+            "name": "Data point"
+          }
+        }
+      }
+    },
+    "button": {
+      "reconnect": {
+        "name": "Reconnect"
+      }
     }
   },
   "issues": {
@@ -973,6 +1008,39 @@
           "cloud_fetch_failed": "Failed to fetch local key from cloud. Please enter manually or check your SmartLife account."
         }
       }
+    },
+    "device_offline": {
+      "title": "Device {device_name} unreachable for over 24 hours",
+      "description": "**{device_name}** has not answered since {offline_since}.\n\nPlease check:\n1. Does the device have power and is it connected to Wi-Fi (works in the SmartLife app)?\n2. Did its IP address change? Then update it via **Settings → Devices & services → KKT Kolbe → Reconfigure → Connection** (a DHCP reservation in the router prevents this).\n3. Was the device re-added in the SmartLife app? Then the local key changed: re-authenticate the entry.\n4. Try the **Reconnect** button on the device page.\n\nThis notice disappears automatically as soon as the device answers again."
+    }
+  },
+  "exceptions": {
+    "no_matching_devices": {
+      "message": "No matching KKT Kolbe device is loaded."
+    },
+    "config_entry_not_found": {
+      "message": "Config entry {entry_id} was not found."
+    },
+    "entity_not_found": {
+      "message": "Entity {entity_id} was not found."
+    },
+    "entity_not_kkt_kolbe": {
+      "message": "Entity {entity_id} does not belong to the KKT Kolbe integration."
+    },
+    "entity_wrong_domain": {
+      "message": "Entity {entity_id} must be a {domain} entity."
+    },
+    "entity_unavailable": {
+      "message": "Entity {entity_id} is currently unavailable."
+    },
+    "confirm_required": {
+      "message": "The action {action} needs to be confirmed (set confirm: true)."
+    },
+    "coordinator_not_found": {
+      "message": "No running device connection found for entity {entity_id}."
+    },
+    "reconnect_failed": {
+      "message": "Reconnect failed: {error}"
     }
   }
 }

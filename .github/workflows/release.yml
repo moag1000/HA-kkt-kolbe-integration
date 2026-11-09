@@ -1,0 +1,53 @@
+name: Release
+
+# Builds the HACS zip (kkt_kolbe.zip) and attaches it to the GitHub release.
+# HACS downloads this asset because hacs.json sets "zip_release": true.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  zip:
+    name: Build HACS zip
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Check manifest version matches tag
+        if: github.event_name == 'release'
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          manifest="$(jq -r .version custom_components/kkt_kolbe/manifest.json)"
+          echo "tag=$tag manifest=$manifest"
+          if [ "$tag" != "$manifest" ]; then
+            echo "::error::Release tag ($GITHUB_REF_NAME) does not match manifest.json version ($manifest)"
+            exit 1
+          fi
+
+      - name: Build zip
+        run: |
+          cd custom_components/kkt_kolbe
+          find . -name "__pycache__" -type d -prune -exec rm -rf {} +
+          zip -r -9 "$GITHUB_WORKSPACE/kkt_kolbe.zip" . -x "*.pyc"
+          cd "$GITHUB_WORKSPACE"
+          unzip -l kkt_kolbe.zip | tail -1
+          sha256sum kkt_kolbe.zip | tee kkt_kolbe.zip.sha256
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kkt_kolbe
+          path: |
+            kkt_kolbe.zip
+            kkt_kolbe.zip.sha256
+
+      - name: Attach zip to release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$GITHUB_REF_NAME" kkt_kolbe.zip kkt_kolbe.zip.sha256 --clobber

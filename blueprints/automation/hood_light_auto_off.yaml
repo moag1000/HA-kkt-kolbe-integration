@@ -4,6 +4,8 @@ blueprint:
     Schaltet das Licht der Dunstabzugshaube automatisch aus. Mit Optionen für
     Dimmen vor dem Ausschalten, Lüfter-Abhängigkeit und Bewegungsmelder-Reset.
   domain: automation
+  homeassistant:
+    min_version: "2024.10.0"
   source_url: https://github.com/moag1000/HA-kkt-kolbe-integration/blob/main/blueprints/automation/hood_light_auto_off.yaml
   input:
     # === GERÄTE ===
@@ -136,9 +138,9 @@ variables:
   has_motion: "{{ motion is defined and motion }}"
   fan_is_off: "{{ not has_fan or is_state(fan, 'off') or state_attr(fan, 'percentage') | int(0) == 0 }}"
 
-trigger:
+triggers:
   # Haupt-Trigger: Licht ist für X Minuten an
-  - platform: state
+  - trigger: state
     entity_id: !input hood_light
     to: "on"
     for:
@@ -146,7 +148,7 @@ trigger:
     id: timeout_reached
 
   # Trigger: Lüfter wurde ausgeschaltet (kürzerer Timeout)
-  - platform: state
+  - trigger: state
     entity_id: !input fan_entity
     to: "off"
     for:
@@ -154,14 +156,14 @@ trigger:
     id: fan_turned_off
 
   # Trigger: Bewegung erkannt (Timer zurücksetzen)
-  - platform: state
+  - trigger: state
     entity_id: !input motion_sensor
     to: "on"
     id: motion_detected
 
-condition: []
+conditions: []
 
-action:
+actions:
   - choose:
       # === BEWEGUNG ERKANNT - TIMER RESET ===
       - conditions:
@@ -193,7 +195,7 @@ action:
               - condition: template
                 value_template: "{{ effect_enabled }}"
             then:
-              - service: light.turn_on
+              - action: light.turn_on
                 target:
                   entity_id: !input hood_light
                 data:
@@ -204,14 +206,14 @@ action:
               - condition: template
                 value_template: "{{ dim_enabled }}"
             then:
-              - service: light.turn_on
+              - action: light.turn_on
                 target:
                   entity_id: !input hood_light
                 data:
                   brightness_pct: "{{ dim_level }}"
               - delay:
                   seconds: !input dim_duration
-          - service: light.turn_off
+          - action: light.turn_off
             target:
               entity_id: !input hood_light
 
@@ -233,7 +235,7 @@ action:
               - condition: template
                 value_template: "{{ effect_enabled }}"
             then:
-              - service: light.turn_on
+              - action: light.turn_on
                 target:
                   entity_id: !input hood_light
                 data:
@@ -246,7 +248,7 @@ action:
               - condition: template
                 value_template: "{{ dim_enabled }}"
             then:
-              - service: light.turn_on
+              - action: light.turn_on
                 target:
                   entity_id: !input hood_light
                 data:
@@ -259,7 +261,7 @@ action:
                 state: "on"
 
           # Licht ausschalten
-          - service: light.turn_off
+          - action: light.turn_off
             target:
               entity_id: !input hood_light
 

@@ -31,9 +31,9 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.core import callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .base_entity import KKTBaseEntity
+from .data import KKTCoordinator
 from .device_types import get_device_entities
 
 if TYPE_CHECKING:
@@ -95,7 +95,7 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
 
     def __init__(
         self,
-        coordinator: DataUpdateCoordinator[dict[str, Any]],
+        coordinator: KKTCoordinator,
         entry: ConfigEntry,
         light_config: dict[str, Any],
     ) -> None:
@@ -271,8 +271,8 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
                     try:
                         idx = int(effect_value) - self._effect_offset
                         if 0 <= idx < len(self._effect_list):
-                            return self._effect_list[idx]
-                    except (ValueError, TypeError):
+                            return str(self._effect_list[idx])
+                    except ValueError, TypeError:
                         pass
                 else:
                     # String mode: value is effect name

@@ -13,13 +13,32 @@ Klicke auf den Import-Button bei der gewünschten Blueprint:
 | [Hood Auto-Off](automation/hood_auto_off.yaml) | Intelligente Auto-Abschaltung | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fmoag1000%2FHA-kkt-kolbe-integration%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fhood_auto_off.yaml) |
 | [Hood Light Auto-Off](automation/hood_light_auto_off.yaml) | Licht intelligent ausschalten | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fmoag1000%2FHA-kkt-kolbe-integration%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fhood_light_auto_off.yaml) |
 | [Hood with Cooktop](automation/hood_with_cooktop.yaml) | Kochfeld-Sync (externer Sensor) | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fmoag1000%2FHA-kkt-kolbe-integration%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fhood_with_cooktop.yaml) |
-| [Hood with IND Cooktop](automation/hood_with_ind_cooktop.yaml) | **NEU!** Für KKT IND7705HC | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fmoag1000%2FHA-kkt-kolbe-integration%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fhood_with_ind_cooktop.yaml) |
+| [Hood with IND Cooktop](automation/hood_with_ind_cooktop.yaml) | Für KKT IND7705HC | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fmoag1000%2FHA-kkt-kolbe-integration%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fhood_with_ind_cooktop.yaml) |
+| [Geräte-Ereignisse melden](automation/device_event_notify.yaml) | **NEU in 4.9!** Push bei Timer, Filter, Zonenfehler, Verbindung | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fmoag1000%2FHA-kkt-kolbe-integration%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fdevice_event_notify.yaml) |
 
 ### Methode 2: Manuell
 
 1. Kopiere die YAML-Datei nach `config/blueprints/automation/kkt_kolbe/`
 2. Starte Home Assistant neu
 3. Gehe zu Einstellungen → Automatisierungen → Blueprints
+
+---
+
+## KKT Kolbe Geräte-Ereignisse melden
+
+Nutzt die Event-Entity **„Geräte-Ereignisse“** (ab Integration 4.9.0) und schickt eine Benachrichtigung, wenn das Gerät ein Ereignis meldet. Kein Vergleichen von Sensorwerten, keine eigenen Templates nötig.
+
+### Ereignisse
+
+| Ereignis | Wann |
+|----------|------|
+| Timer abgelaufen | Countdown von Haube/Kochfeld ist auf 0 gelaufen |
+| Filterreinigung fällig | Filter-Erinnerung der Haube wurde aktiv |
+| Kochzonen-Fehler | Eine Kochzone meldet ein Fehlerbit (IND7705HC), mit Zonennummer |
+| Verbindung verloren / wiederhergestellt | Gerät antwortet nicht mehr / wieder |
+| Verbindungsweg gewechselt | Hybrid-Modus wechselt zwischen lokal und Cloud |
+
+Standardmäßig aktiv: Timer, Filter, Zonenfehler. Die Verbindungs-Ereignisse lassen sich dazuschalten.
 
 ---
 

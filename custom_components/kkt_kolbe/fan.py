@@ -28,11 +28,11 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.core import callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util.percentage import ordered_list_item_to_percentage
 from homeassistant.util.percentage import percentage_to_ordered_list_item
 
 from .base_entity import KKTBaseEntity
+from .data import KKTCoordinator
 from .device_types import get_device_entity_config
 
 if TYPE_CHECKING:
@@ -90,7 +90,7 @@ class KKTKolbeFan(KKTBaseEntity, FanEntity):
 
     def __init__(
         self,
-        coordinator: DataUpdateCoordinator[dict[str, Any]],
+        coordinator: KKTCoordinator,
         entry: ConfigEntry,
         fan_config: dict[str, Any],
     ) -> None:
@@ -201,7 +201,7 @@ class KKTKolbeFan(KKTBaseEntity, FanEntity):
                     # Map 1-9 to roughly 11-100%
                     self._cached_percentage = int((speed_int / self._max_speed) * 100)
                     self._last_non_off_speed = speed_int
-            except (ValueError, TypeError):
+            except ValueError, TypeError:
                 self._cached_state = None
                 self._cached_percentage = 0
         else:

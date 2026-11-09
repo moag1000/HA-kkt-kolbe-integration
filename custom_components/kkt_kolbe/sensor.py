@@ -15,12 +15,12 @@ from homeassistant.const import UnitOfPower
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .base_entity import KKTBaseEntity
 from .base_entity import KKTZoneBaseEntity
 from .bitfield_utils import BITFIELD_CONFIG
 from .bitfield_utils import get_zone_value_from_coordinator
+from .data import KKTCoordinator
 from .device_types import get_device_entities
 
 if TYPE_CHECKING:
@@ -53,7 +53,7 @@ async def async_setup_entry(
     # Prefer device_type (KNOWN_DEVICES key) over product_name (Tuya product ID)
     lookup_key = device_type if device_type not in ("auto", None, "") else product_name
 
-    entities = []
+    entities: list[SensorEntity] = []
     sensor_configs = get_device_entities(lookup_key, "sensor")
 
     for config in sensor_configs:
@@ -85,10 +85,8 @@ async def async_setup_entry(
         entities.append(KKTKolbeConnectionSensor(coordinator, entry))
 
     # Add SmartLife info sensor if extended info is available
-    from .const import DOMAIN
 
-    entry_data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
-    smartlife_extended_info = entry_data.get("smartlife_extended_info", {})
+    smartlife_extended_info = getattr(getattr(entry, "runtime_data", None), "smartlife_extended_info", None) or {}
     if smartlife_extended_info and smartlife_extended_info.get("uuid"):
         entities.append(KKTKolbeSmartLifeInfoSensor(coordinator, entry, smartlife_extended_info))
         _LOGGER.info(
@@ -106,7 +104,7 @@ class KKTKolbeSensor(KKTBaseEntity, SensorEntity):
 
     def __init__(
         self,
-        coordinator: DataUpdateCoordinator[dict[str, Any]],
+        coordinator: KKTCoordinator,
         entry: ConfigEntry,
         config: dict[str, Any],
     ) -> None:
@@ -137,7 +135,7 @@ class KKTKolbeSensor(KKTBaseEntity, SensorEntity):
         if device_class == SensorDeviceClass.TEMPERATURE:
             return 1
         # Duration sensors: whole numbers (minutes)
-        if device_class == "duration":
+        if device_class == SensorDeviceClass.DURATION:
             return 0
         # Timer, filter, level: whole numbers
         if any(
@@ -197,7 +195,7 @@ class KKTKolbeZoneSensor(KKTZoneBaseEntity, SensorEntity):
 
     def __init__(
         self,
-        coordinator: DataUpdateCoordinator[dict[str, Any]],
+        coordinator: KKTCoordinator,
         entry: ConfigEntry,
         config: dict[str, Any],
     ) -> None:
@@ -271,7 +269,7 @@ class KKTKolbeCalculatedPowerSensor(KKTBaseEntity, SensorEntity):
 
     def __init__(
         self,
-        coordinator: DataUpdateCoordinator[dict[str, Any]],
+        coordinator: KKTCoordinator,
         entry: ConfigEntry,
         config: dict[str, Any],
     ) -> None:
@@ -315,7 +313,7 @@ class KKTKolbeTotalLevelSensor(KKTBaseEntity, SensorEntity):
 
     def __init__(
         self,
-        coordinator: DataUpdateCoordinator[dict[str, Any]],
+        coordinator: KKTCoordinator,
         entry: ConfigEntry,
         config: dict[str, Any],
     ) -> None:
@@ -354,7 +352,7 @@ class KKTKolbeActiveZonesSensor(KKTBaseEntity, SensorEntity):
 
     def __init__(
         self,
-        coordinator: DataUpdateCoordinator[dict[str, Any]],
+        coordinator: KKTCoordinator,
         entry: ConfigEntry,
         config: dict[str, Any],
     ) -> None:
@@ -388,7 +386,7 @@ class KKTKolbeActiveZonesSensor(KKTBaseEntity, SensorEntity):
         return self._cached_value
 
 
-class KKTKolbeConnectionSensor(CoordinatorEntity, SensorEntity):
+class KKTKolbeConnectionSensor(CoordinatorEntity["KKTCoordinator"], SensorEntity):
     """Sensor that shows the current connection mode (local/api/smartlife)."""
 
     # Attributes that change frequently - don't record in database
@@ -407,7 +405,7 @@ class KKTKolbeConnectionSensor(CoordinatorEntity, SensorEntity):
         entry: ConfigEntry,
     ) -> None:
         """Initialize the connection sensor."""
-        from homeassistant.helpers.entity import EntityCategory
+        from homeassistant.const import EntityCategory
 
         super().__init__(coordinator)
         self._entry = entry
@@ -438,7 +436,7 @@ class KKTKolbeConnectionSensor(CoordinatorEntity, SensorEntity):
                 "api": "Cloud (IoT API)",
                 "smartlife": "Cloud (SmartLife)",
             }
-            return mode_names.get(mode, mode)
+            return str(mode_names.get(mode, mode))
         return "Unknown"
 
     @property
@@ -533,7 +531,7 @@ class KKTKolbeConnectionSensor(CoordinatorEntity, SensorEntity):
         return self.coordinator.last_update_success
 
 
-class KKTKolbeSmartLifeInfoSensor(CoordinatorEntity, SensorEntity):
+class KKTKolbeSmartLifeInfoSensor(CoordinatorEntity["KKTCoordinator"], SensorEntity):
     """Sensor that exposes extended SmartLife device information.
 
     Shows device info like UUID, creation time, active time, update time,
@@ -558,7 +556,7 @@ class KKTKolbeSmartLifeInfoSensor(CoordinatorEntity, SensorEntity):
         extended_info: dict[str, Any],
     ) -> None:
         """Initialize the SmartLife info sensor."""
-        from homeassistant.helpers.entity import EntityCategory
+        from homeassistant.const import EntityCategory
 
         super().__init__(coordinator)
         self._entry = entry
@@ -611,7 +609,7 @@ class KKTKolbeSmartLifeInfoSensor(CoordinatorEntity, SensorEntity):
 
                 dt = datetime.fromtimestamp(create_time, tz=UTC)
                 attrs["create_time"] = dt.isoformat()
-            except (ValueError, TypeError):
+            except ValueError, TypeError:
                 attrs["create_time"] = create_time
 
         # Active time (last time device was active)
@@ -622,7 +620,7 @@ class KKTKolbeSmartLifeInfoSensor(CoordinatorEntity, SensorEntity):
 
                 dt = datetime.fromtimestamp(active_time, tz=UTC)
                 attrs["active_time"] = dt.isoformat()
-            except (ValueError, TypeError):
+            except ValueError, TypeError:
                 attrs["active_time"] = active_time
 
         # Update time (last status update)
@@ -633,7 +631,7 @@ class KKTKolbeSmartLifeInfoSensor(CoordinatorEntity, SensorEntity):
 
                 dt = datetime.fromtimestamp(update_time, tz=UTC)
                 attrs["update_time"] = dt.isoformat()
-            except (ValueError, TypeError):
+            except ValueError, TypeError:
                 attrs["update_time"] = update_time
 
         # Time zone

@@ -167,6 +167,29 @@
       "power_limit": {
         "default": "mdi:flash-triangle"
       }
+    },
+    "event": {
+      "device_event": {
+        "default": "mdi:bell-ring-outline",
+        "state_attributes": {
+          "event_type": {
+            "default": "mdi:bell-ring-outline",
+            "state": {
+              "connection_lost": "mdi:lan-disconnect",
+              "connection_restored": "mdi:lan-connect",
+              "connection_mode_changed": "mdi:swap-horizontal",
+              "timer_finished": "mdi:timer-check-outline",
+              "filter_cleaning_due": "mdi:air-filter",
+              "zone_error": "mdi:alert-circle-outline"
+            }
+          }
+        }
+      }
+    },
+    "button": {
+      "reconnect": {
+        "default": "mdi:connection"
+      }
     }
   },
   "services": {

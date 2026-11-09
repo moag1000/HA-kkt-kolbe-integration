@@ -2,17 +2,20 @@
 
 from __future__ import annotations
 
+import contextlib
 import logging
+from typing import TYPE_CHECKING
 from typing import Any
 
 import homeassistant.helpers.config_validation as cv
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.config_entries import ConfigEntryNotReady
 from homeassistant.const import CONF_ACCESS_TOKEN
 from homeassistant.const import CONF_DEVICE_ID
 from homeassistant.const import CONF_IP_ADDRESS
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import issue_registry as ir
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import CONF_SMARTLIFE_TOKEN_INFO
 from .const import DOMAIN
@@ -24,6 +27,12 @@ from .data import KKTKolbeAccountRuntimeData
 from .data import KKTKolbeConfigEntry
 from .data import KKTKolbeRuntimeData
 
+if TYPE_CHECKING:
+    from .api import TuyaCloudClient
+    from .coordinator import KKTKolbeUpdateCoordinator
+    from .hybrid_coordinator import KKTKolbeHybridCoordinator
+    from .tuya_device import KKTKolbeTuyaDevice
+
 # This integration is config entry only - no YAML configuration
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 # Heavy imports moved to lazy loading to prevent blocking the event loop
@@ -33,6 +42,11 @@ _LOGGER = logging.getLogger(__name__)
 
 # Runtime data types are defined in data.py (imported above)
 # Re-exported here for backward compatibility: KKTKolbeConfigEntry, KKTKolbeRuntimeData
+
+
+def _with_event_platform(platforms: list[str]) -> list[str]:
+    """Every device gets the event and button platforms (events, reconnect)."""
+    return [*platforms, *(p for p in ("button", "event") if p not in platforms)]
 
 
 async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
@@ -96,7 +110,7 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
     return True
 
 
-async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Set up the KKT Kolbe component from YAML configuration."""
     # Warn if LocalTuya is active — it blocks UDP ports 6666/6667 needed for device discovery
     if "localtuya" in hass.config.components:
@@ -128,6 +142,13 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
     await async_start_tracker(hass)
 
+    # Register integration-wide actions once, independent of config entries
+    # (quality scale rule ``action-setup``). Handlers resolve their target
+    # entries at call time and raise ServiceValidationError when none match.
+    from .services import async_setup_services
+
+    await async_setup_services(hass)
+
     return True
 
 
@@ -138,9 +159,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     - account: SmartLife account entry (Parent) - manages tokens
     - device: Device entry (Child or standalone) - manages device connection
     """
-    # Keep hass.data for backward compatibility with services
-    hass.data.setdefault(DOMAIN, {})
-
     # Determine entry type - default to "device" for backward compatibility
     entry_type = entry.data.get("entry_type", ENTRY_TYPE_DEVICE)
 
@@ -181,16 +199,6 @@ async def _async_setup_account_entry(hass: HomeAssistant, entry: KKTKolbeAccount
         app_schema=app_schema,
         child_entry_ids=child_entry_ids,
     )
-
-    # Store in hass.data for access by child entries
-    hass.data[DOMAIN][entry.entry_id] = {
-        "entry_type": ENTRY_TYPE_ACCOUNT,
-        "token_info": token_info,
-        "user_code": user_code,
-        "app_schema": app_schema,
-        "child_entry_ids": child_entry_ids,
-        "_previous_options": dict(entry.options),  # For update listener comparison
-    }
 
     _LOGGER.info(
         "SmartLife account entry setup complete: %s (children: %d)",
@@ -360,7 +368,7 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
 
                     # Register token persistence callback to update parent entry
                     # when tokens are refreshed by the SDK
-                    async def update_parent_tokens(new_token_info: dict) -> None:
+                    async def update_parent_tokens(new_token_info: dict[str, Any]) -> None:
                         """Persist refreshed tokens to parent config entry."""
                         if parent_entry:
                             _LOGGER.info(
@@ -383,9 +391,9 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
         else:
             _LOGGER.warning("SmartLife device %s has no parent_entry_id - tokens may be outdated", entry.entry_id[:8])
 
-    device = None
-    api_client = None
-    coordinator = None
+    device: KKTKolbeTuyaDevice | None = None
+    api_client: TuyaCloudClient | None = None
+    coordinator: KKTKolbeUpdateCoordinator | KKTKolbeHybridCoordinator
 
     # Initialize API client if enabled
     if api_enabled:
@@ -401,6 +409,7 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
                 client_id=client_id,
                 client_secret=client_secret,
                 endpoint=endpoint,
+                session=async_get_clientsession(hass),
             )
             _LOGGER.info("API client initialized for TinyTuya Cloud API")
 
@@ -414,7 +423,7 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
 
     # Initialize local device if we have local connection details
     ip_address = entry.data.get(CONF_IP_ADDRESS) or entry.data.get("ip_address") or entry.data.get("host")
-    device_id = entry.data.get(CONF_DEVICE_ID) or entry.data.get("device_id")
+    device_id: str = entry.data.get(CONF_DEVICE_ID) or entry.data.get("device_id") or ""
     local_key = entry.data.get(CONF_ACCESS_TOKEN) or entry.data.get("local_key")
 
     # For SmartLife mode: Sync local_key from SmartLife API (may have been rotated)
@@ -644,7 +653,7 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
             effective_device_type = "default_hood"
             _LOGGER.warning("Could not detect device type, using default_hood")
 
-    platforms = get_device_platforms(device_info["category"])
+    platforms = _with_event_platform(get_device_platforms(device_info["category"]))
 
     # Store runtime data using modern pattern (HA 2024.6+)
     entry.runtime_data = KKTKolbeRuntimeData(
@@ -655,21 +664,8 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
         product_name=product_name,
         device_type=effective_device_type,
         integration_mode=integration_mode,
+        smartlife_extended_info=smartlife_extended_info,
     )
-
-    # Also store in hass.data for backward compatibility with services
-    hass.data[DOMAIN][entry.entry_id] = {
-        "coordinator": coordinator,
-        "device": device,
-        "api_client": api_client,
-        "config": entry.data,
-        "device_info": device_info,
-        "product_name": product_name,
-        "device_type": effective_device_type,
-        "integration_mode": integration_mode,
-        "smartlife_extended_info": smartlife_extended_info,
-        "_previous_options": dict(entry.options),  # For update listener comparison
-    }
 
     # Register device in device registry with version info
     from homeassistant.helpers import device_registry as dr
@@ -698,12 +694,8 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
     # Get serial number from SmartLife UUID if available
     serial_number = extended_info.get("uuid")
 
-    # Build configuration URL
-    config_url = None
-    if ip_address:
-        config_url = f"http://{ip_address}"
-
-    device_entry = device_registry.async_get_or_create(
+    # async_get_or_create also updates these fields on an existing device
+    device_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
         identifiers={(DOMAIN, device_id)},
         manufacturer="KKT Kolbe",
@@ -712,78 +704,50 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
         sw_version=sw_version,
         hw_version=hw_version,
         serial_number=serial_number,
-        configuration_url=config_url,
     )
 
-    # Update existing device entry with extended info
-    update_kwargs = {}
-    if device_entry.sw_version == "Unknown" or device_entry.sw_version != sw_version:
-        update_kwargs["sw_version"] = sw_version
-    if device_entry.hw_version == "Unknown" or device_entry.hw_version != hw_version:
-        update_kwargs["hw_version"] = hw_version
-    if serial_number and device_entry.serial_number != serial_number:
-        update_kwargs["serial_number"] = serial_number
-    if config_url and device_entry.configuration_url != config_url:
-        update_kwargs["configuration_url"] = config_url
-
-    if update_kwargs:
-        device_registry.async_update_device(device_entry.id, **update_kwargs)
-        _LOGGER.info("Updated device registry for %s: %s", device_id[:8], update_kwargs)
-
-    # Download device icon from SmartLife or stored URL
+    # Download device icon from SmartLife or stored URL in the background, so
+    # a slow or unreachable Tuya CDN never delays setup
     icon_url = extended_info.get("icon") or entry.data.get("icon_url")
     if icon_url:
-        from .helpers.icon_downloader import download_icon
-
-        try:
-            local_icon_path = await download_icon(hass, device_id, icon_url)
-            if local_icon_path:
-                _LOGGER.info("Device icon downloaded for %s: %s", device_id[:8], local_icon_path)
-        except Exception as err:
-            _LOGGER.warning("Failed to download device icon: %s", err)
+        entry.async_create_background_task(
+            hass,
+            _async_download_device_icon(hass, device_id, icon_url),
+            name=f"kkt_kolbe_{entry.entry_id}_icon",
+        )
 
     # Load only the platforms needed for this specific device
     await hass.config_entries.async_forward_entry_setups(entry, platforms)
 
-    # Register listener for options updates - triggers reload when options change
-    entry.async_on_unload(entry.add_update_listener(async_options_update_listener))
+    # Repair card if the device stays unreachable for a day
+    from .offline_monitor import OfflineMonitor
 
-    # Set up services when the first device is added
-    if len(hass.data[DOMAIN]) == 1:
-        from .services import async_setup_services
+    OfflineMonitor(hass, entry, coordinator).async_start()
 
-        await async_setup_services(hass)
-        _LOGGER.info("KKT Kolbe services initialized")
+    # Options changes are reloaded by OptionsFlowWithReload and reconfigure /
+    # reauth flows reload via async_update_reload_and_abort, so no config entry
+    # update listener is registered (combining both is an error from HA 2026.12).
 
     return True
 
 
-async def async_options_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Handle options update - reload the integration when options change.
+async def _async_download_device_icon(hass: HomeAssistant, device_id: str, icon_url: str) -> None:
+    """Download the device icon; failures are only logged."""
+    from .helpers.icon_downloader import download_icon
 
-    Note: This listener is called for ANY config entry update (data or options).
-    We only want to reload when OPTIONS change, not when data changes (like IP updates).
-    """
-    # Get the stored previous options to compare
-    domain_data = hass.data.get(DOMAIN, {})
-    entry_data = domain_data.get(entry.entry_id, {})
-    previous_options = entry_data.get("_previous_options")
-    current_options = dict(entry.options)
+    try:
+        local_icon_path = await download_icon(hass, device_id, icon_url)
+        if local_icon_path:
+            _LOGGER.info("Device icon downloaded for %s: %s", device_id[:8], local_icon_path)
+    except Exception as err:
+        _LOGGER.warning("Failed to download device icon: %s", err)
 
-    # Store current options for next comparison
-    if entry.entry_id in domain_data and isinstance(domain_data[entry.entry_id], dict):
-        domain_data[entry.entry_id]["_previous_options"] = current_options
 
-    # Only reload if options actually changed
-    if previous_options is not None and previous_options != current_options:
-        _LOGGER.info(f"Options updated for {entry.title}, reloading integration")
-        await hass.config_entries.async_reload(entry.entry_id)
-    elif previous_options is None:
-        # First call after setup - just store options, don't reload
-        _LOGGER.debug(f"Options listener initialized for {entry.title}")
-    else:
-        # Data changed but options are the same - no reload needed
-        _LOGGER.debug(f"Config entry data updated for {entry.title} (no reload needed)")
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Clean up repair issues of a removed entry."""
+    from .offline_monitor import async_remove_issue
+
+    async_remove_issue(hass, entry)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -827,9 +791,6 @@ async def _async_unload_account_entry(hass: HomeAssistant, entry: KKTKolbeAccoun
             len(child_entry_ids),
         )
 
-    # Remove from hass.data (guard DOMAIN: setup may not have populated it)
-    hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
-
     # Account entries don't have platforms to unload
     _LOGGER.info("SmartLife account entry unloaded: %s", entry.title)
     return True
@@ -850,7 +811,7 @@ async def _async_unload_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigE
         product_name = entry.data.get("product_name", "unknown")
         device_info = get_device_info_by_product_name(product_name)
 
-    platforms = get_device_platforms(device_info.get("category", "unknown"))
+    platforms = _with_event_platform(get_device_platforms(device_info.get("category", "unknown")))
 
     unload_ok: bool = await hass.config_entries.async_unload_platforms(entry, platforms)
     if unload_ok:
@@ -872,23 +833,23 @@ async def _async_unload_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigE
                     entry.title,
                 )
 
-        # Remove from hass.data (backward compatibility). Guard the DOMAIN key:
-        # setup may have been skipped/failed, so it isn't guaranteed to exist.
-        domain_data = hass.data.get(DOMAIN, {})
-        domain_data.pop(entry.entry_id, None)
+            # Close the persistent local socket and stop its heartbeat. Tuya
+            # devices allow only a few local connections; a socket left open
+            # by a reload can block the new connection until it times out.
+            device = getattr(entry.runtime_data, "device", None)
+            if device is not None:
+                with contextlib.suppress(Exception):
+                    await device.async_disconnect()
 
-        # Count remaining device entries (exclude account entries)
-        device_entries = [
-            e for e in domain_data.values() if isinstance(e, dict) and e.get("entry_type") != ENTRY_TYPE_ACCOUNT
+        # Stop discovery when the last loaded device entry goes away.
+        # Actions stay registered (they are set up in async_setup).
+        other_loaded_devices = [
+            e
+            for e in hass.config_entries.async_loaded_entries(DOMAIN)
+            if e.entry_id != entry.entry_id and e.data.get("entry_type", ENTRY_TYPE_DEVICE) != ENTRY_TYPE_ACCOUNT
         ]
 
-        # Unload services when the last device is removed
-        if not device_entries:
-            from .services import async_unload_services
-
-            await async_unload_services(hass)
-            _LOGGER.info("KKT Kolbe services unloaded")
-
+        if not other_loaded_devices:
             from .discovery import async_stop_discovery
 
             await async_stop_discovery()

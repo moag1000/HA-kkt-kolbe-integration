@@ -146,7 +146,7 @@ def _get_light_dp(device_key: str) -> int:
         return 4
     light_configs = device_info.get("entities", {}).get("light", [])
     if light_configs and isinstance(light_configs[0], dict):
-        return light_configs[0].get("dp", 4)
+        return int(light_configs[0].get("dp", 4))
     return 4
 
 

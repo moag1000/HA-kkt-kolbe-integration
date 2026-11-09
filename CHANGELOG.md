@@ -6,6 +6,55 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [4.9.0] - 2026-11-09
+
+### Changed (Home Assistant 2026.x Upgrade)
+
+- **Mindestversion jetzt Home Assistant 2026.9.0** (Python 3.14). Getestet gegen HA 2026.10 via `pytest-homeassistant-custom-component` 0.13.375; CI läuft auf Python 3.14.
+- **Kein Config-Entry-Update-Listener mehr**: HA 2026.12 macht die Kombination aus Update-Listener und `async_update_reload_and_abort` / `_abort_if_unique_id_configured(updates=...)` zum Fehler. Der Options-Flow erbt jetzt von `OptionsFlowWithReload` und lädt nur neu, wenn sich die Optionen wirklich ändern; Reconfigure/Reauth laden wie bisher über den Config-Flow neu. Doppelte Reloads entfallen.
+- **`hass.data[DOMAIN]` entfernt**: Alle Laufzeitdaten (Coordinator, Gerät, SmartLife-Zusatzinfos) liegen nur noch in `entry.runtime_data`. Actions, Entities, Options-Flow und Stale-Device-Tracker lesen von dort.
+- **Actions werden in `async_setup` registriert** (Quality-Scale-Regel `action-setup`) und bleiben registriert, auch wenn kein Gerät geladen ist. Behebt nebenbei, dass `refresh_smartlife_cache` und `get_firmware_info` beim Entladen nicht entfernt wurden.
+- **probatio statt voluptuous**: HA 2026.9 hat die Schema-Validierung auf [probatio](https://developers.home-assistant.io/blog/2026/09/30/probatio-validation-engine) umgestellt; die Integration importiert jetzt direkt `probatio`.
+- **Device-Registry-API von HA 2026.8**: `DeviceEntry.config_entry_id` statt `config_entries`, `async_get_device_by_identifier()` statt des veralteten `async_get_device()`.
+- **Brand-Bilder** liegen jetzt in `custom_components/kkt_kolbe/brand/` (HA 2026.3+ zeigt lokale Icons/Logos direkt an, HACS verlangt den Ordner). `ignore: brands` in der HACS-Validierung entfällt.
+- **manifest.json**: `tinytuya>=1.20.0`, `tuya-device-sharing-sdk>=0.2.15` (gleiche Version wie die Core-Tuya-Integration).
+
+### Added
+
+- **Action-Responses**: `kkt_kolbe.get_connection_status` und `kkt_kolbe.get_firmware_info` liefern ihr Ergebnis jetzt direkt zurück (`response_variable` in Skripten/Automationen). Die bisherigen Events werden weiterhin gefeuert.
+- **Event-Entity „Geräte-Ereignisse“ pro Gerät**: `connection_lost`, `connection_restored`, `connection_mode_changed` (Hybrid), `timer_finished`, `filter_cleaning_due`, `zone_error`. Automationen triggern direkt darauf, ohne Bus-Events oder Zustandsvergleiche.
+- **Entity-Actions**: `set_cooking_timer`, `set_zone_power`, `set_hood_fan_speed` und `set_hood_lighting` akzeptieren jetzt Entities als Ziel (`target: entity_id`), mit Wertebereichsprüfung schon beim Aufruf.
+- **Übersetzte Fehlermeldungen** (DE/EN) für alle Actions statt englischer Freitexte.
+- **Button „Neu verbinden“** pro Gerät mit lokaler Verbindung (Geräteseite → Konfiguration). Fehler werden als übersetzte Meldung im UI angezeigt.
+- **Repair-Hinweis bei langem Ausfall**: Ist ein Gerät länger als 24 Stunden nicht erreichbar, erscheint unter Reparaturen eine Karte mit Checkliste (Strom/WLAN, geänderte IP, neuer Local Key, Neu verbinden). Sie verschwindet automatisch, sobald das Gerät wieder antwortet.
+- **Neuer Blueprint „Geräte-Ereignisse melden“**: Push-Benachrichtigung bei Timer abgelaufen, Filterreinigung, Kochzonen-Fehler und optional Verbindungsereignissen.
+- **Blueprints modernisiert** (`triggers:`/`actions:`-Syntax) und per Test gegen Home Assistant validiert.
+- **HACS-ZIP-Release**: Ein GitHub-Actions-Workflow baut bei jedem veröffentlichten Release `kkt_kolbe.zip` (inkl. SHA256) und hängt es ans Release; `hacs.json` nutzt `zip_release`. Der Workflow prüft, dass Tag und `manifest.json`-Version übereinstimmen.
+- **Strict Typing**: `mypy --strict` ist sauber und läuft in der CI (Quality-Scale-Regel `strict-typing` erfüllt).
+
+### Fixed
+
+- **Stale-Device-Tracker** verglich naive mit zeitzonenbehafteten Zeitstempeln und brach deshalb jede Prüfung mit `TypeError` ab. Nutzt jetzt `dt_util.utcnow()`; der Initial-Cleanup läuft über `async_call_later`.
+- **Token-Erneuerung im Options-Flow** löschte die Account-Optionen (`data={}`); die bestehenden Optionen bleiben jetzt erhalten.
+- **Zeroconf-Discovery** stürzte ab (`ZeroconfServiceInfo` hat kein `.get()`), IP-Updates bereits eingerichteter Geräte per mDNS funktionieren wieder.
+- **Diagnose-Download** brach bei Geräten im manuellen Modus mit `AttributeError` ab (`last_update_success_time` fehlte).
+- **Geräteauswahl in Actions**: HA-Geräte-IDs aus dem Device-Selector wurden nicht aufgelöst; jetzt werden HA-Geräte-ID und Tuya-Geräte-ID akzeptiert.
+- Tuya-Cloud-Client nutzt die gemeinsame HA-`aiohttp`-Session (`inject-websession`).
+- **Lokale Verbindung bleibt stabil offen (Keep-Alive)**: Geräte wirkten so, als würden sie ständig aus dem WLAN fallen. Ursachen und Fixes:
+  - **Tuya-Heartbeat**: Viele Firmwares schließen eine untätige lokale Verbindung nach ~30 s; bei 30 s Abfrageintervall war der Socket beim Poll oft schon weg und jeder Poll musste neu verbinden (bei 3.4/3.5 inkl. Schlüsselaushandlung). Jetzt geht nach 10 s Leerlauf ein `HEART_BEAT` raus.
+  - **TCP-Keep-Alive wirkte nie**: Der Code suchte `device._socket`, tinytuya nennt es `device.socket`. Wird jetzt auf jeden neuen Socket gesetzt.
+  - **Verwaiste Verbindungen**: Bei Timeouts/Fehlern und beim Neuladen der Integration wurde der Socket nicht geschlossen. Tuya-Geräte erlauben nur wenige lokale Verbindungen; halb offene Sockets blockierten den nächsten Verbindungsversuch. Jetzt wird immer geschlossen, auch beim Entladen.
+  - **Gleichzeitige Zugriffe**: Abfrage und Schaltbefehl liefen parallel über denselben Socket, Antworten konnten sich vermischen (und als Schlüsselfehler erscheinen). Zugriffe sind jetzt serialisiert.
+  - Nach erfolgreichem Verbinden 5 s Socket-Timeout und 2 Versuche statt 3 s / 1 Versuch, damit ein verlorenes Paket keinen kompletten Neuaufbau auslöst.
+- **Setup wartet nicht mehr auf den Icon-Download**: Das Geräte-Icon aus der SmartLife-Cloud wird im Hintergrund geladen, ein langsames Tuya-CDN verzögert den Start nicht mehr.
+- **Toter Link „Besuchen“ auf der Geräteseite entfernt**: Tuya-Geräte haben keine Weboberfläche; der Link zeigte auf `http://<IP>` bzw. `http://unknown`.
+- **Kein automatisch angelegter Bereich „Kitchen“** mehr für neue Geräte (war fest auf Englisch hinterlegt).
+- **Optionen bei Geräten mit IoT-API**: Das API-Secret musste bei jedem Speichern neu eingegeben werden; ein leeres Feld behält jetzt das gespeicherte Secret. Das Abwählen von „API aktivieren“ hatte keine Wirkung und schaltet die API jetzt ab. API-Secret, neuer Local Key & Co. landen nicht mehr zusätzlich im Klartext in den Optionen. Änderungen, die nur Verbindungsdaten betreffen, laden das Gerät jetzt auch neu.
+- **Optionen eines Geräts, das nicht starten konnte**, ließen sich nicht speichern („Verbindungstest fehlgeschlagen“), obwohl man genau dort Einstellungen korrigieren will. Der Test wird dann übersprungen; das Neuladen prüft die neuen Werte.
+- **SmartLife-Reauth mit zwei gleichen Geräten** im Konto konnte Geräte-ID und Local Key des falschen Geräts übernehmen (Abgleich lief zuerst über die Modell-ID). Jetzt zuerst über die Geräte-ID; über das Modell nur, wenn es eindeutig ist. Ändert sich die Geräte-ID, wird auch die Unique-ID des Eintrags nachgezogen.
+- Reauth lädt über `async_update_reload_and_abort` neu, statt im Flow auf das Neuladen zu warten.
+- Fehlende Übersetzungen in Config- und Options-Flow ergänzt (strings.json war hinter en/de zurück).
+
 ## [4.8.0] - 2026-11-10
 
 Letzte Version für Home Assistant 2025.12 – 2026.8. Ab 4.9.0 ist Home Assistant 2026.9.0 nötig.

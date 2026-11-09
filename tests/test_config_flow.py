@@ -1,4 +1,5 @@
 """Test the KKT Kolbe config flow."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock
@@ -548,9 +549,7 @@ async def test_smartlife_select_devices_form_structure(
 
     # Mock client to generate QR code successfully
     mock_client = MagicMock()
-    mock_client.async_generate_qr_code = AsyncMock(
-        return_value="tuyaSmart--qrLogin?token=test_token"
-    )
+    mock_client.async_generate_qr_code = AsyncMock(return_value="tuyaSmart--qrLogin?token=test_token")
 
     # Patch at the module where TuyaSharingClient is imported from
     with patch(
@@ -654,9 +653,7 @@ def _schema_default(schema, key: str):
 
 
 @pytest.mark.asyncio
-async def test_api_only_direct_success_creates_entry(
-    hass: HomeAssistant, mock_setup_entry
-) -> None:
+async def test_api_only_direct_success_creates_entry(hass: HomeAssistant, mock_setup_entry) -> None:
     """Tuya IoT Platform path: api_only -> submit creds -> device selection -> entry.
 
     No stored global API credentials, so async_step_api_only goes straight to
@@ -885,9 +882,7 @@ async def test_smart_discovery_shows_form_and_creates_entry_when_ready(
     )
 
     mock_discovery_instance = MagicMock()
-    mock_discovery_instance.async_discover = AsyncMock(
-        return_value={"bf735dfe2ad64fba7cpyhn": ready_result}
-    )
+    mock_discovery_instance.async_discover = AsyncMock(return_value={"bf735dfe2ad64fba7cpyhn": ready_result})
 
     with patch(
         "custom_components.kkt_kolbe.config_flow.SmartDiscovery",
@@ -940,9 +935,7 @@ async def test_smart_discovery_device_without_local_key_routes_to_authentication
     )
 
     mock_discovery_instance = MagicMock()
-    mock_discovery_instance.async_discover = AsyncMock(
-        return_value={"bf999999999999999999": not_ready_result}
-    )
+    mock_discovery_instance.async_discover = AsyncMock(return_value={"bf999999999999999999": not_ready_result})
 
     with patch(
         "custom_components.kkt_kolbe.config_flow.SmartDiscovery",
@@ -1338,32 +1331,113 @@ async def test_options_device_step_saves_settings(
     with patch(
         "custom_components.kkt_kolbe.async_setup_entry",
         return_value=True,
-    ):
+    ) as mock_setup_entry:
         await hass.config_entries.async_setup(mock_config_entry.entry_id)
         await hass.async_block_till_done()
 
-    result = await hass.config_entries.options.async_init(mock_config_entry.entry_id)
-    assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "device"
-    assert "api_client_id" in result["data_schema"].schema  # full options incl. IoT Platform API
+        result = await hass.config_entries.options.async_init(mock_config_entry.entry_id)
+        assert result["type"] == FlowResultType.FORM
+        assert result["step_id"] == "device"
+        assert "api_client_id" in result["data_schema"].schema  # full options incl. IoT Platform API
 
-    result = await hass.config_entries.options.async_configure(
-        result["flow_id"],
-        user_input={
-            "scan_interval": 60,
-            "new_local_key": "",
-            "api_enabled": False,
-            "api_client_id": "",
-            "api_client_secret": "",
-            "api_endpoint": "https://openapi.tuyaeu.com",
-            "enable_debug_logging": True,
-            "enable_advanced_entities": True,
-            "zone_naming_scheme": "zone",
-            "disable_fan_auto_start": True,
-            "test_connection": False,
-        },
-    )
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            user_input={
+                "scan_interval": 60,
+                "new_local_key": "",
+                "api_enabled": False,
+                "api_client_id": "",
+                "api_client_secret": "",
+                "api_endpoint": "https://openapi.tuyaeu.com",
+                "enable_debug_logging": True,
+                "enable_advanced_entities": True,
+                "zone_naming_scheme": "zone",
+                "disable_fan_auto_start": True,
+                "test_connection": False,
+            },
+        )
+
+        assert result["type"] == FlowResultType.CREATE_ENTRY
+        assert result["data"]["scan_interval"] == 60
+        assert result["data"]["enable_debug_logging"] is True
+
+        # OptionsFlowWithReload reloads the entry because the options changed
+        await hass.async_block_till_done()
+        assert mock_setup_entry.call_count == 2
+        assert mock_config_entry.options["scan_interval"] == 60
+
+
+def _device_options_input(**overrides):
+    data = {
+        "scan_interval": 30,
+        "new_local_key": "",
+        "api_enabled": True,
+        "api_client_id": "test_client_id_123",
+        "api_client_secret": "",
+        "api_endpoint": "https://openapi.tuyaeu.com",
+        "enable_debug_logging": False,
+        "enable_advanced_entities": True,
+        "zone_naming_scheme": "zone",
+        "disable_fan_auto_start": True,
+        "test_connection": True,
+    }
+    data.update(overrides)
+    return data
+
+
+@pytest.mark.asyncio
+async def test_options_keep_api_secret_and_skip_test_when_not_loaded(
+    hass: HomeAssistant,
+    mock_config_entry_with_api,
+) -> None:
+    """Saving options must not require re-entering the API secret, must not
+    store secrets in options, and must work for an entry that failed to load.
+    """
+    entry = mock_config_entry_with_api
+    entry.add_to_hass(hass)  # not set up -> state NOT_LOADED
+
+    with patch("custom_components.kkt_kolbe.async_setup_entry", return_value=True):
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], user_input=_device_options_input(scan_interval=60)
+        )
+        await hass.async_block_till_done()
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
-    assert result["data"]["scan_interval"] == 60
-    assert result["data"]["enable_debug_logging"] is True
+    assert entry.options["scan_interval"] == 60
+    for key in ("api_client_secret", "api_client_id", "new_local_key", "test_connection", "api_enabled"):
+        assert key not in entry.options
+    assert entry.data["api_client_secret"] == "test_client_secret_456"
+    assert entry.data["api_enabled"] is True
+
+
+@pytest.mark.asyncio
+async def test_options_disable_api_reloads(
+    hass: HomeAssistant,
+    mock_config_entry_with_api,
+) -> None:
+    """Unticking the API switch disables it in entry.data and reloads even if
+    no real option changed.
+    """
+    entry = mock_config_entry_with_api
+    entry.add_to_hass(hass)
+    options = {
+        k: v
+        for k, v in _device_options_input().items()
+        if k
+        not in ("api_enabled", "api_client_id", "api_client_secret", "api_endpoint", "new_local_key", "test_connection")
+    }
+    hass.config_entries.async_update_entry(entry, options=options)
+
+    with patch("custom_components.kkt_kolbe.async_setup_entry", return_value=True) as mock_setup_entry:
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], user_input=_device_options_input(api_enabled=False, test_connection=False)
+        )
+        await hass.async_block_till_done()
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert entry.data["api_enabled"] is False
+    assert mock_setup_entry.call_count == 2

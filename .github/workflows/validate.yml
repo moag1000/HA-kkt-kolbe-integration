@@ -10,6 +10,12 @@ on:
 
 permissions: {}
 
+# Only the newest push of a branch/PR needs checking; older queued runs
+# are cancelled instead of piling up behind each other.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate-json:
     name: JSON/YAML Validation
@@ -40,7 +46,6 @@ jobs:
         uses: hacs/action@d556e736723344f83838d08488c983a15381059a # 22.5.0
         with:
           category: integration
-          ignore: brands
 
   validate-hassfest:
     name: Hassfest Validation
@@ -62,13 +67,12 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
-          python-version: "3.12"
+          python-version: "3.14"
           cache: "pip"
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pytest-homeassistant-custom-component
           pip install -r requirements_test.txt
 
       - name: Run tests

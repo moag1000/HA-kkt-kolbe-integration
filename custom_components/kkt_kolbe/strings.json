@@ -155,7 +155,9 @@
         "title": "Setup Complete",
         "description": "Your KKT Kolbe device has been successfully configured.",
         "data": {
-          "finish_setup": "Finish Setup"
+          "finish_setup": "Finish Setup",
+          "confirm": "Confirm Setup",
+          "back_to_settings": "Back to Settings"
         },
         "data_description": {
           "finish_setup": "Complete the integration setup process"
@@ -191,9 +193,7 @@
       },
       "zeroconf_confirm": {
         "title": "Device Discovered!",
-        "description": "A KKT Kolbe device was automatically discovered and is ready to be added.\n\n**Device:** {device_name}\n**Device ID:** {device_id}...\n**IP Address:** {ip_address}\n**Type:** {product_name}\n\nClick Submit to add this device.",
-        "data": {},
-        "data_description": {}
+        "description": "A KKT Kolbe device was automatically discovered and is ready to be added.\n\n**Device:** {device_name}\n**Device ID:** {device_id}...\n**IP Address:** {ip_address}\n**Type:** {product_name}\n\nClick Submit to add this device."
       },
       "zeroconf_authenticate": {
         "title": "Device Discovered - Authentication Required",
@@ -340,12 +340,15 @@
         "data": {
           "update_interval": "Update Interval",
           "enable_debug_logging": "Enable Debug Logging",
-          "zone_naming_scheme": "Zone Naming Scheme"
+          "zone_naming_scheme": "Zone Naming Scheme",
+          "enable_advanced_entities": "Enable Advanced Entities",
+          "back_to_authentication": "Back to Authentication"
         },
         "data_description": {
           "update_interval": "How often to update device status (seconds)",
           "enable_debug_logging": "Enable detailed logging for troubleshooting",
-          "zone_naming_scheme": "Naming convention for multi-zone devices"
+          "zone_naming_scheme": "Naming convention for multi-zone devices",
+          "enable_advanced_entities": "Show all entities including Fan Speed, RGB Mode, Filter Status"
         }
       }
     },
@@ -369,7 +372,18 @@
       "discovery_failed": "Device discovery failed.",
       "no_kkt_devices_found": "No KKT Kolbe devices found in your SmartLife account.",
       "no_devices_selected": "Please select at least one device to add.",
-      "device_not_found": "Selected device not found."
+      "device_not_found": "Selected device not found.",
+      "connection_test_failed": "Connection test failed. Check device availability.",
+      "missing_required_fields": "Please fill in all required fields",
+      "api_auth_failed": "API authentication failed. Verify Access ID and Secret.",
+      "api_error": "API error occurred",
+      "unknown_api_error": "Unknown API error occurred",
+      "analysis_failed": "Device analysis failed",
+      "missing_local_details": "Please provide local connection details",
+      "no_devices_found": "No devices found on network. Ensure device is powered on.",
+      "smartlife_not_authenticated": "SmartLife authentication not completed. Please start the setup again.",
+      "all_devices_configured": "All discovered devices are already configured.",
+      "no_devices_created": "No devices were created. Please check the logs for details."
     },
     "abort": {
       "already_configured": "Device is already configured",
@@ -383,7 +397,8 @@
       "reconfigure_failed": "Reconfiguration failed. Entry not found.",
       "reconfigure_successful": "Configuration updated successfully. The integration has been reloaded.",
       "smartlife_not_authenticated": "SmartLife authentication was not completed. Please start the setup again.",
-      "all_devices_configured": "All KKT Kolbe devices in your SmartLife account are already configured."
+      "all_devices_configured": "All KKT Kolbe devices in your SmartLife account are already configured.",
+      "no_devices_created": "No devices were created. This may happen if all selected devices are already configured."
     }
   },
   "options": {
@@ -401,7 +416,8 @@
           "enable_advanced_entities": "Enable Advanced Entities",
           "zone_naming_scheme": "Zone Naming Scheme",
           "disable_fan_auto_start": "Disable Fan Auto-Start",
-          "test_connection": "Test Connection"
+          "test_connection": "Test Connection",
+          "scan_interval": "Update Interval"
         },
         "data_description": {
           "new_local_key": "Enter new local key if device was reset (16 characters, any format)",
@@ -436,8 +452,7 @@
       },
       "renew_token": {
         "title": "Renew SmartLife Token",
-        "description": "Scan the QR code below with your SmartLife or Tuya Smart App to renew the authentication token for **{account_name}**.\n\n![QR Code]({qr_code_url})\n\nAfter scanning, click Submit.",
-        "data": {}
+        "description": "Scan the QR code below with your SmartLife or Tuya Smart App to renew the authentication token for **{account_name}**.\n\n![QR Code]({qr_code_url})\n\nAfter scanning, click Submit."
       },
       "smartlife_device": {
         "title": "SmartLife Device Options",
@@ -503,7 +518,9 @@
       "api_test_failed": "Failed to connect to TinyTuya Cloud API. Please verify your credentials",
       "connection_test_failed": "Connection test failed. Please check your device settings",
       "auth_failed": "SmartLife authentication failed. Please try again.",
-      "qr_code_failed": "Failed to generate QR code. Please check your User Code."
+      "qr_code_failed": "Failed to generate QR code. Please check your User Code.",
+      "invalid_region": "Invalid region selected",
+      "invalid_local_key": "Local key must be exactly 16 characters"
     }
   },
   "issues": {
@@ -591,8 +608,18 @@
               "local_key": "16-character local key (only needed if not fetching from cloud)"
             }
           }
+        },
+        "error": {
+          "required": "This field is required",
+          "invalid_device_id": "Device ID must be at least 20 characters",
+          "invalid_local_key": "Local key must be exactly 16 characters",
+          "cloud_fetch_failed": "Failed to fetch local key from cloud. Please enter manually or check your SmartLife account."
         }
       }
+    },
+    "device_offline": {
+      "title": "Device {device_name} unreachable for over 24 hours",
+      "description": "**{device_name}** has not answered since {offline_since}.\n\nPlease check:\n1. Does the device have power and is it connected to Wi-Fi (works in the SmartLife app)?\n2. Did its IP address change? Then update it via **Settings → Devices & services → KKT Kolbe → Reconfigure → Connection** (a DHCP reservation in the router prevents this).\n3. Was the device re-added in the SmartLife app? Then the local key changed: re-authenticate the entry.\n4. Try the **Reconnect** button on the device page.\n\nThis notice disappears automatically as soon as the device answers again."
     }
   },
   "selector": {
@@ -951,6 +978,69 @@
       "light": {
         "name": "Light"
       }
+    },
+    "event": {
+      "device_event": {
+        "name": "Device events",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "connection_lost": "Connection lost",
+              "connection_restored": "Connection restored",
+              "connection_mode_changed": "Connection mode changed",
+              "timer_finished": "Timer finished",
+              "filter_cleaning_due": "Filter cleaning due",
+              "zone_error": "Cooking zone error"
+            }
+          },
+          "mode": {
+            "name": "Mode"
+          },
+          "previous_mode": {
+            "name": "Previous mode"
+          },
+          "zone": {
+            "name": "Zone"
+          },
+          "data_point": {
+            "name": "Data point"
+          }
+        }
+      }
+    },
+    "button": {
+      "reconnect": {
+        "name": "Reconnect"
+      }
+    }
+  },
+  "exceptions": {
+    "no_matching_devices": {
+      "message": "No matching KKT Kolbe device is loaded."
+    },
+    "config_entry_not_found": {
+      "message": "Config entry {entry_id} was not found."
+    },
+    "entity_not_found": {
+      "message": "Entity {entity_id} was not found."
+    },
+    "entity_not_kkt_kolbe": {
+      "message": "Entity {entity_id} does not belong to the KKT Kolbe integration."
+    },
+    "entity_wrong_domain": {
+      "message": "Entity {entity_id} must be a {domain} entity."
+    },
+    "entity_unavailable": {
+      "message": "Entity {entity_id} is currently unavailable."
+    },
+    "confirm_required": {
+      "message": "The action {action} needs to be confirmed (set confirm: true)."
+    },
+    "coordinator_not_found": {
+      "message": "No running device connection found for entity {entity_id}."
+    },
+    "reconnect_failed": {
+      "message": "Reconnect failed: {error}"
     }
   }
 }
