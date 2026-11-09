@@ -1,21 +1,20 @@
 """Test the KKT Kolbe services."""
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
 
 import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
 
 from custom_components.kkt_kolbe.const import DOMAIN
-from custom_components.kkt_kolbe.services import (
-    async_setup_services,
-    async_unload_services,
-    SERVICE_SET_COOKING_TIMER,
-    SERVICE_SYNC_ALL_DEVICES,
-    SERVICE_EMERGENCY_STOP,
-    SERVICE_RECONNECT_DEVICE,
-)
+from custom_components.kkt_kolbe.services import SERVICE_EMERGENCY_STOP
+from custom_components.kkt_kolbe.services import SERVICE_RECONNECT_DEVICE
+from custom_components.kkt_kolbe.services import SERVICE_SET_COOKING_TIMER
+from custom_components.kkt_kolbe.services import SERVICE_SYNC_ALL_DEVICES
+from custom_components.kkt_kolbe.services import async_setup_services
+from custom_components.kkt_kolbe.services import async_unload_services
 
 
 @pytest.fixture

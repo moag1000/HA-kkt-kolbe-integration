@@ -23,6 +23,7 @@ from .api import TuyaAPIError
 from .api import TuyaCloudClient
 from .api import TuyaDeviceNotFoundError
 from .api import TuyaRateLimitError
+from .coordinator import DeviceState
 from .exceptions import KKTAuthenticationError
 from .exceptions import KKTConnectionError
 from .exceptions import KKTRateLimitError
@@ -153,6 +154,31 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
     def last_update_success_time(self) -> datetime | None:
         """Return the timestamp of the last successful update."""
         return self._last_update_success_time
+
+    @property
+    def device_state(self) -> DeviceState:
+        """Coarse availability state, mirroring the local-only coordinator's enum.
+
+        Lets entities go genuinely *unavailable* on a sustained outage instead of
+        freezing on a stale cached value. Conservative to avoid flapping: only
+        ``UNREACHABLE`` once every configured local/api channel has exhausted its
+        consecutive-error budget. SmartLife-only devices have no error counter,
+        so they never trip this and stay in ``RECONNECTING``.
+        """
+        if self.last_update_success:
+            return DeviceState.ONLINE
+
+        has_countable_channel = self.local_available or self.api_available
+        local_dead = (not self.local_available) or self.local_consecutive_errors >= self.max_consecutive_errors
+        api_dead = (not self.api_available) or self.api_consecutive_errors >= self.max_consecutive_errors
+        if has_countable_channel and local_dead and api_dead:
+            return DeviceState.UNREACHABLE
+        return DeviceState.RECONNECTING
+
+    @property
+    def is_device_available(self) -> bool:
+        """Whether entities should report as available (False only when UNREACHABLE)."""
+        return self.device_state != DeviceState.UNREACHABLE
 
     @property
     def smartlife_device_online(self) -> bool | None:
@@ -970,8 +996,7 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
             return False
 
         _LOGGER.warning(
-            "local_key resync: applying rotated key for device %s "
-            "(stored length=%d, fresh length=%d)",
+            "local_key resync: applying rotated key for device %s (stored length=%d, fresh length=%d)",
             self.device_id[:8],
             len(self.local_device.local_key),
             len(fresh_key),

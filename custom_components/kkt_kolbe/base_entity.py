@@ -15,6 +15,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import slugify
 
 from .const import DOMAIN
 
@@ -118,8 +119,9 @@ class KKTBaseEntity(CoordinatorEntity["KKTKolbeUpdateCoordinator"]):
             self._attr_translation_key = translation_key
             # When using translation_key, don't set name (HA uses translation)
         else:
-            # Fallback to direct name if no translation key
-            self._attr_name = self._name
+            # Derive a translation key from the entity name so localized
+            # names are used even when no explicit translation_key is given.
+            self._attr_translation_key = slugify(self._name)
 
         # Set device class if provided
         self._attr_device_class = self._config.get("device_class")
@@ -285,6 +287,14 @@ class KKTBaseEntity(CoordinatorEntity["KKTKolbeUpdateCoordinator"]):
             # If device is online, we're always available
             if device_available:
                 return True
+
+            # Circuit breaker tripped (UNREACHABLE): the device has failed
+            # persistently and retries are suspended. Do NOT keep masking this
+            # with a stale cached value — surface it as unavailable so the user
+            # (and automations) see the real state instead of a frozen reading.
+            device_state = getattr(self.coordinator, "device_state", None)
+            if device_state is not None and device_state.value == "unreachable":
+                return False
 
             # If device is offline but we have cached data, still report as available
             # This prevents flapping during temporary connection issues

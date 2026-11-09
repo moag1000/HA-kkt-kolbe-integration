@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import timedelta
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import UpdateFailed
-
-from custom_components.kkt_kolbe.const import DOMAIN
 
 
 @pytest.fixture
@@ -419,10 +419,8 @@ async def test_hybrid_coordinator_api_fallback(
 @pytest.mark.asyncio
 async def test_coordinator_alias() -> None:
     """Test that backwards compatibility alias exists."""
-    from custom_components.kkt_kolbe.coordinator import (
-        KKTKolbeUpdateCoordinator,
-        KKTKolbeDataUpdateCoordinator,
-    )
+    from custom_components.kkt_kolbe.coordinator import KKTKolbeDataUpdateCoordinator
+    from custom_components.kkt_kolbe.coordinator import KKTKolbeUpdateCoordinator
 
     assert KKTKolbeDataUpdateCoordinator is KKTKolbeUpdateCoordinator
 
@@ -430,10 +428,8 @@ async def test_coordinator_alias() -> None:
 @pytest.mark.asyncio
 async def test_hybrid_coordinator_alias() -> None:
     """Test that backwards compatibility alias exists for hybrid coordinator."""
-    from custom_components.kkt_kolbe.hybrid_coordinator import (
-        KKTKolbeHybridCoordinator,
-        HybridCoordinator,
-    )
+    from custom_components.kkt_kolbe.hybrid_coordinator import HybridCoordinator
+    from custom_components.kkt_kolbe.hybrid_coordinator import KKTKolbeHybridCoordinator
 
     assert HybridCoordinator is KKTKolbeHybridCoordinator
 
@@ -506,10 +502,8 @@ async def test_coordinator_circuit_breaker(
     mock_config_entry,
 ) -> None:
     """Test coordinator circuit breaker trips after max attempts."""
-    from custom_components.kkt_kolbe.coordinator import (
-        KKTKolbeUpdateCoordinator,
-        DeviceState,
-    )
+    from custom_components.kkt_kolbe.coordinator import DeviceState
+    from custom_components.kkt_kolbe.coordinator import KKTKolbeUpdateCoordinator
     from custom_components.kkt_kolbe.exceptions import KKTConnectionError
 
     mock_device.async_get_status.side_effect = KKTConnectionError("Connection failed")
@@ -570,10 +564,8 @@ async def test_coordinator_reset_on_success(
     mock_config_entry,
 ) -> None:
     """Test coordinator resets counters on successful update."""
-    from custom_components.kkt_kolbe.coordinator import (
-        KKTKolbeUpdateCoordinator,
-        DeviceState,
-    )
+    from custom_components.kkt_kolbe.coordinator import DeviceState
+    from custom_components.kkt_kolbe.coordinator import KKTKolbeUpdateCoordinator
     from custom_components.kkt_kolbe.exceptions import KKTConnectionError
 
     mock_config_entry.add_to_hass(hass)

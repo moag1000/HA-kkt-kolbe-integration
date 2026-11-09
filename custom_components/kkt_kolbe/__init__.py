@@ -19,7 +19,7 @@ from .const import DOMAIN
 from .const import ENTRY_TYPE_ACCOUNT
 from .const import ENTRY_TYPE_DEVICE
 from .const import PLATFORMS  # noqa: F401
-from .data import KKTKolbeAccountConfigEntry  # noqa: F401
+from .data import KKTKolbeAccountConfigEntry
 from .data import KKTKolbeAccountRuntimeData
 from .data import KKTKolbeConfigEntry
 from .data import KKTKolbeRuntimeData
@@ -150,7 +150,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return await _async_setup_device_entry(hass, entry)
 
 
-async def _async_setup_account_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def _async_setup_account_entry(hass: HomeAssistant, entry: KKTKolbeAccountConfigEntry) -> bool:
     """Set up a SmartLife account entry (Parent Entry).
 
     Account entries:
@@ -799,7 +799,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return await _async_unload_device_entry(hass, entry)
 
 
-async def _async_unload_account_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def _async_unload_account_entry(hass: HomeAssistant, entry: KKTKolbeAccountConfigEntry) -> bool:
     """Unload a SmartLife account entry (Parent Entry).
 
     Note: Child device entries should be unloaded separately by Home Assistant
@@ -827,8 +827,8 @@ async def _async_unload_account_entry(hass: HomeAssistant, entry: ConfigEntry) -
             len(child_entry_ids),
         )
 
-    # Remove from hass.data
-    hass.data[DOMAIN].pop(entry.entry_id, None)
+    # Remove from hass.data (guard DOMAIN: setup may not have populated it)
+    hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
 
     # Account entries don't have platforms to unload
     _LOGGER.info("SmartLife account entry unloaded: %s", entry.title)
@@ -872,12 +872,14 @@ async def _async_unload_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigE
                     entry.title,
                 )
 
-        # Remove from hass.data (backward compatibility)
-        hass.data[DOMAIN].pop(entry.entry_id, None)
+        # Remove from hass.data (backward compatibility). Guard the DOMAIN key:
+        # setup may have been skipped/failed, so it isn't guaranteed to exist.
+        domain_data = hass.data.get(DOMAIN, {})
+        domain_data.pop(entry.entry_id, None)
 
         # Count remaining device entries (exclude account entries)
         device_entries = [
-            e for e in hass.data[DOMAIN].values() if isinstance(e, dict) and e.get("entry_type") != ENTRY_TYPE_ACCOUNT
+            e for e in domain_data.values() if isinstance(e, dict) and e.get("entry_type") != ENTRY_TYPE_ACCOUNT
         ]
 
         # Unload services when the last device is removed

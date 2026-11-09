@@ -2447,12 +2447,12 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
 
         # Current values — pre-fill so user sees what's stored
         current_ip = entry.data.get(CONF_IP_ADDRESS, "")
-        current_local_key = entry.data.get("local_key") or entry.data.get(CONF_ACCESS_TOKEN) or ""
 
         schema = vol.Schema(
             {
                 vol.Optional("ip_address", default=current_ip): str,
-                vol.Optional("local_key", default=current_local_key): selector.selector({"text": {"type": "password"}}),
+                # Empty = keep current key; never echo the stored secret back to the form.
+                vol.Optional("local_key", default=""): selector.selector({"text": {"type": "password"}}),
                 vol.Optional("test_connection", default=True): bool,
             }
         )
@@ -2706,12 +2706,12 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
         current_api_enabled = entry.data.get("api_enabled", False)
         current_client_id = entry.data.get("api_client_id", "")
         current_endpoint = entry.data.get("api_endpoint", "https://openapi.tuyaeu.com")
-        current_local_key = entry.data.get("local_key") or entry.data.get(CONF_ACCESS_TOKEN) or ""
 
         schema = vol.Schema(
             {
                 vol.Optional("ip_address", default=current_ip): str,
-                vol.Optional("local_key", default=current_local_key): selector.selector({"text": {"type": "password"}}),
+                # Empty = keep current key; never echo the stored secret back to the form.
+                vol.Optional("local_key", default=""): selector.selector({"text": {"type": "password"}}),
                 vol.Required("device_type", default=current_device_type): selector.selector(
                     {
                         "select": {
@@ -3042,6 +3042,12 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                 "enable_debug_logging": False,
             }
 
+            # Guard against adding the same physical device twice (every other
+            # entry-creation path does this; the Tuya IoT device-selection path
+            # previously did not).
+            await self.async_set_unique_id(selected_device_id)
+            self._abort_if_unique_id_configured()
+
             return self.async_create_entry(
                 title=title,
                 data=config_data,
@@ -3086,6 +3092,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                                 "device_id": device["id"],
                                 "name": device.get("name", f"KKT Device {device['id']}"),
                                 "product_name": internal_product_name,
+                                "product_id": device.get("product_id"),  # Needed for cloud-spec-aware routing
                                 "api_product_name": device.get("product_name", "Unknown Device"),
                                 "tuya_category": device.get("category", ""),
                                 "ip": device.get("ip"),  # Include IP from API

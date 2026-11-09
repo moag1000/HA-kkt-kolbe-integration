@@ -234,8 +234,9 @@ class KKTKolbeFan(KKTBaseEntity, FanEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        self._update_cached_state()
-        self.async_write_ha_state()
+        # Base impl hard-releases the optimistic lock on a confirmed device
+        # push, then calls our _update_cached_state() and writes HA state.
+        super()._handle_coordinator_update()
 
     @property
     def is_on(self) -> bool | None:
@@ -296,17 +297,34 @@ class KKTKolbeFan(KKTBaseEntity, FanEntity):
         if percentage is not None:
             await self.async_set_percentage(percentage)
         else:
-            # Restore last speed
-            await self._async_set_data_point(self._dp_id, self._last_non_off_speed)
+            # Restore last speed (optimistic paint before the write, Issue #6)
+            await self._async_set_speed_optimistic(self._last_non_off_speed)
             self._log_entity_state("Turn On", f"Speed: {self._last_non_off_speed}")
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the fan."""
-        if self._numeric_mode:
-            await self._async_set_data_point(self._dp_id, 0)
-        else:
-            await self._async_set_data_point(self._dp_id, "off")
+        off_value: int | str = 0 if self._numeric_mode else "off"
+        await self._async_set_speed_optimistic(off_value)
         self._log_entity_state("Turn Off", "Speed: off/0")
+
+    async def _async_set_speed_optimistic(self, raw_value: int | str) -> None:
+        """Write the fan-speed DP with optimistic UI paint + rollback.
+
+        Locks the DP at ``raw_value`` and repaints immediately so a stale Tuya
+        cloud poll cannot snap the slider back before the device confirms.
+        """
+        self._set_optimistic(raw_value)
+        self._update_cached_state()
+        if self.hass:
+            self.async_write_ha_state()
+        try:
+            await self._async_set_data_point(self._dp_id, raw_value)
+        except Exception:
+            self._clear_optimistic()
+            self._update_cached_state()
+            if self.hass:
+                self.async_write_ha_state()
+            raise
 
     async def async_set_percentage(self, percentage: int) -> None:
         """Set the speed percentage of the fan.
@@ -349,12 +367,12 @@ class KKTKolbeFan(KKTBaseEntity, FanEntity):
             # Convert percentage to 1-9
             # 1-11% → 1, 12-22% → 2, ..., 90-100% → 9
             speed_int = max(1, min(self._max_speed, math.ceil(percentage / 100 * self._max_speed)))
-            await self._async_set_data_point(self._dp_id, speed_int)
+            await self._async_set_speed_optimistic(speed_int)
             self._last_non_off_speed = speed_int
             self._log_entity_state("Set Speed", f"Speed: {speed_int} ({percentage}%)")
         else:
             # Convert percentage to speed name
             speed_name = percentage_to_ordered_list_item(self._speed_list, percentage)
-            await self._async_set_data_point(self._dp_id, speed_name)
+            await self._async_set_speed_optimistic(speed_name)
             self._last_non_off_speed = speed_name
             self._log_entity_state("Set Speed", f"Speed: {speed_name} ({percentage}%)")

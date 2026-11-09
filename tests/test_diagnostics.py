@@ -1,6 +1,5 @@
 """Test KKT Kolbe diagnostics."""
 import pytest
-
 from homeassistant.core import HomeAssistant
 
 from custom_components.kkt_kolbe.const import DOMAIN

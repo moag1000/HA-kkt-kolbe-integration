@@ -1,15 +1,15 @@
 """Test the KKT Kolbe discovery module."""
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest
 from homeassistant.core import HomeAssistant
 
-from custom_components.kkt_kolbe.discovery import (
-    KKTKolbeDiscovery,
-    simple_tuya_discover,
-)
+from custom_components.kkt_kolbe.discovery import KKTKolbeDiscovery
+from custom_components.kkt_kolbe.discovery import simple_tuya_discover
 
 
 @pytest.fixture

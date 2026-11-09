@@ -7,10 +7,12 @@ for use as device pictures in Home Assistant.
 from __future__ import annotations
 
 import logging
+from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import aiohttp
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -93,7 +95,7 @@ async def download_icon(
     # Create storage directory
     storage_path = get_icon_storage_path(hass)
     try:
-        storage_path.mkdir(parents=True, exist_ok=True)
+        await hass.async_add_executor_job(partial(storage_path.mkdir, parents=True, exist_ok=True))
     except OSError as err:
         _LOGGER.error("Failed to create icon storage directory: %s", err)
         return None
@@ -102,7 +104,7 @@ async def download_icon(
     target_file = storage_path / f"{device_id}.png"
 
     # Check if already exists
-    if target_file.exists() and not force:
+    if await hass.async_add_executor_job(target_file.exists) and not force:
         _LOGGER.debug("Icon for device %s already exists", device_id[:8])
         return get_icon_url_for_device(device_id)
 
@@ -118,40 +120,40 @@ async def download_icon(
         _LOGGER.debug("Trying icon URL: %s", full_url)
 
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(full_url, timeout=aiohttp.ClientTimeout(total=30)) as response:
-                    _LOGGER.debug("Icon download response: HTTP %s from %s", response.status, full_url)
-                    if response.status == 200:
-                        content = await response.read()
+            session = async_get_clientsession(hass)
+            async with session.get(full_url, timeout=aiohttp.ClientTimeout(total=30)) as response:
+                _LOGGER.debug("Icon download response: HTTP %s from %s", response.status, full_url)
+                if response.status == 200:
+                    content = await response.read()
 
-                        # Verify it's actually an image
-                        # Note: Tuya CDN often returns application/octet-stream for images
-                        content_type = response.headers.get("content-type", "")
+                    # Verify it's actually an image
+                    # Note: Tuya CDN often returns application/octet-stream for images
+                    content_type = response.headers.get("content-type", "")
 
-                        # Check magic bytes for PNG/JPEG if content-type is generic
-                        is_valid_image = content_type.startswith("image/")
-                        if not is_valid_image and content_type in (
-                            "application/octet-stream",
-                            "binary/octet-stream",
-                            "",
-                        ):
-                            # Check PNG magic bytes: 89 50 4E 47
-                            # Check JPEG magic bytes: FF D8 FF
-                            if content[:4] == b"\x89PNG" or content[:3] == b"\xff\xd8\xff":
-                                is_valid_image = True
-                                _LOGGER.debug("Detected image from magic bytes despite content-type: %s", content_type)
+                    # Check magic bytes for PNG/JPEG if content-type is generic
+                    is_valid_image = content_type.startswith("image/")
+                    if not is_valid_image and content_type in (
+                        "application/octet-stream",
+                        "binary/octet-stream",
+                        "",
+                    ):
+                        # Check PNG magic bytes: 89 50 4E 47
+                        # Check JPEG magic bytes: FF D8 FF
+                        if content[:4] == b"\x89PNG" or content[:3] == b"\xff\xd8\xff":
+                            is_valid_image = True
+                            _LOGGER.debug("Detected image from magic bytes despite content-type: %s", content_type)
 
-                        if not is_valid_image:
-                            _LOGGER.debug("URL %s returned non-image content type: %s", full_url, content_type)
-                            continue
+                    if not is_valid_image:
+                        _LOGGER.debug("URL %s returned non-image content type: %s", full_url, content_type)
+                        continue
 
-                        # Save to file
-                        await hass.async_add_executor_job(_write_file, target_file, content)
+                    # Save to file
+                    await hass.async_add_executor_job(_write_file, target_file, content)
 
-                        _LOGGER.info("Downloaded icon for device %s from %s", device_id[:8], base_url)
-                        return get_icon_url_for_device(device_id)
-                    else:
-                        _LOGGER.info("Icon download failed from %s: HTTP %s", base_url, response.status)
+                    _LOGGER.info("Downloaded icon for device %s from %s", device_id[:8], base_url)
+                    return get_icon_url_for_device(device_id)
+                else:
+                    _LOGGER.info("Icon download failed from %s: HTTP %s", base_url, response.status)
         except TimeoutError:
             _LOGGER.debug("Timeout downloading from %s", full_url)
         except aiohttp.ClientError as err:

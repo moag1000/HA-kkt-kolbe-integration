@@ -476,4 +476,7 @@ async def set_zone_value_in_coordinator(coordinator: Any, dp_id: int, zone: int,
         _LOGGER.info(f"Set zone {zone} DP {dp_id} to {value}, new bitfield: {new_data}")
 
     except Exception as e:
+        # Propagate so the calling entity can roll back its optimistic paint and
+        # surface the failure instead of silently swallowing it (Issue #6).
         _LOGGER.error(f"Failed to set zone {zone} value {value} for DP {dp_id}: {e}")
+        raise

@@ -1,16 +1,17 @@
 """Test the KKT Kolbe binary sensor platform."""
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock
 from datetime import datetime
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
 
 import pytest
-from homeassistant.core import HomeAssistant
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 
-from custom_components.kkt_kolbe.const import DOMAIN
 from custom_components.kkt_kolbe import KKTKolbeRuntimeData
+from custom_components.kkt_kolbe.const import DOMAIN
 
 
 @pytest.fixture
