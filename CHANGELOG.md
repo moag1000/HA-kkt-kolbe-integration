@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **probatio statt voluptuous**: HA 2026.9 hat die Schema-Validierung auf [probatio](https://developers.home-assistant.io/blog/2026/09/30/probatio-validation-engine) umgestellt; die Integration importiert jetzt direkt `probatio`.
 - **Device-Registry-API von HA 2026.8**: `DeviceEntry.config_entry_id` statt `config_entries`, `async_get_device_by_identifier()` statt des veralteten `async_get_device()`.
 - **Brand-Bilder** liegen jetzt in `custom_components/kkt_kolbe/brand/` (HA 2026.3+ zeigt lokale Icons/Logos direkt an, HACS verlangt den Ordner). `ignore: brands` in der HACS-Validierung entfällt.
-- **manifest.json**: `aiohttp` entfernt (kommt aus HA Core), `tinytuya>=1.20.0`, `tuya-device-sharing-sdk>=0.2.15` (gleiche Version wie die Core-Tuya-Integration).
+- **manifest.json**: `tinytuya>=1.20.0`, `tuya-device-sharing-sdk>=0.2.15` (gleiche Version wie die Core-Tuya-Integration).
 
 ### Added
 
@@ -54,6 +54,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **SmartLife-Reauth mit zwei gleichen Geräten** im Konto konnte Geräte-ID und Local Key des falschen Geräts übernehmen (Abgleich lief zuerst über die Modell-ID). Jetzt zuerst über die Geräte-ID; über das Modell nur, wenn es eindeutig ist. Ändert sich die Geräte-ID, wird auch die Unique-ID des Eintrags nachgezogen.
 - Reauth lädt über `async_update_reload_and_abort` neu, statt im Flow auf das Neuladen zu warten.
 - Fehlende Übersetzungen in Config- und Options-Flow ergänzt (strings.json war hinter en/de zurück).
+
+## [4.8.0] - 2026-11-10
+
+Letzte Version für Home Assistant 2025.12 – 2026.8. Ab 4.9.0 ist Home Assistant 2026.9.0 nötig.
+
+### Fixed
+
+- **Verfügbarkeit**: Entities melden *nicht verfügbar*, wenn das Gerät unerreichbar ist (Circuit-Breaker), statt dauerhaft den letzten zwischengespeicherten Wert zu zeigen. Im Hybrid-Modus zählt die Verfügbarkeit beider Wege.
+- **Doppelte Einträge**: Dasselbe Gerät lässt sich über den Tuya-IoT-Weg nicht mehr zweimal hinzufügen (`unique_id` wird gesetzt und geprüft).
+- **Zurückspringende Schalter im UI**: Licht, Lüfter und Kochzonen-Leistung zeigen die Änderung sofort an und nehmen sie zurück, wenn der Befehl scheitert; Push-Updates des Geräts kommen direkt an.
+- **Langzeitstatistik**: 12 Messwert-Sensoren (Temperatur, Filterstunden, Timer, Stufen) haben `state_class: measurement`; Timer-Sensoren korrigiert.
+- **Cloud-Spec-Routing** auch beim Einrichten mit gespeicherten Zugangsdaten (`product_id` wird mitgegeben).
+- Icon-Download nutzt die gemeinsame HA-Websession; Entladen der Integration ist robuster.
+
+### Changed
+
+- **Übersetzungen**: `translation_key` wird zentral gesetzt (`unique_id` unverändert, kein Verlust der Historie); 83 neue deutsche Entity-Namen.
+- **Aufräumen**: ungenutzte Module entfernt (`config_flow_v2`, `reconnect_coordinator`, `entity_factory`, `tuya_category_specs`, `tuya_api_manager`), blockierende Dateizugriffe laufen im Executor, der Reconfigure-Dialog zeigt den gespeicherten Local Key nicht mehr an.
+- **manifest.json**: `aiohttp` aus den Requirements entfernt (kommt aus Home Assistant selbst; Hassfest verlangt das).
+- 26 neue Tests (270 gesamt).
 
 ## [4.7.4] - 2026-05-22
 
