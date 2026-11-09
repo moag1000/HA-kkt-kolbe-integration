@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Neuer Blueprint „Geräte-Ereignisse melden“**: Push-Benachrichtigung bei Timer abgelaufen, Filterreinigung, Kochzonen-Fehler und optional Verbindungsereignissen.
 - **Blueprints modernisiert** (`triggers:`/`actions:`-Syntax) und per Test gegen Home Assistant validiert.
 - **HACS-ZIP-Release**: Ein GitHub-Actions-Workflow baut bei jedem veröffentlichten Release `kkt_kolbe.zip` (inkl. SHA256) und hängt es ans Release; `hacs.json` nutzt `zip_release`. Der Workflow prüft, dass Tag und `manifest.json`-Version übereinstimmen.
-- **mypy** ist sauber (nicht-strikt); viele fehlende Typen ergänzt.
+- **mypy** ist sauber (nicht-strikt) und läuft jetzt in der CI; viele fehlende Typen ergänzt.
 
 ### Fixed
 
@@ -39,6 +39,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Diagnose-Download** brach bei Geräten im manuellen Modus mit `AttributeError` ab (`last_update_success_time` fehlte).
 - **Geräteauswahl in Actions**: HA-Geräte-IDs aus dem Device-Selector wurden nicht aufgelöst; jetzt werden HA-Geräte-ID und Tuya-Geräte-ID akzeptiert.
 - Tuya-Cloud-Client nutzt die gemeinsame HA-`aiohttp`-Session (`inject-websession`).
+- **Setup wartet nicht mehr auf den Icon-Download**: Das Geräte-Icon aus der SmartLife-Cloud wird im Hintergrund geladen, ein langsames Tuya-CDN verzögert den Start nicht mehr.
+- **Toter Link „Besuchen“ auf der Geräteseite entfernt**: Tuya-Geräte haben keine Weboberfläche; der Link zeigte auf `http://<IP>` bzw. `http://unknown`.
+- **Kein automatisch angelegter Bereich „Kitchen“** mehr für neue Geräte (war fest auf Englisch hinterlegt).
 
 ## [4.7.4] - 2026-05-22
 

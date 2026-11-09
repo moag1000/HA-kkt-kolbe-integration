@@ -693,11 +693,6 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
     # Get serial number from SmartLife UUID if available
     serial_number = extended_info.get("uuid")
 
-    # Build configuration URL
-    config_url = None
-    if ip_address:
-        config_url = f"http://{ip_address}"
-
     # async_get_or_create also updates these fields on an existing device
     device_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
@@ -708,20 +703,17 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
         sw_version=sw_version,
         hw_version=hw_version,
         serial_number=serial_number,
-        configuration_url=config_url,
     )
 
-    # Download device icon from SmartLife or stored URL
+    # Download device icon from SmartLife or stored URL in the background, so
+    # a slow or unreachable Tuya CDN never delays setup
     icon_url = extended_info.get("icon") or entry.data.get("icon_url")
     if icon_url:
-        from .helpers.icon_downloader import download_icon
-
-        try:
-            local_icon_path = await download_icon(hass, device_id, icon_url)
-            if local_icon_path:
-                _LOGGER.info("Device icon downloaded for %s: %s", device_id[:8], local_icon_path)
-        except Exception as err:
-            _LOGGER.warning("Failed to download device icon: %s", err)
+        entry.async_create_background_task(
+            hass,
+            _async_download_device_icon(hass, device_id, icon_url),
+            name=f"kkt_kolbe_{entry.entry_id}_icon",
+        )
 
     # Load only the platforms needed for this specific device
     await hass.config_entries.async_forward_entry_setups(entry, platforms)
@@ -731,6 +723,18 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
     # update listener is registered (combining both is an error from HA 2026.12).
 
     return True
+
+
+async def _async_download_device_icon(hass: HomeAssistant, device_id: str, icon_url: str) -> None:
+    """Download the device icon; failures are only logged."""
+    from .helpers.icon_downloader import download_icon
+
+    try:
+        local_icon_path = await download_icon(hass, device_id, icon_url)
+        if local_icon_path:
+            _LOGGER.info("Device icon downloaded for %s: %s", device_id[:8], local_icon_path)
+    except Exception as err:
+        _LOGGER.warning("Failed to download device icon: %s", err)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

@@ -519,7 +519,6 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
             model_id=device_type_info["model_id"],
             sw_version=getattr(self.device, "version", None),
             hw_version=self.device.device_id[:8],  # Use first 8 chars of device ID
-            configuration_url=f"http://{self.device.ip_address}",
         )
 
 

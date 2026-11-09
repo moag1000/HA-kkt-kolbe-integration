@@ -165,5 +165,6 @@ rules:
   strict-typing:
     status: todo
     comment: >-
-      Type hints and `from __future__ import annotations` are used throughout,
-      but there is no enforced strict mypy gate / py.typed marker verifying it.
+      mypy runs in CI (Lint workflow) and is clean in the default mode;
+      `mypy --strict` still reports missing generic parameters and untyped
+      helpers (mostly device_types / discovery), so strict stays todo.

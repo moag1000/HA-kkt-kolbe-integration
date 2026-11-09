@@ -155,7 +155,6 @@ class KKTBaseEntity(CoordinatorEntity["KKTCoordinator"]):
 
         # Extract device information
         device_id = self._entry.data.get("device_id", "unknown")
-        ip_address = self._entry.data.get("ip_address", "unknown")
 
         # Get device info from KNOWN_DEVICES (HA 2024.6+ model ID support)
         if device_type_key in KNOWN_DEVICES:
@@ -180,8 +179,6 @@ class KKTBaseEntity(CoordinatorEntity["KKTCoordinator"]):
             model=model_id,  # Use model_id from KNOWN_DEVICES
             sw_version=self._get_software_version(),
             hw_version=self._get_hardware_version(),
-            configuration_url=f"http://{ip_address}",
-            suggested_area="Kitchen",
         )
 
     def _get_software_version(self) -> str:
@@ -254,15 +251,6 @@ class KKTBaseEntity(CoordinatorEntity["KKTCoordinator"]):
             return str(device_id[:8]).upper()
 
         return "KKT Device"
-
-    def _get_suggested_area(self) -> str:
-        """Get suggested area for the device."""
-        product_name = self._runtime_attr("product_name")
-
-        if "IND7705HC" in product_name or "HERMES" in product_name:
-            return "Kitchen"
-
-        return "Kitchen"
 
     @property
     def available(self) -> bool:
