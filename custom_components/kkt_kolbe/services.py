@@ -186,8 +186,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 if not entry:
                     raise _validation_error("config_entry_not_found", entry_id=coord_entry_id)
 
-                device_id = entry.data.get("device_id")
-                ip_address = entry.data.get("ip_address")
+                device_id = entry.data.get("device_id") or ""
+                ip_address = entry.data.get("ip_address") or ""
 
                 # Check if coordinator has a local device
                 if coordinator.device is None:
@@ -416,9 +416,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 if "all" not in device_types:
                     # Get device info to determine type
                     device_registry_instance = dr.async_get(hass)
-                    device_entry = device_registry_instance.async_get(entity_entry.device_id)
+                    device_entry = (
+                        device_registry_instance.async_get(entity_entry.device_id) if entity_entry.device_id else None
+                    )
 
-                    if not device_entry:
+                    if not isinstance(device_entry, dr.DeviceEntry):
                         continue
 
                     device_model = (device_entry.model or "").lower()

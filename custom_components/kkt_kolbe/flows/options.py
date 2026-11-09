@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 from typing import Any
 
 import probatio as vol
@@ -24,6 +25,9 @@ from ..const import TUYA_IOT_URL
 from ..helpers import get_options_schema
 from ..helpers import validate_api_credentials
 
+if TYPE_CHECKING:
+    from ..clients.tuya_sharing_client import TuyaSharingClient
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -33,6 +37,9 @@ class KKTKolbeOptionsFlow(OptionsFlowWithReload):
     OptionsFlowWithReload (HA 2025.8+) reloads the entry automatically when the
     options actually change, replacing the former config entry update listener.
     """
+
+    _qr_code_url: str | None = None
+    _smartlife_client: TuyaSharingClient | None = None
 
     def __init__(self):
         """Initialize options flow."""
@@ -103,7 +110,7 @@ class KKTKolbeOptionsFlow(OptionsFlowWithReload):
         errors: dict[str, str] = {}
 
         # Initialize QR code generation
-        if not hasattr(self, "_qr_code_url") or self._qr_code_url is None:
+        if self._qr_code_url is None:
             try:
                 from ..clients.tuya_sharing_client import TuyaSharingClient
                 from ..const import SMARTLIFE_SCHEMA
@@ -115,13 +122,12 @@ class KKTKolbeOptionsFlow(OptionsFlowWithReload):
                     _LOGGER.error("No user_code found in config entry for token renewal")
                 else:
                     # Create new client for QR code generation
-                    self._smartlife_client = TuyaSharingClient(
-                        self.hass, user_code=user_code, app_schema=SMARTLIFE_SCHEMA
-                    )
+                    client = TuyaSharingClient(self.hass, user_code=user_code, app_schema=SMARTLIFE_SCHEMA)
+                    self._smartlife_client = client
                     # Generate QR code - returns string like "tuyaSmart--qrLogin?token=xxx"
                     from urllib.parse import quote
 
-                    qr_code_string = await self._smartlife_client.async_generate_qr_code()
+                    qr_code_string = await client.async_generate_qr_code()
                     # Convert to QR code image URL using qrserver.com API
                     encoded_qr = quote(qr_code_string, safe="")
                     self._qr_code_url = f"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={encoded_qr}"
@@ -131,15 +137,16 @@ class KKTKolbeOptionsFlow(OptionsFlowWithReload):
                 errors["base"] = "qr_code_failed"
                 _LOGGER.error("Failed to generate QR code: %s", err)
 
-        if user_input is not None:
+        if user_input is not None and self._smartlife_client is not None:
             # User clicked "I scanned the QR code"
+            client = self._smartlife_client
             try:
                 # Poll for authentication result
-                auth_result = await self._smartlife_client.async_poll_login_result()
+                auth_result = await client.async_poll_login_result()
 
                 if auth_result.success:
                     # Get new token info
-                    new_token_info = self._smartlife_client.get_token_info_for_storage()
+                    new_token_info = client.get_token_info_for_storage()
 
                     # Update config entry with new tokens
                     new_data = dict(self.config_entry.data)
@@ -185,7 +192,7 @@ class KKTKolbeOptionsFlow(OptionsFlowWithReload):
                 _LOGGER.error("Token renewal failed: %s", err)
 
         # Show QR code form or error
-        qr_url = getattr(self, "_qr_code_url", None) or ""
+        qr_url = self._qr_code_url or ""
 
         if not qr_url and not errors:
             # QR generation failed but no specific error was set

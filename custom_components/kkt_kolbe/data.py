@@ -19,11 +19,15 @@ if TYPE_CHECKING:
     from .tuya_device import KKTKolbeTuyaDevice
 
 
+type KKTCoordinator = KKTKolbeUpdateCoordinator | KKTKolbeHybridCoordinator
+"""Either coordinator flavour a device entry can run (local-only or hybrid)."""
+
+
 @dataclass
 class KKTKolbeRuntimeData:
     """Runtime data for KKT Kolbe device entries."""
 
-    coordinator: KKTKolbeUpdateCoordinator | KKTKolbeHybridCoordinator
+    coordinator: KKTCoordinator
     device: KKTKolbeTuyaDevice | None
     api_client: TuyaCloudClient | None
     device_info: dict[str, Any]

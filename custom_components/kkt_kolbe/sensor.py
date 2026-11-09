@@ -15,12 +15,12 @@ from homeassistant.const import UnitOfPower
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .base_entity import KKTBaseEntity
 from .base_entity import KKTZoneBaseEntity
 from .bitfield_utils import BITFIELD_CONFIG
 from .bitfield_utils import get_zone_value_from_coordinator
+from .data import KKTCoordinator
 from .device_types import get_device_entities
 
 if TYPE_CHECKING:
@@ -53,7 +53,7 @@ async def async_setup_entry(
     # Prefer device_type (KNOWN_DEVICES key) over product_name (Tuya product ID)
     lookup_key = device_type if device_type not in ("auto", None, "") else product_name
 
-    entities = []
+    entities: list[SensorEntity] = []
     sensor_configs = get_device_entities(lookup_key, "sensor")
 
     for config in sensor_configs:
@@ -104,7 +104,7 @@ class KKTKolbeSensor(KKTBaseEntity, SensorEntity):
 
     def __init__(
         self,
-        coordinator: DataUpdateCoordinator[dict[str, Any]],
+        coordinator: KKTCoordinator,
         entry: ConfigEntry,
         config: dict[str, Any],
     ) -> None:
@@ -195,7 +195,7 @@ class KKTKolbeZoneSensor(KKTZoneBaseEntity, SensorEntity):
 
     def __init__(
         self,
-        coordinator: DataUpdateCoordinator[dict[str, Any]],
+        coordinator: KKTCoordinator,
         entry: ConfigEntry,
         config: dict[str, Any],
     ) -> None:
@@ -269,7 +269,7 @@ class KKTKolbeCalculatedPowerSensor(KKTBaseEntity, SensorEntity):
 
     def __init__(
         self,
-        coordinator: DataUpdateCoordinator[dict[str, Any]],
+        coordinator: KKTCoordinator,
         entry: ConfigEntry,
         config: dict[str, Any],
     ) -> None:
@@ -313,7 +313,7 @@ class KKTKolbeTotalLevelSensor(KKTBaseEntity, SensorEntity):
 
     def __init__(
         self,
-        coordinator: DataUpdateCoordinator[dict[str, Any]],
+        coordinator: KKTCoordinator,
         entry: ConfigEntry,
         config: dict[str, Any],
     ) -> None:
@@ -352,7 +352,7 @@ class KKTKolbeActiveZonesSensor(KKTBaseEntity, SensorEntity):
 
     def __init__(
         self,
-        coordinator: DataUpdateCoordinator[dict[str, Any]],
+        coordinator: KKTCoordinator,
         entry: ConfigEntry,
         config: dict[str, Any],
     ) -> None:
@@ -386,7 +386,7 @@ class KKTKolbeActiveZonesSensor(KKTBaseEntity, SensorEntity):
         return self._cached_value
 
 
-class KKTKolbeConnectionSensor(CoordinatorEntity, SensorEntity):
+class KKTKolbeConnectionSensor(CoordinatorEntity["KKTCoordinator"], SensorEntity):
     """Sensor that shows the current connection mode (local/api/smartlife)."""
 
     # Attributes that change frequently - don't record in database
@@ -436,7 +436,7 @@ class KKTKolbeConnectionSensor(CoordinatorEntity, SensorEntity):
                 "api": "Cloud (IoT API)",
                 "smartlife": "Cloud (SmartLife)",
             }
-            return mode_names.get(mode, mode)
+            return str(mode_names.get(mode, mode))
         return "Unknown"
 
     @property
@@ -531,7 +531,7 @@ class KKTKolbeConnectionSensor(CoordinatorEntity, SensorEntity):
         return self.coordinator.last_update_success
 
 
-class KKTKolbeSmartLifeInfoSensor(CoordinatorEntity, SensorEntity):
+class KKTKolbeSmartLifeInfoSensor(CoordinatorEntity["KKTCoordinator"], SensorEntity):
     """Sensor that exposes extended SmartLife device information.
 
     Shows device info like UUID, creation time, active time, update time,

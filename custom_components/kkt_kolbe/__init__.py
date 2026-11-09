@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 from typing import Any
 
 import homeassistant.helpers.config_validation as cv
@@ -24,6 +25,12 @@ from .data import KKTKolbeAccountConfigEntry
 from .data import KKTKolbeAccountRuntimeData
 from .data import KKTKolbeConfigEntry
 from .data import KKTKolbeRuntimeData
+
+if TYPE_CHECKING:
+    from .api import TuyaCloudClient
+    from .coordinator import KKTKolbeUpdateCoordinator
+    from .hybrid_coordinator import KKTKolbeHybridCoordinator
+    from .tuya_device import KKTKolbeTuyaDevice
 
 # This integration is config entry only - no YAML configuration
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
@@ -383,9 +390,9 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
         else:
             _LOGGER.warning("SmartLife device %s has no parent_entry_id - tokens may be outdated", entry.entry_id[:8])
 
-    device = None
-    api_client = None
-    coordinator = None
+    device: KKTKolbeTuyaDevice | None = None
+    api_client: TuyaCloudClient | None = None
+    coordinator: KKTKolbeUpdateCoordinator | KKTKolbeHybridCoordinator
 
     # Initialize API client if enabled
     if api_enabled:
@@ -415,7 +422,7 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
 
     # Initialize local device if we have local connection details
     ip_address = entry.data.get(CONF_IP_ADDRESS) or entry.data.get("ip_address") or entry.data.get("host")
-    device_id = entry.data.get(CONF_DEVICE_ID) or entry.data.get("device_id")
+    device_id: str = entry.data.get(CONF_DEVICE_ID) or entry.data.get("device_id") or ""
     local_key = entry.data.get(CONF_ACCESS_TOKEN) or entry.data.get("local_key")
 
     # For SmartLife mode: Sync local_key from SmartLife API (may have been rotated)
@@ -691,7 +698,8 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
     if ip_address:
         config_url = f"http://{ip_address}"
 
-    device_entry = device_registry.async_get_or_create(
+    # async_get_or_create also updates these fields on an existing device
+    device_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
         identifiers={(DOMAIN, device_id)},
         manufacturer="KKT Kolbe",
@@ -702,21 +710,6 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
         serial_number=serial_number,
         configuration_url=config_url,
     )
-
-    # Update existing device entry with extended info
-    update_kwargs = {}
-    if device_entry.sw_version == "Unknown" or device_entry.sw_version != sw_version:
-        update_kwargs["sw_version"] = sw_version
-    if device_entry.hw_version == "Unknown" or device_entry.hw_version != hw_version:
-        update_kwargs["hw_version"] = hw_version
-    if serial_number and device_entry.serial_number != serial_number:
-        update_kwargs["serial_number"] = serial_number
-    if config_url and device_entry.configuration_url != config_url:
-        update_kwargs["configuration_url"] = config_url
-
-    if update_kwargs:
-        device_registry.async_update_device(device_entry.id, **update_kwargs)
-        _LOGGER.info("Updated device registry for %s: %s", device_id[:8], update_kwargs)
 
     # Download device icon from SmartLife or stored URL
     icon_url = extended_info.get("icon") or entry.data.get("icon_url")

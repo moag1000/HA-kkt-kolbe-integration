@@ -156,6 +156,15 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
         return self._last_successful_update
 
     @property
+    def last_update_success_time(self) -> datetime | None:
+        """Same as last_successful_update (name used by the hybrid coordinator).
+
+        Diagnostics, services and sensors read this on every coordinator type;
+        without it diagnostics raised AttributeError for manual-mode devices.
+        """
+        return self._last_successful_update
+
+    @property
     def connection_info(self) -> dict[str, Any]:
         """Get connection status information."""
         return {
@@ -197,7 +206,7 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
         else:  # OFFLINE
             new_interval = timedelta(seconds=POLL_INTERVAL_OFFLINE)
 
-        current_interval = self.update_interval  # type: ignore[has-type]
+        current_interval = self.update_interval
         if current_interval != new_interval:
             _LOGGER.debug(
                 f"Device {self.device.device_id[:8]}: Adjusting poll interval to {new_interval.total_seconds()}s (state: {self._device_state.value})"

@@ -59,6 +59,11 @@ def _get_dps_diagnostics(data: dict[str, Any] | None) -> dict[str, Any]:
     }
 
 
+def _iso(value: Any) -> Any:
+    """Return ISO format for datetimes, the value unchanged otherwise."""
+    return value.isoformat() if isinstance(value, datetime) else value
+
+
 async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: KKTKolbeConfigEntry) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
     runtime_data = entry.runtime_data
@@ -69,7 +74,7 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: KKTKolb
     api_client = runtime_data.api_client
 
     # Build diagnostics data
-    diagnostics_data = {
+    diagnostics_data: dict[str, Any] = {
         "integration": {
             "version": VERSION,
             "domain": entry.domain,
@@ -116,19 +121,13 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: KKTKolb
             conn_info = coordinator.connection_info
             diagnostics_data["coordinator"]["connection_state"] = conn_info.get("state", "unknown")
             diagnostics_data["coordinator"]["consecutive_failures"] = conn_info.get("consecutive_failures", 0)
-            diagnostics_data["coordinator"]["last_successful_update"] = (
-                conn_info.get("last_update").isoformat() if conn_info.get("last_update") else None
-            )
+            diagnostics_data["coordinator"]["last_successful_update"] = _iso(conn_info.get("last_update"))
 
             # Add circuit breaker info if using ReconnectCoordinator
             if "circuit_breaker_retries" in conn_info:
                 diagnostics_data["coordinator"]["circuit_breaker"] = {
                     "retries": conn_info.get("circuit_breaker_retries", 0),
-                    "next_retry": (
-                        conn_info.get("circuit_breaker_next_retry").isoformat()
-                        if conn_info.get("circuit_breaker_next_retry")
-                        else None
-                    ),
+                    "next_retry": (_iso(conn_info.get("circuit_breaker_next_retry"))),
                     "adaptive_interval_active": conn_info.get("adaptive_interval_active", False),
                 }
 
@@ -156,9 +155,7 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: KKTKolb
         if hasattr(coordinator, "_error_history"):
             diagnostics_data["error_history"] = [
                 {
-                    "timestamp": err.get("timestamp").isoformat()
-                    if isinstance(err.get("timestamp"), datetime)
-                    else err.get("timestamp"),
+                    "timestamp": _iso(err.get("timestamp")),
                     "error_type": err.get("error_type", "unknown"),
                     "message": err.get("message", "")[:100],  # Truncate for privacy
                     "recoverable": err.get("recoverable", True),

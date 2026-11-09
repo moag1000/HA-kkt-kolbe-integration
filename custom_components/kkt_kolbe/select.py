@@ -10,9 +10,9 @@ from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .base_entity import KKTBaseEntity
+from .data import KKTCoordinator
 from .device_types import get_device_entities
 
 if TYPE_CHECKING:
@@ -59,7 +59,7 @@ class KKTKolbeSelect(KKTBaseEntity, SelectEntity):
 
     def __init__(
         self,
-        coordinator: DataUpdateCoordinator[dict[str, Any]],
+        coordinator: KKTCoordinator,
         entry: ConfigEntry,
         config: dict[str, Any],
     ) -> None:

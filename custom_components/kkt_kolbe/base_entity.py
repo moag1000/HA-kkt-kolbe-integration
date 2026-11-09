@@ -18,9 +18,10 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import slugify
 
 from .const import DOMAIN
+from .data import KKTCoordinator
 
 if TYPE_CHECKING:
-    from .coordinator import KKTKolbeUpdateCoordinator
+    pass
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -30,7 +31,7 @@ _LOGGER = logging.getLogger(__name__)
 OPTIMISTIC_TTL_SECONDS = 8.0
 
 
-class KKTBaseEntity(CoordinatorEntity["KKTKolbeUpdateCoordinator"]):
+class KKTBaseEntity(CoordinatorEntity["KKTCoordinator"]):
     """Base entity for all KKT Kolbe entities."""
 
     _attr_has_entity_name = True
@@ -50,7 +51,7 @@ class KKTBaseEntity(CoordinatorEntity["KKTKolbeUpdateCoordinator"]):
 
     def __init__(
         self,
-        coordinator: KKTKolbeUpdateCoordinator,
+        coordinator: KKTCoordinator,
         entry: ConfigEntry,
         config: dict[str, Any],
         platform: str,
@@ -593,10 +594,7 @@ class KKTBaseEntity(CoordinatorEntity["KKTKolbeUpdateCoordinator"]):
             return
 
         # Send fan-off: enum mode uses "off", numeric mode uses 0
-        if fan_config.get("numeric", False):
-            off_value = 0
-        else:
-            off_value = "off"
+        off_value: int | str = 0 if fan_config.get("numeric", False) else "off"
 
         _LOGGER.info("Suppressing fan auto-start: sending DP %d = %s for %s", fan_dp, off_value, self._attr_unique_id)
         await self._async_set_data_point(fan_dp, off_value)

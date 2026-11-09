@@ -274,9 +274,10 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
         local_device is configured — raises a repair issue so the user
         sees a fix-it card in the HA UI.
         """
-        if not hasattr(self.smartlife_client, "get_device_codes"):
+        client = self.smartlife_client
+        if client is None or not hasattr(client, "get_device_codes"):
             return
-        live_codes = self.smartlife_client.get_device_codes(self.device_id)
+        live_codes = client.get_device_codes(self.device_id)
         if not live_codes:
             return
 
@@ -694,7 +695,7 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
             data_points = device_config.get("data_points", {})
             if data_points:
                 _LOGGER.debug(f"Using device-specific DP mapping for {self.device_type}")
-                return data_points
+                return dict(data_points)
 
         # Fallback to generic mapping for common KKT Kolbe devices
         _LOGGER.debug("Using generic DP mapping (no device-specific config found)")
@@ -862,9 +863,12 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
         """
         live_codes: dict[int, str] = {}
         property_code: str | None = None
+        client = self.smartlife_client
+        if client is None:
+            return False, "smartlife: client not configured"
         try:
-            if hasattr(self.smartlife_client, "get_device_codes"):
-                live_codes = self.smartlife_client.get_device_codes(self.device_id)
+            if hasattr(client, "get_device_codes"):
+                live_codes = client.get_device_codes(self.device_id)
             property_code = live_codes.get(dp_id)
             if not property_code:
                 dp_mapping = await self._get_dp_mapping()
@@ -877,9 +881,9 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
                     )
             if property_code:
                 commands = [{"code": property_code, "value": value}]
-                result = await self.smartlife_client.async_send_commands(self.device_id, commands)
+                result = await client.async_send_commands(self.device_id, commands)
             else:
-                result = await self.smartlife_client.async_send_dp_commands(self.device_id, {str(dp_id): value})
+                result = await client.async_send_dp_commands(self.device_id, {str(dp_id): value})
             if result:
                 return True, "smartlife"
             last_error = f"smartlife: command returned failure for DP {dp_id}"

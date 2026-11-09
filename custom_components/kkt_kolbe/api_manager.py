@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -25,7 +26,7 @@ class GlobalAPIManager:
     def __init__(self, hass: HomeAssistant):
         """Initialize the global API manager."""
         self.hass = hass
-        self._store = Store(hass, STORAGE_VERSION, STORAGE_KEY)
+        self._store: Store[dict[str, Any]] = Store(hass, STORAGE_VERSION, STORAGE_KEY)
 
     async def async_load_stored_credentials(self) -> dict[str, str] | None:
         """Load credentials from persistent storage."""

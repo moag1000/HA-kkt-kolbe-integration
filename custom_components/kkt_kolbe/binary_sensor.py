@@ -14,7 +14,6 @@ from homeassistant.core import callback
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .base_entity import KKTBaseEntity
 from .base_entity import KKTZoneBaseEntity
@@ -22,6 +21,7 @@ from .bitfield_utils import BITFIELD_CONFIG
 from .bitfield_utils import get_zone_value_from_coordinator
 from .const import DOMAIN
 from .const import MANUFACTURER
+from .data import KKTCoordinator
 from .device_types import get_device_entities
 
 if TYPE_CHECKING:
@@ -81,7 +81,7 @@ class KKTKolbeBinarySensor(KKTBaseEntity, BinarySensorEntity):
 
     def __init__(
         self,
-        coordinator: DataUpdateCoordinator[dict[str, Any]],
+        coordinator: KKTCoordinator,
         entry: ConfigEntry,
         config: dict[str, Any],
     ) -> None:
@@ -138,7 +138,7 @@ class KKTKolbeZoneBinarySensor(KKTZoneBaseEntity, BinarySensorEntity):
 
     def __init__(
         self,
-        coordinator: DataUpdateCoordinator[dict[str, Any]],
+        coordinator: KKTCoordinator,
         entry: ConfigEntry,
         config: dict[str, Any],
     ) -> None:
@@ -189,7 +189,7 @@ class KKTKolbeZoneBinarySensor(KKTZoneBaseEntity, BinarySensorEntity):
         return self._cached_state
 
 
-class KKTKolbeConnectionSensor(CoordinatorEntity, BinarySensorEntity):
+class KKTKolbeConnectionSensor(CoordinatorEntity["KKTCoordinator"], BinarySensorEntity):
     """Binary sensor showing device connection status (like Dyson integration).
 
     This sensor shows whether the local device is connected and responding.
@@ -203,7 +203,7 @@ class KKTKolbeConnectionSensor(CoordinatorEntity, BinarySensorEntity):
 
     def __init__(
         self,
-        coordinator: DataUpdateCoordinator[dict[str, Any]],
+        coordinator: KKTCoordinator,
         entry: KKTKolbeConfigEntry,
     ) -> None:
         """Initialize the connection sensor."""
@@ -266,7 +266,7 @@ class KKTKolbeConnectionSensor(CoordinatorEntity, BinarySensorEntity):
         return attrs
 
 
-class KKTKolbeAPIStatusSensor(CoordinatorEntity, BinarySensorEntity):
+class KKTKolbeAPIStatusSensor(CoordinatorEntity["KKTCoordinator"], BinarySensorEntity):
     """Binary sensor showing Tuya Cloud API connection status (like Dyson integration).
 
     This sensor shows whether the Tuya Cloud API is authenticated and working.
@@ -280,7 +280,7 @@ class KKTKolbeAPIStatusSensor(CoordinatorEntity, BinarySensorEntity):
 
     def __init__(
         self,
-        coordinator: DataUpdateCoordinator[dict[str, Any]],
+        coordinator: KKTCoordinator,
         entry: KKTKolbeConfigEntry,
     ) -> None:
         """Initialize the API status sensor."""

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from datetime import timedelta
 
 from homeassistant.core import HomeAssistant
@@ -30,8 +31,8 @@ class StaleDeviceTracker:
     def __init__(self, hass: HomeAssistant):
         """Initialize the device tracker."""
         self.hass = hass
-        self._cleanup_task = None
-        self._initial_cleanup_handle = None
+        self._cleanup_task: Callable[[], None] | None = None
+        self._initial_cleanup_handle: Callable[[], None] | None = None
         self._tracked_devices: set[str] = set()
 
     async def async_start(self) -> None:

@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import ipaddress
 import logging
+from types import MappingProxyType
 from typing import Any
 
 import probatio as vol
@@ -20,6 +21,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.core import callback
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 
 from .api_manager import GlobalAPIManager
 from .const import CONF_SMARTLIFE_APP_SCHEMA
@@ -545,7 +547,18 @@ def get_settings_schema(device_type: str | None = None) -> vol.Schema:
 STEP_SETTINGS_DATA_SCHEMA = get_settings_schema()
 
 
-class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
+def _zeroconf_info_as_dict(discovery_info: ZeroconfServiceInfo | dict[str, Any]) -> dict[str, Any]:
+    """Normalize zeroconf discovery data to a plain dict."""
+    if isinstance(discovery_info, dict):
+        return discovery_info
+    return {
+        "host": discovery_info.host,
+        "name": discovery_info.name,
+        "properties": dict(discovery_info.properties or {}),
+    }
+
+
+class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for KKT Kolbe."""
 
     VERSION = 2
@@ -570,14 +583,14 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
         # SmartLife/Tuya Sharing attributes
         self._smartlife_client: Any | None = None
         self._smartlife_user_code: str | None = None
-        self._smartlife_app_schema: str = SMARTLIFE_SCHEMA
+        self._smartlife_app_schema: str | None = SMARTLIFE_SCHEMA
         self._smartlife_qr_code: str | None = None
         self._smartlife_devices: list[Any] = []
         self._smartlife_selected_devices: list[str] = []
-        self._smartlife_auth_result: Any | None = None
+        self._smartlife_auth_result: Any = None
         self._smartlife_scan_task: asyncio.Task[Any] | None = None
 
-    async def async_step_zeroconf(self, discovery_info: dict[str, Any]) -> ConfigFlowResult:
+    async def async_step_zeroconf(self, discovery_info: ZeroconfServiceInfo) -> ConfigFlowResult:
         """Handle zeroconf discovery of KKT Kolbe devices.
 
         Called automatically by Home Assistant when a matching mDNS service is found.
@@ -585,12 +598,16 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
         IMPORTANT: We only set unique_id AFTER confirming we have local_key,
         to avoid blocking user-initiated Smart Discovery flows.
         """
+        # HA hands us a ZeroconfServiceInfo dataclass (it has no .get()); the
+        # old dict access raised AttributeError on every mDNS announcement.
+        info = _zeroconf_info_as_dict(discovery_info)
+
         # Extract device ID first (before any logging to prevent spam)
-        host = discovery_info.get("host") or discovery_info.get("ip")
-        device_id = discovery_info.get("device_id") or discovery_info.get("properties", {}).get("id")
+        host = info.get("host") or info.get("ip")
+        device_id = info.get("device_id") or (info.get("properties") or {}).get("id")
 
         if not device_id:
-            name = discovery_info.get("name", "")
+            name = info.get("name", "")
             if name.startswith("bf") and len(name) >= 20:
                 device_id = name.split(".")[0] if "." in name else name
 
@@ -634,7 +651,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
         self._device_info = {
             "device_id": device_id,
             "ip": host,
-            "name": discovery_info.get("name", f"KKT Device {device_id[:8]}"),
+            "name": info.get("name") or f"KKT Device {device_id[:8]}",
             "discovered_via": "zeroconf",
             "friendly_type": "KKT Kolbe Device",
             "device_type": "auto",
@@ -1387,7 +1404,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             _LOGGER.info(
                 "Restored SmartLife client from existing account: %s (user_id=%s...)",
                 entry.title,
-                self._smartlife_auth_result.user_id[:8] if self._smartlife_auth_result.user_id else "unknown",
+                (getattr(self._smartlife_auth_result, "user_id", None) or "unknown")[:8],
             )
 
             # Go directly to device selection
@@ -1532,7 +1549,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                 {
                     vol.Optional("qr_code"): selector.QrCodeSelector(
                         config=selector.QrCodeSelectorConfig(
-                            data=qr_data,
+                            data=qr_data or "",
                             scale=5,
                             error_correction_level=selector.QrErrorCorrectionLevel.QUARTILE,
                         )
@@ -1930,12 +1947,12 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                 version=2,
                 minor_version=1,
                 domain=DOMAIN,
-                title=f"SmartLife Account ({self._smartlife_user_code[:8]}...)",
+                title=f"SmartLife Account ({(self._smartlife_user_code or '')[:8]}...)",
                 data=account_data,
                 source=SOURCE_USER,
                 options={},
                 unique_id=account_unique_id,
-                discovery_keys={},  # Required in HA 2024.12+
+                discovery_keys=MappingProxyType({}),  # Required in HA 2024.12+
                 subentries_data={},  # Required in HA 2024.12+
             )
 
@@ -2083,6 +2100,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
 
     async def async_step_reauth_confirm(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle reauthentication confirmation."""
+        reauth_entry = self._get_reauth_entry()
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -2105,16 +2123,16 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                         if await client.test_connection():
                             # Update config entry with new API credentials
                             self.hass.config_entries.async_update_entry(
-                                self._reauth_entry,
+                                reauth_entry,
                                 data={
-                                    **self._reauth_entry.data,
+                                    **reauth_entry.data,
                                     "api_client_id": user_input["api_client_id"],
                                     "api_client_secret": user_input["api_client_secret"],
                                     "api_endpoint": user_input.get("api_endpoint", "https://openapi.tuyaeu.com"),
                                     "api_enabled": True,
                                 },
                             )
-                            await self.hass.config_entries.async_reload(self._reauth_entry.entry_id)
+                            await self.hass.config_entries.async_reload(reauth_entry.entry_id)
                             return self.async_abort(reason="reauth_successful")
                         else:
                             errors["base"] = "invalid_auth"
@@ -2128,26 +2146,26 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             # Check if we're updating local key
             elif "local_key" in user_input:
                 # Test local connection
-                ip_addr = str(self._reauth_entry.data.get("ip_address", ""))
-                dev_id = str(self._reauth_entry.data.get("device_id", ""))
+                ip_addr = str(reauth_entry.data.get("ip_address", ""))
+                dev_id = str(reauth_entry.data.get("device_id", ""))
                 local_key_val = str(user_input["local_key"]) if user_input.get("local_key") else ""
                 if await self._test_device_connection(ip_addr, dev_id, local_key_val):
                     # Update config entry with new local key
                     self.hass.config_entries.async_update_entry(
-                        self._reauth_entry,
+                        reauth_entry,
                         data={
-                            **self._reauth_entry.data,
+                            **reauth_entry.data,
                             "local_key": user_input["local_key"],
                         },
                     )
-                    await self.hass.config_entries.async_reload(self._reauth_entry.entry_id)
+                    await self.hass.config_entries.async_reload(reauth_entry.entry_id)
                     return self.async_abort(reason="reauth_successful")
                 else:
                     errors["base"] = "cannot_connect"
 
         # Determine what needs reauthentication
-        is_api_mode = self._reauth_entry.data.get("api_enabled", False)
-        is_smartlife = self._reauth_entry.data.get("setup_mode") == "smartlife" or self._reauth_entry.data.get(
+        is_api_mode = reauth_entry.data.get("api_enabled", False)
+        is_smartlife = reauth_entry.data.get("setup_mode") == "smartlife" or reauth_entry.data.get(
             "smartlife_token_info"
         )
 
@@ -2159,11 +2177,11 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             # API credentials reauth
             reauth_schema = vol.Schema(
                 {
-                    vol.Required("api_client_id", default=self._reauth_entry.data.get("api_client_id", "")): str,
+                    vol.Required("api_client_id", default=reauth_entry.data.get("api_client_id", "")): str,
                     vol.Required("api_client_secret"): str,
                     vol.Optional(
                         "api_endpoint",
-                        default=self._reauth_entry.data.get("api_endpoint", "https://openapi.tuyaeu.com"),
+                        default=reauth_entry.data.get("api_endpoint", "https://openapi.tuyaeu.com"),
                     ): str,
                 }
             )
@@ -2176,8 +2194,8 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             )
 
         placeholders = {
-            "device_name": self._reauth_entry.title,
-            "device_id": self._reauth_entry.data.get("device_id", "Unknown"),
+            "device_name": reauth_entry.title,
+            "device_id": reauth_entry.data.get("device_id", "Unknown"),
             **_URL_PLACEHOLDERS,
         }
 
@@ -2233,7 +2251,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                 # Update device_id if changed
                 if matched_device.device_id and matched_device.device_id != old_device_id:
                     entry_data["device_id"] = matched_device.device_id
-                    updates.append(f"device_id ({old_device_id[:8]}... -> {matched_device.device_id[:8]}...)")
+                    updates.append(f"device_id ({str(old_device_id)[:8]}... -> {matched_device.device_id[:8]}...)")
 
                     # Clear device-id-changed repair issue
                     from homeassistant.helpers import issue_registry as ir
@@ -2432,7 +2450,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                 if test_connection and new_data.get(CONF_IP_ADDRESS) and new_data.get("local_key"):
                     connection_valid = await self._test_device_connection(
                         new_data[CONF_IP_ADDRESS],
-                        new_data.get("device_id", entry.data.get("device_id")),
+                        new_data.get("device_id") or entry.data.get("device_id") or "",
                         new_data["local_key"],
                     )
                     if not connection_valid:
@@ -2799,7 +2817,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
         data_schema = _get_device_selection_schema(self._discovery_data)
 
         description_placeholders = {
-            "found_devices": len(self._discovery_data),
+            "found_devices": str(len(self._discovery_data)),
             "discovery_status": "completed" if self._discovery_data else "no_devices",
             "fallback_info": "",  # Always provide fallback_info, even if empty
         }
@@ -3068,7 +3086,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             step_id="api_device_selection",
             data_schema=schema,
             errors=errors,
-            description_placeholders={"device_count": len(self._discovered_devices)},
+            description_placeholders={"device_count": str(len(self._discovered_devices))},
         )
 
     async def async_step_api_choice(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:

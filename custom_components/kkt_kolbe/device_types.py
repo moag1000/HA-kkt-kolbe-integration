@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from homeassistant.const import UnitOfTemperature
 from homeassistant.const import UnitOfTime
 
@@ -101,7 +103,7 @@ QUICK_LEVELS = [
 
 # CENTRAL DEVICE DATABASE - Single source of truth for all devices
 # Add new devices only here!
-KNOWN_DEVICES = {
+KNOWN_DEVICES: dict[str, dict[str, Any]] = {
     # HERMES & STYLE Hood - Corrected based on actual data model
     "hermes_style_hood": {
         "model_id": "e1k6i0zo",
