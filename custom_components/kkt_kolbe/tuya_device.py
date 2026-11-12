@@ -6,6 +6,7 @@ import asyncio
 import contextlib
 import logging
 import random
+import select
 import socket
 import time
 from collections.abc import Callable
@@ -17,6 +18,8 @@ from homeassistant.core import HomeAssistant
 
 from .const import DEFAULT_CONNECTION_TIMEOUT
 from .const import HEARTBEAT_INTERVAL
+from .const import LOCAL_PUSH_CHECK_INTERVAL
+from .const import LOCAL_PUSH_READ_TIMEOUT
 from .const import RUNTIME_SOCKET_RETRIES
 from .const import RUNTIME_SOCKET_TIMEOUT
 from .const import TCP_KEEPALIVE_COUNT
@@ -64,6 +67,8 @@ class KKTKolbeTuyaDevice:
         self._keepalive_socket_id: int | None = None
         self._heartbeat_task: asyncio.Task[None] | None = None
         self._last_io: float = 0.0
+        # Callbacks for DPs the device pushes on its own over the local socket
+        self._status_listeners: list[Callable[[dict[str, Any]], None]] = []
 
         # Connection statistics for diagnostics
         self._connection_stats: dict[str, Any] = {
@@ -186,8 +191,24 @@ class KKTKolbeTuyaDevice:
             self._configure_socket_keepalive(device)
             return result
 
+    def add_status_listener(self, listener: Callable[[dict[str, Any]], None]) -> Callable[[], None]:
+        """Register a callback for DPs the device pushes over the local socket.
+
+        Tuya devices send a STATUS frame on their own when something changes on
+        the device (button pressed, timer finished). The callback runs on the
+        event loop with the changed DPs (string keys). Returns an unsubscribe
+        function.
+        """
+        self._status_listeners.append(listener)
+
+        def _remove() -> None:
+            with contextlib.suppress(ValueError):
+                self._status_listeners.remove(listener)
+
+        return _remove
+
     def _start_heartbeat(self) -> None:
-        """Keep the persistent socket alive between polls."""
+        """Keep the persistent socket alive and listen for pushed status frames."""
         if self._heartbeat_task is not None and not self._heartbeat_task.done():
             return
         if self._hass is not None:
@@ -203,29 +224,81 @@ class KKTKolbeTuyaDevice:
             self._heartbeat_task = None
 
     async def _async_heartbeat_loop(self) -> None:
-        """Send a Tuya HEART_BEAT when the socket has been idle.
+        """Read pushed status frames and send a Tuya HEART_BEAT when idle.
 
         Many Tuya firmwares close an idle local connection after ~30 s. With a
         30 s poll interval the socket was regularly gone at poll time and every
         poll had to reconnect (incl. session key negotiation on 3.4/3.5), which
         is what makes devices look like they keep dropping off Wi-Fi.
+
+        The same loop picks up STATUS frames the device sends on its own, so a
+        change made on the device shows up in Home Assistant within about a
+        second instead of at the next poll (Issue #9).
         """
         while True:
-            await asyncio.sleep(HEARTBEAT_INTERVAL)
+            await asyncio.sleep(min(LOCAL_PUSH_CHECK_INTERVAL, HEARTBEAT_INTERVAL))
             if not self.is_connected or self._io_lock.locked():
-                continue
-            if time.monotonic() - self._last_io < HEARTBEAT_INTERVAL:
                 continue
             device = self._device
             if device is None:
                 continue
             try:
+                if self._socket_has_data(device):
+                    await self._async_read_pushed_status(device)
+                    continue
+                if time.monotonic() - self._last_io < HEARTBEAT_INTERVAL:
+                    continue
                 await self._async_device_call(device.heartbeat, True, timeout=5.0)
             except asyncio.CancelledError:
                 raise
             except Exception as err:
                 _LOGGER.debug("Heartbeat failed for %s, reconnecting on next poll: %s", self.device_id[:8], err)
                 self._drop_device()
+
+    @staticmethod
+    def _socket_has_data(device: Any) -> bool:
+        """Return True if tinytuya's socket has bytes waiting (non-blocking check)."""
+        sock = getattr(device, "socket", None)
+        if sock is None:
+            return False
+        try:
+            readable, _, _ = select.select([sock], [], [], 0)
+        except OSError, ValueError, TypeError:
+            # closed socket or a test double without a file descriptor
+            return False
+        return bool(readable)
+
+    def _receive_pushed(self, device: Any) -> Any:
+        """Read one pushed frame with a short timeout (runs in the executor)."""
+        # A poll may have read the frame between the check and taking the lock
+        if not self._socket_has_data(device):
+            return None
+        try:
+            device.set_socketTimeout(LOCAL_PUSH_READ_TIMEOUT)
+            return device.receive()
+        finally:
+            with contextlib.suppress(Exception):
+                device.set_socketTimeout(RUNTIME_SOCKET_TIMEOUT)
+
+    async def _async_read_pushed_status(self, device: Any) -> None:
+        """Read a frame the device pushed and hand its DPs to the listeners."""
+        result = await self._async_device_call(self._receive_pushed, device, timeout=5.0)
+        if not isinstance(result, dict):
+            return
+        dps = result.get("dps")
+        if not isinstance(dps, dict) or not dps:
+            # heartbeat ack or error frame, nothing to report
+            return
+        changed = {str(k): v for k, v in dps.items()}
+        merged = dict(self._status.get("dps", {}))
+        merged.update(changed)
+        self._status = {"dps": merged}
+        _LOGGER.debug("Local push from %s: %s", self.device_id[:8], changed)
+        for listener in list(self._status_listeners):
+            try:
+                listener(changed)
+            except Exception:
+                _LOGGER.exception("Local push listener failed for %s", self.device_id[:8])
 
     async def async_connect(self) -> None:
         """Establish async connection to the device with timeout protection and retry mechanism."""

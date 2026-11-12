@@ -68,6 +68,10 @@ TCP_KEEPALIVE_COUNT: Final = 5  # number of failed probes before declaring dead
 HEARTBEAT_INTERVAL: Final = 10  # seconds idle before a Tuya HEART_BEAT is sent
 RUNTIME_SOCKET_TIMEOUT: Final = 5  # socket timeout once connected (detection uses 3 s)
 RUNTIME_SOCKET_RETRIES: Final = 2  # tinytuya retries once connected (detection uses 1)
+# Local push: how often the open socket is checked for status frames the device
+# sends on its own (button pressed on the device, timer ran out, ...)
+LOCAL_PUSH_CHECK_INTERVAL: Final = 1.0  # seconds
+LOCAL_PUSH_READ_TIMEOUT: Final = 0.5  # socket timeout while reading a pushed frame
 
 # === GLOBAL STORAGE ===
 GLOBAL_API_STORAGE_KEY: Final = f"{DOMAIN}_global_api"

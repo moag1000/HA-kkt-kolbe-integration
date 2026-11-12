@@ -597,3 +597,28 @@ async def test_coordinator_reset_on_success(
     assert coordinator._reconnect_attempts == 0
     assert coordinator._device_state == DeviceState.ONLINE
     assert coordinator._circuit_breaker_retries == 0
+
+
+@pytest.mark.asyncio
+async def test_coordinator_local_push(
+    hass: HomeAssistant,
+    mock_device,
+    mock_config_entry,
+) -> None:
+    """DPs the device pushes over the local socket update the coordinator right away."""
+    from custom_components.kkt_kolbe.coordinator import KKTKolbeUpdateCoordinator
+
+    remove = MagicMock()
+    mock_device.add_status_listener = MagicMock(return_value=remove)
+    mock_config_entry.add_to_hass(hass)
+    coordinator = KKTKolbeUpdateCoordinator(hass, mock_config_entry, mock_device)
+    push = mock_device.add_status_listener.call_args.args[0]
+    coordinator._dps_cache = {"1": True, "4": False}
+
+    push({"4": True})
+
+    assert coordinator.data["dps"] == {"1": True, "4": True}
+    assert coordinator.data["source"] == "local_push"
+
+    await coordinator.async_shutdown()
+    remove.assert_called_once()

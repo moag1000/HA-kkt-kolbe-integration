@@ -19,7 +19,7 @@ Home Assistant Integration für KKT Kolbe Dunstabzugshauben, Induktionskochfelde
 
 ## Unterstützte Geräte
 
-**Dunstabzugshauben:** HERMES & STYLE, HERMES, ECCO HCM, SOLO HCM, EASY, FLAT
+**Dunstabzugshauben:** HERMES & STYLE, HERMES, ECCO HCM, SOLO HCM, EASY, EASY HCM, FLAT
 
 **Induktionskochfeld:** IND7705HC (5 Zonen)
 

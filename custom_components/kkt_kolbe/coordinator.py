@@ -6,6 +6,7 @@ Coordinator pattern based on https://github.com/ludeeus/integration_blueprint
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from datetime import datetime
 from datetime import timedelta
 from enum import Enum
@@ -13,6 +14,7 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.core import callback
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
@@ -75,6 +77,10 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
         # Tuya devices often send delta/partial updates (only changed DPs)
         # This cache accumulates all DPs seen so far
         self._dps_cache: dict[str, Any] = {}
+        # Local push: status frames the device sends over the LAN socket
+        self._remove_local_listener: Callable[[], None] | None = None
+        if hasattr(device, "add_status_listener"):
+            self._remove_local_listener = device.add_status_listener(self._handle_local_push)
 
         # Error history for diagnostics
         self._error_history: list[dict[str, Any]] = []
@@ -143,8 +149,25 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
             self._pending_refresh_handle.cancel()
             self._pending_refresh_handle = None
 
+    @callback
+    def _handle_local_push(self, updated_dps: dict[str, Any]) -> None:
+        """Merge DPs the device pushed over the local socket and update entities."""
+        self._dps_cache.update(updated_dps)
+        self._reset_on_success()
+        self.async_set_updated_data(
+            {
+                "dps": self._dps_cache.copy(),
+                "source": "local_push",
+                "timestamp": datetime.now().isoformat(),
+                "available": True,
+            }
+        )
+
     async def async_shutdown(self) -> None:
         """Shut down coordinator and cancel any pending deferred refresh."""
+        if self._remove_local_listener is not None:
+            self._remove_local_listener()
+            self._remove_local_listener = None
         if self._pending_refresh_handle is not None:
             self._pending_refresh_handle.cancel()
             self._pending_refresh_handle = None

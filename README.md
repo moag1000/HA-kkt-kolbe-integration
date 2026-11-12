@@ -55,9 +55,10 @@
 | **ECCO HCM** | 9 Stufen | Multi | 4 Modi | ✅ | ✅ Verfügbar |
 | **SOLO HCM** | 9 Stufen | Multi | 4 Modi | ✅ | ✅ Verfügbar |
 | **EASY / PLOOM** | 10 Stufen | ✅ | 10 Modi | ✅ | ✅ Verifiziert (Issue #5, #8) |
+| **EASY HCM** | 9 Stufen | Multi | 4 Modi | ✅ | 🧪 Ungetestet |
 | **FLAT** | 5 Stufen | ✅ | - | ✅ | ✅ Verfügbar |
 
-EASY-Modelle: EASY9005SM (90cm), EASY909SHCM (90cm), EASY609SHCM (60cm) - HERMES-basiert mit 10 Lüfterstufen. PLOOM6005 (G/M/S) nutzt dieselben DPs.
+EASY9005SM (90cm) ist HERMES-basiert mit 10 Lüfterstufen, PLOOM6005 (G/M/S) nutzt dieselben DPs. EASY909SHCM (90cm) und EASY609SHCM (60cm) gehören zur HCM-Familie wie ECCO/SOLO (Produkt-ID `xfw4ckzxljs4ncta`).
 
 ### Induktionskochfeld
 

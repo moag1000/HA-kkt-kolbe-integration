@@ -155,7 +155,9 @@ def _detect_device_type_from_api(device: dict[str, Any]) -> tuple[str, str]:
         return ("ind7705hc_cooktop", "p8volecsgzdyun29")
     elif tuya_category == "yyj":  # Hood category
         # Try to identify specific hood model from product name
-        if "solo" in search_text:
+        if "easy" in search_text and "hcm" in search_text:
+            return ("easy_hcm_hood", "xfw4ckzxljs4ncta")
+        elif "solo" in search_text:
             return ("solo_hcm_hood", "bgvbvjwomgbisd8x")
         elif "ecco" in search_text:
             return ("ecco_hcm_hood", "gwdgkteknzvsattn")
@@ -172,9 +174,11 @@ def _detect_device_type_from_api(device: dict[str, Any]) -> tuple[str, str]:
         return ("eb8313hc_oven", "be8ooigdvjvy1q4a")
     elif "ind" in search_text or "cooktop" in search_text or "kochfeld" in search_text:
         return ("ind7705hc_cooktop", "p8volecsgzdyun29")
-    elif any(kw in search_text for kw in ["hood", "hermes", "style", "ecco", "solo", "dunst", "abzug"]):
+    elif any(kw in search_text for kw in ["hood", "hermes", "style", "ecco", "solo", "hcm", "dunst", "abzug"]):
         # Try specific matches first
-        if "solo" in search_text:
+        if "easy" in search_text and "hcm" in search_text:
+            return ("easy_hcm_hood", "xfw4ckzxljs4ncta")
+        elif "solo" in search_text:
             return ("solo_hcm_hood", "bgvbvjwomgbisd8x")
         elif "ecco" in search_text:
             return ("ecco_hcm_hood", "gwdgkteknzvsattn")

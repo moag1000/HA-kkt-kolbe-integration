@@ -359,7 +359,10 @@ class SmartDiscovery:
             return ("ind7705hc_cooktop", "p8volecsgzdyun29", friendly_type)
         elif tuya_category == "yyj":  # Hood category
             # Try to identify specific hood model
-            if "solo" in search_text:
+            if "easy" in search_text and "hcm" in search_text:
+                friendly_type = str(KNOWN_DEVICES.get("easy_hcm_hood", {}).get("name", "EASY HCM Hood"))
+                return ("easy_hcm_hood", "xfw4ckzxljs4ncta", friendly_type)
+            elif "solo" in search_text:
                 friendly_type = str(KNOWN_DEVICES.get("solo_hcm_hood", {}).get("name", "SOLO HCM Hood"))
                 return ("solo_hcm_hood", "bgvbvjwomgbisd8x", friendly_type)
             elif "ecco" in search_text:
@@ -383,8 +386,11 @@ class SmartDiscovery:
         elif "ind" in search_text or "cooktop" in search_text or "kochfeld" in search_text:
             friendly_type = str(KNOWN_DEVICES.get("ind7705hc_cooktop", {}).get("name", "Induction Cooktop"))
             return ("ind7705hc_cooktop", "p8volecsgzdyun29", friendly_type)
-        elif any(kw in search_text for kw in ["hood", "hermes", "style", "ecco", "solo", "dunst", "abzug"]):
-            if "solo" in search_text:
+        elif any(kw in search_text for kw in ["hood", "hermes", "style", "ecco", "solo", "hcm", "dunst", "abzug"]):
+            if "easy" in search_text and "hcm" in search_text:
+                friendly_type = str(KNOWN_DEVICES.get("easy_hcm_hood", {}).get("name", "EASY HCM Hood"))
+                return ("easy_hcm_hood", "xfw4ckzxljs4ncta", friendly_type)
+            elif "solo" in search_text:
                 friendly_type = str(KNOWN_DEVICES.get("solo_hcm_hood", {}).get("name", "SOLO HCM Hood"))
                 return ("solo_hcm_hood", "bgvbvjwomgbisd8x", friendly_type)
             elif "ecco" in search_text:

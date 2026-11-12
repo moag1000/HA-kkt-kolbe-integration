@@ -782,8 +782,165 @@ KNOWN_DEVICES: dict[str, dict[str, Any]] = {
             ],
         },
     },
+    # KKT Kolbe EASY HCM Hood (EASY909SHCM / EASY609SHCM)
+    # Product ID xfw4ckzxljs4ncta, model edfc1c. Same HCM DP layout as SOLO/ECCO
+    # (1, 4, 6, 7, 102-109), unlike the EASY9005SM/PLOOM (model e1my0pj8, HERMES DPs).
+    # DPs from the Query Properties dump in make-all/tuya-local#5332.
+    "easy_hcm_hood": {
+        "model_id": "edfc1c",
+        "category": CATEGORY_HOOD,
+        "name": "KKT Kolbe EASY HCM Hood",
+        "product_names": [
+            "xfw4ckzxljs4ncta",
+            "edfc1c",
+            "KKT Kolbe EASY HCM",
+            "KKT Kolbe EASY909SHCM",
+            "KKT Kolbe EASY609SHCM",
+        ],
+        "device_ids": [],
+        "device_id_patterns": [],
+        "platforms": ["fan", "light", "switch", "sensor", "select", "number", "scene"],
+        "data_points": {
+            1: "switch",  # Main power
+            4: "light",  # Main light on/off
+            6: "switch_lamp",  # RGB switch trigger
+            7: "switch_wash",  # Setting/Wash mode
+            102: "fan_speed",  # Fan speed (0-9)
+            103: "day",  # Carbon filter days (0-250)
+            104: "switch_led_1",  # LED light
+            105: "countdown_1",  # Countdown timer (0-60 min)
+            106: "switch_led",  # Confirm
+            107: "colour_data",  # RGB color data (string)
+            108: "work_mode",  # RGB work mode (white/colour/scene/music)
+            109: "day_1",  # Metal filter days (0-40)
+        },
+        "entities": {
+            "fan": {
+                "dp": 102,  # fan_speed numeric (0-9) - for HomeKit/Siri
+                "speeds": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
+                "numeric": True,  # Use numeric mode instead of enum
+                "min": 0,
+                "max": 9,
+            },
+            "light": [
+                # Main light with RGB mode effects for HomeKit/Siri
+                # Auto-Work-Mode: Sets work_mode to "white" before turning on light
+                {
+                    "dp": 4,
+                    "name": "Light",
+                    "icon": "mdi:lightbulb",
+                    "effect_dp": 108,
+                    "effect_numeric": False,
+                    "effects": ["white", "colour", "scene", "music"],
+                    "work_mode_dp": 108,
+                    "work_mode_default": "white",
+                },
+                # LED Light as alternative (some units respond to DP 104 instead of DP 4)
+                # Auto-Work-Mode: Sets work_mode to "white" before turning on light
+                {
+                    "dp": 104,
+                    "name": "LED Light",
+                    "icon": "mdi:led-strip",
+                    "work_mode_dp": 108,
+                    "work_mode_default": "white",
+                },
+            ],
+            "switch": [
+                {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
+                # RGB light as switch (use main Light entity for Siri)
+                {
+                    "dp": 6,
+                    "name": "RGB Light",
+                    "device_class": "switch",
+                    "icon": "mdi:palette",
+                    "advanced": True,
+                    "entity_category": "config",
+                },
+                {
+                    "dp": 7,
+                    "name": "Wash Mode",
+                    "device_class": "switch",
+                    "icon": "mdi:spray-bottle",
+                    "advanced": True,
+                    "entity_category": "config",
+                },
+                # Note: Tuya calls this "Confirm" but it's actually a side light (red) on some units
+                {
+                    "dp": 106,
+                    "name": "Side Light",
+                    "device_class": "switch",
+                    "icon": "mdi:wall-sconce-flat",
+                    "advanced": True,
+                },
+            ],
+            "select": [
+                # RGB Mode as select (backup, advanced) - use Light effects instead
+                {
+                    "dp": 108,
+                    "name": "RGB Mode",
+                    "options": ["white", "colour", "scene", "music"],
+                    "icon": "mdi:palette",
+                    "advanced": True,
+                    "entity_category": "config",
+                }
+            ],
+            "number": [
+                # Fan Speed number marked as advanced to avoid HomeKit showing both fan and number
+                {
+                    "dp": 102,
+                    "name": "Fan Speed",
+                    "min": 0,
+                    "max": 9,
+                    "step": 1,
+                    "icon": "mdi:fan",
+                    "advanced": True,
+                    "entity_category": "config",
+                },
+                {
+                    "dp": 105,
+                    "name": "Timer",
+                    "min": 0,
+                    "max": 60,
+                    "unit": UnitOfTime.MINUTES,
+                    "device_class": "duration",
+                    "icon": "mdi:timer",
+                },
+                {
+                    "dp": 103,
+                    "name": "Carbon Filter Remaining",
+                    "min": 0,
+                    "max": 250,
+                    "unit": "days",
+                    "icon": "mdi:air-filter",
+                    "advanced": True,
+                    "entity_category": "diagnostic",
+                },
+                {
+                    "dp": 109,
+                    "name": "Metal Filter Remaining",
+                    "min": 0,
+                    "max": 40,
+                    "unit": "days",
+                    "icon": "mdi:air-filter",
+                    "advanced": True,
+                    "entity_category": "diagnostic",
+                },
+            ],
+            "sensor": [
+                # colour_data (DP 107) - RGB color data string, shows current color when work_mode="colour"
+                {
+                    "dp": 107,
+                    "name": "RGB Color Data",
+                    "icon": "mdi:palette",
+                    "advanced": True,
+                    "entity_category": "diagnostic",
+                }
+            ],
+        },
+    },
     # KKT Kolbe EASY / PLOOM Hood
-    # EASY: EASY9005SM (90cm), EASY909SHCM (90cm), EASY609SHCM (60cm) - Issue #5
+    # EASY: EASY9005SM (90cm) - Issue #5. The EASY ...HCM models use the HCM
+    # layout and live in "easy_hcm_hood".
     # PLOOM: PLOOM6005 G/M/S - Issue #8 (identical DPs, same model_id)
     # Model ID: e1my0pj8
     # HERMES-based DPs (not HCM!): DP 1,4,10,13,101,102
@@ -796,8 +953,6 @@ KNOWN_DEVICES: dict[str, dict[str, Any]] = {
             "e1my0pj8",
             "kllmaunpnsvj9ag6",  # PLOOM 3.5 firmware variant (Issue #8, @dernick79)
             "KKT Kolbe EASY9005SM",
-            "KKT Kolbe EASY909SHCM",
-            "KKT Kolbe EASY609SHCM",
             "KKT Kolbe PLOOM6005",
         ],
         "device_ids": [],

@@ -143,3 +143,103 @@ async def test_failed_heartbeat_drops_connection(monkeypatch) -> None:
     assert device.is_connected is False
     raw.close.assert_called_once()
     device._stop_heartbeat()
+
+
+# --- Local push (status frames the device sends on its own) ----------------
+
+
+def _socketpair_device() -> tuple[KKTKolbeTuyaDevice, MagicMock, socket_module.socket, socket_module.socket]:
+    """Connected device whose tinytuya socket is a real socket we can write to."""
+    device, raw = _connected_device()
+    ours, theirs = socket_module.socketpair()
+    raw.socket = ours
+    return device, raw, ours, theirs
+
+
+@pytest.mark.asyncio
+async def test_pushed_status_frame_reaches_listeners(monkeypatch) -> None:
+    """A STATUS frame waiting on the socket is read and handed to the listeners."""
+    monkeypatch.setattr(tuya_device_module, "LOCAL_PUSH_CHECK_INTERVAL", 0.01)
+    device, raw, ours, theirs = _socketpair_device()
+    received: list[dict] = []
+    device.add_status_listener(received.append)
+
+    def fake_receive():
+        ours.recv(1024)  # consume the frame like tinytuya does
+        return {"dps": {"4": True}, "t": 1}
+
+    raw.receive.side_effect = fake_receive
+    device._last_io = time.monotonic()
+    device._start_heartbeat()
+    try:
+        theirs.sendall(b"frame")
+        for _ in range(100):
+            if received:
+                break
+            await asyncio.sleep(0.01)
+        assert received == [{"4": True}]
+        assert device.get_dp_value(4) is True
+        # short timeout while reading the push, runtime timeout restored afterwards
+        timeouts = [c.args[0] for c in raw.set_socketTimeout.call_args_list]
+        assert timeouts[:2] == [tuya_device_module.LOCAL_PUSH_READ_TIMEOUT, tuya_device_module.RUNTIME_SOCKET_TIMEOUT]
+        raw.heartbeat.assert_not_called()
+    finally:
+        device._stop_heartbeat()
+        ours.close()
+        theirs.close()
+
+
+@pytest.mark.asyncio
+async def test_frame_without_dps_is_ignored(monkeypatch) -> None:
+    """Heartbeat acks and error frames do not reach the listeners."""
+    monkeypatch.setattr(tuya_device_module, "LOCAL_PUSH_CHECK_INTERVAL", 0.01)
+    device, raw, ours, theirs = _socketpair_device()
+    listener = MagicMock()
+    device.add_status_listener(listener)
+    calls = 0
+
+    def fake_receive():
+        nonlocal calls
+        calls += 1
+        ours.recv(1024)
+
+    raw.receive.side_effect = fake_receive
+    device._last_io = time.monotonic()
+    device._start_heartbeat()
+    try:
+        theirs.sendall(b"ack")
+        for _ in range(100):
+            if calls:
+                break
+            await asyncio.sleep(0.01)
+        await asyncio.sleep(0.03)
+        assert calls == 1
+        listener.assert_not_called()
+    finally:
+        device._stop_heartbeat()
+        ours.close()
+        theirs.close()
+
+
+@pytest.mark.asyncio
+async def test_no_read_without_pending_data() -> None:
+    """Nothing waiting on the socket -> receive() is never called (no blocking read)."""
+    device, raw, ours, theirs = _socketpair_device()
+    try:
+        assert device._socket_has_data(raw) is False
+        assert device._receive_pushed(raw) is None
+        raw.receive.assert_not_called()
+    finally:
+        ours.close()
+        theirs.close()
+
+
+@pytest.mark.asyncio
+async def test_status_listener_can_be_removed() -> None:
+    """The function returned by add_status_listener unsubscribes the callback."""
+    device, _raw = _connected_device()
+    listener = MagicMock()
+    remove = device.add_status_listener(listener)
+    remove()
+    remove()  # idempotent
+    assert device._status_listeners == []
