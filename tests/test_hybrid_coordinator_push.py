@@ -247,3 +247,34 @@ async def test_full_chain_client_dispatch_to_coordinator(
     # Cleanup: shutdown should unregister
     await coord.async_shutdown()
     assert "bf735dfe2ad64fba7cpyhn" not in client._push_callbacks
+
+
+@pytest.mark.asyncio
+async def test_local_push_updates_coordinator(hass: HomeAssistant, mock_config_entry) -> None:
+    """DPs pushed over the local socket are merged and published as a device report."""
+    from custom_components.kkt_kolbe.hybrid_coordinator import KKTKolbeHybridCoordinator
+    from custom_components.kkt_kolbe.tuya_device import KKTKolbeTuyaDevice
+
+    mock_config_entry.add_to_hass(hass)
+    local = KKTKolbeTuyaDevice("bf735dfe2ad64fba7cpyhn", "192.168.1.100", "1234567890abcdef", version="3.3")
+    coord = KKTKolbeHybridCoordinator(
+        hass=hass,
+        device_id="bf735dfe2ad64fba7cpyhn",
+        local_device=local,
+        update_interval=timedelta(seconds=30),
+        entry=mock_config_entry,
+    )
+    coord._dps_cache = {"1": True, "4": False}
+    seen: list[tuple[bool, str]] = []
+    coord.async_add_listener(lambda: seen.append((coord.last_update_was_push, coord.last_push_report_type)))
+
+    for listener in local._status_listeners:
+        listener({"4": True})
+
+    assert coord.data["dps"] == {"1": True, "4": True}
+    assert coord.data["source"] == "local_push"
+    assert seen == [(True, "report")]
+    assert coord.last_update_was_push is False
+
+    await coord.async_shutdown()
+    assert local._status_listeners == []

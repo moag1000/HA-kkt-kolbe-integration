@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Callable
 from datetime import datetime
 from datetime import timedelta
 from typing import TYPE_CHECKING
@@ -138,6 +139,10 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
         self.last_update_was_push: bool = False
         self.last_push_report_type: str = ""
         self._push_callback_registered: bool = False
+        # Local push: status frames the device sends over the LAN socket
+        self._remove_local_listener: Callable[[], None] | None = None
+        if local_device is not None and hasattr(local_device, "add_status_listener"):
+            self._remove_local_listener = local_device.add_status_listener(self._handle_local_push)
 
         super().__init__(
             hass,
@@ -241,6 +246,28 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
             self.last_update_was_push = False
             self.last_push_report_type = ""
 
+    @callback
+    def _handle_local_push(self, updated_dps: dict[str, Any]) -> None:
+        """Handle DPs the device pushed over the local socket.
+
+        A pushed STATUS frame is a real device report (like an MQTT push with
+        report_type 'report'), so entities may release optimistic locks on it.
+        """
+        self._dps_cache.update(updated_dps)
+        self.local_consecutive_errors = 0
+        new_data = {
+            "dps": dict(self._dps_cache),
+            "source": "local_push",
+            "timestamp": datetime.now().isoformat(),
+        }
+        self.last_update_was_push = True
+        self.last_push_report_type = "report"
+        try:
+            self.async_set_updated_data(new_data)
+        finally:
+            self.last_update_was_push = False
+            self.last_push_report_type = ""
+
     async def async_register_push(self) -> None:
         """Register the MQTT push callback with the SmartLife client.
 
@@ -322,7 +349,10 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
                 _LOGGER.debug("Failed to create local-only-dp repair issue: %s", err)
 
     async def async_shutdown(self) -> None:
-        """Unregister the push callback before tearing down the coordinator."""
+        """Unregister the push callbacks before tearing down the coordinator."""
+        if self._remove_local_listener is not None:
+            self._remove_local_listener()
+            self._remove_local_listener = None
         if self._push_callback_registered and self.smartlife_client is not None:
             self.smartlife_client.unregister_push_callback(self.device_id, self._handle_push_update)
             self._push_callback_registered = False

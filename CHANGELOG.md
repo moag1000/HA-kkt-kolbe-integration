@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [Unreleased]
+
+### Added
+
+- **Lokale Push-Updates**: Die offene lokale Verbindung wird jetzt etwa jede Sekunde auf Statusmeldungen geprüft, die das Gerät von sich aus schickt (Taste am Gerät gedrückt, Timer abgelaufen). Änderungen am Gerät erscheinen dadurch in rund einer Sekunde in Home Assistant statt erst beim nächsten Poll (Issue #9). Gilt für den Hybrid- und den rein lokalen Modus; Polling und Heartbeat laufen weiter.
+- **KKT Kolbe EASY HCM** (EASY909SHCM / EASY609SHCM, Produkt-ID `xfw4ckzxljs4ncta`, Model `edfc1c`) als eigener Gerätetyp mit der HCM-Datenpunktbelegung (DP 1, 4, 6, 7, 102–109). DPs aus [make-all/tuya-local#5332](https://github.com/make-all/tuya-local/issues/5332), noch nicht an einem echten Gerät getestet.
+
+### Fixed
+
+- EASY-HCM-Hauben wurden bisher dem EASY/PLOOM-Profil (HERMES-Belegung mit DP 10/101/102) zugeordnet und bekamen falsche Entities. Das EASY/PLOOM-Profil gilt jetzt nur noch für EASY9005SM und PLOOM. Die Erkennung über Produktname erkennt „EASY … HCM“ auch ohne Produkt-ID.
+
 ## [4.9.0] - 2026-11-10
 
 ### Changed (Home Assistant 2026.x Upgrade)
