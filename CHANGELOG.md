@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.10.0] - 2026-11-13
+
+> **Hinweis:** Die lokalen Push-Updates sind noch nicht an einem echten Gerät getestet. Rückmeldungen bitte in Issue #9.
+
 ### Added
 
 - **Lokale Push-Updates**: Die offene lokale Verbindung wird jetzt etwa jede Sekunde auf Statusmeldungen geprüft, die das Gerät von sich aus schickt (Taste am Gerät gedrückt, Timer abgelaufen). Änderungen am Gerät erscheinen dadurch in rund einer Sekunde in Home Assistant statt erst beim nächsten Poll (Issue #9). Gilt für den Hybrid- und den rein lokalen Modus; Polling und Heartbeat laufen weiter.

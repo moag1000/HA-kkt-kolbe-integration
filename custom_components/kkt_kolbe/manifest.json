@@ -11,7 +11,7 @@
   "issue_tracker": "https://github.com/moag1000/HA-kkt-kolbe-integration/issues",
   "loggers": ["tinytuya", "tuya_sharing"],
   "requirements": ["tinytuya>=1.20.0", "pycryptodome>=3.19.0", "tuya-device-sharing-sdk>=0.2.15"],
-  "version": "4.9.0",
+  "version": "4.10.0",
   "zeroconf": [
     {"type": "_tuya._tcp.local."},
     {"type": "_smartlife._tcp.local."}
