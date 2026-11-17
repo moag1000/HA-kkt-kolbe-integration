@@ -17,6 +17,7 @@ import tinytuya
 from homeassistant.core import HomeAssistant
 
 from .const import DEFAULT_CONNECTION_TIMEOUT
+from .const import DP_REFRESH_INTERVAL
 from .const import HEARTBEAT_INTERVAL
 from .const import LOCAL_PUSH_CHECK_INTERVAL
 from .const import LOCAL_PUSH_READ_TIMEOUT
@@ -69,6 +70,11 @@ class KKTKolbeTuyaDevice:
         self._last_io: float = 0.0
         # Callbacks for DPs the device pushes on its own over the local socket
         self._status_listeners: list[Callable[[dict[str, Any]], None]] = []
+        # DPs the device profile expects. Many Tuya firmwares leave RAW DPs
+        # (e.g. the cooktop zone bitfields 161-167) out of the status reply;
+        # missing ones are requested with UPDATEDPS and arrive as pushed frames.
+        self.expected_dps: list[int] = []
+        self._last_dp_refresh: float = 0.0
 
         # Connection statistics for diagnostics
         self._connection_stats: dict[str, Any] = {
@@ -299,6 +305,28 @@ class KKTKolbeTuyaDevice:
                 listener(changed)
             except Exception:
                 _LOGGER.exception("Local push listener failed for %s", self.device_id[:8])
+
+    async def _async_request_missing_dps(self, dps: dict[str, Any]) -> None:
+        """Ask the device to report expected DPs that the status reply left out.
+
+        The answers come back as STATUS frames that the heartbeat loop reads
+        and hands to the coordinators (local push). Throttled, and failures
+        are only logged: the regular poll result stays valid either way.
+        """
+        missing = [dp for dp in self.expected_dps if str(dp) not in dps]
+        if not missing or self._device is None:
+            return
+        now = time.monotonic()
+        if now - self._last_dp_refresh < DP_REFRESH_INTERVAL:
+            return
+        self._last_dp_refresh = now
+        _LOGGER.debug("Requesting DPs %s from %s (not in status reply)", missing, self.device_id[:8])
+        try:
+            await self._async_device_call(self._device.updatedps, missing, True, timeout=5.0)
+        except asyncio.CancelledError:
+            raise
+        except Exception as err:
+            _LOGGER.debug("UPDATEDPS request failed for %s: %s", self.device_id[:8], err)
 
     async def async_connect(self) -> None:
         """Establish async connection to the device with timeout protection and retry mechanism."""
@@ -888,8 +916,13 @@ class KKTKolbeTuyaDevice:
                         )
                         dps = cached_dps
 
+            # Keep DPs that arrived as pushed frames but are not in this reply
+            merged = dict(self._status.get("dps", {}))
+            merged.update({str(k): v for k, v in dps.items()})
+            dps = merged
             self._status = {"dps": dps}  # Store for get_dp_value()
             _LOGGER.debug(f"Retrieved status with {len(dps)} data points: {list(dps.keys())}")
+            await self._async_request_missing_dps(dps)
             return dps
 
         except asyncio.CancelledError:

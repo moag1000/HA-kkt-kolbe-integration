@@ -655,6 +655,11 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
 
     platforms = _with_event_platform(get_device_platforms(device_info["category"]))
 
+    # Let the local connection ask for DPs the status reply leaves out
+    # (RAW zone bitfields of the cooktop, see KKTKolbeTuyaDevice.expected_dps)
+    if device is not None and effective_device_type in KNOWN_DEVICES:
+        device.expected_dps = _entity_dps(KNOWN_DEVICES[effective_device_type])
+
     # Store runtime data using modern pattern (HA 2024.6+)
     entry.runtime_data = KKTKolbeRuntimeData(
         coordinator=coordinator,
@@ -790,6 +795,16 @@ async def _async_unload_account_entry(hass: HomeAssistant, entry: KKTKolbeAccoun
     # Account entries don't have platforms to unload
     _LOGGER.info("SmartLife account entry unloaded: %s", entry.title)
     return True
+
+
+def _entity_dps(device: dict[str, Any]) -> list[int]:
+    """Return the DPs the entities of a device profile read, sorted."""
+    dps: set[int] = set()
+    for configs in device.get("entities", {}).values():
+        for cfg in configs if isinstance(configs, list) else [configs]:
+            if isinstance(cfg, dict) and isinstance(cfg.get("dp"), int):
+                dps.add(cfg["dp"])
+    return sorted(dps)
 
 
 async def _async_unload_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEntry) -> bool:

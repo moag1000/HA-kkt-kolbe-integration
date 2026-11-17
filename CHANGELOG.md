@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Entity-Namen der Hauben**: Die Szenen (Licht an/aus, Haube aus, RGB-Farben) und der Lüfter hatten keinen übersetzten Namen und hießen deshalb nur wie das Gerät („HERMES & STYLE Hood“). Alle Szenen und der Lüfter haben jetzt Namen auf Deutsch und Englisch; ein Test prüft, dass jede Entity aller Gerätetypen eine Übersetzung hat.
 - **Geräteinfo**: „Modell“ zeigt jetzt den Gerätenamen (z. B. „HERMES & STYLE Hood“) statt des Tuya-Codes `e1k6i0zo`. Der Code steht als Modell-ID im Gerät, das falsche Feld „Hardware: E1K6I0ZO“ entfällt.
 - **Induktionskochfeld (IND7705HC)**: Boost, Warmhalten, Zone ausgewählt, Flex und BBQ zeigen „An/Aus“ statt „Läuft/Außer Betrieb“. Zonenwerte, die das Gerät noch nicht gemeldet hat, stehen auf „Unbekannt“ statt auf 0 bzw. aus. RAW-Daten, die als Bytes ankommen, werden korrekt dekodiert.
+- **Induktionskochfeld: Zonen blieben auf 0, obwohl gekocht wurde.** Viele Tuya-Firmwares lassen die RAW-Datenpunkte (Zonenstufen, Boost, Warmhalten, DP 161–167) in der lokalen Statusantwort weg. Fehlen erwartete DPs, fragt die Integration sie jetzt per UPDATEDPS beim Gerät an (höchstens einmal pro Minute); die Antwort kommt über die lokalen Push-Updates. Per Push empfangene DPs gehen beim nächsten Poll nicht mehr verloren.
+- **Logo**: Im `brand`-Ordner lag ein eigenes Icon statt des offiziellen KKT-Logos aus dem Brands-/HACS-Katalog. Seit HA lokale Brand-Bilder bevorzugt, wurde dieses angezeigt. Jetzt liegen dort die offiziellen Bilder (plus helle Variante für den Dark Mode).
 
 ## [4.10.0] - 2026-11-13
 
