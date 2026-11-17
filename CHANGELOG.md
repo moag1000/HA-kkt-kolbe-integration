@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.10.1] - 2026-11-17
+
+Enthält auch alle Änderungen aus 4.10.0, das nicht separat veröffentlicht wurde.
+
 ### Fixed
 
 - **Entity-Namen der Hauben**: Die Szenen (Licht an/aus, Haube aus, RGB-Farben) und der Lüfter hatten keinen übersetzten Namen und hießen deshalb nur wie das Gerät („HERMES & STYLE Hood“). Alle Szenen und der Lüfter haben jetzt Namen auf Deutsch und Englisch; ein Test prüft, dass jede Entity aller Gerätetypen eine Übersetzung hat.
@@ -16,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Induktionskochfeld: Zonen blieben auf 0, obwohl gekocht wurde.** Viele Tuya-Firmwares lassen die RAW-Datenpunkte (Zonenstufen, Boost, Warmhalten, DP 161–167) in der lokalen Statusantwort weg. Fehlen erwartete DPs, fragt die Integration sie jetzt per UPDATEDPS beim Gerät an (höchstens einmal pro Minute); die Antwort kommt über die lokalen Push-Updates. Per Push empfangene DPs gehen beim nächsten Poll nicht mehr verloren.
 - **Logo**: Im `brand`-Ordner lag ein eigenes Icon statt des offiziellen KKT-Logos aus dem Brands-/HACS-Katalog. Seit HA lokale Brand-Bilder bevorzugt, wurde dieses angezeigt. Jetzt liegen dort die offiziellen Bilder (plus helle Variante für den Dark Mode).
 
-## [4.10.0] - 2026-11-13
+## [4.10.0] - 2026-11-13 (nicht separat veröffentlicht, enthalten in 4.10.1)
 
 > **Hinweis:** Die lokalen Push-Updates sind noch nicht an einem echten Gerät getestet. Rückmeldungen bitte in Issue #9.
 
