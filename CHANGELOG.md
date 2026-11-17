@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Entity-Namen der Hauben**: Die Szenen (Licht an/aus, Haube aus, RGB-Farben) und der Lüfter hatten keinen übersetzten Namen und hießen deshalb nur wie das Gerät („HERMES & STYLE Hood“). Alle Szenen und der Lüfter haben jetzt Namen auf Deutsch und Englisch; ein Test prüft, dass jede Entity aller Gerätetypen eine Übersetzung hat.
+- **Geräteinfo**: „Modell“ zeigt jetzt den Gerätenamen (z. B. „HERMES & STYLE Hood“) statt des Tuya-Codes `e1k6i0zo`. Der Code steht als Modell-ID im Gerät, das falsche Feld „Hardware: E1K6I0ZO“ entfällt.
+- **Induktionskochfeld (IND7705HC)**: Boost, Warmhalten, Zone ausgewählt, Flex und BBQ zeigen „An/Aus“ statt „Läuft/Außer Betrieb“. Zonenwerte, die das Gerät noch nicht gemeldet hat, stehen auf „Unbekannt“ statt auf 0 bzw. aus. RAW-Daten, die als Bytes ankommen, werden korrekt dekodiert.
+
 ## [4.10.0] - 2026-11-13
 
 > **Hinweis:** Die lokalen Push-Updates sind noch nicht an einem echten Gerät getestet. Rückmeldungen bitte in Issue #9.

@@ -684,13 +684,6 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
     elif entry.data.get("version") and entry.data.get("version") != "auto":
         sw_version = f"Tuya Protocol {entry.data.get('version')}"
 
-    # Determine hardware version from device type
-    hw_version = None
-    if effective_device_type and effective_device_type in KNOWN_DEVICES:
-        hw_version = KNOWN_DEVICES[effective_device_type].get("model_id", effective_device_type).upper()
-    elif device_id:
-        hw_version = device_id[:8].upper()
-
     # Get serial number from SmartLife UUID if available
     serial_number = extended_info.get("uuid")
 
@@ -700,9 +693,12 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
         identifiers={(DOMAIN, device_id)},
         manufacturer="KKT Kolbe",
         name=device_info.get("name", "KKT Kolbe Device"),
-        model=device_info.get("model_id", device_info.get("name", "Unknown")),
+        model=device_info.get("name") or None,
+        model_id=device_info.get("model_id") if device_info.get("model_id") not in (None, "", "unknown") else None,
         sw_version=sw_version,
-        hw_version=hw_version,
+        # Older versions put the Tuya model code here; it is not a hardware
+        # revision, so clear it.
+        hw_version=None,
         serial_number=serial_number,
     )
 

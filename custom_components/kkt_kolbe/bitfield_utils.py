@@ -384,7 +384,14 @@ BITFIELD_CONFIG: dict[int, dict[str, Any]] = {
 }
 
 
-def get_zone_value_from_coordinator(coordinator: Any, dp_id: int, zone: int) -> int | bool:
+def _as_raw(raw_data: Any) -> str | bytes | bytearray:
+    """Keep bytes as bytes; str() on bytes would yield "b'...'" garbage."""
+    if isinstance(raw_data, (bytes, bytearray, str)):
+        return raw_data
+    return str(raw_data)
+
+
+def get_zone_value_from_coordinator(coordinator: Any, dp_id: int, zone: int) -> int | bool | None:
     """
     Get zone-specific value from coordinator data.
 
@@ -394,13 +401,14 @@ def get_zone_value_from_coordinator(coordinator: Any, dp_id: int, zone: int) -> 
         zone: Zone number (1-5)
 
     Returns:
-        Zone-specific value or default
+        Zone-specific value, or None while the DP has not been reported yet
+        (entities then show "unknown" instead of a made-up 0 / off).
     """
     try:
         # Early return if coordinator has no data yet
         if not coordinator.data:
             _LOGGER.debug("Coordinator data is None/empty, skipping zone value extraction")
-            return 0 if BITFIELD_CONFIG.get(dp_id, {}).get("type") == "value" else False
+            return None
 
         _LOGGER.debug(f"Coordinator data keys: {list(coordinator.data.keys())}")
 
@@ -412,10 +420,8 @@ def get_zone_value_from_coordinator(coordinator: Any, dp_id: int, zone: int) -> 
         if raw_data is None:
             raw_data = dps_data.get(dp_id)
         if raw_data is None:
-            _LOGGER.debug(
-                f"DP {dp_id} not in current update (tried both str and int keys). Zone entities will use cached values."
-            )
-            return 0 if BITFIELD_CONFIG.get(dp_id, {}).get("type") == "value" else False
+            _LOGGER.debug(f"DP {dp_id} not reported by the device yet (tried both str and int keys).")
+            return None
 
         _LOGGER.debug(f"DP {dp_id} raw data: {raw_data} (type: {type(raw_data)})")
 
@@ -427,15 +433,15 @@ def get_zone_value_from_coordinator(coordinator: Any, dp_id: int, zone: int) -> 
 
         # Extract zone value based on type
         if config["type"] == "value":
-            return extract_zone_value_from_bitfield(str(raw_data), zone, config.get("bits_per_zone", 8))
+            return extract_zone_value_from_bitfield(_as_raw(raw_data), zone, config.get("bits_per_zone", 8))
         elif config["type"] == "bit":
-            return extract_zone_bit_from_bitfield(str(raw_data), zone)
+            return extract_zone_bit_from_bitfield(_as_raw(raw_data), zone)
         else:
             return 0
 
     except Exception as e:
         _LOGGER.error(f"Failed to get zone {zone} value for DP {dp_id}: {e}")
-        return 0 if BITFIELD_CONFIG.get(dp_id, {}).get("type") == "value" else False
+        return None
 
 
 async def set_zone_value_in_coordinator(coordinator: Any, dp_id: int, zone: int, value: int | bool) -> None:
@@ -464,10 +470,10 @@ async def set_zone_value_in_coordinator(coordinator: Any, dp_id: int, zone: int,
         # Update bitfield based on type
         if config["type"] == "value":
             new_data = update_zone_value_in_bitfield(
-                str(current_data), zone, int(value), config.get("bits_per_zone", 8)
+                _as_raw(current_data), zone, int(value), config.get("bits_per_zone", 8)
             )
         elif config["type"] == "bit":
-            new_data = update_zone_bit_in_bitfield(str(current_data), zone, bool(value))
+            new_data = update_zone_bit_in_bitfield(_as_raw(current_data), zone, bool(value))
         else:
             return
 

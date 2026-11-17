@@ -100,17 +100,17 @@ class KKTKolbeBinarySensor(KKTBaseEntity, BinarySensorEntity):
         name_lower = self._name.lower()
         device_class = self._attr_device_class
 
+        if "boost" in name_lower:
+            return "mdi:rocket-launch"
+        if "warm" in name_lower:
+            return "mdi:heat-wave"
+        if "flex" in name_lower:
+            return "mdi:resize"
+        if "bbq" in name_lower:
+            return "mdi:grill"
+        if "selected" in name_lower:
+            return "mdi:circle-slice-8"
         if device_class == BinarySensorDeviceClass.RUNNING:
-            if "boost" in name_lower:
-                return "mdi:rocket-launch"
-            elif "warm" in name_lower:
-                return "mdi:heat-wave"
-            elif "flex" in name_lower:
-                return "mdi:resize"
-            elif "bbq" in name_lower:
-                return "mdi:grill"
-            elif "selected" in name_lower:
-                return "mdi:circle-slice-8"
             return "mdi:play-circle"
 
         return "mdi:circle"
@@ -145,9 +145,8 @@ class KKTKolbeZoneBinarySensor(KKTZoneBaseEntity, BinarySensorEntity):
         """Initialize the zone binary sensor."""
         super().__init__(coordinator, entry, config, "binary_sensor")
 
-        # Override device class for zone sensors
-        if not getattr(self, "_attr_device_class", None):
-            self._attr_device_class = BinarySensorDeviceClass.RUNNING
+        # No device class on purpose: "running" renders as "Läuft/Außer Betrieb",
+        # which reads wrong for "Boost aktiv" or "Warmhalten". Plain on/off fits.
 
         self._attr_icon = self._get_icon()
         self._cached_state: bool | None = None

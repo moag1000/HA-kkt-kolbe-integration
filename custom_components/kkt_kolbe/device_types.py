@@ -1759,7 +1759,6 @@ KNOWN_DEVICES: dict[str, dict[str, Any]] = {
                 {
                     "dp": 161,
                     "name": "Zone 1: Selected",
-                    "device_class": "running",
                     "zone": 1,
                     "icon": "mdi:radiobox-marked",
                     "entity_category": "diagnostic",
@@ -1767,7 +1766,6 @@ KNOWN_DEVICES: dict[str, dict[str, Any]] = {
                 {
                     "dp": 161,
                     "name": "Zone 2: Selected",
-                    "device_class": "running",
                     "zone": 2,
                     "icon": "mdi:radiobox-marked",
                     "entity_category": "diagnostic",
@@ -1775,7 +1773,6 @@ KNOWN_DEVICES: dict[str, dict[str, Any]] = {
                 {
                     "dp": 161,
                     "name": "Zone 3: Selected",
-                    "device_class": "running",
                     "zone": 3,
                     "icon": "mdi:radiobox-marked",
                     "entity_category": "diagnostic",
@@ -1783,7 +1780,6 @@ KNOWN_DEVICES: dict[str, dict[str, Any]] = {
                 {
                     "dp": 161,
                     "name": "Zone 4: Selected",
-                    "device_class": "running",
                     "zone": 4,
                     "icon": "mdi:radiobox-marked",
                     "entity_category": "diagnostic",
@@ -1791,50 +1787,44 @@ KNOWN_DEVICES: dict[str, dict[str, Any]] = {
                 {
                     "dp": 161,
                     "name": "Zone 5: Selected",
-                    "device_class": "running",
                     "zone": 5,
                     "icon": "mdi:radiobox-marked",
                     "entity_category": "diagnostic",
                 },
                 # Zone boost status (bitfield-decoded)
-                {"dp": 163, "name": "Zone 1: Boost Active", "device_class": "running", "zone": 1, "icon": "mdi:flash"},
-                {"dp": 163, "name": "Zone 2: Boost Active", "device_class": "running", "zone": 2, "icon": "mdi:flash"},
-                {"dp": 163, "name": "Zone 3: Boost Active", "device_class": "running", "zone": 3, "icon": "mdi:flash"},
-                {"dp": 163, "name": "Zone 4: Boost Active", "device_class": "running", "zone": 4, "icon": "mdi:flash"},
-                {"dp": 163, "name": "Zone 5: Boost Active", "device_class": "running", "zone": 5, "icon": "mdi:flash"},
+                {"dp": 163, "name": "Zone 1: Boost Active", "zone": 1, "icon": "mdi:flash"},
+                {"dp": 163, "name": "Zone 2: Boost Active", "zone": 2, "icon": "mdi:flash"},
+                {"dp": 163, "name": "Zone 3: Boost Active", "zone": 3, "icon": "mdi:flash"},
+                {"dp": 163, "name": "Zone 4: Boost Active", "zone": 4, "icon": "mdi:flash"},
+                {"dp": 163, "name": "Zone 5: Boost Active", "zone": 5, "icon": "mdi:flash"},
                 # Zone keep warm status (bitfield-decoded)
                 {
                     "dp": 164,
                     "name": "Zone 1: Keep Warm",
-                    "device_class": "running",
                     "zone": 1,
                     "icon": "mdi:thermometer-low",
                 },
                 {
                     "dp": 164,
                     "name": "Zone 2: Keep Warm",
-                    "device_class": "running",
                     "zone": 2,
                     "icon": "mdi:thermometer-low",
                 },
                 {
                     "dp": 164,
                     "name": "Zone 3: Keep Warm",
-                    "device_class": "running",
                     "zone": 3,
                     "icon": "mdi:thermometer-low",
                 },
                 {
                     "dp": 164,
                     "name": "Zone 4: Keep Warm",
-                    "device_class": "running",
                     "zone": 4,
                     "icon": "mdi:thermometer-low",
                 },
                 {
                     "dp": 164,
                     "name": "Zone 5: Keep Warm",
-                    "device_class": "running",
                     "zone": 5,
                     "icon": "mdi:thermometer-low",
                 },
@@ -1842,7 +1832,6 @@ KNOWN_DEVICES: dict[str, dict[str, Any]] = {
                 {
                     "dp": 165,
                     "name": "Flex Zone Left",
-                    "device_class": "running",
                     "zone": 1,
                     "icon": "mdi:arrow-expand-horizontal",
                     "advanced": True,
@@ -1850,7 +1839,6 @@ KNOWN_DEVICES: dict[str, dict[str, Any]] = {
                 {
                     "dp": 165,
                     "name": "Flex Zone Right",
-                    "device_class": "running",
                     "zone": 2,
                     "icon": "mdi:arrow-expand-horizontal",
                     "advanced": True,
@@ -1859,7 +1847,6 @@ KNOWN_DEVICES: dict[str, dict[str, Any]] = {
                 {
                     "dp": 166,
                     "name": "BBQ Mode Left",
-                    "device_class": "running",
                     "zone": 1,
                     "icon": "mdi:grill",
                     "advanced": True,
@@ -1867,7 +1854,6 @@ KNOWN_DEVICES: dict[str, dict[str, Any]] = {
                 {
                     "dp": 166,
                     "name": "BBQ Mode Right",
-                    "device_class": "running",
                     "zone": 2,
                     "icon": "mdi:grill",
                     "advanced": True,

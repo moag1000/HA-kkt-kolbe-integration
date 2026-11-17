@@ -914,6 +914,56 @@
       "reconnect": {
         "name": "Neu verbinden"
       }
+    },
+    "scene": {
+      "licht_an": {
+        "name": "Licht an"
+      },
+      "licht_aus": {
+        "name": "Licht aus"
+      },
+      "haube_aus": {
+        "name": "Haube aus"
+      },
+      "rgb_aus": {
+        "name": "RGB aus"
+      },
+      "rgb_weiss": {
+        "name": "RGB Weiß"
+      },
+      "rgb_rot": {
+        "name": "RGB Rot"
+      },
+      "rgb_gruen": {
+        "name": "RGB Grün"
+      },
+      "rgb_blau": {
+        "name": "RGB Blau"
+      },
+      "rgb_gelb": {
+        "name": "RGB Gelb"
+      },
+      "rgb_lila": {
+        "name": "RGB Lila"
+      },
+      "rgb_orange": {
+        "name": "RGB Orange"
+      },
+      "rgb_cyan": {
+        "name": "RGB Cyan"
+      },
+      "rgb_gruen_hell": {
+        "name": "RGB Hellgrün"
+      },
+      "rgb_farbe": {
+        "name": "RGB Farbe"
+      },
+      "rgb_szene": {
+        "name": "RGB Szene"
+      },
+      "rgb_musik": {
+        "name": "RGB Musik"
+      }
     }
   },
   "issues": {

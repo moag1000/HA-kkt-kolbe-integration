@@ -146,40 +146,35 @@ class KKTBaseEntity(CoordinatorEntity["KKTCoordinator"]):
 
     def _build_device_info(self) -> DeviceInfo:
         """Build standardized device info using KNOWN_DEVICES."""
-        from .const import CATEGORY_COOKTOP
-        from .const import CATEGORY_HOOD
         from .device_types import KNOWN_DEVICES
 
         # Device type resolved during setup lives on entry.runtime_data
         device_type_key = self._runtime_attr("device_type") or "auto"
-
-        # Extract device information
         device_id = self._entry.data.get("device_id", "unknown")
 
-        # Get device info from KNOWN_DEVICES (HA 2024.6+ model ID support)
-        if device_type_key in KNOWN_DEVICES:
-            device_info = KNOWN_DEVICES[device_type_key]
-            model_id = device_info.get("model_id", device_type_key)
-            device_name = device_info.get("name", "KKT Kolbe Device")
-            category = device_info.get("category", CATEGORY_HOOD)
-
-            if category == CATEGORY_COOKTOP:
-                pass
-            else:
-                pass
+        known = KNOWN_DEVICES.get(device_type_key)
+        if known is not None:
+            device_name = str(known.get("name", "KKT Kolbe Device"))
+            # Human readable model ("HERMES & STYLE Hood"); the Tuya model code
+            # ("e1k6i0zo") goes to model_id, not to model or hw_version.
+            model = device_name
+            model_id = known.get("model_id")
         else:
-            # Fallback for unknown devices
-            model_id = "unknown"
             device_name = "KKT Kolbe Device"
+            model = None
+            model_id = None
 
-        return DeviceInfo(
+        info = DeviceInfo(
             identifiers={(DOMAIN, device_id)},
             name=device_name,
             manufacturer="KKT Kolbe",
-            model=model_id,  # Use model_id from KNOWN_DEVICES
             sw_version=self._get_software_version(),
-            hw_version=self._get_hardware_version(),
         )
+        if model:
+            info["model"] = model
+        if model_id:
+            info["model_id"] = str(model_id)
+        return info
 
     def _get_software_version(self) -> str:
         """Get software version from device data."""
@@ -205,52 +200,6 @@ class KKTBaseEntity(CoordinatorEntity["KKTCoordinator"]):
         from .const import VERSION
 
         return f"v{VERSION}"
-
-    def _get_hardware_version(self) -> str:
-        """Get hardware version from device data."""
-        from .device_types import KNOWN_DEVICES
-
-        # Try to get device_type from runtime_data or entry.data
-        device_type = None
-        product_name = None
-
-        device_type = self._runtime_attr("device_type")
-        product_name = self._runtime_attr("product_name")
-
-        # Fallback to entry.data
-        if not device_type or device_type in ("auto", "unknown", ""):
-            device_type = self._entry.data.get("device_type", "")
-        if not product_name or product_name in ("auto", "unknown", ""):
-            product_name = self._entry.data.get("product_name", "")
-
-        # Use model_id from KNOWN_DEVICES if available
-        if device_type and device_type in KNOWN_DEVICES:
-            model_id = KNOWN_DEVICES[device_type].get("model_id", "")
-            if model_id and isinstance(model_id, str):
-                return str(model_id).upper()
-
-        # Use device_type as hardware identifier if valid
-        if device_type and device_type not in ("auto", "unknown", ""):
-            return str(device_type).replace("_", " ").title()
-
-        # Fallback to product_name pattern matching
-        if product_name:
-            product_upper = product_name.upper()
-            if "IND7705HC" in product_upper:
-                return "IND7705HC"
-            elif "HERMES" in product_upper:
-                return "HERMES"
-            elif "ECCO" in product_upper:
-                return "ECCO HCM"
-            elif "SOLO" in product_upper:
-                return "SOLO HCM"
-
-        # Try device_id first 8 chars as hardware identifier
-        device_id = self._entry.data.get("device_id", "")
-        if device_id and isinstance(device_id, str):
-            return str(device_id[:8]).upper()
-
-        return "KKT Device"
 
     @property
     def available(self) -> bool:
