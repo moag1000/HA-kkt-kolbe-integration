@@ -243,3 +243,35 @@ async def test_status_listener_can_be_removed() -> None:
     remove()
     remove()  # idempotent
     assert device._status_listeners == []
+
+
+# --- DPs missing from the status reply (cooktop RAW zone bitfields) --------
+
+
+@pytest.mark.asyncio
+async def test_missing_expected_dps_are_requested_once_per_interval() -> None:
+    """DPs left out of the status reply are requested with UPDATEDPS, throttled."""
+    device, raw = _connected_device()
+    device.async_ensure_connected = MagicMock(return_value=asyncio.sleep(0))
+    device.expected_dps = [1, 162, 163]
+
+    dps = await device.async_get_status()
+    assert dps == {"1": True}
+    raw.updatedps.assert_called_once_with([162, 163], True)
+
+    device.async_ensure_connected = MagicMock(return_value=asyncio.sleep(0))
+    await device.async_get_status()
+    raw.updatedps.assert_called_once()  # throttled
+
+
+@pytest.mark.asyncio
+async def test_pushed_dps_survive_the_next_poll() -> None:
+    """A DP that only arrived as a pushed frame stays in the status after a poll."""
+    device, raw = _connected_device()
+    device.async_ensure_connected = MagicMock(return_value=asyncio.sleep(0))
+    device.expected_dps = [1, 162]
+    device._status = {"dps": {"162": "AAAACQA="}}
+
+    dps = await device.async_get_status()
+    assert dps == {"1": True, "162": "AAAACQA="}
+    raw.updatedps.assert_not_called()

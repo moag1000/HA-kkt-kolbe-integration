@@ -71,6 +71,7 @@ RUNTIME_SOCKET_RETRIES: Final = 2  # tinytuya retries once connected (detection 
 # Local push: how often the open socket is checked for status frames the device
 # sends on its own (button pressed on the device, timer ran out, ...)
 LOCAL_PUSH_CHECK_INTERVAL: Final = 1.0  # seconds
+DP_REFRESH_INTERVAL: Final = 60  # seconds between UPDATEDPS requests for DPs missing from a poll
 LOCAL_PUSH_READ_TIMEOUT: Final = 0.5  # socket timeout while reading a pushed frame
 
 # === GLOBAL STORAGE ===

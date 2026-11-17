@@ -114,7 +114,8 @@ class KKTKolbeFan(KKTBaseEntity, FanEntity):
 
         config: dict[str, Any] = {
             "dp": self._dp_id,
-            "name": "Fan",
+            "name": "Fan",  # part of the unique_id, keep stable
+            "translation_key": "hood_fan",
         }
         super().__init__(coordinator, entry, config, "fan")
 
