@@ -20,7 +20,7 @@ reconnect_device:
   name: Reconnect Device
   description: Manually reconnect the local connection of the targeted KKT Kolbe devices (all devices if no target is given)
   target:
-    device:
+    entity:
       integration: kkt_kolbe
   fields:
     entry_id:
@@ -35,7 +35,7 @@ update_local_key:
   name: Update Local Key
   description: Update the local key of the targeted KKT Kolbe device when it has been reset or changed in the Tuya app. The key is tested first, then stored and the device reconnects.
   target:
-    device:
+    entity:
       integration: kkt_kolbe
   fields:
     local_key:
@@ -71,7 +71,7 @@ get_connection_status:
   name: Get Connection Status
   description: Get the current connection status of KKT Kolbe devices. Returns the statuses as action response (use response_variable in scripts) and also fires the kkt_kolbe_connection_status event. Without a target, all devices are returned.
   target:
-    device:
+    entity:
       integration: kkt_kolbe
   fields:
     entry_id:
@@ -229,8 +229,6 @@ reset_filter_timer:
   name: Reset Filter Timer
   description: Reset the filter change timer of the targeted range hood (hoods with a Filter Reset data point)
   target:
-    device:
-      integration: kkt_kolbe
     entity:
       integration: kkt_kolbe
   fields:
@@ -264,5 +262,5 @@ get_firmware_info:
   name: Get Firmware Info (SmartLife)
   description: Query Tuya cloud for the device firmware version and update availability. Returns the result as action response (use response_variable in scripts) and also fires the kkt_kolbe_firmware_info event. Note -- SmartLife tokens often lack the IoT-platform scope required for this endpoint; if so the event reports available false. In that case check firmware via the SmartLife/Tuya app -- device -> menu -> Firmware Update. Without a target, all devices are queried.
   target:
-    device:
+    entity:
       integration: kkt_kolbe
