@@ -891,6 +891,7 @@
               "connection_restored": "Verbindung wiederhergestellt",
               "connection_mode_changed": "Verbindungsmodus gewechselt",
               "timer_finished": "Timer abgelaufen",
+              "timer_cancelled": "Timer abgebrochen",
               "filter_cleaning_due": "Filterreinigung fällig",
               "zone_error": "Fehler an Kochzone"
             }
@@ -1070,29 +1071,56 @@
     "no_matching_devices": {
       "message": "Es ist kein passendes KKT-Kolbe-Gerät geladen."
     },
-    "config_entry_not_found": {
-      "message": "Konfigurationseintrag {entry_id} wurde nicht gefunden."
-    },
-    "entity_not_found": {
-      "message": "Entität {entity_id} wurde nicht gefunden."
-    },
-    "entity_not_kkt_kolbe": {
-      "message": "Entität {entity_id} gehört nicht zur KKT-Kolbe-Integration."
-    },
-    "entity_wrong_domain": {
-      "message": "Entität {entity_id} muss eine {domain}-Entität sein."
-    },
-    "entity_unavailable": {
-      "message": "Entität {entity_id} ist gerade nicht verfügbar."
-    },
     "confirm_required": {
       "message": "Die Aktion {action} muss bestätigt werden (confirm: true setzen)."
     },
-    "coordinator_not_found": {
-      "message": "Für Entität {entity_id} wurde keine aktive Geräteverbindung gefunden."
-    },
     "reconnect_failed": {
       "message": "Neu verbinden fehlgeschlagen: {error}"
+    },
+    "target_required": {
+      "message": "Wähle das Gerät für {action} aus (Ziel oder entry_id). Ein Local Key gehört zu genau einem Gerät und wird nie auf alle angewendet."
+    },
+    "entity_wrong_kind": {
+      "message": "{entity_id} ist keine {kind}-Entität eines KKT-Kolbe-Geräts."
+    },
+    "value_out_of_range": {
+      "message": "{value} liegt außerhalb des Bereichs von {entity_id} ({min} bis {max})."
+    },
+    "filter_reset_not_supported": {
+      "message": "{device} hat keinen Filter-Reset."
+    },
+    "zone_state_unknown": {
+      "message": "Die aktuellen Werte der Kochzonen (DP {data_point}) sind noch nicht bekannt, eine Änderung würde die anderen Zonen zurücksetzen. Versuche es erneut, sobald das Kochfeld seinen Zustand gemeldet hat."
+    },
+    "service_failed": {
+      "message": "Die Aktion ist fehlgeschlagen: {details}"
+    },
+    "unknown_error": {
+      "message": "Unerwarteter Fehler: {details}"
+    },
+    "connection_failed": {
+      "message": "Verbindung zum Gerät fehlgeschlagen: {details}"
+    },
+    "authentication_failed": {
+      "message": "Anmeldung fehlgeschlagen, bitte Local Key oder SmartLife-Login prüfen: {details}"
+    },
+    "timeout": {
+      "message": "Das Gerät hat nicht rechtzeitig geantwortet: {details}"
+    },
+    "device_error": {
+      "message": "Das Gerät hat einen Fehler gemeldet: {details}"
+    },
+    "configuration_error": {
+      "message": "Konfigurationsfehler: {details}"
+    },
+    "discovery_failed": {
+      "message": "Gerätesuche fehlgeschlagen: {details}"
+    },
+    "rate_limit_exceeded": {
+      "message": "Zu viele Anfragen an die Tuya-Cloud, bitte später erneut versuchen: {details}"
+    },
+    "data_point_error": {
+      "message": "Datenpunkt konnte nicht gelesen oder geschrieben werden: {details}"
     }
   }
 }

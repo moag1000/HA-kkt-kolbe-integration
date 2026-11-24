@@ -28,6 +28,7 @@ from .const import DEFAULT_MAX_BACKOFF
 from .const import DEFAULT_MAX_RECONNECT_ATTEMPTS
 from .const import DOMAIN
 from .const import MAX_ERROR_HISTORY
+from .pending_writes import PendingWrites
 from .tuya_device import KKTKolbeTuyaDevice
 
 # Seconds to wait after a device write before refreshing the coordinator.
@@ -77,6 +78,8 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
         # Tuya devices often send delta/partial updates (only changed DPs)
         # This cache accumulates all DPs seen so far
         self._dps_cache: dict[str, Any] = {}
+        # Unconfirmed writes, overlaid on the reported DPs for all entities
+        self.pending_writes = PendingWrites()
         # Local push: status frames the device sends over the LAN socket
         self._remove_local_listener: Callable[[], None] | None = None
         if hasattr(device, "add_status_listener"):
@@ -187,6 +190,16 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
         """
         return self._last_successful_update
 
+    async def async_reconnect(self) -> dict[str, Any]:
+        """Reset the local connection (same interface as the hybrid coordinator)."""
+        await self.device.async_disconnect()
+        await self.device.async_connect()
+        await self.async_request_refresh()
+        return {
+            "success": self.device.is_connected,
+            "state": "online" if self.device.is_connected else "offline",
+        }
+
     @property
     def connection_info(self) -> dict[str, Any]:
         """Get connection status information."""
@@ -199,6 +212,9 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
             "current_backoff": self._current_backoff,
             "circuit_breaker_retries": self._circuit_breaker_retries,
             "circuit_breaker_next_retry": self._circuit_breaker_next_retry,
+            "mode": "local",
+            "device_id": self.device.device_id,
+            "ip_address": self.device.ip_address,
         }
 
     def _record_error(self, error_type: str, message: str, recoverable: bool = True) -> None:
@@ -500,8 +516,8 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
         causing UI snap-back (Issue #6). We defer the refresh by
         ``CLOUD_PROPAGATION_DELAY_SECONDS`` so the read sees the fresh value.
 
-        During the delay, entities use their optimistic lock (see
-        ``KKTBaseEntity._set_optimistic``) to keep showing the new value.
+        During the delay, entities keep showing the new value through the
+        pending-write overlay (``pending_writes``, see pending_writes.py).
         """
         try:
             await self.device.async_set_dp(dp, value)

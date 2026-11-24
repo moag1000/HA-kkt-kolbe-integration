@@ -6,7 +6,6 @@ Based on patterns from https://github.com/ludeeus/integration_blueprint
 from __future__ import annotations
 
 import logging
-import time
 from datetime import datetime
 from typing import TYPE_CHECKING
 from typing import Any
@@ -18,17 +17,28 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import slugify
 
 from .const import DOMAIN
+from .coordinator import DeviceState
 from .data import KKTCoordinator
+from .pending_writes import PendingWrites
+from .pending_writes import effective_dps
+from .pending_writes import pending_writes_for
 
 if TYPE_CHECKING:
     pass
 
 _LOGGER = logging.getLogger(__name__)
 
-# Optimistic update window. Tuya cloud propagation typically takes 1-3s after
-# a write before subsequent reads return the new value. Within this window we
-# trust our just-written value over coordinator polls to prevent UI snap-back.
-OPTIMISTIC_TTL_SECONDS = 8.0
+
+def entity_unique_id(entry_id: str, platform: str, dp: int, name: str, zone: int | None = None) -> str:
+    """Return the unique_id of a device-profile entity.
+
+    Format: ``{entry_id}_{platform}_dp{dp}[_zone{zone}]_{name}``. The DP keeps
+    entities with the same name apart; the name is the stable English profile
+    name, not the translated entity name. Actions use this to find an entity
+    of a device (e.g. its power switch) without guessing from entity_ids.
+    """
+    zone_part = f"_zone{zone}" if zone is not None else ""
+    return f"{entry_id}_{platform}_dp{dp}{zone_part}_{name.lower().replace(' ', '_')}"
 
 
 class KKTBaseEntity(CoordinatorEntity["KKTCoordinator"]):
@@ -69,15 +79,12 @@ class KKTBaseEntity(CoordinatorEntity["KKTCoordinator"]):
         self._dp = config["dp"]
         self._name = config["name"]
 
-        # State caching to prevent "unknown" values when DPs are temporarily unavailable
-        self._cached_value: Any = None
+        # Last known value per data point, to prevent "unknown" values when a
+        # DP is temporarily missing. Keyed by DP: an entity reads more than its
+        # own DP (fan and light also read the hood power DP 1), and a value of
+        # one DP must never stand in for another.
+        self._dp_cache: dict[int, Any] = {}
         self._last_update_time: datetime | None = None
-
-        # Optimistic update tracking. After a user-initiated write, the entity
-        # holds the expected raw DP value here. Coordinator polls within the
-        # TTL window are ignored unless they confirm the optimistic value.
-        self._optimistic_value: Any = None
-        self._optimistic_until: float = 0.0
 
         # Device info cache
         self._device_info_cached: DeviceInfo | None = None
@@ -102,17 +109,7 @@ class KKTBaseEntity(CoordinatorEntity["KKTCoordinator"]):
     def _setup_entity_attributes(self) -> None:
         """Set up common entity attributes."""
         # Generate unique ID - ALWAYS include DP to prevent collisions
-        # Format: {entry_id}_{platform}_dp{dp}[_zone{zone}]_{name}
-        # Including DP ensures uniqueness even for entities with same name but different data points
-        if self._zone is not None:
-            self._attr_unique_id = (
-                f"{self._entry.entry_id}_{self._platform}_dp{self._dp}_zone{self._zone}_"
-                f"{self._name.lower().replace(' ', '_')}"
-            )
-        else:
-            self._attr_unique_id = (
-                f"{self._entry.entry_id}_{self._platform}_dp{self._dp}_{self._name.lower().replace(' ', '_')}"
-            )
+        self._attr_unique_id = entity_unique_id(self._entry.entry_id, self._platform, self._dp, self._name, self._zone)
 
         # Set translation key if provided (Gold Quality requirement)
         translation_key = self._config.get("translation_key")
@@ -179,8 +176,9 @@ class KKTBaseEntity(CoordinatorEntity["KKTCoordinator"]):
     def _get_software_version(self) -> str:
         """Get software version from device data."""
         # Try to get protocol version from device via coordinator
-        if hasattr(self.coordinator, "device") and self.coordinator.device:
-            device = self.coordinator.device
+        # The local device lives on runtime_data for both coordinator types
+        device = getattr(getattr(self._entry, "runtime_data", None), "device", None)
+        if device is not None:
             # Check for detected protocol version
             version = getattr(device, "version", None)
             if version and version != "auto":
@@ -212,45 +210,28 @@ class KKTBaseEntity(CoordinatorEntity["KKTCoordinator"]):
 
         Entities only become unavailable after persistent connection issues.
         """
-        # Check coordinator device state if available (KKTKolbeUpdateCoordinator)
-        if hasattr(self.coordinator, "is_device_available"):
-            # Use coordinator's device state which tracks consecutive failures
-            device_available = self.coordinator.is_device_available
+        # Both coordinators track consecutive failures in device_state
+        if self.coordinator.is_device_available:
+            return True
 
-            # If device is online, we're always available
-            if device_available:
-                return True
+        # Circuit breaker tripped (UNREACHABLE): the device has failed
+        # persistently and retries are suspended. Do NOT keep masking this
+        # with a stale cached value — surface it as unavailable so the user
+        # (and automations) see the real state instead of a frozen reading.
+        if self.coordinator.device_state == DeviceState.UNREACHABLE:
+            return False
 
-            # Circuit breaker tripped (UNREACHABLE): the device has failed
-            # persistently and retries are suspended. Do NOT keep masking this
-            # with a stale cached value — surface it as unavailable so the user
-            # (and automations) see the real state instead of a frozen reading.
-            device_state = getattr(self.coordinator, "device_state", None)
-            if device_state is not None and device_state.value == "unreachable":
-                return False
-
-            # If device is offline but we have cached data, still report as available
-            # This prevents flapping during temporary connection issues
-            if self._cached_value is not None:
-                return True
-
-            # If device is offline and no cached data, check if we ever had data
-            if self.coordinator.data is not None and len(self.coordinator.data) > 0:
-                return True
-
-        # Fallback for other coordinators: check if we have any data
+        # Offline but not unreachable: stay available with known values, so
+        # short outages don't make entities flap
         has_data = self.coordinator.data is not None and len(self.coordinator.data) > 0
-        has_cached_value = self._cached_value is not None
-
-        # More lenient: available if we have data OR cache OR no failures yet
-        is_available = has_data or has_cached_value or self.coordinator.last_update_success
+        has_cached_value = self._dp_cache.get(self._dp) is not None
+        is_available = has_data or has_cached_value
 
         if not is_available:
             _LOGGER.debug(
                 f"Entity {self._attr_unique_id} unavailable: "
                 f"last_update_success={self.coordinator.last_update_success}, "
-                f"has_data={has_data}, has_cached_value={has_cached_value}, "
-                f"data_keys={list(self.coordinator.data.keys()) if self.coordinator.data else 'None'}"
+                f"has_data={has_data}, has_cached_value={has_cached_value}"
             )
 
         return is_available
@@ -267,29 +248,8 @@ class KKTBaseEntity(CoordinatorEntity["KKTCoordinator"]):
                 f"Available DPs: {data_keys}"
             )
 
-        # Hard-release optimistic on confirmed device push (v4.7+, Task 3):
-        # If this update was triggered by an MQTT report_type=='report' push (real
-        # device confirmation, not cached cloud read) AND the pushed value for our
-        # DP matches what we wrote, the device has confirmed our write. Release
-        # immediately rather than waiting for the value-match auto-release in
-        # _get_data_point_value (which only runs on the next read).
-        # getattr() defaults make this safe for non-Hybrid coordinators (the
-        # local-only KKTKolbeUpdateCoordinator) that lack these fields.
-        if (
-            getattr(self.coordinator, "last_update_was_push", False)
-            and getattr(self.coordinator, "last_push_report_type", "") == "report"
-            and self._is_optimistic_active()
-            and self._optimistic_value is not None
-        ):
-            # Read the raw coordinator value WITHOUT going through optimistic override
-            if self.coordinator.data:
-                dps_data = self.coordinator.data.get("dps", self.coordinator.data)
-                raw = dps_data.get(str(self._dp))
-                if raw is None:
-                    raw = dps_data.get(self._dp)
-                if raw == self._optimistic_value:
-                    self._clear_optimistic()
-
+        # Pending writes are released centrally (PendingWrites.apply) as soon
+        # as the device reports the written value, whether by push or by poll.
         # Update cached state from coordinator data
         self._update_cached_state()
         self.async_write_ha_state()
@@ -298,29 +258,30 @@ class KKTBaseEntity(CoordinatorEntity["KKTCoordinator"]):
         """Update the cached state from coordinator data."""
         # This method should be overridden by specific entity types
 
-    def _set_optimistic(self, raw_value: Any, ttl: float = OPTIMISTIC_TTL_SECONDS) -> None:
-        """Mark the entity's own DP as having a pending write.
-
-        While the optimistic window is active, ``_get_data_point_value`` returns
-        ``raw_value`` instead of the coordinator value for ``self._dp``. The
-        lock auto-releases as soon as the coordinator reports the matching
-        value, or after ``ttl`` seconds (whichever comes first).
-
-        Use this in ``async_turn_on`` / ``async_select_option`` /
-        ``async_set_native_value`` BEFORE the device write to prevent UI
-        snap-back caused by stale Tuya cloud reads.
-        """
-        self._optimistic_value = raw_value
-        self._optimistic_until = time.monotonic() + ttl
+    @property
+    def _pending_writes(self) -> PendingWrites:
+        """Unconfirmed writes of this device (shared by all its entities)."""
+        return pending_writes_for(self.coordinator)
 
     def _is_optimistic_active(self) -> bool:
-        """Return True if the optimistic window is still open."""
-        return self._optimistic_until > time.monotonic()
+        """Return True while a write to this entity's DP awaits confirmation."""
+        return self._pending_writes.get(self._dp) is not None
 
-    def _clear_optimistic(self) -> None:
-        """Release the optimistic lock immediately."""
-        self._optimistic_value = None
-        self._optimistic_until = 0.0
+    @property
+    def _optimistic_value(self) -> Any:
+        """Value of the unconfirmed write to this entity's DP, if any."""
+        write = self._pending_writes.get(self._dp)
+        return write.value if write is not None else None
+
+    def _effective_dps(self) -> dict[Any, Any]:
+        """Reported DPs with the device's unconfirmed writes overlaid."""
+        return effective_dps(self.coordinator)
+
+    def _raw_dp_value(self, dp: int) -> Any:
+        """Return the raw (not zone-decoded) effective value of a DP, or None."""
+        dps_data = self._effective_dps()
+        value = dps_data.get(str(dp))
+        return dps_data.get(dp) if value is None else value
 
     def _get_data_point_value(self, dp: int | None = None) -> Any:
         """Get value for a specific data point, with zone support and state caching."""
@@ -330,153 +291,69 @@ class KKTBaseEntity(CoordinatorEntity["KKTCoordinator"]):
         if self._zone is not None:
             return self._get_zone_data_point_value_cached(data_point, self._zone)
 
-        # Standard data point extraction for non-zone entities with caching
         if not self.coordinator.data:
             _LOGGER.debug(f"Entity {self._attr_unique_id}: No coordinator data available, using cached value")
-            return self._cached_value
+            return self._dp_cache.get(data_point)
 
-        # Get the DPS dictionary - coordinator may return data with DPs under 'dps' key
-        # or directly at top level depending on the coordinator type
-        dps_data = self.coordinator.data.get("dps", self.coordinator.data)
-
-        # Try both string and integer keys for compatibility
-        value = dps_data.get(str(data_point))
-        if value is None:
-            value = dps_data.get(data_point)
-
-        # Optimistic override: if this is our own DP and the optimistic window
-        # is open, return the pending value unless the coordinator has caught up.
-        if data_point == self._dp and self._is_optimistic_active():
-            if value == self._optimistic_value:
-                # Coordinator confirmed the write — release the lock and let
-                # the real value flow through.
-                self._clear_optimistic()
-            else:
-                _LOGGER.debug(
-                    f"Entity {self._attr_unique_id}: DP {data_point} optimistic override "
-                    f"(coord={value}, optimistic={self._optimistic_value})"
-                )
-                self._cached_value = self._optimistic_value
-                self._last_update_time = datetime.now()
-                return self._optimistic_value
+        value = self._raw_dp_value(data_point)
 
         if value is None:
-            # DP not available in current update - use cached value instead of None
+            # DP not available in current update - use its cached value instead of None
             _LOGGER.debug(
                 f"Entity {self._attr_unique_id}: DP {data_point} not in current update. "
-                f"Available DPs: {list(dps_data.keys())}. Using cached value: {self._cached_value}"
+                f"Using cached value: {self._dp_cache.get(data_point)}"
             )
-            return self._cached_value
-        else:
-            # DP is available - update cache and return new value
-            self._cached_value = value
-            self._last_update_time = datetime.now()
-            _LOGGER.debug(f"Entity {self._attr_unique_id}: DP {data_point} = {value} (type: {type(value)}) - cached")
+            return self._dp_cache.get(data_point)
 
+        self._dp_cache[data_point] = value
+        self._last_update_time = datetime.now()
+        _LOGGER.debug(f"Entity {self._attr_unique_id}: DP {data_point} = {value} (type: {type(value)}) - cached")
         return value
 
     def _get_zone_data_point_value_cached(self, dp: int, zone: int | None = None) -> Any:
         """Get value for a zone-specific data point with bitfield extraction and caching."""
         zone_number = zone if zone is not None else self._zone
-        if zone_number is None:
-            return self._cached_value
+        if zone_number is None or not self.coordinator.data:
+            return self._dp_cache.get(dp)
 
-        if not self.coordinator.data:
-            _LOGGER.debug(f"Entity {self._attr_unique_id}: No coordinator data available, using cached value")
-            return self._cached_value
+        value = self._decode_zone_value(self._raw_dp_value(dp), dp, zone_number)
+        if value is None:
+            # DP not reported (or undecodable) - keep the last known value
+            return self._dp_cache.get(dp)
 
-        # Get the DPS dictionary - coordinator may return data with DPs under 'dps' key
-        dps_data = self.coordinator.data.get("dps", self.coordinator.data)
-
-        raw_value = dps_data.get(dp)
-        if raw_value is None:
-            raw_value = dps_data.get(str(dp))
-
-        if raw_value is None:
-            # DP not available in current update - use cached value
-            _LOGGER.debug(
-                f"Entity {self._attr_unique_id}: Zone DP {dp} not in current update. "
-                f"Available DPs: {list(dps_data.keys())}. Using cached value: {self._cached_value}"
-            )
-            return self._cached_value
-
-        # Use bitfield_utils for Base64 RAW data extraction
-        if isinstance(raw_value, str):
-            # This is likely a Base64-encoded RAW string
-            from .bitfield_utils import extract_zone_value_from_bitfield
-
-            try:
-                value = extract_zone_value_from_bitfield(raw_value, zone_number)
-                _LOGGER.debug(f"Zone {zone_number} DP {dp}: Extracted value {value} from Base64 data - cached")
-
-                # Update cache
-                self._cached_value = value
-                self._last_update_time = datetime.now()
-                return value
-            except Exception as e:
-                _LOGGER.error(f"Failed to extract zone {zone_number} from DP {dp}: {e}")
-                return self._cached_value
-
-        # Fall back to bit extraction for integer/byte bitfields
-        if isinstance(raw_value, int):
-            # For integer bitfields, extract zone bit
-            zone_bit = 1 << (zone_number - 1)
-            value = bool(raw_value & zone_bit)
-        elif isinstance(raw_value, (bytes, bytearray)):
-            # For byte arrays, check individual bytes/bits
-            byte_index = (zone_number - 1) // 8
-            bit_index = (zone_number - 1) % 8
-            if byte_index < len(raw_value):
-                value = bool(raw_value[byte_index] & (1 << bit_index))
-            else:
-                return self._cached_value
-        else:
-            return self._cached_value
-
-        # Update cache and return new value
-        self._cached_value = value
+        self._dp_cache[dp] = value
         self._last_update_time = datetime.now()
-        _LOGGER.debug(f"Zone {zone_number} DP {dp}: Extracted value {value} - cached")
         return value
 
     def _get_zone_data_point_value(self, dp: int, zone: int | None = None) -> Any:
         """Get value for a zone-specific data point with bitfield extraction."""
-        if not self.coordinator.data:
-            return None
-
-        # Get the DPS dictionary - coordinator may return data with DPs under 'dps' key
-        dps_data = self.coordinator.data.get("dps", self.coordinator.data)
-
-        raw_value = dps_data.get(dp)
-        if raw_value is None:
-            raw_value = dps_data.get(str(dp))
-        if raw_value is None:
-            return None
-
+        raw_value = self._raw_dp_value(dp)
         zone_number = zone if zone is not None else self._zone
-        if zone_number is None:
+        if raw_value is None or zone_number is None:
             return raw_value
+        return self._decode_zone_value(raw_value, dp, zone_number)
+
+    def _decode_zone_value(self, raw_value: Any, dp: int, zone_number: int) -> Any:
+        """Extract one zone's value from a raw zone bitfield DP (None if impossible)."""
+        if raw_value is None:
+            return None
 
         # Use bitfield_utils for Base64 RAW data extraction
         if isinstance(raw_value, str):
-            # This is likely a Base64-encoded RAW string
             from .bitfield_utils import extract_zone_value_from_bitfield
 
             try:
-                value = extract_zone_value_from_bitfield(raw_value, zone_number)
-                _LOGGER.debug(f"Zone {zone_number} DP {dp}: Extracted value {value} from Base64 data")
-                return value
+                return extract_zone_value_from_bitfield(raw_value, zone_number)
             except Exception as e:
                 _LOGGER.error(f"Failed to extract zone {zone_number} from DP {dp}: {e}")
                 return None
 
-        # Fall back to bit extraction for integer/byte bitfields
+        # Integer bitfield: one bit per zone
         if isinstance(raw_value, int):
-            # For integer bitfields, extract zone bit
-            zone_bit = 1 << (zone_number - 1)
-            return bool(raw_value & zone_bit)
-        elif isinstance(raw_value, (bytes, bytearray)):
-            # For byte arrays, check individual bytes/bits
+            return bool(raw_value & (1 << (zone_number - 1)))
+
+        # Byte arrays: one bit per zone
+        if isinstance(raw_value, (bytes, bytearray)):
             byte_index = (zone_number - 1) // 8
             bit_index = (zone_number - 1) % 8
             if byte_index < len(raw_value):
@@ -485,13 +362,36 @@ class KKTBaseEntity(CoordinatorEntity["KKTCoordinator"]):
         return None
 
     async def _async_set_data_point(self, dp: int, value: Any) -> None:
-        """Set a data point value through the coordinator."""
+        """Write a data point and show it at once in every entity of the device.
+
+        The write is recorded as pending on the coordinator before it is sent,
+        so this entity and all others deriving from the DP (power switch, fan
+        and light all read DP 1) repaint immediately and a stale poll cannot
+        snap them back (Issue #6). If the write fails, the pending entry is
+        rolled back and the entities show the reported state again.
+        """
+        pending = self._pending_writes
+        previous = pending.set(dp, value)
+        self._async_publish_device_state()
         try:
             await self.coordinator.async_set_data_point(dp, value)
             _LOGGER.debug("Set data point %d to %s for %s", dp, value, self._attr_unique_id)
         except Exception as exc:
+            pending.restore(dp, previous)
+            self._async_publish_device_state()
             _LOGGER.error("Failed to set data point %d to %s for %s: %s", dp, value, self._attr_unique_id, exc)
             raise
+
+    @callback
+    def _async_publish_device_state(self) -> None:
+        """Re-derive this entity and every other entity of the device."""
+        self._update_cached_state()
+        if not self.hass:
+            return
+        self.async_write_ha_state()
+        update_listeners = getattr(self.coordinator, "async_update_listeners", None)
+        if callable(update_listeners):
+            update_listeners()
 
     async def _async_suppress_fan_auto_start(self) -> None:
         """Suppress fan auto-start after hood power-on.
@@ -511,9 +411,10 @@ class KKTBaseEntity(CoordinatorEntity["KKTCoordinator"]):
         from .device_types import KNOWN_DEVICES
         from .device_types import get_device_entity_config
 
-        # Determine lookup key from entry data
-        device_type = self._entry.data.get("device_type", "")
-        product_name = self._entry.data.get("product_name", "")
+        # Same lookup the platforms use: the device type resolved during setup
+        # (runtime_data) wins over the raw entry data, which may still say "auto".
+        device_type = self._runtime_attr("device_type") or self._entry.data.get("device_type", "")
+        product_name = self._runtime_attr("product_name") or self._entry.data.get("product_name", "")
         lookup_key = device_type if device_type not in ("auto", None, "") else product_name
 
         # Verify this is a hood device

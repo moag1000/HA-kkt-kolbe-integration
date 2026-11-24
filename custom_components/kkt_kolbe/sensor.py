@@ -25,6 +25,7 @@ from .device_types import get_device_entities
 
 if TYPE_CHECKING:
     from .data import KKTKolbeConfigEntry
+    from .hybrid_coordinator import KKTKolbeHybridCoordinator
 
 # Limit parallel updates - 0 means unlimited (coordinator-based entities)
 PARALLEL_UPDATES = 0
@@ -206,7 +207,7 @@ class KKTKolbeZoneSensor(KKTZoneBaseEntity, SensorEntity):
         self._attr_state_class = config.get("state_class")
         self._attr_native_unit_of_measurement = config.get("unit_of_measurement")
         self._attr_icon = self._get_icon()
-        self._cached_value = None
+        self._cached_value: int | float | None = None
 
         # Zone sensors are typically integers (HA 2025.1+)
         self._attr_suggested_display_precision = 0
@@ -386,8 +387,12 @@ class KKTKolbeActiveZonesSensor(KKTBaseEntity, SensorEntity):
         return self._cached_value
 
 
-class KKTKolbeConnectionSensor(CoordinatorEntity["KKTCoordinator"], SensorEntity):
-    """Sensor that shows the current connection mode (local/api/smartlife)."""
+class KKTKolbeConnectionSensor(CoordinatorEntity["KKTKolbeHybridCoordinator"], SensorEntity):
+    """Sensor that shows the current connection mode (local/api/smartlife).
+
+    Only created for the hybrid coordinator, so its attributes are read
+    directly: a renamed attribute fails in mypy and tests, not silently.
+    """
 
     # Attributes that change frequently - don't record in database
     _unrecorded_attributes = frozenset(
@@ -401,7 +406,7 @@ class KKTKolbeConnectionSensor(CoordinatorEntity["KKTCoordinator"], SensorEntity
 
     def __init__(
         self,
-        coordinator: Any,
+        coordinator: KKTKolbeHybridCoordinator,
         entry: ConfigEntry,
     ) -> None:
         """Initialize the connection sensor."""
@@ -428,37 +433,29 @@ class KKTKolbeConnectionSensor(CoordinatorEntity["KKTCoordinator"], SensorEntity
     @property
     def native_value(self) -> str | None:
         """Return the current connection mode."""
-        if hasattr(self.coordinator, "current_mode"):
-            mode = self.coordinator.current_mode
-            # Translate to user-friendly names
-            mode_names = {
-                "local": "Local (LAN)",
-                "api": "Cloud (IoT API)",
-                "smartlife": "Cloud (SmartLife)",
-            }
-            return str(mode_names.get(mode, mode))
-        return "Unknown"
+        mode = self.coordinator.current_mode
+        mode_names = {
+            "local": "Local (LAN)",
+            "api": "Cloud (IoT API)",
+            "smartlife": "Cloud (SmartLife)",
+        }
+        return str(mode_names.get(mode, mode))
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return additional connection details."""
-        attrs = {}
-
-        if hasattr(self.coordinator, "local_available"):
-            attrs["local_available"] = self.coordinator.local_available
-        if hasattr(self.coordinator, "api_available"):
-            attrs["api_available"] = self.coordinator.api_available
-        if hasattr(self.coordinator, "smartlife_available"):
-            attrs["smartlife_available"] = self.coordinator.smartlife_available
-        if hasattr(self.coordinator, "local_consecutive_errors"):
-            attrs["local_errors"] = self.coordinator.local_consecutive_errors
-        if hasattr(self.coordinator, "api_consecutive_errors"):
-            attrs["api_errors"] = self.coordinator.api_consecutive_errors
-        if hasattr(self.coordinator, "prefer_local"):
-            attrs["prefer_local"] = self.coordinator.prefer_local
+        coordinator = self.coordinator
+        attrs: dict[str, Any] = {
+            "local_available": coordinator.local_available,
+            "api_available": coordinator.api_available,
+            "smartlife_available": coordinator.smartlife_available,
+            "local_errors": coordinator.local_consecutive_errors,
+            "api_errors": coordinator.api_consecutive_errors,
+            "prefer_local": coordinator.prefer_local,
+        }
 
         # SmartLife specific attributes
-        if hasattr(self.coordinator, "data") and self.coordinator.data:
+        if coordinator.data:
             data = self.coordinator.data
             # Show raw SmartLife property codes if available
             if "raw_smartlife_status" in data:
@@ -475,11 +472,10 @@ class KKTKolbeConnectionSensor(CoordinatorEntity["KKTCoordinator"], SensorEntity
                 attrs["last_update_timestamp"] = data["timestamp"]
 
         # Token status from SmartLife client
-        if hasattr(self.coordinator, "smartlife_client") and self.coordinator.smartlife_client:
-            client = self.coordinator.smartlife_client
-            if hasattr(client, "is_authenticated"):
-                attrs["smartlife_authenticated"] = client.is_authenticated
-            if hasattr(client, "_token_info") and client._token_info:
+        if coordinator.smartlife_client:
+            client = coordinator.smartlife_client
+            attrs["smartlife_authenticated"] = client.is_authenticated
+            if client._token_info:
                 token_info = client._token_info
                 if "expire_time" in token_info:
                     import time
@@ -490,23 +486,21 @@ class KKTKolbeConnectionSensor(CoordinatorEntity["KKTCoordinator"], SensorEntity
                     attrs["token_valid"] = expire_time > now
 
         # Tuya IoT Platform API specific attributes
-        if hasattr(self.coordinator, "api_client") and self.coordinator.api_client:
-            api_client = self.coordinator.api_client
+        if coordinator.api_client:
+            api_client = coordinator.api_client
             attrs["api_connected"] = True
             # Show raw API status if available
-            if hasattr(self.coordinator, "data") and self.coordinator.data:
-                if "raw_api_status" in self.coordinator.data:
-                    raw_api = self.coordinator.data["raw_api_status"]
+            if coordinator.data:
+                if "raw_api_status" in coordinator.data:
+                    raw_api = coordinator.data["raw_api_status"]
                     if isinstance(raw_api, list):
                         api_codes = [item.get("code") for item in raw_api if isinstance(item, dict)]
                         attrs["api_property_codes"] = api_codes
                         attrs["api_properties_count"] = len(api_codes)
             # API endpoint info
-            if hasattr(api_client, "endpoint"):
-                attrs["api_endpoint"] = api_client.endpoint
-            if hasattr(api_client, "client_id"):
-                # Only show first 8 chars for security
-                attrs["api_client_id"] = api_client.client_id[:8] + "..." if api_client.client_id else None
+            attrs["api_endpoint"] = api_client.endpoint
+            # Only show first 8 chars for security
+            attrs["api_client_id"] = api_client.client_id[:8] + "..." if api_client.client_id else None
 
         return attrs
 
@@ -524,9 +518,7 @@ class KKTKolbeConnectionSensor(CoordinatorEntity["KKTCoordinator"], SensorEntity
         if self.coordinator is None:
             return False
         # Available if we have any data or if we can read connection mode
-        if hasattr(self.coordinator, "current_mode") and self.coordinator.current_mode:
-            return True
-        if hasattr(self.coordinator, "data") and self.coordinator.data:
+        if self.coordinator.current_mode or self.coordinator.data:
             return True
         return self.coordinator.last_update_success
 

@@ -123,8 +123,9 @@ async def test_async_unload_entry(
 
             assert result is True
             mock_config_entry.runtime_data.coordinator.async_shutdown.assert_awaited_once()
-            # Last device entry gone -> discovery stops; actions stay registered
-            mock_stop_discovery.assert_awaited_once()
+            # Discovery is integration-wide: it keeps running until HA stops
+            # (otherwise reloading the last device entry left it off for good)
+            mock_stop_discovery.assert_not_awaited()
 
 
 @pytest.mark.asyncio

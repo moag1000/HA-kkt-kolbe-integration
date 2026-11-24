@@ -23,12 +23,14 @@ class KKTKolbeError(HomeAssistantError):
         if message is None:
             message = f"KKT Kolbe error: {translation_key}"
 
-        # Pass translation params to HomeAssistantError
+        # Every message string uses {details}, so it is always set: the UI
+        # shows the translated text, the log keeps the English one.
+        placeholders = {"details": message, **(translation_placeholders or {})}
         super().__init__(
             message,
             translation_domain=DOMAIN,
             translation_key=translation_key,
-            translation_placeholders=translation_placeholders or {},
+            translation_placeholders=placeholders,
         )
 
 
@@ -37,6 +39,7 @@ class KKTConnectionError(KKTKolbeError):
 
     def __init__(
         self,
+        *,
         operation: str | None = None,
         device_id: str | None = None,
         reason: str | None = None,
@@ -76,6 +79,7 @@ class KKTAuthenticationError(KKTKolbeError):
 
     def __init__(
         self,
+        *,
         device_id: str | None = None,
         message: str | None = None,
     ) -> None:
@@ -103,6 +107,7 @@ class KKTTimeoutError(KKTKolbeError):
 
     def __init__(
         self,
+        *,
         operation: str | None = None,
         device_id: str | None = None,
         timeout: float | None = None,
@@ -148,6 +153,7 @@ class KKTDeviceError(KKTKolbeError):
 
     def __init__(
         self,
+        *,
         error_code: int | None = None,
         device_message: str | None = None,
         message: str | None = None,
@@ -183,6 +189,7 @@ class KKTConfigurationError(KKTKolbeError):
 
     def __init__(
         self,
+        *,
         config_field: str | None = None,
         message: str | None = None,
     ) -> None:
@@ -210,6 +217,7 @@ class KKTDiscoveryError(KKTKolbeError):
 
     def __init__(
         self,
+        *,
         discovery_method: str | None = None,
         message: str | None = None,
     ) -> None:
@@ -237,6 +245,7 @@ class KKTServiceError(KKTKolbeError):
 
     def __init__(
         self,
+        *,
         service_name: str | None = None,
         reason: str | None = None,
         message: str | None = None,
@@ -275,6 +284,7 @@ class KKTRateLimitError(KKTKolbeError):
 
     def __init__(
         self,
+        *,
         retry_after: float | None = None,
         device_id: str | None = None,
         message: str | None = None,
@@ -306,6 +316,7 @@ class KKTDataPointError(KKTKolbeError):
 
     def __init__(
         self,
+        *,
         dp: int | None = None,
         operation: str | None = None,
         value: Any = None,

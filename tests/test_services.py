@@ -174,7 +174,7 @@ async def test_reconnect_device_success(
     """Test successful device reconnection."""
     await async_setup_services(hass)
 
-    mock_coordinator.async_request_reconnect = AsyncMock(return_value=True)
+    mock_coordinator.async_reconnect = AsyncMock(return_value={"success": True, "state": "online"})
     mock_coordinator.device_state = MagicMock()
     mock_coordinator.device_state.value = "online"
 
@@ -191,7 +191,7 @@ async def test_reconnect_device_success(
         blocking=True,
     )
 
-    mock_coordinator.async_request_reconnect.assert_called_once()
+    mock_coordinator.async_reconnect.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -270,7 +270,7 @@ async def test_entity_action_validates_range(hass: HomeAssistant) -> None:
         await hass.services.async_call(
             DOMAIN,
             SERVICE_SET_HOOD_FAN_SPEED,
-            {"entity_id": "number.kkt_fan_level", "fan_speed": 9},
+            {"entity_id": "number.kkt_fan_level", "fan_speed": 10},
             blocking=True,
         )
 
@@ -281,12 +281,12 @@ async def test_reconnect_by_registry_device_id(hass: HomeAssistant, mock_coordin
     from homeassistant.helpers import device_registry as dr
 
     await async_setup_services(hass)
-    mock_coordinator.async_request_reconnect = AsyncMock(return_value=True)
+    mock_coordinator.async_reconnect = AsyncMock(return_value={"success": True, "state": "online"})
     mock_coordinator.device_state = MagicMock(value="online")
     entry = _add_loaded_entry(hass, mock_coordinator)
 
     other = MagicMock()
-    other.async_request_reconnect = AsyncMock(return_value=True)
+    other.async_reconnect = AsyncMock(return_value={"success": True, "state": "online"})
     _add_loaded_entry(hass, other, entry_id="entry_2")
 
     device = dr.async_get(hass).async_get_or_create(
@@ -300,5 +300,5 @@ async def test_reconnect_by_registry_device_id(hass: HomeAssistant, mock_coordin
         blocking=True,
     )
 
-    mock_coordinator.async_request_reconnect.assert_awaited_once()
-    other.async_request_reconnect.assert_not_called()
+    mock_coordinator.async_reconnect.assert_awaited_once()
+    other.async_reconnect.assert_not_called()

@@ -119,21 +119,7 @@ class KKTKolbeSelect(KKTBaseEntity, SelectEntity):
         # Map option to device value
         device_value = self._options_map.get(option, option)
 
-        # Optimistic write: lock the DP at the chosen device_value so subsequent
-        # coordinator polls cannot overwrite us with stale Tuya cloud reads
-        # (Issue #6 — program selector snap-back).
-        self._set_optimistic(device_value)
-        self._cached_option = option
-        if self.hass:
-            self.async_write_ha_state()
-
-        try:
-            await self._async_set_data_point(self._dp, device_value)
-        except Exception:
-            self._clear_optimistic()
-            self._update_cached_state()
-            if self.hass:
-                self.async_write_ha_state()
-            raise
+        # Shown at once (pending write, see KKTBaseEntity._async_set_data_point)
+        await self._async_set_data_point(self._dp, device_value)
 
         self._log_entity_state("Select Option", f"Option: {option}, Value: {device_value}")

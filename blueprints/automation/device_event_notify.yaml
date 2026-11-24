@@ -33,6 +33,8 @@ blueprint:
           options:
             - label: Timer abgelaufen
               value: timer_finished
+            - label: Timer abgebrochen
+              value: timer_cancelled
             - label: Filterreinigung fällig
               value: filter_cleaning_due
             - label: Kochzonen-Fehler
@@ -61,6 +63,7 @@ variables:
   wanted: !input event_types
   messages:
     timer_finished: "Timer abgelaufen"
+    timer_cancelled: "Timer abgebrochen"
     filter_cleaning_due: "Filterreinigung fällig"
     zone_error: "Kochzonen-Fehler"
     connection_lost: "Verbindung verloren"

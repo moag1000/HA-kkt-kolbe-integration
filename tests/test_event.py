@@ -4,28 +4,30 @@ from __future__ import annotations
 
 import base64
 from unittest.mock import MagicMock
+from unittest.mock import patch
 
 import pytest
 from homeassistant.core import HomeAssistant
 
 from custom_components.kkt_kolbe import KKTKolbeRuntimeData
+from custom_components.kkt_kolbe.coordinator import KKTKolbeUpdateCoordinator
 from custom_components.kkt_kolbe.event import EVENT_CONNECTION_LOST
 from custom_components.kkt_kolbe.event import EVENT_CONNECTION_MODE_CHANGED
 from custom_components.kkt_kolbe.event import EVENT_CONNECTION_RESTORED
 from custom_components.kkt_kolbe.event import EVENT_FILTER_CLEANING_DUE
+from custom_components.kkt_kolbe.event import EVENT_TIMER_CANCELLED
 from custom_components.kkt_kolbe.event import EVENT_TIMER_FINISHED
 from custom_components.kkt_kolbe.event import EVENT_ZONE_ERROR
 from custom_components.kkt_kolbe.event import KKTKolbeDeviceEvent
 from custom_components.kkt_kolbe.event import async_setup_entry
+from custom_components.kkt_kolbe.hybrid_coordinator import KKTKolbeHybridCoordinator
 
 
 def _runtime(device_type: str, data: dict, mode: str | None = None) -> KKTKolbeRuntimeData:
-    coordinator = MagicMock(spec=["data", "last_update_success", "async_add_listener", "current_mode"])
+    coordinator = MagicMock(spec=KKTKolbeUpdateCoordinator if mode is None else KKTKolbeHybridCoordinator)
     coordinator.data = data
     coordinator.last_update_success = True
-    if mode is None:
-        del coordinator.current_mode
-    else:
+    if mode is not None:
         coordinator.current_mode = mode
     return KKTKolbeRuntimeData(
         coordinator=coordinator,
@@ -71,12 +73,34 @@ def test_first_update_never_fires(mock_config_entry) -> None:
     assert fired == []
 
 
-def test_timer_finished_and_filter_due(mock_config_entry) -> None:
-    """Countdown >0 -> 0 and filter reminder off -> on fire events."""
+class _Clock:
+    """Controllable time.monotonic() for the countdown checks."""
+
+    def __init__(self) -> None:
+        self.now = 1000.0
+
+    def __call__(self) -> float:
+        return self.now
+
+
+@pytest.fixture
+def clock():
+    """Patch the event module's clock."""
+    fake = _Clock()
+    with patch("custom_components.kkt_kolbe.event.time.monotonic", fake):
+        yield fake
+
+
+def test_timer_finished_and_filter_due(mock_config_entry, clock) -> None:
+    """A countdown that ran down to 0 and filter reminder off -> on fire events."""
     runtime = _runtime("hermes_style_hood", {"13": 5, "6": False})
     entity, fired = _entity(mock_config_entry, runtime)
 
+    runtime.coordinator.data = {"13": 1, "6": False}
+    clock.now += 4 * 60
+    entity._observe(fire=True)
     runtime.coordinator.data = {"13": 0, "6": True}
+    clock.now += 60
     entity._observe(fire=True)
 
     assert (EVENT_TIMER_FINISHED, {"data_point": 13}) in fired
@@ -86,6 +110,35 @@ def test_timer_finished_and_filter_due(mock_config_entry) -> None:
     fired.clear()
     entity._observe(fire=True)
     assert fired == []
+
+
+def test_timer_cleared_early_is_cancelled_not_finished(mock_config_entry, clock) -> None:
+    """Switching the hood off resets the countdown to 0: that is no "finished".
+
+    Regression: every drop to 0 fired timer_finished, so turning the hood off
+    with a running timer sent a "timer done" notification.
+    """
+    runtime = _runtime("hermes_style_hood", {"13": 10})
+    entity, fired = _entity(mock_config_entry, runtime)
+
+    clock.now += 60  # one minute later the hood is switched off
+    runtime.coordinator.data = {"13": 0}
+    entity._observe(fire=True)
+
+    assert fired == [(EVENT_TIMER_CANCELLED, {"data_point": 13, "remaining_minutes": 10})]
+    assert EVENT_TIMER_CANCELLED in entity.event_types
+
+
+def test_last_minute_counts_as_finished(mock_config_entry, clock) -> None:
+    """A countdown seen at 1 that reaches 0 shortly after has run out."""
+    runtime = _runtime("hermes_style_hood", {"13": 1})
+    entity, fired = _entity(mock_config_entry, runtime)
+
+    clock.now += 10
+    runtime.coordinator.data = {"13": 0}
+    entity._observe(fire=True)
+
+    assert fired == [(EVENT_TIMER_FINISHED, {"data_point": 13})]
 
 
 def test_connection_lost_and_restored(mock_config_entry) -> None:

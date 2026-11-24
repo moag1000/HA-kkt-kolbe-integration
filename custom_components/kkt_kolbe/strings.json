@@ -990,6 +990,7 @@
               "connection_restored": "Connection restored",
               "connection_mode_changed": "Connection mode changed",
               "timer_finished": "Timer finished",
+              "timer_cancelled": "Timer cancelled",
               "filter_cleaning_due": "Filter cleaning due",
               "zone_error": "Cooking zone error"
             }
@@ -1069,29 +1070,56 @@
     "no_matching_devices": {
       "message": "No matching KKT Kolbe device is loaded."
     },
-    "config_entry_not_found": {
-      "message": "Config entry {entry_id} was not found."
-    },
-    "entity_not_found": {
-      "message": "Entity {entity_id} was not found."
-    },
-    "entity_not_kkt_kolbe": {
-      "message": "Entity {entity_id} does not belong to the KKT Kolbe integration."
-    },
-    "entity_wrong_domain": {
-      "message": "Entity {entity_id} must be a {domain} entity."
-    },
-    "entity_unavailable": {
-      "message": "Entity {entity_id} is currently unavailable."
-    },
     "confirm_required": {
       "message": "The action {action} needs to be confirmed (set confirm: true)."
     },
-    "coordinator_not_found": {
-      "message": "No running device connection found for entity {entity_id}."
-    },
     "reconnect_failed": {
       "message": "Reconnect failed: {error}"
+    },
+    "target_required": {
+      "message": "Choose the device for {action} (target or entry_id). A local key belongs to one device and is never applied to all of them."
+    },
+    "entity_wrong_kind": {
+      "message": "{entity_id} is not a {kind} entity of a KKT Kolbe device."
+    },
+    "value_out_of_range": {
+      "message": "{value} is outside the range of {entity_id} ({min} to {max})."
+    },
+    "filter_reset_not_supported": {
+      "message": "{device} has no filter reset."
+    },
+    "zone_state_unknown": {
+      "message": "The current values of the cooktop zones (DP {data_point}) are not known yet, so changing one zone would reset the others. Try again once the cooktop has reported its state."
+    },
+    "service_failed": {
+      "message": "The action failed: {details}"
+    },
+    "unknown_error": {
+      "message": "Unexpected error: {details}"
+    },
+    "connection_failed": {
+      "message": "Connection to the device failed: {details}"
+    },
+    "authentication_failed": {
+      "message": "Authentication failed, please check the local key or the SmartLife login: {details}"
+    },
+    "timeout": {
+      "message": "The device did not answer in time: {details}"
+    },
+    "device_error": {
+      "message": "The device reported an error: {details}"
+    },
+    "configuration_error": {
+      "message": "Configuration error: {details}"
+    },
+    "discovery_failed": {
+      "message": "Device discovery failed: {details}"
+    },
+    "rate_limit_exceeded": {
+      "message": "Too many requests to the Tuya cloud, please try again later: {details}"
+    },
+    "data_point_error": {
+      "message": "Could not read or write a data point: {details}"
     }
   }
 }

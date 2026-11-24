@@ -18,15 +18,11 @@ rescan_devices:
 # Reconnection and Maintenance Services
 reconnect_device:
   name: Reconnect Device
-  description: Manually reconnect an offline KKT Kolbe device
+  description: Manually reconnect the local connection of the targeted KKT Kolbe devices (all devices if no target is given)
+  target:
+    entity:
+      integration: kkt_kolbe
   fields:
-    device_id:
-      name: Device
-      description: The KKT Kolbe device to reconnect
-      required: false
-      selector:
-        device:
-          integration: kkt_kolbe
     entry_id:
       name: Config Entry
       description: The config entry (optional if device selected)
@@ -37,7 +33,10 @@ reconnect_device:
 
 update_local_key:
   name: Update Local Key
-  description: Update the local key for a KKT Kolbe device when it has been reset or changed in Tuya app
+  description: Update the local key of the targeted KKT Kolbe device when it has been reset or changed in the Tuya app. The key is tested first, then stored and the device reconnects.
+  target:
+    entity:
+      integration: kkt_kolbe
   fields:
     local_key:
       name: New Local Key
@@ -46,13 +45,6 @@ update_local_key:
       selector:
         text:
           type: password
-    device_id:
-      name: Device
-      description: The KKT Kolbe device to update
-      required: false
-      selector:
-        device:
-          integration: kkt_kolbe
     entry_id:
       name: Config Entry
       description: The config entry (optional if device selected)
@@ -62,14 +54,14 @@ update_local_key:
           integration: kkt_kolbe
     force_reconnect:
       name: Force Reconnection
-      description: Force immediate reconnection after key update
+      description: Reload the device after the key update so it reconnects with the new key
       default: true
       required: false
       selector:
         boolean:
     reload_integration:
       name: Reload Integration
-      description: Reload the entire integration for a clean state (slower but more reliable)
+      description: Deprecated, same as Force Reconnection
       default: false
       required: false
       selector:
@@ -77,15 +69,11 @@ update_local_key:
 
 get_connection_status:
   name: Get Connection Status
-  description: Get the current connection status of KKT Kolbe devices. Returns the statuses as action response (use response_variable in scripts) and also fires the kkt_kolbe_connection_status event.
+  description: Get the current connection status of KKT Kolbe devices. Returns the statuses as action response (use response_variable in scripts) and also fires the kkt_kolbe_connection_status event. Without a target, all devices are returned.
+  target:
+    entity:
+      integration: kkt_kolbe
   fields:
-    device_id:
-      name: Device
-      description: Specific KKT Kolbe device (optional, returns all if not specified)
-      required: false
-      selector:
-        device:
-          integration: kkt_kolbe
     entry_id:
       name: Config Entry
       description: Specific config entry (optional, returns all if not specified)
@@ -190,22 +178,21 @@ set_hood_fan_speed:
   fields:
     fan_speed:
       name: Fan Speed
-      description: Fan speed level (0-5, 0 = off)
+      description: Fan speed level (0 = off, up to the maximum of the targeted Fan Speed entity)
       required: true
       selector:
         number:
           min: 0
-          max: 5
+          max: 9
           step: 1
           mode: slider
 
 set_hood_lighting:
   name: Set Hood Lighting
-  description: Control range hood lighting
+  description: Turn the range hood light on at a brightness level, or toggle it. A selected hood light is used as is; any other entity of a hood selects its main light.
   target:
     entity:
       integration: kkt_kolbe
-      domain: switch
   fields:
     brightness:
       name: Brightness
@@ -220,7 +207,7 @@ set_hood_lighting:
 
 emergency_stop:
   name: Emergency Stop
-  description: Emergency stop all KKT Kolbe cooking operations
+  description: Emergency stop - turn off every KKT Kolbe device through its power switch (cooktops stop all zones and timers)
   fields:
     confirm:
       name: Confirm Emergency Stop
@@ -239,16 +226,11 @@ emergency_stop:
 
 reset_filter_timer:
   name: Reset Filter Timer
-  description: Reset the filter change timer for range hood
+  description: Reset the filter change timer of the targeted range hood (hoods with a Filter Reset data point)
+  target:
+    entity:
+      integration: kkt_kolbe
   fields:
-    entity_id:
-      name: Hood Entity
-      description: Range hood entity to reset filter timer
-      required: true
-      selector:
-        entity:
-          filter:
-            integration: kkt_kolbe
     confirm:
       name: Confirm Reset
       description: Confirm that filter has been changed
@@ -277,11 +259,7 @@ refresh_smartlife_cache:
 
 get_firmware_info:
   name: Get Firmware Info (SmartLife)
-  description: Query Tuya cloud for the device firmware version and update availability. Returns the result as action response (use response_variable in scripts) and also fires the kkt_kolbe_firmware_info event. Note -- SmartLife tokens often lack the IoT-platform scope required for this endpoint; if so the event reports available false. In that case check firmware via the SmartLife/Tuya app -- device -> menu -> Firmware Update.
-  fields:
-    device_id:
-      name: Device ID
-      description: Optional Tuya device_id. If omitted, queries firmware info for all configured KKT devices.
-      required: false
-      selector:
-        text:
+  description: Query Tuya cloud for the device firmware version and update availability. Returns the result as action response (use response_variable in scripts) and also fires the kkt_kolbe_firmware_info event. Note -- SmartLife tokens often lack the IoT-platform scope required for this endpoint; if so the event reports available false. In that case check firmware via the SmartLife/Tuya app -- device -> menu -> Firmware Update. Without a target, all devices are queried.
+  target:
+    entity:
+      integration: kkt_kolbe

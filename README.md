@@ -130,7 +130,7 @@ Hast du ein KKT Kolbe Gerät mit WiFi das hier nicht aufgeführt ist?
 
 ## Automationen, Sprachsteuerung & KI
 
-- **Geräte-Ereignisse:** Jedes Gerät hat eine Entity „Geräte-Ereignisse“ (`event.*`). In Automationen als Auslöser „Entität → Ereignis“ wählen, z. B. `timer_finished` für eine Benachrichtigung, wenn der Haubentimer abläuft. Fertig zum Import: Blueprint [Geräte-Ereignisse melden](blueprints/README.md).
+- **Geräte-Ereignisse:** Jedes Gerät hat eine Entity „Geräte-Ereignisse“ (`event.*`). In Automationen als Auslöser „Entität → Ereignis“ wählen, z. B. `timer_finished` für eine Benachrichtigung, wenn der Haubentimer abläuft (`timer_cancelled`, wenn er vorher beendet wurde, etwa durch Ausschalten). Fertig zum Import: Blueprint [Geräte-Ereignisse melden](blueprints/README.md).
 - **Neu verbinden per Knopf:** Geräte mit lokaler Verbindung haben einen Button „Neu verbinden“ auf der Geräteseite, statt die Action `kkt_kolbe.reconnect_device` aufzurufen.
 - **Actions mit Antwort:** `kkt_kolbe.get_connection_status` und `kkt_kolbe.get_firmware_info` geben ihr Ergebnis zurück:
   ```yaml

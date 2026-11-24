@@ -14,8 +14,8 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .base_entity import KKTBaseEntity
 from .base_entity import KKTZoneBaseEntity
 from .bitfield_utils import BITFIELD_CONFIG
+from .bitfield_utils import build_zone_bitfield
 from .bitfield_utils import get_zone_value_from_coordinator
-from .bitfield_utils import set_zone_value_in_coordinator
 from .data import KKTCoordinator
 from .device_types import get_device_entities
 
@@ -129,21 +129,8 @@ class KKTKolbeNumber(KKTBaseEntity, NumberEntity):
         """Set the number value."""
         int_value = int(value)
 
-        # Optimistic write: lock the DP at int_value so subsequent coordinator
-        # polls cannot overwrite us with stale Tuya cloud reads (Issue #6).
-        self._set_optimistic(int_value)
-        self._cached_value = float(int_value)
-        if self.hass:
-            self.async_write_ha_state()
-
-        try:
-            await self._async_set_data_point(self._dp, int_value)
-        except Exception:
-            self._clear_optimistic()
-            self._update_cached_state()
-            if self.hass:
-                self.async_write_ha_state()
-            raise
+        # Shown at once (pending write, see KKTBaseEntity._async_set_data_point)
+        await self._async_set_data_point(self._dp, int_value)
 
         self._log_entity_state("Set Value", f"DP {self._dp} set to {int_value}")
 
@@ -189,12 +176,8 @@ class KKTKolbeZoneNumber(KKTZoneBaseEntity, NumberEntity):
 
     def _update_cached_state(self) -> None:
         """Update the cached state from coordinator data."""
-        # Hold the optimistic value while a write is pending (Issue #6): a stale
-        # coordinator poll must not snap the zone slider back before the device
-        # confirms. TTL-bounded via _set_optimistic; released on confirm/failure.
-        if self._is_optimistic_active() and self._optimistic_value is not None:
-            return
-
+        # Pending writes are part of the effective DPs (a stale poll cannot
+        # snap the slider back, Issue #6), so the value is always derived.
         # Check if this DP uses bitfield encoding
         if self._zone is not None and self._dp in BITFIELD_CONFIG and BITFIELD_CONFIG[self._dp]["type"] == "value":
             # Use bitfield utilities for Base64-encoded RAW data
@@ -202,8 +185,8 @@ class KKTKolbeZoneNumber(KKTZoneBaseEntity, NumberEntity):
             self._cached_value = float(value) if value is not None else None
             return
 
-        # Fallback to legacy integer bitfield handling
-        raw_value = self._get_data_point_value()
+        # Fallback to legacy integer bitfield handling (raw, not bit-decoded)
+        raw_value = self._raw_dp_value(self._dp)
         if raw_value is None:
             self._cached_value = None
             return
@@ -226,56 +209,33 @@ class KKTKolbeZoneNumber(KKTZoneBaseEntity, NumberEntity):
     async def async_set_native_value(self, value: float) -> None:
         """Set the zone number value.
 
-        Applies the optimistic-write pattern to BOTH the bitfield (Base64 RAW)
-        path and the legacy integer path so cooktop zone sliders paint the
-        target immediately and hold it across stale polls (Issue #6), with a
-        rollback if the device write fails.
+        Zone values share one DP per kind (DP 162 holds the power level of all
+        five zones), so the write is built from the effective DP value: the
+        reported value with pending writes overlaid. Setting zone 2 right after
+        zone 1 therefore keeps zone 1's new value instead of resetting it to
+        the last reported one. The write shows at once and rolls back on
+        failure (see KKTBaseEntity._async_set_data_point).
         """
         int_value = int(value)
-        is_bitfield_value = (
-            self._zone is not None and self._dp in BITFIELD_CONFIG and BITFIELD_CONFIG[self._dp]["type"] == "value"
-        )
-
-        # Read the current legacy bitfield BEFORE painting: _get_data_point_value
-        # mutates _cached_value as a side effect, so it must run before the paint.
-        current_data = None if is_bitfield_value else self._get_data_point_value()
-
-        # Optimistic paint + lock: show the target immediately and hold it until
-        # the device confirms or the TTL expires (honored in _update_cached_state).
-        previous_cached = self._cached_value
-        self._set_optimistic(int_value)
-        self._cached_value = float(int_value)
-        if self.hass:
-            self.async_write_ha_state()
-
-        try:
-            if is_bitfield_value and self._zone is not None:
-                # Base64 RAW bitfield — set_zone_value_in_coordinator re-raises on failure.
-                await set_zone_value_in_coordinator(self.coordinator, self._dp, self._zone, int_value)
-                self._log_entity_state(
-                    "Set Zone Value (Bitfield)", f"Zone {self._zone}, DP {self._dp} set to {int_value}"
-                )
-            elif (
+        raw_value: Any
+        if self._zone is not None and self._dp in BITFIELD_CONFIG and BITFIELD_CONFIG[self._dp]["type"] == "value":
+            # Base64 RAW bitfield
+            raw_value = build_zone_bitfield(self._raw_dp_value(self._dp), self._dp, self._zone, int_value)
+        else:
+            current_data = self._raw_dp_value(self._dp)
+            if (
                 self._zone is not None
-                and current_data is not None
                 and isinstance(current_data, int)
+                and not isinstance(current_data, bool)
                 and current_data > 255
             ):
-                # Legacy integer bitfield — patch just this zone's byte.
+                # Legacy integer bitfield: patch just this zone's byte
                 zone_offset = (self._zone - 1) * 8
                 zone_mask = 0xFF << zone_offset
-                new_value = (current_data & ~zone_mask) | ((int_value & 0xFF) << zone_offset)
-                await self._async_set_data_point(self._dp, new_value)
-                self._log_entity_state("Set Zone Value", f"Zone {self._zone}, DP {self._dp} set to {int_value}")
+                raw_value = (current_data & ~zone_mask) | ((int_value & 0xFF) << zone_offset)
             else:
-                # Simple scalar value.
-                await self._async_set_data_point(self._dp, int_value)
-                self._log_entity_state("Set Zone Value", f"Zone {self._zone}, DP {self._dp} set to {int_value}")
-        except Exception:
-            # Write failed — release the lock and roll the UI back to truth.
-            self._clear_optimistic()
-            self._cached_value = previous_cached
-            self._update_cached_state()
-            if self.hass:
-                self.async_write_ha_state()
-            raise
+                # Simple scalar value
+                raw_value = int_value
+
+        await self._async_set_data_point(self._dp, raw_value)
+        self._log_entity_state("Set Zone Value", f"Zone {self._zone}, DP {self._dp} set to {int_value}")

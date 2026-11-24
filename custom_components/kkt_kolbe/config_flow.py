@@ -13,7 +13,6 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.config_entries import ConfigFlow
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.config_entries import OptionsFlow
-from homeassistant.const import CONF_ACCESS_TOKEN
 from homeassistant.const import CONF_DEVICE_ID
 from homeassistant.const import CONF_IP_ADDRESS
 from homeassistant.const import CONF_SCAN_INTERVAL
@@ -45,6 +44,7 @@ from .device_types import KNOWN_DEVICES
 from .discovery import async_start_discovery
 from .discovery import get_discovered_devices
 from .flows.options import KKTKolbeOptionsFlow  # Import the correct OptionsFlow
+from .helpers.local_key import entry_data_with_local_key
 from .smart_discovery import SmartDiscovery
 from .smart_discovery import SmartDiscoveryResult
 from .smart_discovery import async_get_configured_device_ids
@@ -2453,8 +2453,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                 if new_ip:
                     new_data[CONF_IP_ADDRESS] = new_ip
                 if new_local_key:
-                    new_data["local_key"] = new_local_key
-                    new_data[CONF_ACCESS_TOKEN] = new_local_key
+                    new_data = entry_data_with_local_key(new_data, new_local_key)
 
                 # Test connection if requested and we have all required info
                 if test_connection and new_data.get(CONF_IP_ADDRESS) and new_data.get("local_key"):
@@ -2671,8 +2670,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                 if new_ip:
                     new_data[CONF_IP_ADDRESS] = new_ip
                 if new_local_key:
-                    new_data["local_key"] = new_local_key
-                    new_data[CONF_ACCESS_TOKEN] = new_local_key
+                    new_data = entry_data_with_local_key(new_data, new_local_key)
 
                 # Update device type
                 if new_device_type:

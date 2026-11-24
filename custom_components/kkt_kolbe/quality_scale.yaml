@@ -61,7 +61,9 @@ rules:
   # Silver tier
   action-exceptions:
     status: done
-    comment: Services use ServiceValidationError and translated exceptions
+    comment: >-
+      Invalid input raises ServiceValidationError, failed device or cloud calls
+      raise KKTServiceError (HomeAssistantError); errors are no longer only logged
   config-entry-unloading:
     status: done
     comment: Proper unload implemented in __init__.py
@@ -85,7 +87,9 @@ rules:
     comment: Full translations in en.json and de.json
   exception-translations:
     status: done
-    comment: Error messages translated
+    comment: >-
+      Every translation_key raised (services, entities, exceptions.py) has a
+      message in strings.json, en.json and de.json; tests check the keys
   icon-translations:
     status: done
     comment: Entity translations with icons in translations/*.json
