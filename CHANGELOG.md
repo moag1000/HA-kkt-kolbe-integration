@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **RGB-Licht für HERMES & STYLE** (Testversion, an der Haube noch nicht geprüft): Der RGB-Streifen ist zusätzlich eine eigene Licht-Entität „RGB-Licht“. An/aus läuft über DP 101 (0 = aus, beim Einschalten kommt die zuletzt genutzte Farbe zurück, sonst Weiß), die Helligkeit über DP 102 (experimentell), die neun Farben sind Effekte. Weil RGB nur bei eingeschaltetem Licht (DP 4) reagiert, schaltet das RGB-Licht DP 4 zuerst ein; ist die Haube aus, auch DP 1. Hauptlicht mit Effekten, Select und Number „RGB Mode“ bleiben unverändert.
+
 ### Fixed
 
 - **Gemeinsamer Zustand pro Gerät statt Optimistik pro Entität**: Ein gesendeter Wert gilt jetzt für alle Entitäten des Geräts, bis das Gerät ihn bestätigt (neu: `pending_writes.py`). Bisher kannte nur die schreibende Entität den neuen Wert. Schaltete `fan.turn_on` die Haube automatisch ein (DP 1), zeigten Lüfter und Netzschalter bis zur Bestätigung weiter „aus“.

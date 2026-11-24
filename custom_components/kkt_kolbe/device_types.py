@@ -147,7 +147,26 @@ KNOWN_DEVICES: dict[str, dict[str, Any]] = {
                     "effect_numeric": True,
                     "effect_offset": 1,  # Device uses 0=off, 1=Weiß, 2=Rot, etc.
                     "effects": ["Weiß", "Rot", "Grün", "Blau", "Gelb", "Lila", "Orange", "Cyan", "Grasgrün"],
-                }
+                },
+                # RGB strip: DP 101 is power and colour preset at once
+                # (0 = off, 1 = Weiß, 2 = Rot, ...), DP 102 its brightness.
+                # RGB only reacts while the light (DP 4) is on (see 0b2c84d),
+                # so turning it on switches DP 4 on first.
+                {
+                    "dp": 101,
+                    "name": "RGB Light",
+                    "icon": "mdi:led-strip-variant",
+                    "brightness_dp": 102,
+                    "max_brightness": 255,
+                    "mode_power": True,
+                    "base_light_dp": 4,
+                    "off_mode": 0,
+                    "default_mode": 1,
+                    "effect_dp": 101,
+                    "effect_numeric": True,
+                    "effect_offset": 1,
+                    "effects": ["Weiß", "Rot", "Grün", "Blau", "Gelb", "Lila", "Orange", "Cyan", "Grasgrün"],
+                },
             ],
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
@@ -366,7 +385,26 @@ KNOWN_DEVICES: dict[str, dict[str, Any]] = {
                     "effect_numeric": True,
                     "effect_offset": 1,  # Device uses 0=off, 1=Weiß, 2=Rot, etc.
                     "effects": ["Weiß", "Rot", "Grün", "Blau", "Gelb", "Lila", "Orange", "Cyan", "Grasgrün"],
-                }
+                },
+                # RGB strip: DP 101 is power and colour preset at once
+                # (0 = off, 1 = Weiß, 2 = Rot, ...), DP 102 its brightness.
+                # RGB only reacts while the light (DP 4) is on (see 0b2c84d),
+                # so turning it on switches DP 4 on first.
+                {
+                    "dp": 101,
+                    "name": "RGB Light",
+                    "icon": "mdi:led-strip-variant",
+                    "brightness_dp": 102,
+                    "max_brightness": 255,
+                    "mode_power": True,
+                    "base_light_dp": 4,
+                    "off_mode": 0,
+                    "default_mode": 1,
+                    "effect_dp": 101,
+                    "effect_numeric": True,
+                    "effect_offset": 1,
+                    "effects": ["Weiß", "Rot", "Grün", "Blau", "Gelb", "Lila", "Orange", "Cyan", "Grasgrün"],
+                },
             ],
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
