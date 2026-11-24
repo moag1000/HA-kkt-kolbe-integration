@@ -270,7 +270,7 @@ async def test_entity_action_validates_range(hass: HomeAssistant) -> None:
         await hass.services.async_call(
             DOMAIN,
             SERVICE_SET_HOOD_FAN_SPEED,
-            {"entity_id": "number.kkt_fan_level", "fan_speed": 9},
+            {"entity_id": "number.kkt_fan_level", "fan_speed": 10},
             blocking=True,
         )
 

@@ -8,6 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Gemeinsamer Zustand pro Gerät statt Optimistik pro Entität**: Ein gesendeter Wert gilt jetzt für alle Entitäten des Geräts, bis das Gerät ihn bestätigt (neu: `pending_writes.py`). Bisher kannte nur die schreibende Entität den neuen Wert. Schaltete `fan.turn_on` die Haube automatisch ein (DP 1), zeigten Lüfter und Netzschalter bis zur Bestätigung weiter „aus“.
+- **Kochzonen setzten sich gegenseitig zurück**: Alle fünf Zonenstufen liegen in DP 162. Wurde Zone 2 direkt nach Zone 1 gesetzt, baute der zweite Befehl auf dem zuletzt *gemeldeten* Wert auf und setzte Zone 1 wieder zurück. Ist DP 162 noch gar nicht gemeldet, wird der Befehl jetzt mit einer Meldung abgelehnt, statt die anderen Zonen auf 0 zu setzen.
+- **Zwischenspeicher pro Datenpunkt**: Lüfter und Licht lesen auch DP 1. Fehlte ihr eigener DP in einem Update, zeigten sie den Wert von DP 1 an (z. B. Lüfter „low“).
+- **Local Key**: Der Service `update_local_key` und die Reparatur-Dialoge schrieben nur `local_key`, beim Setup wird aber `access_token` zuerst gelesen. Nach dem Reload war also wieder der alte Schlüssel aktiv. Alle Stellen, die den Schlüssel speichern, nutzen jetzt `helpers/local_key.py`. Ohne Zielgerät wird der Service abgelehnt, statt den Schlüssel auf alle Geräte zu schreiben. Er lädt den Eintrag nach dem Speichern neu, und der Options-Flow ruft ihn nicht mehr intern auf.
+- **Discovery nach Reload**: Wurde der letzte Geräteeintrag neu geladen, blieb die Discovery bis zum HA-Neustart aus. Discovery und Tracker laufen jetzt bis zum Stoppen von Home Assistant.
+
+### Changed
+
+- **Aktionen mit Schema und `target`**: Alle Aktionen haben jetzt ein Schema. `reconnect_device`, `update_local_key`, `get_connection_status`, `get_firmware_info` und `reset_filter_timer` nehmen ein Ziel (Gerät, Entität, Bereich). `device_id` als Tuya-ID und `entry_id` funktionieren weiter.
+- `reset_filter_timer` schreibt den Filter-Reset-DP aus dem Geräteprofil. Bisher wurde DP 15 auf jedes Gerät geschrieben, auch auf Kochfelder.
+- `bulk_power_off` und `emergency_stop` schalten die Netzschalter-Entität aus dem Geräteprofil (über `switch.turn_off`) und werfen Fehler, statt sie zu verschlucken. Bisher wurde nach „power“/„zone“ in der entity_id und nach Modellnamen gesucht. Das traf deutsche entity_ids und viele Hauben nicht.
+- `set_hood_lighting` zielt auf die Licht-Entität und setzt die Helligkeit. Bisher zielte es auf Schalter und hat die Helligkeit ignoriert.
+- `set_cooking_timer`, `set_zone_power` und `set_hood_fan_speed` prüfen Art und Wertebereich der Ziel-Entität. `set_hood_fan_speed` erlaubt 0–9 für numerische Hauben.
+
 ## [4.10.1] - 2026-11-17
 
 Enthält auch alle Änderungen aus 4.10.0, das nicht separat veröffentlicht wurde.

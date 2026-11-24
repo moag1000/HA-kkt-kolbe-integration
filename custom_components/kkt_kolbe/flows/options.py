@@ -10,7 +10,6 @@ import probatio as vol
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.config_entries import OptionsFlowWithReload
-from homeassistant.const import CONF_ACCESS_TOKEN
 from homeassistant.const import CONF_DEVICE_ID
 from homeassistant.const import CONF_IP_ADDRESS
 from homeassistant.const import CONF_SCAN_INTERVAL
@@ -25,6 +24,7 @@ from ..const import SETUP_MODE_SMARTLIFE
 from ..const import TUYA_IOT_URL
 from ..helpers import get_options_schema
 from ..helpers import validate_api_credentials
+from ..helpers.local_key import entry_data_with_local_key
 
 if TYPE_CHECKING:
     from ..clients.tuya_sharing_client import TuyaSharingClient
@@ -414,23 +414,12 @@ class KKTKolbeOptionsFlow(OptionsFlowWithReload):
 
             if await test_device.async_test_connection():
                 # Update the config entry with new local key
-                new_data = dict(self.config_entry.data)
-                new_data[CONF_ACCESS_TOKEN] = new_local_key
-                new_data["local_key"] = new_local_key
-
-                self.hass.config_entries.async_update_entry(self.config_entry, data=new_data)
-                self._data_changed = True
-
-                # Trigger service to update coordinator
-                await self.hass.services.async_call(
-                    DOMAIN,
-                    "update_local_key",
-                    {
-                        "device_id": device_id,
-                        "local_key": new_local_key,
-                        "force_reconnect": True,
-                    },
+                # The entry is reloaded when the flow finishes (_async_finish),
+                # which closes the old connection and connects with the new key.
+                self.hass.config_entries.async_update_entry(
+                    self.config_entry, data=entry_data_with_local_key(self.config_entry.data, new_local_key)
                 )
+                self._data_changed = True
 
                 _LOGGER.info(f"Local key successfully updated for device {device_id}")
             else:

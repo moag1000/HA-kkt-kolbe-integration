@@ -206,7 +206,7 @@ class KKTKolbeZoneSensor(KKTZoneBaseEntity, SensorEntity):
         self._attr_state_class = config.get("state_class")
         self._attr_native_unit_of_measurement = config.get("unit_of_measurement")
         self._attr_icon = self._get_icon()
-        self._cached_value = None
+        self._cached_value: int | float | None = None
 
         # Zone sensors are typically integers (HA 2025.1+)
         self._attr_suggested_display_precision = 0

@@ -116,23 +116,8 @@ class KKTKolbeSwitch(KKTBaseEntity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the switch on."""
-        # Optimistic write: lock the DP at True so subsequent coordinator polls
-        # cannot overwrite us with stale Tuya cloud reads (Issue #6).
-        self._set_optimistic(True)
-        self._cached_state = True
-        if self.hass:
-            self.async_write_ha_state()
-
-        try:
-            await self._async_set_data_point(self._dp, True)
-        except Exception:
-            # Write failed — release the lock and roll the UI back to truth.
-            self._clear_optimistic()
-            self._update_cached_state()
-            if self.hass:
-                self.async_write_ha_state()
-            raise
-
+        # Shown at once (pending write, see KKTBaseEntity._async_set_data_point)
+        await self._async_set_data_point(self._dp, True)
         self._log_entity_state("Turn On", f"DP {self._dp} set to True")
 
         # For hood power switch (DP 1): suppress fan auto-start
@@ -142,18 +127,5 @@ class KKTKolbeSwitch(KKTBaseEntity, SwitchEntity):
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the switch off."""
-        self._set_optimistic(False)
-        self._cached_state = False
-        if self.hass:
-            self.async_write_ha_state()
-
-        try:
-            await self._async_set_data_point(self._dp, False)
-        except Exception:
-            self._clear_optimistic()
-            self._update_cached_state()
-            if self.hass:
-                self.async_write_ha_state()
-            raise
-
+        await self._async_set_data_point(self._dp, False)
         self._log_entity_state("Turn Off", f"DP {self._dp} set to False")

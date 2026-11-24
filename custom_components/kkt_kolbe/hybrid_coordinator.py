@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_ACCESS_TOKEN
 from homeassistant.const import CONF_IP_ADDRESS
 from homeassistant.core import HomeAssistant
 from homeassistant.core import callback
@@ -29,6 +28,8 @@ from .exceptions import KKTAuthenticationError
 from .exceptions import KKTConnectionError
 from .exceptions import KKTRateLimitError
 from .exceptions import KKTTimeoutError
+from .helpers.local_key import entry_data_with_local_key
+from .pending_writes import PendingWrites
 from .tuya_device import KKTKolbeTuyaDevice
 
 if TYPE_CHECKING:
@@ -134,6 +135,9 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
         # Tuya devices often send delta/partial updates (only changed DPs)
         # This cache accumulates all DPs seen so far
         self._dps_cache: dict[str, Any] = {}
+
+        # Unconfirmed writes, overlaid on the reported DPs for all entities
+        self.pending_writes = PendingWrites()
 
         # MQTT push state — see docs/superpowers/specs/2026-05-04-mqtt-push-listener-design.md
         self.last_update_was_push: bool = False
@@ -1037,9 +1041,7 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
         )
 
         # Persist the fresh key in the config entry so it survives restarts.
-        new_data = dict(self.config_entry.data)
-        new_data["local_key"] = fresh_key
-        new_data[CONF_ACCESS_TOKEN] = fresh_key
+        new_data = entry_data_with_local_key(self.config_entry.data, fresh_key)
         # Pick up any IP refresh from the same SmartLife response while we have it.
         fresh_ip = getattr(sl_device, "ip", None)
         if fresh_ip:

@@ -7,6 +7,12 @@ import logging
 import re
 from typing import Any
 
+from homeassistant.exceptions import HomeAssistantError
+
+from .const import DOMAIN
+from .pending_writes import effective_dps
+from .pending_writes import pending_writes_for
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -412,8 +418,9 @@ def get_zone_value_from_coordinator(coordinator: Any, dp_id: int, zone: int) -> 
 
         _LOGGER.debug(f"Coordinator data keys: {list(coordinator.data.keys())}")
 
-        # Get the DPS dictionary - coordinator may return data with DPs under 'dps' key
-        dps_data = coordinator.data.get("dps", coordinator.data)
+        # Reported DPs with unconfirmed writes overlaid, so every zone entity
+        # shows a just-written zone value at once (see pending_writes.py)
+        dps_data = effective_dps(coordinator)
 
         # Try both string and integer keys (fix falsy value bug)
         raw_data = dps_data.get(str(dp_id))
@@ -444,45 +451,51 @@ def get_zone_value_from_coordinator(coordinator: Any, dp_id: int, zone: int) -> 
         return None
 
 
+def build_zone_bitfield(current_data: Any, dp_id: int, zone: int, value: int | bool) -> Any:
+    """Return ``current_data`` (a zone bitfield DP) with one zone changed.
+
+    The other zones keep their values, so the current bitfield must be known:
+    building on a DP the device has not reported yet would write 0 / off for
+    every other zone. Raises HomeAssistantError (translated) in that case and
+    ValueError for a DP without bitfield configuration.
+    """
+    config = BITFIELD_CONFIG.get(dp_id)
+    if not config:
+        raise ValueError(f"No bitfield configuration for DP {dp_id}")
+    if current_data is None or current_data == "":
+        raise HomeAssistantError(
+            translation_domain=DOMAIN,
+            translation_key="zone_state_unknown",
+            translation_placeholders={"data_point": str(dp_id)},
+        )
+    raw = _as_raw(current_data)
+    if config["type"] == "value":
+        return update_zone_value_in_bitfield(raw, zone, int(value), config.get("bits_per_zone", 8))
+    if config["type"] == "bit":
+        return update_zone_bit_in_bitfield(raw, zone, bool(value))
+    raise ValueError(f"Unsupported bitfield type for DP {dp_id}: {config['type']}")
+
+
 async def set_zone_value_in_coordinator(coordinator: Any, dp_id: int, zone: int, value: int | bool) -> None:
-    """
-    Set zone-specific value in coordinator data.
+    """Write one zone's value to a zone bitfield DP.
 
-    Args:
-        coordinator: KKT Kolbe coordinator instance
-        dp_id: Data point ID
-        zone: Zone number (1-5)
-        value: New value for the zone
+    The bitfield is built from the effective DP value (reported value with
+    pending writes overlaid), so writes for two zones in quick succession do
+    not undo each other. The write is recorded as pending until the device
+    confirms it; on failure it is rolled back and the error propagates.
     """
+    dps_data = effective_dps(coordinator)
+    current_data = dps_data.get(str(dp_id))
+    if current_data is None:
+        current_data = dps_data.get(dp_id)
+    new_data = build_zone_bitfield(current_data, dp_id, zone, value)
+
+    pending = pending_writes_for(coordinator)
+    previous = pending.set(dp_id, new_data)
     try:
-        # Get the DPS dictionary - coordinator may return data with DPs under 'dps' key
-        dps_data = coordinator.data.get("dps", coordinator.data)
-
-        # Get current raw bitfield data
-        current_data = dps_data.get(str(dp_id), "")
-
-        # Get bitfield configuration
-        config = BITFIELD_CONFIG.get(dp_id)
-        if not config:
-            _LOGGER.warning(f"No bitfield configuration for DP {dp_id}")
-            return
-
-        # Update bitfield based on type
-        if config["type"] == "value":
-            new_data = update_zone_value_in_bitfield(
-                _as_raw(current_data), zone, int(value), config.get("bits_per_zone", 8)
-            )
-        elif config["type"] == "bit":
-            new_data = update_zone_bit_in_bitfield(_as_raw(current_data), zone, bool(value))
-        else:
-            return
-
-        # Send update to device via coordinator
         await coordinator.async_set_data_point(dp_id, new_data)
-        _LOGGER.info(f"Set zone {zone} DP {dp_id} to {value}, new bitfield: {new_data}")
-
     except Exception as e:
-        # Propagate so the calling entity can roll back its optimistic paint and
-        # surface the failure instead of silently swallowing it (Issue #6).
+        pending.restore(dp_id, previous)
         _LOGGER.error(f"Failed to set zone {zone} value {value} for DP {dp_id}: {e}")
         raise
+    _LOGGER.info(f"Set zone {zone} DP {dp_id} to {value}, new bitfield: {new_data}")

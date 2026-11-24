@@ -13,6 +13,7 @@ from homeassistant.helpers import issue_registry as ir
 
 from .const import CONF_API_ENDPOINT
 from .const import DOMAIN
+from .helpers.local_key import entry_data_with_local_key
 
 # Home Assistant doesn't have CONF_LOCAL_KEY in const, so we define it here
 CONF_LOCAL_KEY = "local_key"
@@ -171,10 +172,9 @@ class LocalKeyExpiredRepairFlow(KKTRepairFlow):
                     entry = self.hass.config_entries.async_get_entry(self.issue_data.get("entry_id", ""))
                     if entry:
                         # Update config entry with new local key
-                        new_data = dict(entry.data)
-                        new_data[CONF_LOCAL_KEY] = new_local_key
-
-                        self.hass.config_entries.async_update_entry(entry, data=new_data)
+                        self.hass.config_entries.async_update_entry(
+                            entry, data=entry_data_with_local_key(entry.data, new_local_key)
+                        )
 
                         # Reload the integration
                         await self.hass.config_entries.async_reload(self.issue_data.get("entry_id", ""))
@@ -250,10 +250,9 @@ class DeviceIdChangedRepairFlow(KKTRepairFlow):
                             old_device_id = entry.data.get("device_id")
 
                             # Update config entry
-                            new_data = dict(entry.data)
+                            new_data = entry_data_with_local_key(entry.data, new_local_key)
                             new_data["device_id"] = new_device_id
                             new_data["ip_address"] = new_ip
-                            new_data[CONF_LOCAL_KEY] = new_local_key
 
                             self.hass.config_entries.async_update_entry(entry, data=new_data)
 

@@ -195,10 +195,7 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
             return
 
         # Check current work_mode
-        current_mode = None
-        if self.coordinator.data:
-            dps_data = self.coordinator.data.get("dps", self.coordinator.data)
-            current_mode = dps_data.get(str(self._work_mode_dp))
+        current_mode = self._raw_dp_value(self._work_mode_dp)
 
         # Only set if not already set to a valid mode
         if current_mode is None or current_mode == "":
@@ -240,13 +237,10 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
         if not self._is_hood_powered_on():
             return None
 
-        # Get brightness from coordinator data
-        if self.coordinator.data:
-            dps_data = self.coordinator.data.get("dps", self.coordinator.data)
-            brightness_value = dps_data.get(str(self._brightness_dp))
-            if brightness_value is not None:
-                # Scale from device range to 0-255
-                return int((brightness_value / self._max_brightness) * 255)
+        brightness_value = self._raw_dp_value(self._brightness_dp)
+        if brightness_value is not None:
+            # Scale from device range to 0-255
+            return int((brightness_value / self._max_brightness) * 255)
         return None
 
     @property
@@ -262,22 +256,20 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
         if not self._effect_dp or not self._effect_list:
             return None
 
-        if self.coordinator.data:
-            dps_data = self.coordinator.data.get("dps", self.coordinator.data)
-            effect_value = dps_data.get(str(self._effect_dp))
-            if effect_value is not None:
-                if self._effect_numeric:
-                    # Numeric mode: value is index (with offset)
-                    try:
-                        idx = int(effect_value) - self._effect_offset
-                        if 0 <= idx < len(self._effect_list):
-                            return str(self._effect_list[idx])
-                    except ValueError, TypeError:
-                        pass
-                else:
-                    # String mode: value is effect name
-                    if str(effect_value) in self._effect_list:
-                        return str(effect_value)
+        effect_value = self._raw_dp_value(self._effect_dp)
+        if effect_value is not None:
+            if self._effect_numeric:
+                # Numeric mode: value is index (with offset)
+                try:
+                    idx = int(effect_value) - self._effect_offset
+                    if 0 <= idx < len(self._effect_list):
+                        return str(self._effect_list[idx])
+                except ValueError, TypeError:
+                    pass
+            else:
+                # String mode: value is effect name
+                if str(effect_value) in self._effect_list:
+                    return str(effect_value)
         return None
 
     @callback
@@ -318,18 +310,8 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
         await self._async_ensure_work_mode()
 
         # Turn on the light FIRST (required before setting effect/brightness).
-        # Optimistic write: lock the DP at True and paint the UI immediately so
-        # a stale Tuya cloud poll can't snap the toggle back (Issue #6).
-        self._set_optimistic(True)
-        if self.hass:
-            self.async_write_ha_state()
-        try:
-            await self._async_set_data_point(self._dp_id, True)
-        except Exception:
-            self._clear_optimistic()
-            if self.hass:
-                self.async_write_ha_state()
-            raise
+        # Shown at once (pending write, see KKTBaseEntity._async_set_data_point).
+        await self._async_set_data_point(self._dp_id, True)
         self._log_entity_state("Turn On", f"DP {self._dp_id} set to True")
 
         # Handle effect AFTER light is on
@@ -347,16 +329,7 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the light."""
-        self._set_optimistic(False)
-        if self.hass:
-            self.async_write_ha_state()
-        try:
-            await self._async_set_data_point(self._dp_id, False)
-        except Exception:
-            self._clear_optimistic()
-            if self.hass:
-                self.async_write_ha_state()
-            raise
+        await self._async_set_data_point(self._dp_id, False)
         self._log_entity_state("Turn Off", f"DP {self._dp_id} set to False")
 
     async def _set_effect(self, effect: str) -> None:

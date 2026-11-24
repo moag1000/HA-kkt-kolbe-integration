@@ -9,9 +9,10 @@ from typing import Any
 
 import homeassistant.helpers.config_validation as cv
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_ACCESS_TOKEN
 from homeassistant.const import CONF_DEVICE_ID
 from homeassistant.const import CONF_IP_ADDRESS
+from homeassistant.const import EVENT_HOMEASSISTANT_STOP
+from homeassistant.core import Event
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import issue_registry as ir
@@ -26,6 +27,8 @@ from .data import KKTKolbeAccountConfigEntry
 from .data import KKTKolbeAccountRuntimeData
 from .data import KKTKolbeConfigEntry
 from .data import KKTKolbeRuntimeData
+from .helpers.local_key import entry_data_with_local_key
+from .helpers.local_key import entry_local_key
 
 if TYPE_CHECKING:
     from .api import TuyaCloudClient
@@ -141,6 +144,19 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     from .device_tracker import async_start_tracker
 
     await async_start_tracker(hass)
+
+    # Discovery and the stale device tracker are integration-wide, like the
+    # actions: they start here and stop with Home Assistant, not with a config
+    # entry. (Stopping them when the last device entry unloaded left them off
+    # for good after reloading that entry.)
+    async def _async_stop_background_services(_event: Event) -> None:
+        from .device_tracker import async_stop_tracker
+        from .discovery import async_stop_discovery
+
+        await async_stop_discovery()
+        await async_stop_tracker()
+
+    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, _async_stop_background_services)
 
     # Register integration-wide actions once, independent of config entries
     # (quality scale rule ``action-setup``). Handlers resolve their target
@@ -424,7 +440,7 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
     # Initialize local device if we have local connection details
     ip_address = entry.data.get(CONF_IP_ADDRESS) or entry.data.get("ip_address") or entry.data.get("host")
     device_id: str = entry.data.get(CONF_DEVICE_ID) or entry.data.get("device_id") or ""
-    local_key = entry.data.get(CONF_ACCESS_TOKEN) or entry.data.get("local_key")
+    local_key = entry_local_key(entry.data)
 
     # For SmartLife mode: Sync local_key from SmartLife API (may have been rotated)
     # Note: We already fetched devices during smartlife_client setup, so use cached data
@@ -459,10 +475,9 @@ async def _async_setup_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigEn
                         local_key = fresh_local_key
 
                         # Update config entry with fresh local_key
-                        new_data = dict(entry.data)
-                        new_data["local_key"] = fresh_local_key
-                        new_data[CONF_ACCESS_TOKEN] = fresh_local_key
-                        hass.config_entries.async_update_entry(entry, data=new_data)
+                        hass.config_entries.async_update_entry(
+                            entry, data=entry_data_with_local_key(entry.data, fresh_local_key)
+                        )
                     elif fresh_local_key:
                         # Log masked key comparison for debugging
                         stored_masked = (
@@ -852,17 +867,7 @@ async def _async_unload_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigE
                 with contextlib.suppress(Exception):
                     await device.async_disconnect()
 
-        # Stop discovery when the last loaded device entry goes away.
-        # Actions stay registered (they are set up in async_setup).
-        other_loaded_devices = [
-            e
-            for e in hass.config_entries.async_loaded_entries(DOMAIN)
-            if e.entry_id != entry.entry_id and e.data.get("entry_type", ENTRY_TYPE_DEVICE) != ENTRY_TYPE_ACCOUNT
-        ]
-
-        if not other_loaded_devices:
-            from .discovery import async_stop_discovery
-
-            await async_stop_discovery()
+        # Discovery and actions are integration-wide and stay running
+        # (stopped on EVENT_HOMEASSISTANT_STOP, see async_setup).
 
     return unload_ok

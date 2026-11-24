@@ -309,23 +309,13 @@ class KKTKolbeFan(KKTBaseEntity, FanEntity):
         self._log_entity_state("Turn Off", "Speed: off/0")
 
     async def _async_set_speed_optimistic(self, raw_value: int | str) -> None:
-        """Write the fan-speed DP with optimistic UI paint + rollback.
+        """Write the fan-speed DP; it shows at once until the device confirms.
 
-        Locks the DP at ``raw_value`` and repaints immediately so a stale Tuya
-        cloud poll cannot snap the slider back before the device confirms.
+        The pending write lives on the coordinator (see
+        KKTBaseEntity._async_set_data_point), so a stale Tuya cloud poll cannot
+        snap the slider back and a failed write rolls the UI back.
         """
-        self._set_optimistic(raw_value)
-        self._update_cached_state()
-        if self.hass:
-            self.async_write_ha_state()
-        try:
-            await self._async_set_data_point(self._dp_id, raw_value)
-        except Exception:
-            self._clear_optimistic()
-            self._update_cached_state()
-            if self.hass:
-                self.async_write_ha_state()
-            raise
+        await self._async_set_data_point(self._dp_id, raw_value)
 
     async def async_set_percentage(self, percentage: int) -> None:
         """Set the speed percentage of the fan.

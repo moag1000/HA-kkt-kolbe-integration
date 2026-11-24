@@ -28,6 +28,7 @@ from .const import DEFAULT_MAX_BACKOFF
 from .const import DEFAULT_MAX_RECONNECT_ATTEMPTS
 from .const import DOMAIN
 from .const import MAX_ERROR_HISTORY
+from .pending_writes import PendingWrites
 from .tuya_device import KKTKolbeTuyaDevice
 
 # Seconds to wait after a device write before refreshing the coordinator.
@@ -77,6 +78,8 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
         # Tuya devices often send delta/partial updates (only changed DPs)
         # This cache accumulates all DPs seen so far
         self._dps_cache: dict[str, Any] = {}
+        # Unconfirmed writes, overlaid on the reported DPs for all entities
+        self.pending_writes = PendingWrites()
         # Local push: status frames the device sends over the LAN socket
         self._remove_local_listener: Callable[[], None] | None = None
         if hasattr(device, "add_status_listener"):
@@ -500,8 +503,8 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
         causing UI snap-back (Issue #6). We defer the refresh by
         ``CLOUD_PROPAGATION_DELAY_SECONDS`` so the read sees the fresh value.
 
-        During the delay, entities use their optimistic lock (see
-        ``KKTBaseEntity._set_optimistic``) to keep showing the new value.
+        During the delay, entities keep showing the new value through the
+        pending-write overlay (``pending_writes``, see pending_writes.py).
         """
         try:
             await self.device.async_set_dp(dp, value)
