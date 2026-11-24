@@ -544,12 +544,13 @@ def _rgb_light(hass: HomeAssistant, dps: dict) -> tuple:
 
 
 def test_hermes_profile_has_white_and_rgb_light() -> None:
-    """The main light is white only, the strip has its own light entity."""
+    """The main light keeps its effects, the strip has its own light entity."""
     from custom_components.kkt_kolbe.device_types import get_device_entities
 
     lights = {c["dp"]: c for c in get_device_entities("hermes_style_hood", "light")}
     assert set(lights) == {4, 101}
-    assert "effects" not in lights[4]
+    assert lights[4]["effect_dp"] == 101
+    assert lights[101]["base_light_dp"] == 4
     assert lights[101]["name"] == "RGB Light"
     assert lights[101]["brightness_dp"] == 102
 
@@ -560,13 +561,13 @@ async def test_rgb_light_state_from_mode(hass: HomeAssistant) -> None:
     from homeassistant.components.light import ColorMode
     from homeassistant.components.light import LightEntityFeature
 
-    light, _ = _rgb_light(hass, {1: True, 101: 0, 102: 200})
+    light, _ = _rgb_light(hass, {1: True, 4: True, 101: 0, 102: 200})
     assert light.is_on is False
     assert light.effect is None
     assert light.supported_color_modes == {ColorMode.BRIGHTNESS}
     assert light.supported_features & LightEntityFeature.EFFECT
 
-    light, _ = _rgb_light(hass, {1: True, 101: 3, 102: 200})
+    light, _ = _rgb_light(hass, {1: True, 4: True, 101: 3, 102: 200})
     assert light.is_on is True
     assert light.effect == "Grün"
     assert light.brightness == 200
@@ -578,7 +579,7 @@ async def test_rgb_light_state_from_mode(hass: HomeAssistant) -> None:
 @pytest.mark.asyncio
 async def test_rgb_light_turn_off_and_on_restores_last_colour(hass: HomeAssistant) -> None:
     """Off writes 0 to DP 101; on brings the last preset back."""
-    light, coordinator = _rgb_light(hass, {1: True, 101: 4})
+    light, coordinator = _rgb_light(hass, {1: True, 4: True, 101: 4})
 
     await light.async_turn_off()
     coordinator.async_set_data_point.assert_called_with(101, 0)
@@ -592,7 +593,7 @@ async def test_rgb_light_turn_off_and_on_restores_last_colour(hass: HomeAssistan
 @pytest.mark.asyncio
 async def test_rgb_light_turn_on_defaults_to_white(hass: HomeAssistant) -> None:
     """Without a known preset the strip turns on in white (mode 1)."""
-    light, coordinator = _rgb_light(hass, {1: True, 101: 0})
+    light, coordinator = _rgb_light(hass, {1: True, 4: True, 101: 0})
 
     await light.async_turn_on()
     coordinator.async_set_data_point.assert_called_once_with(101, 1)
@@ -601,7 +602,7 @@ async def test_rgb_light_turn_on_defaults_to_white(hass: HomeAssistant) -> None:
 @pytest.mark.asyncio
 async def test_rgb_light_turn_on_with_effect_and_brightness(hass: HomeAssistant) -> None:
     """An effect sets the preset directly; brightness goes to DP 102."""
-    light, coordinator = _rgb_light(hass, {1: True, 101: 0})
+    light, coordinator = _rgb_light(hass, {1: True, 4: True, 101: 0})
 
     await light.async_turn_on(effect="Rot", brightness=128)
     assert coordinator.async_set_data_point.call_args_list == [call(101, 2), call(102, 128)]
@@ -610,7 +611,7 @@ async def test_rgb_light_turn_on_with_effect_and_brightness(hass: HomeAssistant)
 @pytest.mark.asyncio
 async def test_rgb_light_brightness_only_keeps_colour(hass: HomeAssistant) -> None:
     """Dimming a lit strip must not rewrite its preset."""
-    light, coordinator = _rgb_light(hass, {1: True, 101: 6})
+    light, coordinator = _rgb_light(hass, {1: True, 4: True, 101: 6})
 
     await light.async_turn_on(brightness=50)
     coordinator.async_set_data_point.assert_called_once_with(102, 50)
@@ -625,3 +626,22 @@ async def test_rgb_light_turn_on_powers_hood(hass: HomeAssistant) -> None:
     dps_written = [c.args[0] for c in coordinator.async_set_data_point.call_args_list]
     assert dps_written[0] == 1
     assert dps_written[-1] == 101
+
+
+@pytest.mark.asyncio
+async def test_rgb_light_needs_main_light(hass: HomeAssistant) -> None:
+    """RGB only reacts with DP 4 on: off while DP 4 is off, and turn_on sets DP 4 first."""
+    light, coordinator = _rgb_light(hass, {1: True, 4: False, 101: 5})
+    assert light.is_on is False
+
+    await light.async_turn_on()
+    assert coordinator.async_set_data_point.call_args_list == [call(4, True), call(101, 5)]
+
+
+@pytest.mark.asyncio
+async def test_rgb_light_turn_off_keeps_main_light(hass: HomeAssistant) -> None:
+    """Turning the strip off only writes mode 0, the main light stays on."""
+    light, coordinator = _rgb_light(hass, {1: True, 4: True, 101: 2})
+
+    await light.async_turn_off()
+    coordinator.async_set_data_point.assert_called_once_with(101, 0)

@@ -118,6 +118,8 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
         self._mode_power = bool(light_config.get("mode_power", False))
         self._off_mode = light_config.get("off_mode", 0)
         self._last_mode: Any = light_config.get("default_mode", 1)
+        # Light DP that must be on before the mode DP reacts (HERMES: DP 4)
+        self._base_light_dp: int | None = light_config.get("base_light_dp")
 
         # Auto-Work-Mode configuration (for devices that need work_mode set before light works)
         self._work_mode_dp = light_config.get("work_mode_dp")
@@ -231,6 +233,8 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
         if value is None:
             return None
         if self._mode_power:
+            if self._base_light_dp is not None and not self._raw_dp_value(self._base_light_dp):
+                return False
             return self._mode_is_on(value)
         return bool(value)
 
@@ -312,6 +316,13 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
         Note: Light must be turned ON first before setting effect/brightness,
         as most devices require the light to be on before accepting mode changes.
         """
+        was_on = self.is_on
+        if self._mode_power:
+            # Remember a preset the device holds while the light (DP 4) is off
+            current = self._raw_dp_value(self._dp_id)
+            if current is not None and self._mode_is_on(current):
+                self._last_mode = current
+
         # Ensure hood is powered on first (Auto-Power-On feature)
         try:
             hood_was_off = await self._async_ensure_hood_power_on()
@@ -335,9 +346,15 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
             # in that preset, otherwise the last preset comes back. Writing
             # the preset only when the light is off keeps a brightness-only
             # call from touching the mode.
+            if self._base_light_dp is not None and not self._raw_dp_value(self._base_light_dp):
+                await self._async_set_data_point(self._base_light_dp, True)
+                self._log_entity_state("Turn On", f"base light DP {self._base_light_dp} set to True")
+                await asyncio.sleep(WORK_MODE_DELAY)
             if ATTR_EFFECT in kwargs:
                 await self._set_effect(kwargs[ATTR_EFFECT])
-            elif not self.is_on:
+            elif not was_on:
+                # Written even if the mode DP already holds the preset: with
+                # the light off the device may not have applied it.
                 await self._async_set_data_point(self._dp_id, self._last_mode)
                 self._log_entity_state("Turn On", f"DP {self._dp_id} set to {self._last_mode}")
         else:

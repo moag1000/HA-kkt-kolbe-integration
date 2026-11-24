@@ -136,16 +136,22 @@ KNOWN_DEVICES: dict[str, dict[str, Any]] = {
                 "speeds": ["off", "low", "middle", "high", "strong"],
             },
             "light": [
-                # Main (white) light with brightness for HomeKit/Siri
+                # Main light with RGB color effects and brightness for HomeKit/Siri
                 {
                     "dp": 4,
                     "name": "Light",
                     "icon": "mdi:lightbulb",
                     "brightness_dp": 5,
                     "max_brightness": 255,
+                    "effect_dp": 101,
+                    "effect_numeric": True,
+                    "effect_offset": 1,  # Device uses 0=off, 1=Weiß, 2=Rot, etc.
+                    "effects": ["Weiß", "Rot", "Grün", "Blau", "Gelb", "Lila", "Orange", "Cyan", "Grasgrün"],
                 },
                 # RGB strip: DP 101 is power and colour preset at once
                 # (0 = off, 1 = Weiß, 2 = Rot, ...), DP 102 its brightness.
+                # RGB only reacts while the light (DP 4) is on (see 0b2c84d),
+                # so turning it on switches DP 4 on first.
                 {
                     "dp": 101,
                     "name": "RGB Light",
@@ -153,6 +159,7 @@ KNOWN_DEVICES: dict[str, dict[str, Any]] = {
                     "brightness_dp": 102,
                     "max_brightness": 255,
                     "mode_power": True,
+                    "base_light_dp": 4,
                     "off_mode": 0,
                     "default_mode": 1,
                     "effect_dp": 101,
@@ -367,16 +374,22 @@ KNOWN_DEVICES: dict[str, dict[str, Any]] = {
                 "speeds": ["off", "low", "middle", "high", "strong"],
             },
             "light": [
-                # Main (white) light with brightness for HomeKit/Siri
+                # Main light with RGB color effects and brightness for HomeKit/Siri
                 {
                     "dp": 4,
                     "name": "Light",
                     "icon": "mdi:lightbulb",
                     "brightness_dp": 5,
                     "max_brightness": 255,
+                    "effect_dp": 101,
+                    "effect_numeric": True,
+                    "effect_offset": 1,  # Device uses 0=off, 1=Weiß, 2=Rot, etc.
+                    "effects": ["Weiß", "Rot", "Grün", "Blau", "Gelb", "Lila", "Orange", "Cyan", "Grasgrün"],
                 },
                 # RGB strip: DP 101 is power and colour preset at once
                 # (0 = off, 1 = Weiß, 2 = Rot, ...), DP 102 its brightness.
+                # RGB only reacts while the light (DP 4) is on (see 0b2c84d),
+                # so turning it on switches DP 4 on first.
                 {
                     "dp": 101,
                     "name": "RGB Light",
@@ -384,6 +397,7 @@ KNOWN_DEVICES: dict[str, dict[str, Any]] = {
                     "brightness_dp": 102,
                     "max_brightness": 255,
                     "mode_power": True,
+                    "base_light_dp": 4,
                     "off_mode": 0,
                     "default_mode": 1,
                     "effect_dp": 101,

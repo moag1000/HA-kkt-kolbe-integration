@@ -10,11 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **RGB-Licht für HERMES & STYLE**: Der RGB-Streifen ist jetzt eine eigene Licht-Entität „RGB-Licht“. An/aus läuft über DP 101 (0 = aus, beim Einschalten kommt die zuletzt genutzte Farbe zurück, sonst Weiß), die Helligkeit über DP 102, die neun Farben sind Effekte. Ist die Haube aus, wird sie wie beim Hauptlicht zuerst eingeschaltet. Select und Number „RGB Mode“ bleiben.
-
-### Changed
-
-- **Hauptlicht der HERMES & STYLE ohne RGB-Effekte**: Das Hauptlicht (DP 4) ist jetzt reines Weißlicht mit Helligkeit. Automationen, die `effect` am Hauptlicht setzen, müssen auf das RGB-Licht umgestellt werden.
+- **RGB-Licht für HERMES & STYLE** (Testversion, an der Haube noch nicht geprüft): Der RGB-Streifen ist zusätzlich eine eigene Licht-Entität „RGB-Licht“. An/aus läuft über DP 101 (0 = aus, beim Einschalten kommt die zuletzt genutzte Farbe zurück, sonst Weiß), die Helligkeit über DP 102 (experimentell), die neun Farben sind Effekte. Weil RGB nur bei eingeschaltetem Licht (DP 4) reagiert, schaltet das RGB-Licht DP 4 zuerst ein; ist die Haube aus, auch DP 1. Hauptlicht mit Effekten, Select und Number „RGB Mode“ bleiben unverändert.
 
 ### Fixed
 
