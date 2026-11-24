@@ -444,7 +444,7 @@ async def test_coordinator_error_history(
     from custom_components.kkt_kolbe.coordinator import KKTKolbeUpdateCoordinator
     from custom_components.kkt_kolbe.exceptions import KKTTimeoutError
 
-    mock_device.async_get_status.side_effect = KKTTimeoutError("Test timeout")
+    mock_device.async_get_status.side_effect = KKTTimeoutError(message="Test timeout")
     mock_config_entry.add_to_hass(hass)
 
     coordinator = KKTKolbeUpdateCoordinator(
@@ -473,7 +473,7 @@ async def test_coordinator_exponential_backoff(
     from custom_components.kkt_kolbe.coordinator import KKTKolbeUpdateCoordinator
     from custom_components.kkt_kolbe.exceptions import KKTConnectionError
 
-    mock_device.async_get_status.side_effect = KKTConnectionError("Connection failed")
+    mock_device.async_get_status.side_effect = KKTConnectionError(reason="Connection failed")
     mock_device.is_connected = False
     mock_config_entry.add_to_hass(hass)
 
@@ -506,7 +506,7 @@ async def test_coordinator_circuit_breaker(
     from custom_components.kkt_kolbe.coordinator import KKTKolbeUpdateCoordinator
     from custom_components.kkt_kolbe.exceptions import KKTConnectionError
 
-    mock_device.async_get_status.side_effect = KKTConnectionError("Connection failed")
+    mock_device.async_get_status.side_effect = KKTConnectionError(reason="Connection failed")
     mock_device.is_connected = False
     mock_config_entry.add_to_hass(hass)
 
@@ -578,7 +578,7 @@ async def test_coordinator_reset_on_success(
 
     # First, cause some failures
     coordinator.mark_initial_connect_done()
-    mock_device.async_get_status.side_effect = KKTConnectionError("Test")
+    mock_device.async_get_status.side_effect = KKTConnectionError(reason="Test")
     mock_device.is_connected = False
     await coordinator._async_update_data()
     await coordinator._async_update_data()

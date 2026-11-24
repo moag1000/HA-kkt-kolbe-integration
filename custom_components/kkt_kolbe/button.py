@@ -34,8 +34,7 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up the reconnect button for devices with a local connection."""
-    runtime_data = entry.runtime_data
-    if runtime_data.device is None and not hasattr(runtime_data.coordinator, "async_request_reconnect"):
+    if entry.runtime_data.device is None:
         # Cloud-only device: there is no local session to reset
         return
     async_add_entities([KKTKolbeReconnectButton(entry)])

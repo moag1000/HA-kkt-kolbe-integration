@@ -17,6 +17,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import slugify
 
 from .const import DOMAIN
+from .coordinator import DeviceState
 from .data import KKTCoordinator
 from .pending_writes import PendingWrites
 from .pending_writes import effective_dps
@@ -175,8 +176,9 @@ class KKTBaseEntity(CoordinatorEntity["KKTCoordinator"]):
     def _get_software_version(self) -> str:
         """Get software version from device data."""
         # Try to get protocol version from device via coordinator
-        if hasattr(self.coordinator, "device") and self.coordinator.device:
-            device = self.coordinator.device
+        # The local device lives on runtime_data for both coordinator types
+        device = getattr(getattr(self._entry, "runtime_data", None), "device", None)
+        if device is not None:
             # Check for detected protocol version
             version = getattr(device, "version", None)
             if version and version != "auto":
@@ -208,45 +210,28 @@ class KKTBaseEntity(CoordinatorEntity["KKTCoordinator"]):
 
         Entities only become unavailable after persistent connection issues.
         """
-        # Check coordinator device state if available (KKTKolbeUpdateCoordinator)
-        if hasattr(self.coordinator, "is_device_available"):
-            # Use coordinator's device state which tracks consecutive failures
-            device_available = self.coordinator.is_device_available
+        # Both coordinators track consecutive failures in device_state
+        if self.coordinator.is_device_available:
+            return True
 
-            # If device is online, we're always available
-            if device_available:
-                return True
+        # Circuit breaker tripped (UNREACHABLE): the device has failed
+        # persistently and retries are suspended. Do NOT keep masking this
+        # with a stale cached value — surface it as unavailable so the user
+        # (and automations) see the real state instead of a frozen reading.
+        if self.coordinator.device_state == DeviceState.UNREACHABLE:
+            return False
 
-            # Circuit breaker tripped (UNREACHABLE): the device has failed
-            # persistently and retries are suspended. Do NOT keep masking this
-            # with a stale cached value — surface it as unavailable so the user
-            # (and automations) see the real state instead of a frozen reading.
-            device_state = getattr(self.coordinator, "device_state", None)
-            if device_state is not None and device_state.value == "unreachable":
-                return False
-
-            # If device is offline but we have cached data, still report as available
-            # This prevents flapping during temporary connection issues
-            if self._dp_cache.get(self._dp) is not None:
-                return True
-
-            # If device is offline and no cached data, check if we ever had data
-            if self.coordinator.data is not None and len(self.coordinator.data) > 0:
-                return True
-
-        # Fallback for other coordinators: check if we have any data
+        # Offline but not unreachable: stay available with known values, so
+        # short outages don't make entities flap
         has_data = self.coordinator.data is not None and len(self.coordinator.data) > 0
         has_cached_value = self._dp_cache.get(self._dp) is not None
-
-        # More lenient: available if we have data OR cache OR no failures yet
-        is_available = has_data or has_cached_value or self.coordinator.last_update_success
+        is_available = has_data or has_cached_value
 
         if not is_available:
             _LOGGER.debug(
                 f"Entity {self._attr_unique_id} unavailable: "
                 f"last_update_success={self.coordinator.last_update_success}, "
-                f"has_data={has_data}, has_cached_value={has_cached_value}, "
-                f"data_keys={list(self.coordinator.data.keys()) if self.coordinator.data else 'None'}"
+                f"has_data={has_data}, has_cached_value={has_cached_value}"
             )
 
         return is_available

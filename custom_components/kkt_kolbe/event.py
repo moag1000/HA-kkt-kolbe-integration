@@ -9,7 +9,9 @@ or comparing sensor states:
   failing / succeed again
 - ``connection_mode_changed``: hybrid coordinator switched between local,
   IoT-API and SmartLife cloud path
-- ``timer_finished``: a hood/cooktop countdown DP went from > 0 to 0
+- ``timer_finished``: a hood/cooktop countdown DP ran down to 0
+- ``timer_cancelled``: a countdown went to 0 before it could have run out
+  (hood switched off, timer cleared)
 - ``filter_cleaning_due``: the filter cleaning reminder DP turned on
 - ``zone_error``: a cooktop zone reported an error bit (IND7705HC DP 105)
 
@@ -21,6 +23,7 @@ first coordinator update just records the baseline.
 from __future__ import annotations
 
 import logging
+import time
 from typing import Any
 
 from homeassistant.components.event import EventEntity
@@ -35,6 +38,7 @@ from .bitfield_utils import extract_zone_bit_from_bitfield
 from .const import DOMAIN
 from .data import KKTKolbeConfigEntry
 from .device_types import KNOWN_DEVICES
+from .hybrid_coordinator import KKTKolbeHybridCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -44,6 +48,7 @@ EVENT_CONNECTION_LOST = "connection_lost"
 EVENT_CONNECTION_RESTORED = "connection_restored"
 EVENT_CONNECTION_MODE_CHANGED = "connection_mode_changed"
 EVENT_TIMER_FINISHED = "timer_finished"
+EVENT_TIMER_CANCELLED = "timer_cancelled"
 EVENT_FILTER_CLEANING_DUE = "filter_cleaning_due"
 EVENT_ZONE_ERROR = "zone_error"
 
@@ -52,6 +57,11 @@ TIMER_DP_NAMES = frozenset({"countdown", "countdown_1", "oem_device_timer_num"})
 FILTER_REMINDER_DP_NAMES = frozenset({"switch_lamp"})
 ZONE_ERROR_DP_NAMES = frozenset({"oem_hob_error_num"})
 COOKTOP_ZONES = range(1, 6)
+
+# Countdown DPs count whole minutes: a reported value v means v-1 < remaining <= v
+TIMER_UNIT_SECONDS = 60.0
+# Allowance for poll/push latency when deciding whether a countdown ran out
+TIMER_SLACK_SECONDS = 5.0
 
 
 def _dps_by_name(device_type: str, names: frozenset[str]) -> list[int]:
@@ -117,10 +127,10 @@ class KKTKolbeDeviceEvent(CoordinatorEntity, EventEntity):
         self._zone_error_dps = _dps_by_name(device_type, ZONE_ERROR_DP_NAMES)
 
         event_types = [EVENT_CONNECTION_LOST, EVENT_CONNECTION_RESTORED]
-        if hasattr(self.coordinator, "current_mode"):
+        if isinstance(self.coordinator, KKTKolbeHybridCoordinator):
             event_types.append(EVENT_CONNECTION_MODE_CHANGED)
         if self._timer_dps:
-            event_types.append(EVENT_TIMER_FINISHED)
+            event_types.extend([EVENT_TIMER_FINISHED, EVENT_TIMER_CANCELLED])
         if self._filter_dps:
             event_types.append(EVENT_FILTER_CLEANING_DUE)
         if self._zone_error_dps:
@@ -135,6 +145,8 @@ class KKTKolbeDeviceEvent(CoordinatorEntity, EventEntity):
         self._last_success: bool | None = None
         self._last_mode: str | None = None
         self._last_values: dict[int, Any] = {}
+        # When each countdown value was first seen (time.monotonic())
+        self._timer_value_since: dict[int, float] = {}
 
     @property
     def available(self) -> bool:
@@ -178,8 +190,8 @@ class KKTKolbeDeviceEvent(CoordinatorEntity, EventEntity):
         self._last_success = success
 
         # Hybrid coordinator path (local / api / smartlife)
-        mode = getattr(self.coordinator, "current_mode", None)
-        if isinstance(mode, str):
+        if isinstance(self.coordinator, KKTKolbeHybridCoordinator):
+            mode = self.coordinator.current_mode
             if self._last_mode is not None and mode != self._last_mode:
                 trigger(EVENT_CONNECTION_MODE_CHANGED, {"mode": mode, "previous_mode": self._last_mode})
             self._last_mode = mode
@@ -194,8 +206,20 @@ class KKTKolbeDeviceEvent(CoordinatorEntity, EventEntity):
             if value is None:
                 continue
             previous = self._last_values.get(dp)
+            now = time.monotonic()
             if previous is not None and previous > 0 and value == 0:
-                trigger(EVENT_TIMER_FINISHED, {"data_point": dp})
+                # Ran out, or ended early? A value v seen at t ends no earlier
+                # than t + (v - 1) minutes. Switching the hood off (or clearing
+                # the timer) also resets the countdown to 0, which used to be
+                # reported as "finished".
+                seen_since = self._timer_value_since.get(dp, now)
+                earliest_end = seen_since + (previous - 1) * TIMER_UNIT_SECONDS - TIMER_SLACK_SECONDS
+                if now >= earliest_end:
+                    trigger(EVENT_TIMER_FINISHED, {"data_point": dp})
+                else:
+                    trigger(EVENT_TIMER_CANCELLED, {"data_point": dp, "remaining_minutes": previous})
+            if value != previous:
+                self._timer_value_since[dp] = now
             self._last_values[dp] = value
 
         for dp in self._filter_dps:

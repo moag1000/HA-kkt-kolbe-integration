@@ -190,6 +190,16 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
         """
         return self._last_successful_update
 
+    async def async_reconnect(self) -> dict[str, Any]:
+        """Reset the local connection (same interface as the hybrid coordinator)."""
+        await self.device.async_disconnect()
+        await self.device.async_connect()
+        await self.async_request_refresh()
+        return {
+            "success": self.device.is_connected,
+            "state": "online" if self.device.is_connected else "offline",
+        }
+
     @property
     def connection_info(self) -> dict[str, Any]:
         """Get connection status information."""
@@ -202,6 +212,9 @@ class KKTKolbeUpdateCoordinator(DataUpdateCoordinator):
             "current_backoff": self._current_backoff,
             "circuit_breaker_retries": self._circuit_breaker_retries,
             "circuit_breaker_next_retry": self._circuit_breaker_next_retry,
+            "mode": "local",
+            "device_id": self.device.device_id,
+            "ip_address": self.device.ip_address,
         }
 
     def _record_error(self, error_type: str, message: str, recoverable: bool = True) -> None:

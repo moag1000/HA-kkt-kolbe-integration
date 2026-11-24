@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Zwischenspeicher pro Datenpunkt**: Lüfter und Licht lesen auch DP 1. Fehlte ihr eigener DP in einem Update, zeigten sie den Wert von DP 1 an (z. B. Lüfter „low“).
 - **Local Key**: Der Service `update_local_key` und die Reparatur-Dialoge schrieben nur `local_key`, beim Setup wird aber `access_token` zuerst gelesen. Nach dem Reload war also wieder der alte Schlüssel aktiv. Alle Stellen, die den Schlüssel speichern, nutzen jetzt `helpers/local_key.py`. Ohne Zielgerät wird der Service abgelehnt, statt den Schlüssel auf alle Geräte zu schreiben. Er lädt den Eintrag nach dem Speichern neu, und der Options-Flow ruft ihn nicht mehr intern auf.
 - **Discovery nach Reload**: Wurde der letzte Geräteeintrag neu geladen, blieb die Discovery bis zum HA-Neustart aus. Discovery und Tracker laufen jetzt bis zum Stoppen von Home Assistant.
+- **Neu verbinden im Hybrid-Modus**: Button und Aktion `reconnect_device` schlugen bei SmartLife-/Hybrid-Geräten immer fehl, weil der Hybrid-Coordinator kein `.device` hat und die gesuchte Methode nicht existierte. Beide Coordinators haben jetzt `async_reconnect()`; im Hybrid-Modus geht es danach wieder über LAN.
+- **Hybrid blieb in der Cloud**: Nach einem lokalen Ausfall kehrte der Hybrid-Coordinator nie zur LAN-Verbindung zurück. Er versucht es jetzt alle 5 Minuten.
+- **Discovery nach dem Löschen**: Wird der letzte Geräteeintrag gelöscht, stoppt die Discovery (beim Neuladen läuft sie weiter).
+- **`timer_finished` beim Ausschalten**: Jeder Sprung des Countdowns auf 0 galt als „Timer abgelaufen“, auch wenn die Haube mit laufendem Timer ausgeschaltet wurde. Endet der Countdown früher, als er ablaufen konnte, kommt jetzt das neue Ereignis `timer_cancelled` (mit `remaining_minutes`). Das Blueprint kennt es.
+- **Fehlermeldungen**: Die Fehler der Integration (Verbindung, Anmeldung, Zeitüberschreitung, Datenpunkt usw.) hatten keine Übersetzung, die Oberfläche zeigte nur den Schlüssel. Alle haben jetzt Texte auf Deutsch und Englisch; ein Test prüft, dass jeder ausgelöste Schlüssel übersetzt ist und alle Platzhalter gesetzt sind. `KKTConnectionError("Text")` landete im Feld `operation`, die Parameter sind jetzt nur noch per Name erlaubt.
 
 ### Changed
 
@@ -22,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `reset_filter_timer` schreibt den Filter-Reset-DP aus dem Geräteprofil. Bisher wurde DP 15 auf jedes Gerät geschrieben, auch auf Kochfelder.
 - `bulk_power_off` und `emergency_stop` schalten die Netzschalter-Entität aus dem Geräteprofil (über `switch.turn_off`) und werfen Fehler, statt sie zu verschlucken. Bisher wurde nach „power“/„zone“ in der entity_id und nach Modellnamen gesucht. Das traf deutsche entity_ids und viele Hauben nicht.
 - `set_hood_lighting` zielt auf die Licht-Entität und setzt die Helligkeit. Bisher zielte es auf Schalter und hat die Helligkeit ignoriert.
+- Diagnose und Verbindungssensor lesen die Coordinator-Schnittstelle direkt statt über `hasattr`. Ein falscher Attributname fällt so in Typprüfung und Tests auf, statt still zu fehlen.
 - `set_cooking_timer`, `set_zone_power` und `set_hood_fan_speed` prüfen Art und Wertebereich der Ziel-Entität. `set_hood_fan_speed` erlaubt 0–9 für numerische Hauben.
 
 ## [4.10.1] - 2026-11-17

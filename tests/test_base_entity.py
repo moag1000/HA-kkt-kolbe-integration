@@ -52,7 +52,7 @@ async def test_available_false_when_circuit_breaker_unreachable(
     from custom_components.kkt_kolbe.coordinator import KKTKolbeUpdateCoordinator
     from custom_components.kkt_kolbe.exceptions import KKTConnectionError
 
-    mock_device.async_get_status.side_effect = KKTConnectionError("Connection failed")
+    mock_device.async_get_status.side_effect = KKTConnectionError(reason="Connection failed")
     mock_device.is_connected = False
     mock_config_entry.add_to_hass(hass)
 
@@ -74,7 +74,7 @@ async def test_available_false_when_circuit_breaker_unreachable(
 
     entity = _make_entity(coordinator, mock_config_entry)
     # Simulate a previously cached value -- must NOT mask the outage.
-    entity._cached_value = 42
+    entity._dp_cache[1] = 42
 
     assert entity.available is False, (
         "Entity must report unavailable once the circuit breaker has tripped "
@@ -111,11 +111,11 @@ async def test_available_true_transient_reconnecting_with_cache(
     assert coordinator._is_first_update is False
 
     entity = _make_entity(coordinator, mock_config_entry)
-    entity._cached_value = 99
+    entity._dp_cache[1] = 99
 
     # Now a single connection failure -- below the OFFLINE threshold (3),
     # and ONLINE -> RECONNECTING per _async_update_data.
-    mock_device.async_get_status.side_effect = KKTConnectionError("blip")
+    mock_device.async_get_status.side_effect = KKTConnectionError(reason="blip")
     mock_device.is_connected = False
     await coordinator._async_update_data()
 
@@ -158,9 +158,9 @@ async def test_available_true_offline_with_cache(
     assert coordinator._device_state == DeviceState.ONLINE
 
     entity = _make_entity(coordinator, mock_config_entry)
-    entity._cached_value = 7
+    entity._dp_cache[1] = 7
 
-    mock_device.async_get_status.side_effect = KKTConnectionError("still down")
+    mock_device.async_get_status.side_effect = KKTConnectionError(reason="still down")
     mock_device.is_connected = False
 
     # DEFAULT_CONSECUTIVE_FAILURES_THRESHOLD is 3 -- three failures push

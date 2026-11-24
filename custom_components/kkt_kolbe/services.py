@@ -37,9 +37,11 @@ from .base_entity import entity_unique_id
 from .const import CATEGORY_COOKTOP
 from .const import CATEGORY_HOOD
 from .const import DOMAIN
+from .data import KKTCoordinator
 from .device_types import get_device_entities
 from .exceptions import KKTServiceError
 from .helpers.local_key import entry_data_with_local_key
+from .hybrid_coordinator import KKTKolbeHybridCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -288,30 +290,16 @@ def _entry_category(entry: ConfigEntry) -> str:
     return str(entry.runtime_data.device_info.get("category", "unknown"))
 
 
-async def async_reconnect_coordinator(coordinator: Any) -> dict[str, Any]:
+async def async_reconnect_coordinator(coordinator: KKTCoordinator) -> dict[str, Any]:
     """Reconnect the local connection of one coordinator.
 
-    Shared by the ``reconnect_device`` action and the reconnect button.
+    Shared by the ``reconnect_device`` action and the reconnect button. Both
+    coordinators implement ``async_reconnect``. (This used to check for an
+    ``async_request_reconnect`` method that neither coordinator has, and then
+    read ``coordinator.device``, which the hybrid coordinator does not have:
+    reconnecting a hybrid/SmartLife device always failed.)
     """
-    if hasattr(coordinator, "async_request_reconnect"):
-        success = await coordinator.async_request_reconnect()
-        return {
-            "success": success,
-            "state": coordinator.device_state.value if hasattr(coordinator, "device_state") else "unknown",
-        }
-    if coordinator.device is None:
-        return {
-            "success": False,
-            "error": "No local device available (API-only mode)",
-            "state": "api_only",
-        }
-    await coordinator.device.async_disconnect()
-    await coordinator.device.async_connect()
-    await coordinator.async_request_refresh()
-    return {
-        "success": coordinator.device.is_connected,
-        "state": "online" if coordinator.device.is_connected else "offline",
-    }
+    return await coordinator.async_reconnect()
 
 
 async def async_setup_services(hass: HomeAssistant) -> None:
@@ -402,26 +390,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         """Return the connection status of the selected (or all) devices."""
         statuses: dict[str, Any] = {}
         for entry in await _async_target_entries(hass, service):
-            coordinator = entry.runtime_data.coordinator
-            if hasattr(coordinator, "connection_info"):
-                statuses[entry.entry_id] = coordinator.connection_info
-            elif coordinator.device is None:
-                statuses[entry.entry_id] = {
-                    "state": "api_only",
-                    "last_update": coordinator.last_update_success_time,
-                    "is_connected": False,
-                    "device_id": "api_mode",
-                    "ip_address": None,
-                    "mode": "api_only",
-                }
-            else:
-                statuses[entry.entry_id] = {
-                    "state": "online" if coordinator.device.is_connected else "offline",
-                    "last_update": coordinator.last_update_success_time,
-                    "is_connected": coordinator.device.is_connected,
-                    "device_id": coordinator.device.device_id,
-                    "ip_address": coordinator.device.ip_address,
-                }
+            statuses[entry.entry_id] = entry.runtime_data.coordinator.connection_info
 
         hass.bus.async_fire(f"{DOMAIN}_connection_status", {"statuses": statuses})
 
@@ -562,7 +531,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         failed: list[str] = []
         for config_entry in _loaded_device_entries(hass):
             entry_id = config_entry.entry_id
-            client = getattr(config_entry.runtime_data.coordinator, "smartlife_client", None)
+            coordinator = config_entry.runtime_data.coordinator
+            client = coordinator.smartlife_client if isinstance(coordinator, KKTKolbeHybridCoordinator) else None
             if client is None:
                 continue
             try:
@@ -600,7 +570,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         for config_entry in await _async_target_entries(hass, service):
             entry_id = config_entry.entry_id
             device_id = config_entry.data.get("device_id", "")
-            client = getattr(config_entry.runtime_data.coordinator, "smartlife_client", None)
+            coordinator = config_entry.runtime_data.coordinator
+            client = coordinator.smartlife_client if isinstance(coordinator, KKTKolbeHybridCoordinator) else None
             if client is None:
                 _publish(
                     {

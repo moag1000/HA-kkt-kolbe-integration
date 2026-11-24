@@ -242,6 +242,7 @@ async def _async_background_connect(
     from .exceptions import KKTAuthenticationError
     from .exceptions import KKTConnectionError
     from .exceptions import KKTTimeoutError
+    from .hybrid_coordinator import KKTKolbeHybridCoordinator
 
     # Step 1: Try connecting local device
     if device:
@@ -291,20 +292,19 @@ async def _async_background_connect(
             _LOGGER.debug("API connection test failed for %s: %s", entry.title, e)
 
     # Step 3: Mark initial connect done (coordinator can now do normal updates)
-    if hasattr(coordinator, "mark_initial_connect_done"):
-        coordinator.mark_initial_connect_done()
+    coordinator.mark_initial_connect_done()
 
     # Step 4: Register MQTT push callback now that the SmartLife client is fully initialized.
     # The hasattr guard means local-only coordinators (no async_register_push) are safe.
     # The try/except keeps push-registration failures from breaking setup —
     # push is supplementary; the 30s polling fallback works without it.
-    if hasattr(coordinator, "async_register_push"):
+    if isinstance(coordinator, KKTKolbeHybridCoordinator):
         try:
             await coordinator.async_register_push()
         except Exception as exc:
             _LOGGER.warning(
                 "Failed to register MQTT push callback for device %s: %s",
-                getattr(coordinator, "device_id", "?")[:8],
+                coordinator.device_id[:8],
                 exc,
             )
 
@@ -765,6 +765,19 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
     async_remove_issue(hass, entry)
 
+    # The last device was deleted (not just reloaded): free the UDP discovery
+    # ports 6666/6667/7000 so other Tuya integrations can use them. A config
+    # flow started later starts discovery again.
+    remaining_devices = [
+        other
+        for other in hass.config_entries.async_entries(DOMAIN)
+        if other.entry_id != entry.entry_id and other.data.get("entry_type", ENTRY_TYPE_DEVICE) != ENTRY_TYPE_ACCOUNT
+    ]
+    if not remaining_devices:
+        from .discovery import async_stop_discovery
+
+        await async_stop_discovery()
+
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry.
@@ -847,8 +860,7 @@ async def _async_unload_device_entry(hass: HomeAssistant, entry: KKTKolbeConfigE
             coordinator = entry.runtime_data.coordinator
             # Mark destroyed first so any in-flight deferred refresh callbacks
             # noop instead of running against the torn-down coordinator.
-            if hasattr(coordinator, "async_mark_destroyed"):
-                coordinator.async_mark_destroyed()
+            coordinator.async_mark_destroyed()
             try:
                 async with asyncio.timeout(_SHUTDOWN_TIMEOUT):
                     await coordinator.async_shutdown()

@@ -25,7 +25,6 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.kkt_kolbe.bitfield_utils import build_zone_bitfield
 from custom_components.kkt_kolbe.bitfield_utils import extract_zone_value_from_bitfield
 from custom_components.kkt_kolbe.const import DOMAIN
 
@@ -270,9 +269,7 @@ async def test_reset_filter_timer_with_entity_target(hass: HomeAssistant, device
 async def test_reset_filter_timer_refuses_device_without_filter_reset(hass: HomeAssistant, devices) -> None:
     """A cooktop has no filter reset: nothing is written (DP 15 used to be written blindly)."""
     with pytest.raises(ServiceValidationError) as err:
-        await _call(
-            hass, "reset_filter_timer", {"confirm": True}, target={"device_id": _device_id(hass, COOKTOP_ID)}
-        )
+        await _call(hass, "reset_filter_timer", {"confirm": True}, target={"device_id": _device_id(hass, COOKTOP_ID)})
     assert err.value.translation_key == "filter_reset_not_supported"
     assert DEVICES[COOKTOP_ID].writes == []
 
@@ -282,9 +279,7 @@ async def test_reset_filter_timer_requires_target_and_confirm(hass: HomeAssistan
     with pytest.raises(vol.Invalid):
         await _call(hass, "reset_filter_timer", {"confirm": True})
     with pytest.raises(ServiceValidationError):
-        await _call(
-            hass, "reset_filter_timer", {"confirm": False}, target={"device_id": _device_id(hass, HOOD_ID)}
-        )
+        await _call(hass, "reset_filter_timer", {"confirm": False}, target={"device_id": _device_id(hass, HOOD_ID)})
     assert DEVICES[HOOD_ID].writes == []
 
 
@@ -403,9 +398,7 @@ async def test_integration_wide_actions_reject_a_target(hass: HomeAssistant, dev
 
 async def test_rescan_devices(hass: HomeAssistant, devices) -> None:
     """The timeout is validated and passed on."""
-    with patch(
-        "custom_components.kkt_kolbe.discovery.simple_tuya_discover", new_callable=AsyncMock
-    ) as discover:
+    with patch("custom_components.kkt_kolbe.discovery.simple_tuya_discover", new_callable=AsyncMock) as discover:
         await _call(hass, "rescan_devices", {"timeout": 4})
     discover.assert_awaited_once_with(timeout=4)
     with pytest.raises(vol.Invalid):
@@ -466,4 +459,13 @@ async def test_reload_keeps_discovery_running_until_ha_stops(hass: HomeAssistant
 
         hass.bus.async_fire(EVENT_HOMEASSISTANT_STOP)
         await hass.async_block_till_done()
+        stop.assert_awaited_once()
+
+
+async def test_removing_last_device_frees_discovery_ports(hass: HomeAssistant, devices) -> None:
+    """Deleting (not reloading) the last device entry stops discovery."""
+    with patch("custom_components.kkt_kolbe.discovery.async_stop_discovery", new_callable=AsyncMock) as stop:
+        await hass.config_entries.async_remove(devices["hood"].entry_id)
+        stop.assert_not_awaited()
+        await hass.config_entries.async_remove(devices["cooktop"].entry_id)
         stop.assert_awaited_once()

@@ -891,6 +891,7 @@
               "connection_restored": "Verbindung wiederhergestellt",
               "connection_mode_changed": "Verbindungsmodus gewechselt",
               "timer_finished": "Timer abgelaufen",
+              "timer_cancelled": "Timer abgebrochen",
               "filter_cleaning_due": "Filterreinigung fällig",
               "zone_error": "Fehler an Kochzone"
             }
@@ -1092,7 +1093,34 @@
       "message": "Die aktuellen Werte der Kochzonen (DP {data_point}) sind noch nicht bekannt, eine Änderung würde die anderen Zonen zurücksetzen. Versuche es erneut, sobald das Kochfeld seinen Zustand gemeldet hat."
     },
     "service_failed": {
-      "message": "Aktion {service_name} fehlgeschlagen: {reason}"
+      "message": "Die Aktion ist fehlgeschlagen: {details}"
+    },
+    "unknown_error": {
+      "message": "Unerwarteter Fehler: {details}"
+    },
+    "connection_failed": {
+      "message": "Verbindung zum Gerät fehlgeschlagen: {details}"
+    },
+    "authentication_failed": {
+      "message": "Anmeldung fehlgeschlagen, bitte Local Key oder SmartLife-Login prüfen: {details}"
+    },
+    "timeout": {
+      "message": "Das Gerät hat nicht rechtzeitig geantwortet: {details}"
+    },
+    "device_error": {
+      "message": "Das Gerät hat einen Fehler gemeldet: {details}"
+    },
+    "configuration_error": {
+      "message": "Konfigurationsfehler: {details}"
+    },
+    "discovery_failed": {
+      "message": "Gerätesuche fehlgeschlagen: {details}"
+    },
+    "rate_limit_exceeded": {
+      "message": "Zu viele Anfragen an die Tuya-Cloud, bitte später erneut versuchen: {details}"
+    },
+    "data_point_error": {
+      "message": "Datenpunkt konnte nicht gelesen oder geschrieben werden: {details}"
     }
   }
 }

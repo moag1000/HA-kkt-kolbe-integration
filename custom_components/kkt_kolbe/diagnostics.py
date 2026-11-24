@@ -9,6 +9,8 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 
 from .const import VERSION
+from .coordinator import KKTKolbeUpdateCoordinator
+from .hybrid_coordinator import KKTKolbeHybridCoordinator
 
 if TYPE_CHECKING:
     from .data import KKTKolbeConfigEntry
@@ -116,28 +118,22 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: KKTKolb
             "data_point_count": len(coordinator.data) if coordinator.data else 0,
         }
 
-        # Add connection state tracking info if available
-        if hasattr(coordinator, "connection_info"):
-            conn_info = coordinator.connection_info
-            diagnostics_data["coordinator"]["connection_state"] = conn_info.get("state", "unknown")
-            diagnostics_data["coordinator"]["consecutive_failures"] = conn_info.get("consecutive_failures", 0)
-            diagnostics_data["coordinator"]["last_successful_update"] = _iso(conn_info.get("last_update"))
+        # Both coordinators (local and hybrid) expose the same connection interface
+        conn_info = coordinator.connection_info
+        diagnostics_data["coordinator"]["connection_state"] = conn_info.get("state", "unknown")
+        diagnostics_data["coordinator"]["consecutive_failures"] = conn_info.get("consecutive_failures", 0)
+        diagnostics_data["coordinator"]["last_successful_update"] = _iso(conn_info.get("last_update"))
 
-            # Add circuit breaker info if using ReconnectCoordinator
-            if "circuit_breaker_retries" in conn_info:
-                diagnostics_data["coordinator"]["circuit_breaker"] = {
-                    "retries": conn_info.get("circuit_breaker_retries", 0),
-                    "next_retry": (_iso(conn_info.get("circuit_breaker_next_retry"))),
-                    "adaptive_interval_active": conn_info.get("adaptive_interval_active", False),
-                }
+        # Add circuit breaker info if using ReconnectCoordinator
+        if "circuit_breaker_retries" in conn_info:
+            diagnostics_data["coordinator"]["circuit_breaker"] = {
+                "retries": conn_info.get("circuit_breaker_retries", 0),
+                "next_retry": (_iso(conn_info.get("circuit_breaker_next_retry"))),
+                "adaptive_interval_active": conn_info.get("adaptive_interval_active", False),
+            }
 
-        # Add device state if available
-        if hasattr(coordinator, "device_state"):
-            diagnostics_data["coordinator"]["device_state"] = coordinator.device_state.value
-
-        # Add device availability if available
-        if hasattr(coordinator, "is_device_available"):
-            diagnostics_data["coordinator"]["is_device_available"] = coordinator.is_device_available
+        diagnostics_data["coordinator"]["device_state"] = coordinator.device_state.value
+        diagnostics_data["coordinator"]["is_device_available"] = coordinator.is_device_available
 
         # Add available data points (values redacted for privacy)
         if coordinator.data:
@@ -146,13 +142,11 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: KKTKolb
         # Add detailed DPS diagnostics with sanitized values
         diagnostics_data["dps"] = _get_dps_diagnostics(coordinator.data)
 
-        # Add DPS cache info if available
-        if hasattr(coordinator, "_dps_cache"):
-            diagnostics_data["dps"]["cache_count"] = len(coordinator._dps_cache)
-            diagnostics_data["dps"]["cached_dps"] = list(coordinator._dps_cache.keys())
+        diagnostics_data["dps"]["cache_count"] = len(coordinator._dps_cache)
+        diagnostics_data["dps"]["cached_dps"] = list(coordinator._dps_cache.keys())
 
-        # Add error history if tracked
-        if hasattr(coordinator, "_error_history"):
+        # Only the local coordinator keeps an error history
+        if isinstance(coordinator, KKTKolbeUpdateCoordinator):
             diagnostics_data["error_history"] = [
                 {
                     "timestamp": _iso(err.get("timestamp")),
@@ -166,25 +160,23 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: KKTKolb
     # Add device diagnostics
     if device:
         diagnostics_data["device"] = {
-            "connected": device.is_connected if hasattr(device, "is_connected") else False,
-            "protocol_version": device.version if hasattr(device, "version") else "unknown",
-            "device_id_prefix": device.device_id[:8] + "..." if hasattr(device, "device_id") else "unknown",
-            "ip_address": device.ip_address if hasattr(device, "ip_address") else "unknown",
+            "connected": device.is_connected,
+            "protocol_version": device.version,
+            "device_id_prefix": device.device_id[:8] + "...",
+            "ip_address": device.ip_address,
         }
 
-        # Add connection statistics if available
-        if hasattr(device, "connection_stats"):
-            stats = device.connection_stats
-            diagnostics_data["device"]["connection_statistics"] = {
-                "total_connects": stats.get("total_connects", 0),
-                "total_disconnects": stats.get("total_disconnects", 0),
-                "total_reconnects": stats.get("total_reconnects", 0),
-                "total_timeouts": stats.get("total_timeouts", 0),
-                "total_errors": stats.get("total_errors", 0),
-                "last_connect_time": stats.get("last_connect_time"),
-                "last_disconnect_time": stats.get("last_disconnect_time"),
-                "protocol_version_detected": stats.get("protocol_version_detected"),
-            }
+        stats = device.connection_stats
+        diagnostics_data["device"]["connection_statistics"] = {
+            "total_connects": stats.get("total_connects", 0),
+            "total_disconnects": stats.get("total_disconnects", 0),
+            "total_reconnects": stats.get("total_reconnects", 0),
+            "total_timeouts": stats.get("total_timeouts", 0),
+            "total_errors": stats.get("total_errors", 0),
+            "last_connect_time": stats.get("last_connect_time"),
+            "last_disconnect_time": stats.get("last_disconnect_time"),
+            "protocol_version_detected": stats.get("protocol_version_detected"),
+        }
 
     # Add API client diagnostics
     if api_client:
@@ -207,8 +199,8 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: KKTKolb
     # diagnosing error 2008 ("command not supported") where the device's
     # actual code list differs from our hardcoded mappings. Mirrors what
     # HA-Core's official Tuya integration includes in its diagnostics.
-    smartlife_client = getattr(coordinator, "smartlife_client", None) if coordinator else None
-    if smartlife_client and hasattr(smartlife_client, "get_device_diagnostics"):
+    smartlife_client = coordinator.smartlife_client if isinstance(coordinator, KKTKolbeHybridCoordinator) else None
+    if smartlife_client:
         device_id = entry.data.get("device_id", "")
         if device_id:
             diagnostics_data["smartlife_device"] = smartlife_client.get_device_diagnostics(device_id)

@@ -891,6 +891,7 @@
               "connection_restored": "Connection restored",
               "connection_mode_changed": "Connection mode changed",
               "timer_finished": "Timer finished",
+              "timer_cancelled": "Timer cancelled",
               "filter_cleaning_due": "Filter cleaning due",
               "zone_error": "Cooking zone error"
             }
@@ -1091,7 +1092,34 @@
       "message": "The current values of the cooktop zones (DP {data_point}) are not known yet, so changing one zone would reset the others. Try again once the cooktop has reported its state."
     },
     "service_failed": {
-      "message": "Action {service_name} failed: {reason}"
+      "message": "The action failed: {details}"
+    },
+    "unknown_error": {
+      "message": "Unexpected error: {details}"
+    },
+    "connection_failed": {
+      "message": "Connection to the device failed: {details}"
+    },
+    "authentication_failed": {
+      "message": "Authentication failed, please check the local key or the SmartLife login: {details}"
+    },
+    "timeout": {
+      "message": "The device did not answer in time: {details}"
+    },
+    "device_error": {
+      "message": "The device reported an error: {details}"
+    },
+    "configuration_error": {
+      "message": "Configuration error: {details}"
+    },
+    "discovery_failed": {
+      "message": "Device discovery failed: {details}"
+    },
+    "rate_limit_exceeded": {
+      "message": "Too many requests to the Tuya cloud, please try again later: {details}"
+    },
+    "data_point_error": {
+      "message": "Could not read or write a data point: {details}"
     }
   }
 }

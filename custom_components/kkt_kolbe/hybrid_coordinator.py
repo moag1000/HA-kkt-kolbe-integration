@@ -37,6 +37,9 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
+# How often a device that fell back to the cloud tries its LAN connection again
+LOCAL_RETRY_INTERVAL = timedelta(minutes=5)
+
 # Common Tuya cloud error codes seen in send_commands responses. Tuya's docs
 # are notoriously incomplete — these mappings are based on field observation
 # and the public Tuya OpenAPI documentation. Used to give users actionable
@@ -127,6 +130,10 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
 
         # Timestamp tracking for last successful update
         self._last_update_success_time: datetime | None = None
+
+        # Return to the LAN after a cloud fallback (see _local_retry_due)
+        self._last_local_retry = datetime.now()
+        self._destroyed = False
 
         # Background connect tracking (non-blocking setup)
         self._initial_connect_done = False
@@ -220,6 +227,61 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
     def mark_initial_connect_done(self) -> None:
         """Mark that the background connection attempt has completed."""
         self._initial_connect_done = True
+
+    @callback
+    def async_mark_destroyed(self) -> None:
+        """Mark the coordinator as torn down (same interface as the local coordinator).
+
+        The hybrid coordinator schedules no deferred work of its own; push
+        callbacks are removed in ``async_shutdown``.
+        """
+        self._destroyed = True
+
+    @property
+    def connection_info(self) -> dict[str, Any]:
+        """Connection status (same keys as the local coordinator, plus the mode)."""
+        device = self.local_device
+        return {
+            "state": self.device_state.value,
+            "last_update": self._last_update_success_time,
+            "consecutive_failures": self.local_consecutive_errors,
+            "is_connected": bool(device is not None and device.is_connected),
+            "mode": self.current_mode,
+            "device_id": self.device_id,
+            "ip_address": device.ip_address if device is not None else None,
+        }
+
+    async def async_reconnect(self) -> dict[str, Any]:
+        """Reset the local connection and switch back to the local path.
+
+        After repeated local errors the coordinator falls back to the cloud;
+        a manual reconnect is the user saying "the device is back", so the
+        local path gets a fresh start.
+        """
+        device = self.local_device
+        if device is None:
+            return {"success": False, "error": "No local device available (cloud only)", "state": "api_only"}
+        await device.async_disconnect()
+        await device.async_connect()
+        self._switch_to_local()
+        await self.async_request_refresh()
+        return {"success": device.is_connected, "state": self.device_state.value, "mode": self.current_mode}
+
+    def _switch_to_local(self) -> None:
+        """Use the local path again with a fresh error budget."""
+        self.current_mode = "local"
+        self.local_consecutive_errors = 0
+        self._last_local_retry = datetime.now()
+
+    def _local_retry_due(self) -> bool:
+        """Return True when a cloud-fallback device should try the LAN again.
+
+        Without this, one Wi-Fi outage kept a device on the cloud path until
+        the entry was reloaded, even after the LAN connection was back.
+        """
+        if self.local_device is None or not self.prefer_local or self.current_mode == "local":
+            return False
+        return datetime.now() - self._last_local_retry >= LOCAL_RETRY_INTERVAL
 
     @callback
     def _handle_push_update(self, updated_dps: dict[str, Any], report_type: str) -> None:
@@ -369,6 +431,13 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
             _LOGGER.debug("Device %s: awaiting background connection, skipping update", self.device_id[:8])
             return {"dps": {}, "source": "pending", "available": False}
 
+        if self._local_retry_due():
+            _LOGGER.debug("Device %s: retrying the local connection after cloud fallback", self.device_id[:8])
+            self.current_mode = "local"
+            # One more failure sends it straight back to the cloud
+            self.local_consecutive_errors = self.max_consecutive_errors - 1
+            self._last_local_retry = datetime.now()
+
         _LOGGER.debug(f"Updating data for device {self.device_id[:8]} in {self.current_mode} mode")
 
         # Try primary mode first
@@ -491,7 +560,7 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
         previously seen DPs remain available even if not included in the latest update.
         """
         if not self.local_device:
-            raise KKTConnectionError("Local device not configured")
+            raise KKTConnectionError(reason="Local device not configured")
 
         _LOGGER.debug(f"Fetching data via local communication for {self.device_id[:8]}")
 
@@ -500,7 +569,7 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
             partial_status = await self.local_device.async_get_status()
 
             if not partial_status:
-                raise KKTConnectionError("No data received from local device")
+                raise KKTConnectionError(reason="No data received from local device")
 
             # Merge partial update into our cache
             # This ensures we keep all DPs seen across multiple updates
@@ -529,7 +598,7 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
             # Preserve auth-error type so the coordinator can trigger key resync.
             raise
         except Exception as err:
-            raise KKTConnectionError(f"Local communication failed: {err}") from err
+            raise KKTConnectionError(reason=f"Local communication failed: {err}") from err
 
     async def async_update_via_api(self) -> dict[str, Any]:
         """Update data via API communication.
@@ -588,7 +657,7 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
         QR code instead of Tuya IoT Developer Platform.
         """
         if not self.smartlife_client:
-            raise KKTConnectionError("SmartLife client not configured")
+            raise KKTConnectionError(reason="SmartLife client not configured")
 
         _LOGGER.debug(f"Fetching data via SmartLife for {self.device_id[:8]}")
 
@@ -642,7 +711,7 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
             }
 
         except Exception as err:
-            raise KKTConnectionError(f"SmartLife communication failed: {err}") from err
+            raise KKTConnectionError(reason=f"SmartLife communication failed: {err}") from err
 
     async def async_update_hybrid(self) -> dict[str, Any]:
         """Update data using hybrid approach - combine local and cloud data."""
@@ -1073,8 +1142,7 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
         self.local_device = device
         self.local_available = True
         if self.prefer_local:
-            self.current_mode = "local"
-            self.local_consecutive_errors = 0
+            self._switch_to_local()
 
     def set_api_client(self, client: TuyaCloudClient) -> None:
         """Set or update the API client."""

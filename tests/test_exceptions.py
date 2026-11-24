@@ -33,7 +33,7 @@ class TestKKTKolbeError:
             translation_key="test",
             translation_placeholders={"key": "value"}
         )
-        assert error.translation_placeholders == {"key": "value"}
+        assert error.translation_placeholders == {"details": "KKT Kolbe error: test", "key": "value"}
 
 
 class TestKKTConnectionError:
