@@ -39,6 +39,58 @@ class PendingWrite:
         return self.expires > time.monotonic()
 
 
+_TRUE = {"true", "1", "on"}
+_FALSE = {"false", "0", "off"}
+
+
+def _as_bool(value: Any) -> bool | None:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int | float):
+        return bool(value) if value in (0, 1) else None
+    if isinstance(value, str):
+        text = value.strip().lower()
+        if text in _TRUE:
+            return True
+        if text in _FALSE:
+            return False
+    return None
+
+
+def _as_number(value: Any) -> float | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int | float):
+        return float(value)
+    if isinstance(value, str):
+        try:
+            return float(value)
+        except ValueError:
+            return None
+    return None
+
+
+def same_dp_value(reported: Any, written: Any) -> bool:
+    """Return True if a reported value confirms a written one.
+
+    Devices and the cloud do not always report a value back in the form it
+    was written: ``True`` comes back as ``"true"`` or ``1``, ``3`` as ``"3"``.
+    Comparing raw values would then hold the written value for the whole TTL
+    and hide a real change made at the device in that window. Strings are
+    otherwise compared exactly (Base64 RAW values are case sensitive).
+    """
+    if reported == written:
+        return True
+    if reported is None or written is None:
+        return False
+    if isinstance(written, bool) or isinstance(reported, bool):
+        reported_bool = _as_bool(reported)
+        return reported_bool is not None and reported_bool == _as_bool(written)
+    reported_number = _as_number(reported)
+    written_number = _as_number(written)
+    return reported_number is not None and reported_number == written_number
+
+
 class PendingWrites:
     """Unconfirmed writes of one device, keyed by data point."""
 
@@ -88,7 +140,7 @@ class PendingWrites:
             reported = dps.get(key)
             if reported is None and key.isdigit():
                 reported = dps.get(int(key))
-            if reported == write.value:
+            if same_dp_value(reported, write.value):
                 del self._writes[key]
                 continue
             result[key] = write.value
@@ -124,3 +176,22 @@ def effective_dps(coordinator: Any) -> dict[Any, Any]:
     if not isinstance(dps, Mapping):
         return {}
     return pending_writes_for(coordinator).apply(dps)
+
+
+async def async_write_dp(coordinator: Any, dp: int, value: Any) -> None:
+    """Write a DP through the pending-write overlay, without an entity.
+
+    Same flow as an entity write: record the value, repaint every entity of
+    the device, send it, and roll back (and repaint) if sending fails. Used
+    where no entity is involved, e.g. a disabled power switch on emergency
+    stop, or a zone bitfield built from all zones.
+    """
+    pending = pending_writes_for(coordinator)
+    previous = pending.set(dp, value)
+    coordinator.async_update_listeners()
+    try:
+        await coordinator.async_set_data_point(dp, value)
+    except Exception:
+        pending.restore(dp, previous)
+        coordinator.async_update_listeners()
+        raise
