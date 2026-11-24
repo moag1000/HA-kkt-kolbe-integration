@@ -879,6 +879,9 @@
       },
       "light": {
         "name": "Licht"
+      },
+      "rgb_light": {
+        "name": "RGB-Licht"
       }
     },
     "event": {

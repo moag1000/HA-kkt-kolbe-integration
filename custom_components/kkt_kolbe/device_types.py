@@ -136,18 +136,30 @@ KNOWN_DEVICES: dict[str, dict[str, Any]] = {
                 "speeds": ["off", "low", "middle", "high", "strong"],
             },
             "light": [
-                # Main light with RGB color effects and brightness for HomeKit/Siri
+                # Main (white) light with brightness for HomeKit/Siri
                 {
                     "dp": 4,
                     "name": "Light",
                     "icon": "mdi:lightbulb",
                     "brightness_dp": 5,
                     "max_brightness": 255,
+                },
+                # RGB strip: DP 101 is power and colour preset at once
+                # (0 = off, 1 = Weiß, 2 = Rot, ...), DP 102 its brightness.
+                {
+                    "dp": 101,
+                    "name": "RGB Light",
+                    "icon": "mdi:led-strip-variant",
+                    "brightness_dp": 102,
+                    "max_brightness": 255,
+                    "mode_power": True,
+                    "off_mode": 0,
+                    "default_mode": 1,
                     "effect_dp": 101,
                     "effect_numeric": True,
-                    "effect_offset": 1,  # Device uses 0=off, 1=Weiß, 2=Rot, etc.
+                    "effect_offset": 1,
                     "effects": ["Weiß", "Rot", "Grün", "Blau", "Gelb", "Lila", "Orange", "Cyan", "Grasgrün"],
-                }
+                },
             ],
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},
@@ -355,18 +367,30 @@ KNOWN_DEVICES: dict[str, dict[str, Any]] = {
                 "speeds": ["off", "low", "middle", "high", "strong"],
             },
             "light": [
-                # Main light with RGB color effects and brightness for HomeKit/Siri
+                # Main (white) light with brightness for HomeKit/Siri
                 {
                     "dp": 4,
                     "name": "Light",
                     "icon": "mdi:lightbulb",
                     "brightness_dp": 5,
                     "max_brightness": 255,
+                },
+                # RGB strip: DP 101 is power and colour preset at once
+                # (0 = off, 1 = Weiß, 2 = Rot, ...), DP 102 its brightness.
+                {
+                    "dp": 101,
+                    "name": "RGB Light",
+                    "icon": "mdi:led-strip-variant",
+                    "brightness_dp": 102,
+                    "max_brightness": 255,
+                    "mode_power": True,
+                    "off_mode": 0,
+                    "default_mode": 1,
                     "effect_dp": 101,
                     "effect_numeric": True,
-                    "effect_offset": 1,  # Device uses 0=off, 1=Weiß, 2=Rot, etc.
+                    "effect_offset": 1,
                     "effects": ["Weiß", "Rot", "Grün", "Blau", "Gelb", "Lila", "Orange", "Cyan", "Grasgrün"],
-                }
+                },
             ],
             "switch": [
                 {"dp": 1, "name": "Power", "device_class": "switch", "icon": "mdi:power"},

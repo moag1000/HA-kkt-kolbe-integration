@@ -8,6 +8,8 @@ Supports:
 - Simple on/off lights
 - Lights with brightness control
 - Lights with effect modes (RGB presets)
+- Mode lights: lights without an on/off DP whose mode DP is both power and
+  effect (0 = off, 1..n = preset), e.g. the RGB strip of the HERMES & STYLE
 
 Auto-Power-On Feature:
 For range hoods (Dunstabzugshauben), the main power (DP 1) must be on
@@ -110,6 +112,12 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
         self._effect_numeric = light_config.get("effect_numeric", False)
         # Offset for numeric effects (e.g., 1 if device uses 0=off, 1=first effect)
         self._effect_offset = light_config.get("effect_offset", 0)
+
+        # Mode light: the effect DP is also the power DP (0 = off). Turning
+        # on restores the last preset, or default_mode if none was seen yet.
+        self._mode_power = bool(light_config.get("mode_power", False))
+        self._off_mode = light_config.get("off_mode", 0)
+        self._last_mode: Any = light_config.get("default_mode", 1)
 
         # Auto-Work-Mode configuration (for devices that need work_mode set before light works)
         self._work_mode_dp = light_config.get("work_mode_dp")
@@ -222,7 +230,16 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
         value = self._get_data_point_value()
         if value is None:
             return None
+        if self._mode_power:
+            return self._mode_is_on(value)
         return bool(value)
+
+    def _mode_is_on(self, value: Any) -> bool:
+        """Return True if a mode DP value means the light is on."""
+        try:
+            return int(value) != int(self._off_mode)
+        except ValueError, TypeError:
+            return str(value) != str(self._off_mode)
 
     @property
     def brightness(self) -> int | None:
@@ -277,6 +294,10 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
         """Handle updated data from the coordinator."""
         # Delegate to the base implementation so the optimistic lock is
         # hard-released on a confirmed device push (Issue #6 snap-back fix).
+        if self._mode_power:
+            value = self._raw_dp_value(self._dp_id)
+            if value is not None and self._mode_is_on(value):
+                self._last_mode = value
         super()._handle_coordinator_update()
 
     async def async_turn_on(self, **kwargs: Any) -> None:
@@ -309,13 +330,24 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
         # Ensure work_mode is set (Auto-Work-Mode feature for SOLO HCM etc.)
         await self._async_ensure_work_mode()
 
-        # Turn on the light FIRST (required before setting effect/brightness).
-        # Shown at once (pending write, see KKTBaseEntity._async_set_data_point).
-        await self._async_set_data_point(self._dp_id, True)
-        self._log_entity_state("Turn On", f"DP {self._dp_id} set to True")
+        if self._mode_power:
+            # The mode DP is the power: a requested effect turns the light on
+            # in that preset, otherwise the last preset comes back. Writing
+            # the preset only when the light is off keeps a brightness-only
+            # call from touching the mode.
+            if ATTR_EFFECT in kwargs:
+                await self._set_effect(kwargs[ATTR_EFFECT])
+            elif not self.is_on:
+                await self._async_set_data_point(self._dp_id, self._last_mode)
+                self._log_entity_state("Turn On", f"DP {self._dp_id} set to {self._last_mode}")
+        else:
+            # Turn on the light FIRST (required before setting effect/brightness).
+            # Shown at once (pending write, see KKTBaseEntity._async_set_data_point).
+            await self._async_set_data_point(self._dp_id, True)
+            self._log_entity_state("Turn On", f"DP {self._dp_id} set to True")
 
         # Handle effect AFTER light is on
-        if ATTR_EFFECT in kwargs and self._effect_dp:
+        if ATTR_EFFECT in kwargs and self._effect_dp and not self._mode_power:
             effect = kwargs[ATTR_EFFECT]
             await self._set_effect(effect)
 
@@ -329,6 +361,13 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the light."""
+        if self._mode_power:
+            current = self._raw_dp_value(self._dp_id)
+            if current is not None and self._mode_is_on(current):
+                self._last_mode = current
+            await self._async_set_data_point(self._dp_id, self._off_mode)
+            self._log_entity_state("Turn Off", f"DP {self._dp_id} set to {self._off_mode}")
+            return
         await self._async_set_data_point(self._dp_id, False)
         self._log_entity_state("Turn Off", f"DP {self._dp_id} set to False")
 
@@ -341,6 +380,8 @@ class KKTKolbeLight(KKTBaseEntity, LightEntity):
             # Numeric mode: send index with offset
             idx = self._effect_list.index(effect) + self._effect_offset
             await self._async_set_data_point(self._effect_dp, idx)
+            if self._mode_power:
+                self._last_mode = idx
             self._log_entity_state("Set Effect", f"Effect: {effect} (value {idx})")
         else:
             # String mode: send effect name
