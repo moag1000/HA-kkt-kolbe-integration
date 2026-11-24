@@ -110,3 +110,37 @@ async def test_press_reconnects_hybrid_device(hass: HomeAssistant, mock_config_e
     device.async_connect.assert_awaited_once()
     assert coordinator.current_mode == "local"
     assert coordinator.local_consecutive_errors == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(("reachable", "mode"), [(True, "local"), (False, "smartlife")])
+async def test_hybrid_returns_to_lan_only_when_reachable(hass: HomeAssistant, reachable: bool, mode: str) -> None:
+    """After a cloud fallback the LAN is tried again, but only if a quick TCP check passes.
+
+    Regression: the hybrid coordinator never left the cloud path again. A
+    retry without the check would wait for a full local timeout every
+    5 minutes while the LAN is still down.
+    """
+    from datetime import datetime
+    from datetime import timedelta
+
+    device = _device(connected=True)
+    device.async_quick_check = AsyncMock(return_value=reachable)
+    coordinator = KKTKolbeHybridCoordinator(
+        hass, "bf735dfe2ad64fba7cpyhn", local_device=device, smartlife_client=MagicMock()
+    )
+    coordinator._initial_connect_done = True
+    coordinator.current_mode = "smartlife"
+    coordinator.local_consecutive_errors = coordinator.max_consecutive_errors
+    coordinator._last_local_retry = datetime.now() - timedelta(minutes=6)
+    coordinator.async_update_local = AsyncMock(return_value={"dps": {"1": True}, "source": "local"})  # type: ignore[method-assign]
+    coordinator.async_update_via_smartlife = AsyncMock(return_value={"dps": {"1": True}, "source": "smartlife"})  # type: ignore[method-assign]
+
+    data = await coordinator._async_update_data()
+
+    device.async_quick_check.assert_awaited_once()
+    assert coordinator.current_mode == mode
+    assert data["source"] == mode
+    # The next update within 5 minutes does not check again
+    await coordinator._async_update_data()
+    device.async_quick_check.assert_awaited_once()

@@ -19,17 +19,21 @@ from homeassistant.const import ATTR_ENTITY_ID
 from homeassistant.const import ATTR_FLOOR_ID
 from homeassistant.const import ATTR_LABEL_ID
 from homeassistant.const import ENTITY_MATCH_NONE
+from homeassistant.const import SERVICE_TOGGLE
 from homeassistant.const import SERVICE_TURN_OFF
+from homeassistant.const import SERVICE_TURN_ON
 from homeassistant.core import HomeAssistant
 from homeassistant.core import ServiceCall
 from homeassistant.core import ServiceResponse
 from homeassistant.core import SupportsResponse
 from homeassistant.core import callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import service as service_helper
+from homeassistant.helpers import target as target_helpers
 from homeassistant.helpers.json import json_dumps
 from homeassistant.util.json import json_loads
 
@@ -42,6 +46,7 @@ from .device_types import get_device_entities
 from .exceptions import KKTServiceError
 from .helpers.local_key import entry_data_with_local_key
 from .hybrid_coordinator import KKTKolbeHybridCoordinator
+from .pending_writes import async_write_dp
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -111,6 +116,9 @@ UPDATE_LOCAL_KEY_SCHEMA = vol.Schema(
     }
 )
 RESET_FILTER_TIMER_SCHEMA = cv.make_entity_service_schema({vol.Required("confirm"): cv.boolean})
+SET_HOOD_LIGHTING_SCHEMA = cv.make_entity_service_schema(
+    {vol.Optional("brightness"): vol.All(vol.Coerce(int), vol.Range(min=1, max=HOOD_LIGHT_LEVELS))}
+)
 BULK_POWER_OFF_SCHEMA = vol.Schema(
     {
         vol.Optional("device_types", default=["all"]): vol.All(cv.ensure_list, [vol.In(["all", "cooktop", "hood"])]),
@@ -171,15 +179,6 @@ async def _async_set_number(entity: Any, call: ServiceCall, field: str) -> None:
     await entity.async_set_native_value(value)
 
 
-async def _async_set_hood_lighting(entity: Any, call: ServiceCall) -> None:
-    """Turn the hood light on at a brightness level (1-5), or toggle it."""
-    level = call.data.get("brightness")
-    if level is None:
-        await entity.async_toggle()
-        return
-    await entity.async_turn_on(**{ATTR_BRIGHTNESS: round(level * 255 / HOOD_LIGHT_LEVELS)})
-
-
 @callback
 def _register_entity_actions(hass: HomeAssistant) -> None:
     """Register the platform entity actions of this integration.
@@ -202,15 +201,6 @@ def _register_entity_actions(hass: HomeAssistant) -> None:
             schema={vol.Required(field): validator},
             func=partial(_async_set_number, field=field),
         )
-
-    service_helper.async_register_platform_entity_service(
-        hass,
-        DOMAIN,
-        SERVICE_SET_HOOD_LIGHTING,
-        entity_domain=LIGHT_DOMAIN,
-        schema={vol.Optional("brightness"): vol.All(vol.Coerce(int), vol.Range(min=1, max=HOOD_LIGHT_LEVELS))},
-        func=_async_set_hood_lighting,
-    )
 
 
 def _has_target(call: ServiceCall) -> bool:
@@ -242,47 +232,109 @@ async def _async_target_entries(hass: HomeAssistant, call: ServiceCall) -> list[
     return [entry for entry in entries if entry.entry_id in selected]
 
 
-def _profile_switch_dp(entry: ConfigEntry, name: str) -> int | None:
-    """Return the DP of the device profile's switch with this profile name."""
+def _profile_entities(entry: ConfigEntry, platform: str) -> list[dict[str, Any]]:
+    """Return the device profile's entity configs of one platform."""
     runtime_data = entry.runtime_data
     lookup_key = runtime_data.device_type
     if lookup_key in ("auto", None, ""):
         lookup_key = runtime_data.product_name
-    for config in get_device_entities(lookup_key, "switch"):
-        if config.get("name") == name and isinstance(config.get("dp"), int):
+    return [config for config in get_device_entities(lookup_key, platform) if isinstance(config.get("dp"), int)]
+
+
+def _profile_switch_dp(entry: ConfigEntry, name: str) -> int | None:
+    """Return the DP of the device profile's switch with this profile name."""
+    for config in _profile_entities(entry, SWITCH_DOMAIN):
+        if config.get("name") == name:
             dp: int = config["dp"]
             return dp
     return None
 
 
-def _power_switch_entity_ids(hass: HomeAssistant, entries: list[ConfigEntry]) -> list[str]:
-    """Return the power switch entities of the given device entries."""
+def _main_light_entity_id(hass: HomeAssistant, entry: ConfigEntry) -> str | None:
+    """Return the entity of the profile's first light (the main hood light, DP 4)."""
+    lights = _profile_entities(entry, LIGHT_DOMAIN)
+    if not lights:
+        return None
+    unique_id = entity_unique_id(entry.entry_id, LIGHT_DOMAIN, lights[0]["dp"], lights[0]["name"])
+    return er.async_get(hass).async_get_entity_id(LIGHT_DOMAIN, DOMAIN, unique_id)
+
+
+async def _async_hood_light_targets(hass: HomeAssistant, call: ServiceCall) -> list[str]:
+    """Return the light entities a ``set_hood_lighting`` call means.
+
+    A KKT Kolbe light named in the target is used as is (hoods with a main
+    and an LED light). Any other target (the device, an area, another entity
+    of the hood such as the light switch older automations name) selects the
+    hood's main light. Before, those targets were silently ignored.
+    """
+    if not _has_target(call):
+        raise _validation_error("target_required", action=SERVICE_SET_HOOD_LIGHTING)
     entity_registry = er.async_get(hass)
-    entity_ids: list[str] = []
+    lights: list[str] = []
+    entries_with_light: set[str] = set()
+    selection = target_helpers.TargetSelection(call.data)
+    for entity_id in target_helpers.async_extract_referenced_entity_ids(hass, selection).referenced:
+        registry_entry = entity_registry.async_get(entity_id)
+        if registry_entry is not None and registry_entry.platform == DOMAIN and registry_entry.domain == LIGHT_DOMAIN:
+            lights.append(entity_id)
+            if registry_entry.config_entry_id:
+                entries_with_light.add(registry_entry.config_entry_id)
+    for entry in await _async_target_entries(hass, call):
+        if entry.entry_id in entries_with_light or _entry_category(entry) != CATEGORY_HOOD:
+            continue
+        if (main_light := _main_light_entity_id(hass, entry)) is not None:
+            lights.append(main_light)
+    return lights
+
+
+async def _async_power_off(hass: HomeAssistant, entries: list[ConfigEntry]) -> list[str]:
+    """Turn off the given devices; return the titles of the devices turned off.
+
+    Goes through ``switch.turn_off`` on the profile's power switch, so the
+    switch shows the change at once. If that switch is disabled or not set
+    up, the power DP is written directly (same pending-write path): an
+    emergency stop must not depend on an entity the user hid. Every device
+    is tried; failures are raised together afterwards instead of being
+    swallowed.
+    """
+    entity_registry = er.async_get(hass)
+    via_switch: dict[str, str] = {}
+    direct: list[tuple[ConfigEntry, int]] = []
     for entry in entries:
         dp = _profile_switch_dp(entry, "Power")
         if dp is None:
+            _LOGGER.warning("%s has no power data point in its profile, skipped", entry.title)
             continue
         entity_id = entity_registry.async_get_entity_id(
             SWITCH_DOMAIN, DOMAIN, entity_unique_id(entry.entry_id, SWITCH_DOMAIN, dp, "Power")
         )
-        if entity_id is None:
-            _LOGGER.warning("No power switch entity for %s, skipped", entry.title)
-            continue
-        entity_ids.append(entity_id)
-    return entity_ids
+        registry_entry = entity_registry.async_get(entity_id) if entity_id else None
+        if registry_entry is not None and not registry_entry.disabled and hass.states.get(registry_entry.entity_id):
+            via_switch[registry_entry.entity_id] = entry.title
+        else:
+            direct.append((entry, dp))
 
-
-async def _async_power_off(hass: HomeAssistant, entries: list[ConfigEntry]) -> list[str]:
-    """Turn off the given devices through their power switch entities.
-
-    Goes through ``switch.turn_off`` so the switch shows the change at once
-    and a failure is raised to the caller instead of being swallowed.
-    """
-    entity_ids = _power_switch_entity_ids(hass, entries)
-    if entity_ids:
-        await hass.services.async_call(SWITCH_DOMAIN, SERVICE_TURN_OFF, {ATTR_ENTITY_ID: entity_ids}, blocking=True)
-    return entity_ids
+    turned_off: list[str] = []
+    failed: list[str] = []
+    if via_switch:
+        try:
+            await hass.services.async_call(
+                SWITCH_DOMAIN, SERVICE_TURN_OFF, {ATTR_ENTITY_ID: list(via_switch)}, blocking=True
+            )
+            turned_off.extend(via_switch.values())
+        except (HomeAssistantError, OSError, TimeoutError) as err:
+            _LOGGER.error("Power off through the switch entities failed: %s", err)
+            failed.extend(via_switch.values())
+    for entry, dp in direct:
+        try:
+            await async_write_dp(entry.runtime_data.coordinator, dp, False)
+            turned_off.append(entry.title)
+        except (HomeAssistantError, OSError, TimeoutError) as err:
+            _LOGGER.error("Power off of %s failed: %s", entry.title, err)
+            failed.append(entry.title)
+    if failed:
+        raise KKTServiceError(service_name="power_off", reason=", ".join(failed))
+    return turned_off
 
 
 def _entry_category(entry: ConfigEntry) -> str:
@@ -304,6 +356,24 @@ async def async_reconnect_coordinator(coordinator: KKTCoordinator) -> dict[str, 
 
 async def async_setup_services(hass: HomeAssistant) -> None:
     """Set up services for KKT Kolbe integration."""
+
+    async def handle_set_hood_lighting(call: ServiceCall) -> None:
+        """Turn the hood light on at a brightness level (1-5), or toggle it."""
+        lights = await _async_hood_light_targets(hass, call)
+        if not lights:
+            raise _validation_error("no_matching_devices")
+        level = call.data.get("brightness")
+        if level is None:
+            await hass.services.async_call(LIGHT_DOMAIN, SERVICE_TOGGLE, {ATTR_ENTITY_ID: lights}, blocking=True)
+            return
+        await hass.services.async_call(
+            LIGHT_DOMAIN,
+            SERVICE_TURN_ON,
+            {ATTR_ENTITY_ID: lights, ATTR_BRIGHTNESS: round(level * 255 / HOOD_LIGHT_LEVELS)},
+            blocking=True,
+        )
+
+    hass.services.async_register(DOMAIN, SERVICE_SET_HOOD_LIGHTING, handle_set_hood_lighting, SET_HOOD_LIGHTING_SCHEMA)
 
     async def handle_reconnect_device(service: ServiceCall) -> None:
         """Reconnect the local connection of the selected (or all) devices."""

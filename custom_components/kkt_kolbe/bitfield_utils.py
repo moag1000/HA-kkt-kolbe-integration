@@ -10,8 +10,8 @@ from typing import Any
 from homeassistant.exceptions import HomeAssistantError
 
 from .const import DOMAIN
+from .pending_writes import async_write_dp
 from .pending_writes import effective_dps
-from .pending_writes import pending_writes_for
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -490,12 +490,9 @@ async def set_zone_value_in_coordinator(coordinator: Any, dp_id: int, zone: int,
         current_data = dps_data.get(dp_id)
     new_data = build_zone_bitfield(current_data, dp_id, zone, value)
 
-    pending = pending_writes_for(coordinator)
-    previous = pending.set(dp_id, new_data)
     try:
-        await coordinator.async_set_data_point(dp_id, new_data)
+        await async_write_dp(coordinator, dp_id, new_data)
     except Exception as e:
-        pending.restore(dp_id, previous)
         _LOGGER.error(f"Failed to set zone {zone} value {value} for DP {dp_id}: {e}")
         raise
     _LOGGER.info(f"Set zone {zone} DP {dp_id} to {value}, new bitfield: {new_data}")

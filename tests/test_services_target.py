@@ -243,6 +243,33 @@ async def test_set_hood_lighting_without_brightness_toggles(hass: HomeAssistant,
     assert (4, True) in DEVICES[HOOD_ID].writes
 
 
+@pytest.mark.parametrize("target_kind", ["device", "power_switch"])
+async def test_set_hood_lighting_other_targets_use_main_light(hass: HomeAssistant, devices, target_kind) -> None:
+    """The device or another hood entity (older automations named the switch) selects the main light.
+
+    Regression: with the action bound to light entities, such targets were
+    silently skipped and the call did nothing.
+    """
+    if target_kind == "device":
+        target = {"device_id": _device_id(hass, HOOD_ID)}
+    else:
+        target = {"entity_id": _entity_id(hass, devices["hood"], "switch", "_switch_dp1_power")}
+
+    await _call(hass, "set_hood_lighting", {"brightness": 3}, target=target)
+
+    assert (4, True) in DEVICES[HOOD_ID].writes
+    assert (5, 153) in DEVICES[HOOD_ID].writes
+
+
+async def test_set_hood_lighting_without_hood_is_refused(hass: HomeAssistant, devices) -> None:
+    """A target without any hood light raises instead of doing nothing."""
+    with pytest.raises(ServiceValidationError) as err:
+        await _call(hass, "set_hood_lighting", {"brightness": 2}, target={"device_id": _device_id(hass, COOKTOP_ID)})
+    assert err.value.translation_key == "no_matching_devices"
+    with pytest.raises(vol.Invalid):
+        await _call(hass, "set_hood_lighting", {"brightness": 2})
+
+
 async def test_entity_action_accepts_legacy_entity_id_in_data(hass: HomeAssistant, devices) -> None:
     """Older scripts pass entity_id in the data instead of a target."""
     timer = _entity_id(hass, devices["hood"], "number", "_number_dp13_timer")
@@ -374,6 +401,22 @@ async def test_emergency_stop_turns_off_all_devices(hass: HomeAssistant, devices
     assert hass.states.get(cooktop_power).state == "off"
 
 
+async def test_emergency_stop_with_disabled_power_switch(hass: HomeAssistant, devices) -> None:
+    """A disabled power switch does not exempt the device from an emergency stop.
+
+    Regression: switch.turn_off skips disabled entities without an error.
+    """
+    registry = er.async_get(hass)
+    cooktop_power = _entity_id(hass, devices["cooktop"], "switch", "_switch_dp101_power")
+    registry.async_update_entity(cooktop_power, disabled_by=er.RegistryEntryDisabler.USER)
+    await hass.async_block_till_done()
+
+    await _call(hass, "emergency_stop", {"confirm": True, "notification": False})
+
+    assert DEVICES[COOKTOP_ID].writes == [(101, False)]
+    assert DEVICES[HOOD_ID].writes == [(1, False)]
+
+
 async def test_emergency_stop_reports_failures(hass: HomeAssistant, devices) -> None:
     """A failed write is raised, not swallowed."""
     DEVICES[COOKTOP_ID].async_set_dp = AsyncMock(side_effect=OSError("socket closed"))
@@ -443,6 +486,18 @@ async def test_pending_write_released_by_device_report(hass: HomeAssistant, devi
     assert hass.states.get(power).state == "on"
 
     coordinator.async_set_updated_data({**INITIAL_STATUS[HOOD_ID], "1": True})  # confirmed
+    coordinator.async_set_updated_data({**INITIAL_STATUS[HOOD_ID], "1": False})  # button on the hood
+    assert hass.states.get(power).state == "off"
+
+
+async def test_pending_write_released_by_other_representation(hass: HomeAssistant, devices) -> None:
+    """A device that reports True as "true" (or 3 as "3") confirms the write too."""
+    power = _entity_id(hass, devices["hood"], "switch", "_switch_dp1_power")
+    coordinator = devices["hood"].runtime_data.coordinator
+
+    with patch("custom_components.kkt_kolbe.switch.POWER_ON_DELAY", 0):
+        await hass.services.async_call("switch", "turn_on", {"entity_id": power}, blocking=True)
+    coordinator.async_set_updated_data({**INITIAL_STATUS[HOOD_ID], "1": "true"})  # confirmed, as text
     coordinator.async_set_updated_data({**INITIAL_STATUS[HOOD_ID], "1": False})  # button on the hood
     assert hass.states.get(power).state == "off"
 

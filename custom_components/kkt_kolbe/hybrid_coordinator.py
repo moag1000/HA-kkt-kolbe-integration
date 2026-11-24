@@ -432,11 +432,15 @@ class KKTKolbeHybridCoordinator(DataUpdateCoordinator):
             return {"dps": {}, "source": "pending", "available": False}
 
         if self._local_retry_due():
-            _LOGGER.debug("Device %s: retrying the local connection after cloud fallback", self.device_id[:8])
-            self.current_mode = "local"
-            # One more failure sends it straight back to the cloud
-            self.local_consecutive_errors = self.max_consecutive_errors - 1
             self._last_local_retry = datetime.now()
+            # A 2 s TCP check first: while the LAN path is still down, the
+            # update goes on via the cloud without waiting for a full local
+            # connect timeout every 5 minutes.
+            if self.local_device is not None and await self.local_device.async_quick_check(timeout=2.0):
+                _LOGGER.debug("Device %s: retrying the local connection after cloud fallback", self.device_id[:8])
+                self.current_mode = "local"
+                # One more failure sends it straight back to the cloud
+                self.local_consecutive_errors = self.max_consecutive_errors - 1
 
         _LOGGER.debug(f"Updating data for device {self.device_id[:8]} in {self.current_mode} mode")
 

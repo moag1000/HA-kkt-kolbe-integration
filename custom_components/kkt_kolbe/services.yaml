@@ -189,11 +189,10 @@ set_hood_fan_speed:
 
 set_hood_lighting:
   name: Set Hood Lighting
-  description: Turn the range hood light on at a brightness level, or toggle it
+  description: Turn the range hood light on at a brightness level, or toggle it. A selected hood light is used as is; any other entity of a hood selects its main light.
   target:
     entity:
       integration: kkt_kolbe
-      domain: light
   fields:
     brightness:
       name: Brightness
