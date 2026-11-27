@@ -442,7 +442,10 @@
       },
       "renew_token": {
         "title": "SmartLife Token erneuern",
-        "description": "Scannen Sie diesen QR-Code mit der **SmartLife** App um Ihre Authentifizierung zu erneuern.\n\n**Anleitung:**\n1. Öffnen Sie die SmartLife App\n2. Tippen Sie auf Ihr Profil (unten rechts)\n3. Tippen Sie auf das Scan-Symbol (oben rechts)\n4. Scannen Sie den Code unten\n5. Bestätigen Sie in der App\n6. Klicken Sie unten auf 'Absenden'\n\n![QR Code]({qr_code_url})"
+        "description": "Scannen Sie diesen QR-Code mit der **SmartLife** App um Ihre Authentifizierung zu erneuern.\n\n**Anleitung:**\n1. Öffnen Sie die SmartLife App\n2. Tippen Sie auf Ihr Profil (unten rechts)\n3. Tippen Sie auf das Scan-Symbol (oben rechts)\n4. Scannen Sie den Code unten\n5. Bestätigen Sie in der App\n6. Klicken Sie unten auf 'Absenden'",
+        "data": {
+          "qr_code": "QR-Code"
+        }
       },
       "account_settings": {
         "title": "SmartLife Account-Einstellungen",
@@ -549,6 +552,15 @@
         "ind7705hc_cooktop": "KKT IND7705HC (Induktionskochfeld)",
         "eb8313hc_oven": "KKT Kolbe EB8313HC (Backofen)",
         "default_hood": "Default Hood - Generische Dunstabzugshaube"
+      }
+    },
+    "setup_method": {
+      "options": {
+        "smartlife": "SmartLife / Tuya Smart App (empfohlen, kein Entwicklerkonto nötig)",
+        "smart_discovery": "Smart Discovery (Netzwerkscan + API)",
+        "discovery": "Lokale Suche (nur Netzwerkscan)",
+        "manual": "Manuelle Einrichtung (IP + Local Key)",
+        "api_only": "Tuya IoT Platform (Entwicklerkonto)"
       }
     }
   },

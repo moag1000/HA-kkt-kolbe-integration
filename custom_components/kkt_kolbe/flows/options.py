@@ -46,7 +46,7 @@ class KKTKolbeOptionsFlow(OptionsFlowWithReload):
     options actually change, replacing the former config entry update listener.
     """
 
-    _qr_code_url: str | None = None
+    _qr_code: str | None = None
     _data_changed: bool = False
     _smartlife_client: TuyaSharingClient | None = None
 
@@ -119,28 +119,27 @@ class KKTKolbeOptionsFlow(OptionsFlowWithReload):
         errors: dict[str, str] = {}
 
         # Initialize QR code generation
-        if self._qr_code_url is None:
+        if self._qr_code is None:
             try:
                 from ..clients.tuya_sharing_client import TuyaSharingClient
+                from ..const import CONF_SMARTLIFE_APP_SCHEMA
+                from ..const import CONF_SMARTLIFE_USER_CODE
                 from ..const import SMARTLIFE_SCHEMA
 
                 # Get user_code from config entry
-                user_code = self.config_entry.data.get("smartlife_user_code", "")
+                user_code = self.config_entry.data.get(CONF_SMARTLIFE_USER_CODE, "")
                 if not user_code:
                     errors["base"] = "qr_code_failed"
                     _LOGGER.error("No user_code found in config entry for token renewal")
                 else:
-                    # Create new client for QR code generation
-                    client = TuyaSharingClient(self.hass, user_code=user_code, app_schema=SMARTLIFE_SCHEMA)
+                    # Use the app schema that worked when the account was added
+                    app_schema = self.config_entry.data.get(CONF_SMARTLIFE_APP_SCHEMA) or SMARTLIFE_SCHEMA
+                    client = TuyaSharingClient(self.hass, user_code=user_code, app_schema=app_schema)
                     self._smartlife_client = client
-                    # Generate QR code - returns string like "tuyaSmart--qrLogin?token=xxx"
-                    from urllib.parse import quote
-
-                    qr_code_string = await client.async_generate_qr_code()
-                    # Convert to QR code image URL using qrserver.com API
-                    encoded_qr = quote(qr_code_string, safe="")
-                    self._qr_code_url = f"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={encoded_qr}"
-                    _LOGGER.info("QR code generated for token renewal, token length: %d", len(qr_code_string))
+                    # The QR string carries a login token: render it locally with
+                    # the QR code selector instead of sending it to an image service.
+                    self._qr_code = await client.async_generate_qr_code()
+                    _LOGGER.debug("QR code generated for token renewal")
 
             except Exception as err:
                 errors["base"] = "qr_code_failed"
@@ -166,7 +165,7 @@ class KKTKolbeOptionsFlow(OptionsFlowWithReload):
                     _LOGGER.info("SmartLife tokens successfully renewed")
 
                     # Clean up
-                    self._qr_code_url = None
+                    self._qr_code = None
                     self._smartlife_client = None
 
                     # Reload the parent account entry to use new tokens
@@ -200,21 +199,25 @@ class KKTKolbeOptionsFlow(OptionsFlowWithReload):
                 errors["base"] = "auth_failed"
                 _LOGGER.error("Token renewal failed: %s", err)
 
-        # Show QR code form or error
-        qr_url = self._qr_code_url or ""
-
-        if not qr_url and not errors:
+        if not self._qr_code and not errors:
             # QR generation failed but no specific error was set
             errors["base"] = "qr_code_failed"
 
+        schema: dict[Any, Any] = {}
+        if self._qr_code:
+            schema[vol.Optional("qr_code")] = selector.QrCodeSelector(
+                config=selector.QrCodeSelectorConfig(
+                    data=self._qr_code,
+                    scale=5,
+                    error_correction_level=selector.QrErrorCorrectionLevel.QUARTILE,
+                )
+            )
+
         return self.async_show_form(
             step_id="renew_token",
-            data_schema=vol.Schema({}),
+            data_schema=vol.Schema(schema),
             errors=errors,
-            description_placeholders={
-                "qr_code_url": qr_url if qr_url else "https://via.placeholder.com/200?text=QR+Error",
-                "account_name": self.config_entry.title,
-            },
+            description_placeholders={"account_name": self.config_entry.title},
         )
 
     async def async_step_smartlife_device(self, user_input: dict[str, Any | None] | None = None) -> ConfigFlowResult:

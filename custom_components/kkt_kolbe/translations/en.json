@@ -442,7 +442,10 @@
       },
       "renew_token": {
         "title": "Renew SmartLife Token",
-        "description": "Scan this QR code with the **SmartLife** or **Tuya Smart** app to renew the authentication token.\n\n[![QR Code]({qr_code_url})]({qr_code_url})\n\nAfter scanning, click **Submit** to complete the renewal."
+        "description": "Scan this QR code with the **SmartLife** or **Tuya Smart** app to renew the authentication token.\n\nAfter scanning, click **Submit** to complete the renewal.",
+        "data": {
+          "qr_code": "QR code"
+        }
       },
       "account_settings": {
         "title": "SmartLife Account Settings",
@@ -549,6 +552,15 @@
         "ind7705hc_cooktop": "KKT IND7705HC (Induction Cooktop)",
         "eb8313hc_oven": "KKT Kolbe EB8313HC (Oven)",
         "default_hood": "Default Hood - Generic Range Hood"
+      }
+    },
+    "setup_method": {
+      "options": {
+        "smartlife": "SmartLife / Tuya Smart App (recommended, no developer account)",
+        "smart_discovery": "Smart Discovery (network scan + API)",
+        "discovery": "Local discovery (network scan only)",
+        "manual": "Manual setup (IP + local key)",
+        "api_only": "Tuya IoT Platform (developer account)"
       }
     }
   },
