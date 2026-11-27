@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **SmartLife-Reauth bei Geräteeinträgen lief ins Leere**: Lief ein SmartLife-Token ab, startete die Neuanmeldung am Geräteeintrag und speicherte die frischen Tokens dort. Beim Setup liest ein Gerät die Tokens aber nur aus dem Konto-Eintrag, also blieb der abgelaufene Token aktiv und die Anmeldung kam immer wieder. Die Tokens landen jetzt im Konto-Eintrag, Konto und alle zugehörigen Geräte werden neu geladen, und der User Code ist aus dem Konto vorausgefüllt. Die vom Cloud-Konto gemeldete IP (meist die öffentliche WAN-Adresse) überschreibt die LAN-IP nicht mehr.
+- **Local Key per Reauth**: Die Neuanmeldung mit Local Key schrieb nur `local_key`, das Setup liest aber `access_token` zuerst. Nach dem Reload war wieder der alte Schlüssel aktiv. Jetzt werden beide Felder über `helpers/local_key.py` geschrieben (auch beim SmartLife-Reauth).
+- **Token erneuern (Optionen des SmartLife-Kontos)**: Der QR-Code wurde als Bild bei `api.qrserver.com` erzeugt, dabei ging das Login-Token an diesen Dienst. Der QR-Code wird jetzt wie bei der Einrichtung lokal mit dem QR-Code-Selektor angezeigt, und es wird das App-Schema verwendet, mit dem das Konto angelegt wurde (statt fest `smartlife`).
+- **Neu konfigurieren → API**: Ein leeres Secret-Feld behält laut Formular das gespeicherte Secret, wurde aber als ungültig abgelehnt. Bei unveränderter Client ID und Region bleibt das gespeicherte Secret jetzt erhalten.
+- **Einrichtungsart auf Deutsch**: Die Auswahl der Einrichtungsart hatte keine Übersetzung und war immer englisch.
+
 ## [4.11.0] - 2026-11-24
 
 ### Added

@@ -45,6 +45,7 @@ from .discovery import async_start_discovery
 from .discovery import get_discovered_devices
 from .flows.options import KKTKolbeOptionsFlow  # Import the correct OptionsFlow
 from .helpers.local_key import entry_data_with_local_key
+from .helpers.local_key import entry_local_key
 from .smart_discovery import SmartDiscovery
 from .smart_discovery import SmartDiscoveryResult
 from .smart_discovery import async_get_configured_device_ids
@@ -566,7 +567,6 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for KKT Kolbe."""
 
     VERSION = 2
-    CONNECTION_CLASS = "local_push"
 
     @staticmethod
     @callback
@@ -2151,10 +2151,11 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                 dev_id = str(reauth_entry.data.get("device_id", ""))
                 local_key_val = str(user_input["local_key"]) if user_input.get("local_key") else ""
                 if await self._test_device_connection(ip_addr, dev_id, local_key_val):
-                    # Update config entry with new local key
+                    # Setup reads access_token before local_key: write both,
+                    # or the reload keeps connecting with the old key.
                     return self.async_update_reload_and_abort(
                         reauth_entry,
-                        data_updates={"local_key": user_input["local_key"]},
+                        data=entry_data_with_local_key(reauth_entry.data, local_key_val),
                     )
                 else:
                     errors["base"] = "cannot_connect"
@@ -2217,11 +2218,24 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             return self.async_abort(reason="reauth_failed")
 
         token_info = self._smartlife_client.get_token_info_for_storage()
-        entry_data = {**self._reauth_entry.data, "smartlife_token_info": token_info}
+        reauth_entry = self._reauth_entry
+        account_entry = self._smartlife_account_entry(reauth_entry)
+        is_account = reauth_entry.data.get("entry_type") == ENTRY_TYPE_ACCOUNT
+
+        if account_entry is not None and account_entry.entry_id != reauth_entry.entry_id:
+            # Child device entry: setup reads the tokens from the parent account
+            # entry only, so fresh tokens stored on the child would be ignored.
+            self.hass.config_entries.async_update_entry(
+                account_entry, data={**account_entry.data, CONF_SMARTLIFE_TOKEN_INFO: token_info}
+            )
+            entry_data = dict(reauth_entry.data)
+        else:
+            entry_data = {**reauth_entry.data, CONF_SMARTLIFE_TOKEN_INFO: token_info}
 
         # Try to fetch devices and update local_key + device_id
         try:
-            devices = await self._smartlife_client.async_get_devices()
+            # An account entry has no device of its own to refresh
+            devices = [] if is_account else await self._smartlife_client.async_get_devices()
 
             old_device_id = self._reauth_entry.data.get("device_id")
             old_product_id = self._reauth_entry.data.get("product_id")
@@ -2248,9 +2262,9 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
             if matched_device:
                 updates: list[str] = []
 
-                # Update local_key if available
-                if matched_device.local_key and matched_device.local_key != self._reauth_entry.data.get("local_key"):
-                    entry_data["local_key"] = matched_device.local_key
+                # Update local_key if available (both fields, see helpers/local_key.py)
+                if matched_device.local_key and matched_device.local_key != entry_local_key(reauth_entry.data):
+                    entry_data = entry_data_with_local_key(entry_data, matched_device.local_key)
                     updates.append("local_key")
 
                 # Update device_id if changed
@@ -2263,9 +2277,9 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
 
                     ir.async_delete_issue(self.hass, DOMAIN, f"device_id_changed_{self._reauth_entry.entry_id}")
 
-                # Update IP if available
-                if hasattr(matched_device, "ip") and matched_device.ip:
-                    entry_data["ip_address"] = matched_device.ip
+                # The cloud usually reports the WAN address; only a LAN address
+                # is usable for the local connection.
+                if _is_private_ip(getattr(matched_device, "ip", None)):
                     entry_data[CONF_IP_ADDRESS] = matched_device.ip
 
                 if updates:
@@ -2278,7 +2292,7 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                     _LOGGER.info(
                         "SmartLife reauth: Token refreshed for %s (no device changes)", self._reauth_entry.title
                     )
-            else:
+            elif not is_account:
                 _LOGGER.warning(
                     "SmartLife reauth: Could not find device in account (checked %d devices). "
                     "Token updated but local_key/device_id unchanged.",
@@ -2288,6 +2302,8 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
         except Exception as err:
             # Token is still updated even if device fetch fails
             _LOGGER.warning("SmartLife reauth: Token updated but device refresh failed: %s", err)
+
+        self._schedule_reload_of_account_family(account_entry, exclude=reauth_entry.entry_id)
 
         # Update config entry
         new_unique_id = None
@@ -2300,6 +2316,24 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                 self._reauth_entry, unique_id=new_unique_id, data=entry_data, reason="reauth_successful"
             )
         return self.async_update_reload_and_abort(self._reauth_entry, data=entry_data, reason="reauth_successful")
+
+    def _smartlife_account_entry(self, entry: ConfigEntry) -> ConfigEntry | None:
+        """Return the SmartLife account entry that holds the tokens for an entry."""
+        if entry.data.get("entry_type") == ENTRY_TYPE_ACCOUNT:
+            return entry
+        parent_entry_id = entry.data.get("parent_entry_id")
+        return self.hass.config_entries.async_get_entry(parent_entry_id) if parent_entry_id else None
+
+    @callback
+    def _schedule_reload_of_account_family(self, account_entry: ConfigEntry | None, exclude: str) -> None:
+        """Reload the account entry and its device entries so all use the new tokens."""
+        if account_entry is None:
+            return
+        for entry in self.hass.config_entries.async_entries(DOMAIN):
+            if entry.entry_id == exclude:
+                continue  # reloaded by async_update_reload_and_abort
+            if entry.entry_id == account_entry.entry_id or entry.data.get("parent_entry_id") == account_entry.entry_id:
+                self.hass.config_entries.async_schedule_reload(entry.entry_id)
 
     async def async_step_smartlife_reauth(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle SmartLife token re-authentication via QR code.
@@ -2321,11 +2355,17 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                 self._smartlife_reauth_mode = True
                 return await self.async_step_smartlife_scan()
 
-        # Pre-fill user code from existing config if available
+        # Pre-fill the user code; device entries keep it on their account entry
         existing_user_code = ""
         if self._reauth_entry:
-            token_info = self._reauth_entry.data.get("smartlife_token_info", {})
-            existing_user_code = token_info.get("user_code", "")
+            source_entry = self._smartlife_account_entry(self._reauth_entry) or self._reauth_entry
+            token_info = source_entry.data.get(CONF_SMARTLIFE_TOKEN_INFO) or {}
+            existing_user_code = (
+                token_info.get("user_code")
+                or source_entry.data.get(CONF_SMARTLIFE_USER_CODE)
+                or self._reauth_entry.data.get(CONF_SMARTLIFE_USER_CODE)
+                or ""
+            )
 
         schema = vol.Schema(
             {
@@ -2562,8 +2602,18 @@ class KKTKolbeConfigFlow(ConfigFlow, domain=DOMAIN):
                 client_secret = user_input.get("api_client_secret", "").strip()
                 endpoint = user_input.get("api_endpoint", "https://openapi.tuyaeu.com")
 
+                # The secret is never pre-filled; the form says an empty field
+                # keeps the stored one, which is only valid for unchanged settings.
+                if (
+                    not client_secret
+                    and entry.data.get("api_client_secret")
+                    and client_id == entry.data.get("api_client_id")
+                    and endpoint == entry.data.get("api_endpoint", "https://openapi.tuyaeu.com")
+                ):
+                    if not entry.data.get("api_enabled"):
+                        new_data["integration_mode"] = "hybrid"
                 # Validate credentials if enabling API
-                if not client_id or len(client_id) < 10:
+                elif not client_id or len(client_id) < 10:
                     errors["api_client_id"] = "api_client_id_invalid"
                 elif not client_secret or len(client_secret) < 20:
                     errors["api_client_secret"] = "api_client_secret_invalid"
